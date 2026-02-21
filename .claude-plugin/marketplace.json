@@ -1,0 +1,20 @@
+{
+  "name": "gtm-eng-skills",
+  "owner": "Deepline",
+  "homepage": "https://code.deepline.com",
+  "version": "1.0.0",
+  "description": "GTM skills for Claude Code — prospecting, signal discovery, enrichment, and lead generation powered by Deepline",
+  "plugins": [
+    {
+      "name": "gtm-eng-skills",
+      "strict": false,
+      "skills": [
+        "niche-signal-discovery",
+        "waterfall-enrichment",
+        "contact-to-email",
+        "get-leads-at-company",
+        "build-tam"
+      ]
+    }
+  ]
+}
