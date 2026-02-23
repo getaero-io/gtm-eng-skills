@@ -43,10 +43,10 @@ Use `deepline enrich` for all enrichment steps. Use `deepline tools execute` for
 ```
 0. Discover target company (what they sell, who they sell to, differentiation)
 0.5. Discover ecosystem (competitors, tech stack category, buyer personas)
-1. Prepare input CSV (domain, status)
+1. Prepare input CSV (domain, status) — deduplicate domains that appear in both won and lost
 1.5. Generate vertical-specific configs (keywords, tools, job roles)
 2. Multi-page website extraction + job listings (Deepline enrichment)
-3. Quality gate — verify coverage (>80% with content)
+3. Quality gate — verify file completeness + coverage (>80% with content)
 3.5. Review generated configs (validate against enriched data)
 4. Run differential analysis (scripts/analyze_signals.py)
 5. Generate report (using references/report-template.md)
@@ -132,6 +132,22 @@ customer2.com,won
 non-customer1.com,lost
 non-customer2.com,lost
 ```
+
+**CRITICAL — Deduplicate before enrichment.** If the same domain appears in both won and lost groups (same company, multiple CRM deals), Deepline may only fetch job listings once (for the first row). The duplicate domain's content is identical in both groups — including it pollutes lift scores and causes `won_with_jobs` to be undercounted. Always check and remove duplicate domains before running enrichment:
+
+```python
+# Check for duplicates after building the input CSV
+from collections import Counter
+domain_counts = Counter(r['domain'] for r in rows)
+duplicate_domains = {d for d, c in domain_counts.items() if c > 1}
+if duplicate_domains:
+    print(f"WARNING: {len(duplicate_domains)} domains appear in both won and lost:")
+    for d in sorted(duplicate_domains):
+        print(f"  {d}")
+    print("Remove these rows before enrichment — they pollute lift scores.")
+```
+
+If duplicates exist, remove ALL rows for those domains (not just one copy). The same company with different deal outcomes tells us nothing about what distinguishes buyers from non-buyers.
 
 ## Step 1.5: Generate Vertical-Specific Configs
 
@@ -259,7 +275,36 @@ Get user credit approval before running. Example: "60 companies x 6 credits = ~3
 
 ## Step 3: Quality Gate
 
-After enrichment, verify before proceeding:
+**CRITICAL — Verify file completeness BEFORE running analysis.** `deepline enrich` returns control to the terminal before OS buffers fully flush to disk. Running the analysis script immediately after enrichment completes can read a partially-written file where job columns for the last N rows haven't synced yet — resulting in `won_with_jobs: 0` or severely undercounted job data. Always verify:
+
+```bash
+# 1. Check row count matches input
+INPUT_ROWS=$(wc -l < output/{company}-icp-input.csv)
+OUTPUT_ROWS=$(wc -l < output/{company}-enriched.csv)
+echo "Input: $INPUT_ROWS rows, Output: $OUTPUT_ROWS rows"
+# Output should equal input (both include header)
+
+# 2. Spot-check job data for a known won account with job listings
+python3 -c "
+import csv, json, sys
+csv.field_size_limit(sys.maxsize)
+with open('output/{company}-enriched.csv') as f:
+    rows = list(csv.DictReader(f))
+won_rows = [r for r in rows if r.get('status') == 'won']
+jobs_col = 'jobs'  # or use column index
+has_jobs = sum(1 for r in won_rows if r.get(jobs_col, '').strip() not in ('', '{}', 'null'))
+print(f'Won rows with job data: {has_jobs}/{len(won_rows)}')
+# If this is 0 and you know won accounts should have listings, wait and re-run
+"
+```
+
+If `won_with_jobs` is 0 but you expect job data:
+
+1. Wait 5-10 seconds (OS buffer flush)
+2. Re-run the verification check
+3. If still 0, check column indices — the enriched CSV uses `website` and `jobs` column names, NOT `__dl_full_result__`. Use `--website-col N --jobs-col N` overrides.
+
+After file verification, check coverage:
 - **Coverage**: >80% of companies should have website content. If <80%, check domain spelling and retry failed rows.
 - **Content depth**: Average should be 6-8 pages per company, 12-20K chars.
 - **Job listings**: Won companies should have more job data than lost (expected — larger/scaling companies win more).
@@ -318,7 +363,32 @@ The script auto-detects `__dl_full_result__` columns for website and jobs data. 
 
 Read `references/report-template.md` for the full report structure and quality rules.
 
-Key quality rules:
+**Report structure overview:**
+
+1. **Section 0: Quick Reference Dashboard** ← Start here. Required before all other sections.
+   - **0.1 TLDR** — 5 bullets: #1 signal, best-fit archetype, fastest path to pipeline, hard skip flags, scoring summary
+   - **0.2 Signal Strength at a Glance** — Two visual tables (positive + anti-fit) with 🟩🟥 emoji lift bars sorted by lift
+   - **0.3 Platform Search Recipes** — Pre-built Apollo URLs (people + company searches) and Google operators
+   - **0.4 Buyer Persona Quick Reference** — 3–5 personas with titles, pain points, signals, and Apollo links
+   - **0.5 Lead Scoring Cheatsheet** — All scoring signals in one table with "How to Check" column
+2. Sections 1–9: Full data and methodology (existing format, unchanged)
+
+**Signal Strength Bar scale** (use in Section 0.2):
+```
+≥10x → 🟩🟩🟩🟩🟩🟩   ≥4x  → 🟩🟩🟩🟩🟩   ≥2.5x → 🟩🟩🟩🟩
+≥2.0x → 🟩🟩🟩         ≥1.5x → 🟩🟩         ≥1.0x → 🟩
+≥0.4x → 🟥🟥           ≥0.25x → 🟥🟥🟥       ≥0.15x → 🟥🟥🟥🟥
+≥0.07x → 🟥🟥🟥🟥🟥    <0.07x → 🟥🟥🟥🟥🟥🟥
+```
+
+**Apollo URL format** (use in Section 0.3 and 0.4):
+```
+People: https://app.apollo.io/#/people?personTitles[]=Title+One&personTitles[]=Title+Two&personSeniorities[]=vp&personSeniorities[]=director&qOrganizationKeywordTags[]=vertical&organizationLocations[]=United+States&page=1
+Companies: https://app.apollo.io/#/companies?qOrganizationKeywordTags[]=keyword&organizationLocations[]=United+States&organizationNumEmployeesRanges[]=201-500&page=1
+```
+Use `qOrganizationKeywordTags[]` for keyword filters (not hardcoded industry tag IDs).
+
+Key quality rules for all sections:
 - **Raw counts always**: `15% (6)` not just `15%`
 - **Sample sizes in headers**: `Won (n=37)`, `Lost (n=18)`
 - **Bold only lift > 2x**
@@ -378,6 +448,8 @@ Always get user approval before running paid enrichment steps.
 6. **Missing lost data**: Verify lost companies have content before analysis. Empty lost = meaningless lift scores.
 7. **Substring false positives**: "sequenc" matches "consequences". Spot-check high-lift keywords for false matches.
 8. **Skipping config review (Step 3.5)** — Always validate generated configs against enriched data before analysis.
+9. **Duplicate domains in input** — CRM exports often have the same company in both won and lost (multiple deals). Deepline only fetches job listings once per domain, so the duplicate's job data lands on one row only — silently undercounting `won_with_jobs`. Always deduplicate in Step 1.
+10. **Running analysis immediately after enrichment** — `deepline enrich` returns to terminal before OS buffers flush. Run the file completeness check in Step 3 before executing `analyze_signals.py`. A `won_with_jobs: 0` result when you expect data is the symptom; re-running the analysis (without re-enriching) fixes it.
 
 ## References
 
