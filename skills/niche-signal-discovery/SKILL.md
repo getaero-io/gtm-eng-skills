@@ -53,6 +53,21 @@ Use `deepline enrich` for all enrichment steps. Use `deepline tools execute` for
 6. Review with signal interpretation rules (references/signal-interpretation.md)
 ```
 
+## Signal Reliability Hierarchy
+
+Not all signals are equal. From actual runs across Air Inc, Mixmax, Lunos.ai, and others, signals follow a clear reliability order:
+
+| Rank | Signal Source | Reliability | Why |
+|------|---|---|---|
+| 1 | **Job listings** (hiring for domain-related roles) | Highest | Active budget + acknowledged pain. A company hiring 3 AEs is a stronger signal than "sales" on their website. |
+| 2 | **Analyst validation** (Gartner, Forrester mentions) | Very High | Enterprise maturity + category awareness. 6.5x lift in Mixmax analysis, 0% false positive rate in lost group. |
+| 3 | **Compliance infrastructure** (SOC2, GDPR, ISO) | High | Procurement maturity + enterprise readiness. Companies with compliance pages have formal approval processes. |
+| 4 | **Buyer pain language** (on careers/blog pages) | High | Operational awareness of the problem — e.g., "fragmented tools" at 5.2x lift for Air Inc. |
+| 5 | **Tech stack tools** (niche SaaS specific to persona) | Medium | Infrastructure readiness — Figma + Adobe CC at 3.2x lift for creative ops buyers. |
+| 6 | **Website product/marketing content** | Variable | Can indicate buyer OR competitor — source context is everything. |
+
+**When website signals fail:** For B2B infrastructure tools (AR automation, billing, compliance), buyers DON'T publish their pain on public websites. A company like McPherson Oil (energy distribution) talks about oil products, not accounts receivable challenges. For these verticals, prioritize job listings, tech stack, and firmographic signals over website keyword matching.
+
 ## Step 0: Target Company Discovery
 
 **CRITICAL: Do this FIRST before any enrichment or config generation.**
@@ -245,14 +260,22 @@ output/{company}-job-roles.json   # job role categories
 **Generate exa query dynamically based on target's product category:**
 
 ```bash
-# Generic query (works for most B2B SaaS)
+# Generic query (works for most B2B SaaS selling to marketing/sales/product teams)
 QUERY="company product features integrations customers security pricing careers about case-studies"
 
-# Vertical-specific adjustments:
-# - Creative/marketing tools: add "portfolio", "use cases", "creative workflow"
-# - Finance tools: add "compliance", "reporting", "accounting integrations"
-# - Sales tools: add "playbooks", "outbound", "pipeline"
-# - Developer tools: add "documentation", "api reference", "github"
+# For tools selling to back-office teams (finance, HR, legal):
+# Buyers don't publish pain on marketing pages — add compliance/audit pages where signals live
+QUERY="company product features integrations customers security pricing careers compliance audit regulatory about"
+
+# For developer tools:
+# Add documentation/API pages — these reveal infrastructure maturity and integration readiness
+QUERY="company product features documentation api changelog github integrations security pricing careers about"
+
+# For creative/marketing tools:
+QUERY="company product features portfolio use cases creative workflow customers integrations security pricing careers about"
+
+# For sales tools:
+QUERY="company product features playbooks outbound pipeline customers integrations security pricing careers about"
 ```
 
 **Example for Air Inc (creative ops):**
@@ -310,6 +333,34 @@ After file verification, check coverage:
 - **Job listings**: Won companies should have more job data than lost (expected — larger/scaling companies win more).
 
 If coverage is poor, re-run failed domains with `--rows` targeting specific rows.
+
+### Domain Validation (if using auto-extracted customer lists)
+
+If customer domains came from automated extraction (CRM exports, Exa API, case study scraping) rather than a manually verified list, validate that domains actually belong to the named companies. From the Lunos.ai run: **53% of auto-extracted customers were false positives** — competitors selling the same product, domain mismatches (Harvey → anthropic.com), and unrelated companies.
+
+```bash
+# Check for suspicious domain patterns
+python3 -c "
+import csv, sys
+csv.field_size_limit(sys.maxsize)
+with open('output/{company}-enriched.csv') as f:
+    rows = list(csv.DictReader(f))
+for r in rows:
+    domain = r.get('domain', '')
+    # Flag content platforms used as source URLs, not company domains
+    if any(x in domain for x in ['blog.', 'medium.com', 'substack.', 'wordpress.']):
+        print(f'WARNING: {domain} looks like a content platform, not a company domain')
+    # Flag very short domains that might be generic
+    if len(domain.split('.')[0]) <= 2:
+        print(f'CHECK: {domain} — very short domain, verify it belongs to the expected company')
+"
+```
+
+**Red flags for false positives:**
+- Domain is a subdomain of the target company (blog.target.com)
+- Domain belongs to a well-known AI/tech company but the "customer" is a different firm (domain resolution failed)
+- Company appears in competitor case studies, not target's own customer list
+- Company is itself a vendor in the same product category (they SELL the solution, they don't BUY it)
 
 ## Step 3.5: Review Generated Configs
 
@@ -391,15 +442,19 @@ Use `qOrganizationKeywordTags[]` for keyword filters (not hardcoded industry tag
 Key quality rules for all sections:
 - **Raw counts always**: `15% (6)` not just `15%`
 - **Sample sizes in headers**: `Won (n=37)`, `Lost (n=18)`
-- **Bold only lift > 2x**
+- **Bold only lift > 2x AND count >= 3 companies** — a signal in 1 company with 10x lift is less reliable than a signal in 4 companies with 3x lift
+- **Flag n=1 signals**: If a signal appears in only 1 won company, add a note: `*(single company — verify before using in scoring)*`. In the scoring model, give n=1 signals 0.3x weight vs n=3+ signals.
+- **Source breakdown for ALL keyword tables**: Add a Source column showing `3w / 20j / 2both` format (3 website-only, 20 jobs-only, 2 from both). This is critical for distinguishing website-only signals (lower confidence) from job-listing signals (higher confidence).
+  ```markdown
+  | Keyword | Won (n=X) | Lost (n=Y) | Lift | Source (w/j/both) | Interpretation |
+  ```
 - **Source evidence required**: After each keyword table, add exact quotes with linked sources for top 3 keywords. The analysis script outputs `evidence` per keyword with `company`, `source_type`, `quote`, `url`, and `page_title`/`job_title`. Format:
   ```
   > **Evidence — "keyword":**
   > - [company.com](url) (page title): "...exact quote with keyword..."
   > - [company.com](url) (job: "Job Title"): "...exact quote from listing..."
   ```
-- **Source breakdown for hiring signals**: Add a Source column showing `3w / 20j / 2both` format
-- **Niche tech stack tools**: Report specific SaaS tools by category, not generic keywords
+- **Niche tech stack tools**: Report specific SaaS tools by category, not generic keywords. "AWS", "GitHub", "Slack" appear on most B2B sites — these aren't differentiating.
 - **Anti-fit signals in separate section**
 - **Interpretation column required**: Explains WHY each signal matters for the target company
 
@@ -440,16 +495,56 @@ Always get user approval before running paid enrichment steps.
 
 ## Common Pitfalls
 
-1. **Skipping target discovery (Step 0)** — Without understanding what the target sells, you'll generate generic/irrelevant configs
-2. **Homepage-only scraping**: Always use multi-page discovery. Homepage alone misses pricing, integrations, security.
+1. **Skipping target discovery (Step 0)** — Without understanding what the target sells, you'll generate generic/irrelevant configs.
+2. **Homepage-only scraping** — Always use multi-page discovery. Homepage alone misses pricing, integrations, security, careers.
 3. **Using hardcoded examples** — Don't copy sales-focused keywords for a creative-ops tool. Generate configs per vertical.
-4. **Generic tech stack**: Search for niche SaaS tools specific to buyer persona, not generic ones (AWS, Slack).
-5. **Ignoring source context**: "prospect" on a product page = seller signal. "prospect" in a job listing = buyer signal.
-6. **Missing lost data**: Verify lost companies have content before analysis. Empty lost = meaningless lift scores.
-7. **Substring false positives**: "sequenc" matches "consequences". Spot-check high-lift keywords for false matches.
+4. **Generic tech stack** — "AWS", "GitHub", "Slack" appear on most B2B sites and aren't differentiating. Search for niche SaaS tools specific to the buyer persona (e.g., Figma for creative teams, NetSuite for finance teams).
+5. **Ignoring source context** — "prospect" on a product page = seller signal. "prospect" in a job listing = buyer signal. Same keyword, opposite meaning.
+6. **Missing lost data** — Verify lost companies have content before analysis. Empty lost = meaningless lift scores.
+7. **Substring false positives** — "sequenc" matches "consequences". Spot-check high-lift keywords for false matches.
 8. **Skipping config review (Step 3.5)** — Always validate generated configs against enriched data before analysis.
 9. **Duplicate domains in input** — CRM exports often have the same company in both won and lost (multiple deals). Deepline only fetches job listings once per domain, so the duplicate's job data lands on one row only — silently undercounting `won_with_jobs`. Always deduplicate in Step 1.
 10. **Running analysis immediately after enrichment** — `deepline enrich` returns to terminal before OS buffers flush. Run the file completeness check in Step 3 before executing `analyze_signals.py`. A `won_with_jobs: 0` result when you expect data is the symptom; re-running the analysis (without re-enriching) fixes it.
+11. **Domain mismatches in auto-extracted lists** — When using CRM exports or automated customer discovery, domain → company name mapping can be wrong. In the Lunos.ai run, 53% of auto-extracted domains were false positives. Always validate domains against expected company names before enrichment.
+12. **Treating vendor signals as buyer signals** — "accounts receivable automation" on a company's product page means they SELL AR tools (competitor). The same phrase in a job listing means they NEED AR tools (buyer). Source context is everything — see `references/signal-interpretation.md`.
+13. **Trusting n=1 signals** — A signal in 1 won company with 0 lost = mathematically high lift but statistically meaningless. Require 3+ companies for Tier 1 scoring signals. Flag single-company signals in the report with a verification note.
+14. **Expecting website signals for back-office tools** — Companies buying AR automation, billing, or compliance tools don't discuss these needs on their marketing websites. For these verticals, rely on job listings (hiring AR Manager = budget + pain), tech stack (NetSuite, Salesforce in jobs), and firmographics (wholesale/distribution/manufacturing) instead.
+15. **Including generic business words as signals** — "platform", "automat*", "integrat*" appear at near-identical rates in won and lost (1.0-1.1x lift). These are baseline terms, not differentiators. Focus on signals with lift > 1.5x that are specific to the target's vertical.
+
+## Proven Signal Patterns (from actual runs)
+
+These patterns have been validated across multiple customer analyses (Air Inc, Mixmax, Lunos.ai, Prove, Legal.io). Use them as a starting point when interpreting results — but always validate against the specific target's vertical.
+
+### High-Confidence Positive Signals
+
+| Signal Pattern | Typical Lift | Validated For | What It Means |
+|---|---|---|---|
+| Analyst validation (Gartner, Forrester) | 4.5x-6.5x | Enterprise B2B SaaS | Company has evaluated the category, has enterprise procurement process |
+| Hiring for ICP-related roles | 3.8x-5.5x | All verticals | Active budget + acknowledged pain — highest-intent signal |
+| Published case studies | 3.7x | Product-led + sales-assist | Mature marketing org, values proof points, vendor-friendly |
+| Compliance infrastructure (GDPR, SOC2, ISO) | 2.1x-6.5x | Enterprise tools | Formal approval processes, security reviews, higher close rates |
+| Buyer pain language (e.g., "fragmented tools") | 2.9x-5.2x | Creative ops, MarTech | Operational awareness of the specific problem the target solves |
+| SDK/webhook/API presence | 2.5x-3.5x | Developer-adjacent tools | Developer culture, integrates tools programmatically |
+| Contact sales / sales-led GTM | 2.2x-5.5x | Enterprise sales tools | Human-led sales motion = AE-dependent = Mixmax buyer |
+| Niche tech stack (Figma, Frame.io, NetSuite) | 1.5x-5.5x | Vertical-specific | Infrastructure readiness for the target's integration ecosystem |
+
+### High-Confidence Anti-Fit Signals
+
+| Signal Pattern | Typical Lift | What It Means |
+|---|---|---|
+| Consumer signals (shopper, checkout, cancel, debit) | 0.2x | B2C company, not B2B sales org |
+| Retention/churn language | 0.2x-0.4x | Consumer subscription model, not enterprise buying |
+| Selling same product category | 0.1x-0.3x | Competitor, not buyer — they SELL the solution |
+| No job listings in 12+ months | N/A | Not growing, no hiring budget |
+
+### Scoring Model Guidance
+
+From actual runs, a 0-100 point model with three tiers works well:
+- **Tier 1: Core Fit (0-40 pts)** — Compliance, analyst validation, structural signals
+- **Tier 2: Buying Intent (0-30 pts)** — Hiring for domain roles, pain language, tech stack
+- **Tier 3: Infrastructure Readiness (0-30 pts)** — API presence, integration maturity, case studies
+
+Score thresholds: 60+ = Tier 1 immediate outreach, 35-59 = Tier 2 trigger-based, <35 = nurture or skip.
 
 ## References
 

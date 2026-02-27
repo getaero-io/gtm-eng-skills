@@ -6,7 +6,9 @@ Each skill lives in its own directory:
 
 ```
 skills/<skill-name>/
-└── SKILL.md
+├── SKILL.md              # Required — skill definition with YAML frontmatter
+├── references/           # Optional — supporting docs (keyword catalogs, templates)
+└── scripts/              # Optional — helper scripts the skill can invoke
 ```
 
 `SKILL.md` must have YAML frontmatter:

@@ -40,10 +40,24 @@ deepline auth login
 
 ## Installation
 
-### Option 1: Claude Code skills CLI (recommended)
+### Option 1: Skills CLI (recommended)
 
 ```bash
-npx skills install github:getaero-io/gtm-eng-skills
+npx skills add getaero-io/gtm-eng-skills --all
+```
+
+This installs all 5 skills and symlinks them into your agent directories.
+
+To install specific skills only:
+
+```bash
+npx skills add getaero-io/gtm-eng-skills --skill niche-signal-discovery waterfall-enrichment
+```
+
+To install globally (available across all projects):
+
+```bash
+npx skills add getaero-io/gtm-eng-skills --all --global
 ```
 
 ### Option 2: Git clone
