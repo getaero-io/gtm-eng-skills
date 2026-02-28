@@ -45,10 +45,10 @@ A signal appearing in only 1 won company with 0 lost companies produces mathemat
 
 ## Rule 6: Website Signals Fail for Back-Office Tools
 
-For B2B infrastructure tools (AR automation, billing, compliance, HR), buyers don't publish their pain on public websites. From the Lunos.ai analysis:
+For B2B infrastructure tools (AR automation, billing, compliance, HR), buyers don't publish their pain on public websites. From actual analyses:
 - 0 of 7 verified customers had AR-related website signals
 - All "accounts receivable" signals came from false positives (vendors, not buyers)
-- Verified customers (McPherson Oil, Butler Machinery, PepsiCo) talk about their own products, not back-office operations
+- Verified customers (e.g., wholesale distributors, manufacturers, enterprise brands) talk about their own products, not back-office operations
 
 **Application:** For back-office tool verticals, deprioritize website keyword signals. Instead rely on:
 1. Job listings (hiring AR Manager, Collections Specialist = active pain + budget)
@@ -58,7 +58,7 @@ For B2B infrastructure tools (AR automation, billing, compliance, HR), buyers do
 
 ## Rule 7: Anti-Fit Signals Are as Valuable as Fit Signals
 
-From the Mixmax analysis: 80% of lost companies were disqualifiable using just 3 anti-fit signals (shopper, checkout, cancel). Identifying non-buyers early prevents wasted outreach.
+From actual analyses: 80% of lost companies were disqualifiable using just 3 anti-fit signals (shopper, checkout, cancel). Identifying non-buyers early prevents wasted outreach.
 
 **Application:** Always generate a dedicated anti-fit section. Key anti-fit patterns:
 - Consumer signals (shopper, checkout, cart, debit card) → B2C, not B2B

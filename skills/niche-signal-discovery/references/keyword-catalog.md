@@ -43,7 +43,7 @@ Each key is a category name, each value is a list of keyword strings.
 
 ### Multi-Vertical Examples
 
-**Creative Ops / DAM Tools** (e.g., Air Inc, Bynder, Widen):
+**Creative Ops / DAM Tools** (e.g., Bynder, Widen, Brandfolder):
 ```json
 {
   "creative_operations": [
@@ -334,7 +334,7 @@ WebSearch: "companies hiring creative operations brand manager"
 
 1. **Competitor product signals** — Company SELLS the same thing the target sells (they're a vendor, not a buyer)
    - Example: "sales engagement platform" for Outreach/SalesLoft target
-   - Example: "DAM platform" or "digital asset management platform" for Bynder/Air Inc target
+   - Example: "DAM platform" or "digital asset management platform" for a DAM tool target
    - Example: "AR automation platform" for HighRadius/Tesorio target
 
 2. **Consumer/B2C signals** (for B2B tools) — `shopper`, `checkout`, `cart`, `consumer`, `debit card`

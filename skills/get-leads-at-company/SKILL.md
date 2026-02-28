@@ -74,12 +74,51 @@ deepline enrich --input companies.csv --in-place --rows 0:1 \
 - `post_signals.extracted_json.hook` — personalization hook from posts
 - `message.extracted_json.subject` + `message.extracted_json.body` — outbound message
 
+## When company_linkedin is null
+
+If `company_profile.data.company_linkedin` is null, the Apify employee scraper will fail. Fall back to Apollo people search:
+
+```bash
+deepline enrich --input companies.csv --in-place --rows 0:0 \
+  --with 'contacts=apollo_people_search:{"q_organization_name":"{{Company}}","person_titles":["VP Sales","Head of Revenue","Revenue Operations","GTM","CRO"],"include_similar_titles":true,"person_seniorities":["vp","director","c_suite","owner"],"per_page":10,"page":1}'
+```
+
+## Seniority filtering
+
+When searching for decision-makers, add seniority filters to avoid getting individual contributors:
+
+```bash
+"person_seniorities": ["c_suite", "vp", "director", "owner"]
+```
+
+Valid seniority values: `c_suite`, `vp`, `director`, `manager`, `senior`, `entry`, `owner`, `partner`
+
 ## Tips
 
 - Prefer `max_employees: 60` for smaller companies; increase for enterprises
 - Filter by `job_title: "gtm"` for a broad GTM net; use `"sales"` or `"revenue"` for narrower searches
-- If `company_linkedin` is null after company_profile, fall back to direct Apollo people search
+- Always add `person_seniorities` to avoid noisy results from IC roles
 - Run `deepline playground start --csv companies.csv --open` after enrichment to review rows
+
+## Cost estimation
+
+The full chain is expensive per company — pilot first:
+
+| Step | Credits | Notes |
+|------|---------|-------|
+| `apollo_company_search` | ~1 | Company resolution |
+| `apify_run_actor_sync` (employees) | ~5-10 | LinkedIn scraping, varies by company size |
+| `call_ai_claude_code` (pick + signals + message) | ~0.5 | 3 AI calls total |
+| **Full chain total** | **~7-12** | **Per company** |
+
+For large lists, use the simpler Apollo-only version first, then run the full chain only on high-priority accounts.
+
+## Related skills
+
+- **Need emails after finding contacts?** → Use `contact-to-email` skill
+- **Need LinkedIn URLs?** → Use `linkedin-url-lookup` skill
+- **Building the account list from scratch?** → Use `build-tam` skill first
+- **Want to score accounts before outreach?** → Use `niche-signal-discovery` skill
 
 ## Get started
 

@@ -51,23 +51,27 @@ Optional columns: `LinkedIn`, `Company Domain` (improves match rate)
 
 ## Workflow B: LinkedIn URL
 
-When you have LinkedIn profile URLs but no email:
+When you have LinkedIn profile URLs but no email. Crustdata goes first since it only needs LinkedIn URL:
 
 ```bash
 deepline enrich --input leads.csv --in-place --rows 0:1 \
   --with-waterfall "email" \
   --type email \
   --result-getters '["data.0.email","data.email","emails.0.address"]' \
-  --with 'apollo=apollo_people_match:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","organization_name":"{{Company}}","domain":"{{Company Domain}}"}' \
   --with 'crustdata=crustdata_person_enrichment:{"linkedinProfileUrl":"{{LinkedIn URL}}","fields":["email","current_employers"],"enrichRealtime":true}' \
-  --with 'pdl=peopledatalabs_enrich_contact:{"linkedin_url":"{{LinkedIn URL}}","first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
+  --with 'pdl=peopledatalabs_enrich_contact:{"linkedin_url":"{{LinkedIn URL}}"}' \
   --end-waterfall \
   --with 'validation=leadmagic_email_validation:{"email":"{{email}}"}'
 ```
 
 Required columns: `LinkedIn URL`
 
-Optional columns: `First Name`, `Last Name`, `Company`, `Company Domain`
+If you also have name + company, add Apollo as the first waterfall step for better match rates:
+
+```bash
+  --with 'apollo=apollo_people_match:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","organization_name":"{{Company}}","domain":"{{Company Domain}}"}' \
+  --with 'crustdata=...' \
+```
 
 ---
 
@@ -77,7 +81,7 @@ When you have name + domain but no LinkedIn. Generates common email patterns (fi
 
 ```bash
 deepline enrich --input leads.csv --in-place --rows 0:1 \
-  --with 'patterns=run_javascript:{"code":"const f=(row[\"First Name\"]||\"\").trim().toLowerCase(); const l=(row[\"Last Name\"]||\"\").trim().toLowerCase(); const d=(row[\"Domain\"]||\"\").trim().toLowerCase(); if(!f||!l||!d) return {}; return {p1:`${f}.${l}@${d}`,p2:`${f[0]}${l}@${d}`,p3:`${f}${l[0]}@${d}`,p4:`${f}@${d}`};"}' \
+  --with 'patterns=run_javascript:{"code":"const f=(row[\"First Name\"]||\"\").trim().toLowerCase(); const l=(row[\"Last Name\"]||\"\").trim().toLowerCase(); const d=(row[\"Domain\"]||\"\").trim().toLowerCase(); if(!f||!l||!d) return {}; return {p1:`${f}.${l}@${d}`,p2:`${f[0]}${l}@${d}`,p3:`${f}${l[0]}@${d}`,p4:`${f}@${d}`,p5:`${f}${l}@${d}`,p6:`${f}_${l}@${d}`};"}' \
   --with-waterfall "email" \
   --type email \
   --result-getters '["data.email","email","data.0.email"]' \
@@ -85,6 +89,8 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
   --with 'v2=leadmagic_email_validation:{"email":"{{patterns.p2}}"}' \
   --with 'v3=leadmagic_email_validation:{"email":"{{patterns.p3}}"}' \
   --with 'v4=leadmagic_email_validation:{"email":"{{patterns.p4}}"}' \
+  --with 'v5=leadmagic_email_validation:{"email":"{{patterns.p5}}"}' \
+  --with 'v6=leadmagic_email_validation:{"email":"{{patterns.p6}}"}' \
   --with 'apollo=apollo_people_match:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","organization_name":"{{Company}}","domain":"{{Domain}}"}' \
   --end-waterfall \
   --with 'final_validation=leadmagic_email_validation:{"email":"{{email}}"}'
@@ -109,6 +115,20 @@ After validation, check `validation.data.email_status`:
 
 ---
 
+## Expected coverage
+
+Set realistic expectations before running:
+
+| Workflow | Expected fill rate | Notes |
+|----------|-------------------|-------|
+| A (name + company) | ~50-65% | Apollo ~50% alone, +15% from Crustdata/PDL |
+| B (LinkedIn URL) | ~55-70% | Crustdata strongest with LinkedIn URL input |
+| C (pattern matching) | ~40-60% | Depends on domain catch-all policies |
+
+**Validation pass rates:** Of found emails, expect ~85% valid, ~10% catch-all, ~5% invalid. Catch-all is usable for outreach (expect slightly higher bounce).
+
+**Pre-flight rule:** Don't waste credits on rows missing minimum data. Workflow A needs name + company. Workflow B needs LinkedIn URL. Workflow C needs name + domain. Skip rows missing these fields.
+
 ## Scale after pilot
 
 ```bash
@@ -116,6 +136,13 @@ After validation, check `validation.data.email_status`:
 deepline enrich --input leads.csv --in-place --rows 1: \
   # ... same flags as pilot
 ```
+
+## Related skills
+
+- **Need LinkedIn URLs first?** → Use `linkedin-url-lookup` skill
+- **Need to find contacts at a company?** → Use `get-leads-at-company` skill
+- **Building a prospect list from scratch?** → Use `build-tam` skill first
+- **Understanding waterfall patterns?** → See `waterfall-enrichment` skill
 
 ## Get started
 

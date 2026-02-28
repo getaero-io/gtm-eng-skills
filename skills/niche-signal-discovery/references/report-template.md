@@ -179,13 +179,21 @@ Score tiers:
 - Shows what the ICP looks like in the wild
 
 **Example:**
-> Air Inc's buyers are mid-size companies (100-1000 employees) scaling creative operations. Top signals: hiring Creative Operations roles (3.8x lift), using Figma + Adobe CC (3.2x lift), mentioning "fragmented tools" (5.2x lift).
+> {Target}'s buyers are mid-size companies (100-1000 employees) scaling {domain} operations. Top signals: hiring {domain}-related roles (3-5x lift), using {niche tools} (2-4x lift), mentioning "{buyer pain point}" (3-6x lift).
 >
 > **Companies that fit this profile but aren't customers yet:**
-> - Canva (2100 employees) — Design team of 300+, hiring Creative Ops Manager in Sydney, uses Figma + Adobe internally
-> - Notion (450 employees) — Content team scaling rapidly, 8 open creative roles, mentions "content discovery" challenges
+> - {Company A} ({size} employees) — {specific signal 1}, {specific signal 2}
+> - {Company B} ({size} employees) — {specific signal 1}, {specific signal 2}
 
 **Avoid:** Generic "perfect fit customer" descriptions. Be specific and concrete.
+
+### Dataset Caveat (if applicable)
+
+If the dataset has limitations, add a caveat subsection. Common caveats:
+- Lookalike companies used as Won (they haven't actually purchased — signals are inferred fit, not validated)
+- Small sample size (<20 won or <10 lost)
+- Uneven group sizes (e.g., 8 won + 32 lost)
+- Auto-extracted domains without manual verification
 
 ---
 
@@ -225,6 +233,7 @@ Each evidence entry must include:
 1. **Company domain** as a link to the source URL
 2. **Source context** — page title for websites, job title for listings
 3. **Exact quote** — the ±40 char snippet around the keyword match from the raw text
+4. **Vendor-adjacent annotation** — If the evidence comes from a company that also sells a similar product (e.g., their pricing page mentions the keyword), mark with ⚠️ and note "vendor-adjacent". Clear buyer signals get ✅.
 
 ### Sales-Specific Keywords: Source Breakdown
 
@@ -299,6 +308,8 @@ Deprioritize if 2+ present (excluding competitive tool usage):
 - Tier 3: Developer / Integration Fit (0-30 points) — API-first, tech stack signals
 
 Include scoring examples from the dataset (2 won, 2 lost with full point breakdown).
+
+**CRITICAL — Scoring reconciliation:** After writing this section, cross-check every signal's point value against Section 0.5 (Lead Scoring Cheatsheet). They MUST match. Mismatches between the quick-reference and detailed sections confuse users.
 
 ---
 

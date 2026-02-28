@@ -13,7 +13,8 @@
         "waterfall-enrichment",
         "contact-to-email",
         "get-leads-at-company",
-        "build-tam"
+        "build-tam",
+        "linkedin-url-lookup"
       ]
     }
   ]

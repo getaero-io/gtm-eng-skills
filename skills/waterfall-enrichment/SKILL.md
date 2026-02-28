@@ -77,6 +77,45 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
   --end-waterfall
 ```
 
+## Pre-flight validation
+
+Before running any waterfall, validate your input data:
+
+```bash
+# Check for required columns and empty values
+python3 -c "
+import csv, sys
+with open('leads.csv') as f:
+    rows = list(csv.DictReader(f))
+cols = rows[0].keys() if rows else []
+print(f'Columns: {list(cols)}')
+print(f'Total rows: {len(rows)}')
+# Check for empty required fields
+for col in ['First Name', 'Last Name', 'Company']:
+    empty = sum(1 for r in rows if not r.get(col, '').strip())
+    if empty: print(f'WARNING: {empty} rows missing {col}')
+# Check for duplicates (same person appears multiple times)
+keys = [(r.get('First Name','').strip().lower(), r.get('Last Name','').strip().lower(), r.get('Company','').strip().lower()) for r in rows]
+from collections import Counter
+dupes = {k: v for k, v in Counter(keys).items() if v > 1}
+if dupes: print(f'WARNING: {len(dupes)} duplicate contacts — deduplicate before enrichment to avoid paying for the same lookup twice')
+"
+```
+
+**Skip rows that can't match:** If a row is missing both email AND name+company, no provider will find a match. Remove these before running to save credits.
+
+## Realistic coverage expectations
+
+Don't assume 100% fill rates. Actual coverage per provider:
+
+| Data type | Single provider | 2-provider waterfall | 3-provider waterfall |
+|-----------|----------------|---------------------|---------------------|
+| Email | ~50% | ~65% | ~75% |
+| Phone | ~30% | ~40% | ~45% |
+| LinkedIn URL | ~65% | ~75% | ~85% |
+
+Set expectations with stakeholders before running. Diminishing returns after 2-3 providers.
+
 ## Hard rules
 
 - Always end with `leadmagic_email_validation` when the waterfall resolves email
@@ -84,6 +123,7 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
 - Do not reuse an existing output CSV path
 - Chain one waterfall at a time; close `--end-waterfall` before starting another
 - Use canonical `--type` values: `email | phone | linkedin | first_name | last_name | full_name`
+- **Never call enrichment without minimum data**: email waterfalls need name + company OR LinkedIn URL. Phone waterfalls need a verified email. Don't waste credits on rows missing required fields.
 
 ## After a waterfall run
 
@@ -94,6 +134,14 @@ deepline playground start --csv leads.csv --open
 ```
 
 Use `--rows 0:1` in the playground to re-run a single block for debugging.
+
+## Related skills
+
+This skill teaches the waterfall pattern. For specific enrichment tasks, use:
+- **Finding emails** → `contact-to-email` (pre-built email waterfalls)
+- **Finding LinkedIn URLs** → `linkedin-url-lookup` (with nickname expansion + validation)
+- **Finding contacts at companies** → `get-leads-at-company`
+- **Building prospect lists** → `build-tam`
 
 ## Get started
 
