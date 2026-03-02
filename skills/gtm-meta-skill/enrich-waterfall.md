@@ -4,6 +4,31 @@ Use this doc for `deepline enrich`, waterfalls, coalescing, and enrichment mecha
 
 Read sections 8.1-8.5 for company -> contact, finding email, linkedins, signals, tech stack, etc, generally read if calling deepline enrich. 
 
+## Quick syntax reference (copy-paste ready)
+
+```bash
+# run_javascript — inline (trivial one-liners only)
+--with 'col=run_javascript:{"code":"return (row[\"FIELD\"] || \"\").toUpperCase()"}'
+
+# run_javascript — file-backed (use for anything >1 line)
+--with 'col=run_javascript:@$WORKDIR/script.js'
+
+# Provider tool — inline
+--with 'col=provider_tool:{"param":"{{FIELD}}"}'
+
+# Waterfall
+--with-waterfall "email" --type email --result-getters '["data.email","email"]'
+--with 'step1=dropleads_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company_name":"{{Company}}"}'
+--with 'step2=hunter_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Domain}}"}'
+--end-waterfall
+```
+
+**WRONG syntaxes (do NOT use):**
+
+- `run_javascript("return ...")` — not a function call
+- `run_javascript:'code'` — not valid
+- Multiline JS inlined in `--with` JSON — always fails quoting. Use `@file.js`.
+
 ## When to use `deepline enrich` vs `deepline tools execute`
 
 | Use `deepline enrich` | Use `deepline tools execute` |
@@ -24,11 +49,23 @@ Read sections 8.1-8.5 for company -> contact, finding email, linkedins, signals,
 
 **Haiku is the default for call_ai when model is omitted.** Only use sonnet or opus when haiku explicitly fails.
 
-**Use direct provider tools** (e.g. `apollo_people_match`, `leadmagic_email_finder`) when:
+**Use direct provider tools** (e.g. `dropleads_email_finder`, `hunter_email_finder`, `apollo_people_match`, `leadmagic_email_finder`) when:
 - The task is mechanical: fetch email, validate email, get LinkedIn URL from known identifiers.
 - You have strong identifiers (email, domain, name+company) and need a single structured field.
 - Cost/speed matters and the provider's schema is sufficient.
 - For paid-media signals, treat `leadmagic` and `adyntel` both have options.
+
+**Tool preference ladder — pick the highest-applicable rung:**
+
+1. **Direct provider tools + waterfalls** — For mechanical lookups (email, phone, LinkedIn URL) where you have strong identifiers. Cheapest, fastest, most reliable. Use `dropleads_email_finder`, `hunter_email_finder`, waterfall syntax, etc.
+2. **Apify actors** — For LinkedIn profile data, work history, company employees, posts, and profile signals. `apify_run_actor_sync` returns structured data directly and is the best way to get rich LinkedIn context. Prefer this over `call_ai` for any LinkedIn-adjacent task.
+3. **`run_javascript`** — For parsing/scoring/extracting signals from structured provider or Apify output. Free and instant. Use for founder detection, title scoring, signal extraction — anywhere you're transforming existing data, not fetching new data.
+4. **`call_ai`** — For per-row research, synthesis, and custom signals that no provider tool covers. Good for: funding stage lookup, YC batch, competitive landscape, personalized messaging. Haiku is the default model.
+
+**Known failure modes to avoid:**
+
+- **`call_ai_claude_code`** — Do not use. Spawns nested Claude sessions that error out. Use `call_ai` with `agent:"claude"` instead.
+- **`call_ai` with `"allowed_tools":"WebSearch"` for LinkedIn data** — Tends to time out (180s) and returns noisy results. Apify is faster and returns structured data for LinkedIn tasks. Use Exa, Google CSE, or Parallel search directly when you need web data.
 
 ```bash
 # Per-row research — canonical call_ai pattern
@@ -156,12 +193,13 @@ Default execution stance:
 
 Default provider order for contact enrichment waterfalls:
 
-1. `hunter`
-2. `apollo`
-3. `leadmagic`
-4. `deepline_native`
-5. `crustdata`
-6. `peopledatalabs`
+1. `dropleads`
+2. `hunter`
+3. `apollo`
+4. `leadmagic`
+5. `deepline_native`
+6. `crustdata`
+7. `peopledatalabs`
 
 ### Type/getter contract (critical)
 
@@ -182,6 +220,7 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
   --with-waterfall "email_recovery" \
   --type email \
   --result-getters '["data.email","email","data.0.email","data.emails.0.value","emails.0.value"]' \
+  --with 'dropleads_email=dropleads_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company_name":"{{Company}}"}' \
   --with 'hunter_email=hunter_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
   --with 'apollo_match=apollo_people_match:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","organization_name":"{{Company}}"}' \
   --with 'leadmagic_email=leadmagic_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
@@ -199,6 +238,7 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
   --with-waterfall "email_recovery" \
   --type email \
   --result-getters '["data.0.email","data.email","emails.0.address","data.emails.0.value"]' \
+  --with 'dropleads_email=dropleads_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company_name":"{{Company}}"}' \
   --with 'hunter_email=hunter_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
   --with 'apollo_match=apollo_people_match:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","organization_name":"{{Company}}","domain":"{{Company Domain}}"}' \
   --with 'leadmagic_email=leadmagic_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
@@ -305,6 +345,53 @@ deepline tools execute google_search --payload '{"query":"site:linkedin.com/comp
 
 Then map to `company_profile` and continue with domain/ID-based steps. Do not run name-only `apollo_people_search` or name-only `crustdata_enrich_company`.
 
+### 8.6 Multi-stage pipeline: search → score → scrape → extract → email
+
+Use this pattern when you need to find contacts matching a specific profile (e.g. second-time founders, GTM engineers) where structured search filters alone are insufficient.
+
+**Stage 1: Search** — See [searching-for-leads-accounts-and-building-lead-lists.md](searching-for-leads-accounts-and-building-lead-lists.md) for search patterns and provider selection. Use `dropleads_search_people` with broad keyword + seniority filters (see "Role-based contact search" in that doc).
+
+**Stage 2: Pre-score** — Use `run_javascript` to score/filter candidates by title keywords before paying for enrichment. Fast and free.
+
+**Stage 3: Scrape** — Prefer `apify_run_actor_sync` with LinkedIn scrapers for work history, posts, or company employees. Apify returns structured data directly — faster and cheaper than `call_ai` with WebSearch for LinkedIn-adjacent tasks.
+
+**Stage 4: Extract signals** — Prefer `run_javascript` to parse structured Apify/provider output (e.g. detect founder status from work history, extract hiring signals from posts). Free and instant. Use `call_ai` when you need synthesis or judgment that JS can't express.
+
+**Stage 5: Email waterfall** — Use `--with-waterfall` for email recovery on qualified contacts only.
+
+```bash
+# Stage 1+2: Search and pre-score in one enrich pass
+deepline enrich --input seed.csv --in-place --rows 0:1 \
+  --with 'contacts=dropleads_search_people:{"filters":{"jobTitlesSimilar":["Sales","Revenue","Growth"],"seniority":["C-Level","VP"],"industries":["Software"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":25}}' \
+  --with 'title_score=run_javascript:@$WORKDIR/score_titles.js'
+
+# Stage 3: Scrape LinkedIn profiles for qualified contacts
+# BATCHING: Pass all URLs in one profileUrls array instead of one call per row.
+# Collect URLs first, then run a single Apify actor call.
+deepline tools execute apify_run_actor_sync --payload '{"actorId":"apimaestro/linkedin-profile-scraper","input":{"profileUrls":["https://linkedin.com/in/person1","https://linkedin.com/in/person2","https://linkedin.com/in/person3"]},"timeoutMs":180000}' --json
+
+# Stage 4: Extract founder signal from work history
+deepline enrich --input seed.csv --in-place --rows 0:1 \
+  --with 'is_founder=run_javascript:@$WORKDIR/detect_founder.js'
+
+# Stage 5: Email waterfall for qualified founders only
+deepline enrich --input qualified.csv --in-place --rows 0:1 \
+  --with-waterfall "email" --type email \
+  --result-getters '["data.email","email","data.0.email"]' \
+  --with 'dropleads_email=dropleads_email_finder:{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company}}"}' \
+  --with 'hunter_email=hunter_email_finder:{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}' \
+  --end-waterfall \
+  --with 'email_valid=leadmagic_email_validation:{"email":"{{email}}"}'
+```
+
+**Key:** Prefer `run_javascript` (free, fast) for scoring/extraction, `apify_run_actor_sync` for LinkedIn data, and waterfalls for email. These are the right tools for their respective jobs — `call_ai` adds latency and cost when structured alternatives exist.
+
+### 8.7 LinkedIn Profile Validation
+
+LinkedIn URLs from any provider can be stale or wrong. Every LinkedIn lookup is two phases: **find** then **validate**. See [searching-for-leads-accounts-and-building-lead-lists.md](searching-for-leads-accounts-and-building-lead-lists.md) "LinkedIn profile lookup and validation" for the full provider waterfall and validation rules.
+
+Summary: get a candidate URL from the cheapest provider (dropleads → CSE → Exa → Apollo → Crustdata), then **always** validate it with Apify by scraping the profile and checking name + work history. If confirmed, update the row with fresh data from the profile. If suspect (name matches but company changed), update with the new company/title.
+
 ### Hard rules
 
 - Do not chain setup + enrich + snapshot in one line.
@@ -331,6 +418,7 @@ Then map to `company_profile` and continue with domain/ID-based steps. Do not ru
 
 Use this whenever you add JS extractor columns:
 
+- **Always use explicit `return` statements.** Expression-style (implicit return) does NOT work — cells will silently write empty. Every JS block must end with `return <value>;`.
 - Default to file-backed JS for anything non-trivial:
   - `--with 'post_signals=run_javascript:@$WORKDIR/post_signals.js'`
 - Keep inline JSON JS only for very short snippets with minimal escaping.

@@ -17,6 +17,17 @@ Use CrustData for structured discovery and enrichment with recall-first filterin
 
 **Operators:** `(.)` = fuzzy contains (default), `[.]` = substring, `=`, `!=`, `in`, `not_in`, `>`, `<`, `=>`, `=<`. Person search also supports `geo_distance` for `region`.
 
+**Range filtering:** There is NO range operator like `[100..500]` or `between`. To filter a numeric range, use TWO separate filter conditions with `>` and `<` (or `=>` and `=<`):
+
+```json
+[
+  {"filter_type": "employee_metrics.latest_count", "type": ">", "value": "100"},
+  {"filter_type": "employee_metrics.latest_count", "type": "<", "value": "500"}
+]
+```
+
+**Headcount filtering:** For headcount, prefer `employee_count_range` (string enum like `"51-200"`, `"201-500"`) with the `in` operator when exact buckets work. Use `employee_metrics.latest_count` with `>` / `<` only when you need precise numeric boundaries. Note: `employee_metrics.latest_count` is valid for `sorts` and `filters`, but `employee_count_range` uses string enum values.
+
 ### Examples
 
 ```bash

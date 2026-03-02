@@ -64,6 +64,7 @@ Website research is super underrated and often the best way to get lists, esp < 
 - Asking the user which approach they prefer when you can just try all approaches.
 - **Trusting provider responses blindly** — providers often return garbage, nonsensical, or irrelevant data. Validate and fallback immediately.
 - **After discovery, continuing in shell/python scripts for per-column enrichment instead of handing off to [enrich-waterfall.md](enrich-waterfall.md).**
+- **Reaching for `call_ai` when a direct provider tool or Apify actor would work** — for LinkedIn work history, profile signals, and company employees, prefer `apify_run_actor_sync` first (structured data, faster, cheaper). For email/phone, prefer waterfalls. Reserve `call_ai` for research and synthesis that no provider covers.
 
 ## Subagent orchestration for parallel search
 
@@ -112,11 +113,11 @@ not fixed — use as many providers as are relevant. For most queries, 3-5 is id
 - `parallel_search` — fast candidate discovery when speed matters.
 - `exa_answer` — schema-light quick answers with citations.
 - `exa_research` — deeper multi-source synthesis under schema constraints.
-- `apollo_search_people` — Apollo preview discovery (`mixed_people/api_search`), no Apollo credit charge. Results may include obfuscated last names.
-- `apollo_people_search_paid` — Apollo paid search (`mixed_people/search`), billed per page; use when preview is insufficient and you need scalable paid retrieval. Generally OK quality data and mediocre filters. 
+- `apollo_search_people` — Apollo preview discovery (`mixed_people/api_search`), no Apollo credit charge. Results may include obfuscated last names. **Low data quality** — use as a fallback after dropleads, not as a primary source.
+- `apollo_people_search_paid` — Apollo paid search (`mixed_people/search`), billed per page. Mediocre data quality and filters — prefer dropleads or crustdata first.
 - `crustdata_companydb_search` — **primary tool for structured company list building through a vendor, if apollo doesn't have the right filters** Supports investor filters (`crunchbase_investors`), funding stage (`last_funding_round_type`), headcount, industry, geography, revenue. Use autocomplete first for canonical values. This is the right tool for "find companies backed by Sequoia", etc.
 - `adyntel_facebook_ad_search` — Meta keyword-based ad search for additional channel coverage.
-- `crustdata_job_listings` — **primary tool for hiring signals.** Given a list of company domains or IDs, returns active job listings. Use this to verify "is this company hiring for X?" — far more reliable than Apollo job filters or web search.
+- `crustdata_job_listings` — **primary tool for hiring signals.** Accepts multiple `companyDomains` in one call — always batch domains together instead of calling per-company. Use `limit` to control response size.
 - `crustdata_people_search` / `crustdata_persondb_search` — LinkedIn-oriented person discovery.
 - `crustdata_companydb_autocomplete` — free, no credits. Always run this before `crustdata_companydb_search` to get exact canonical values for fields like `last_funding_round_type`, `crunchbase_investors`, `linkedin_industries`.
 - `parallel_run_task` / `parallel_extract` — richer synthesis or URL-bound extraction. Slow.
@@ -128,15 +129,27 @@ Don't pick one — run several from the appropriate row simultaneously:
 
 | Objective | Run all of these in parallel | Add if coverage is thin |
 |---|---|---|
-| Discovery/search | `google_search_google_search` + `exa_search` + `apollo_search_people` | `crustdata_people_search`, `parallel_search` |
+| Discovery/search | `dropleads_search_people` + `google_search_google_search` + `exa_search` | `crustdata_people_search`, `apollo_search_people`, `parallel_search` |
 | Company list building | `exa_search` (or `exa_company_search`) + `crustdata_companydb_search` | `parallel_search`, `google_search_google_search` |
-| Profile/company matching | `hunter_people_find` + `apollo_people_match` + `deepline_native_enrich_contact` | `crustdata_person_enrichment` |
+| Profile/company matching | `dropleads_search_people` + `hunter_people_find` + `apollo_people_match` + `deepline_native_enrich_contact` | `crustdata_person_enrichment` |
 | Website evidence + signal extraction | `exa_research` + `parallel_extract` | — |
-| LinkedIn scraping | `apify` actors (by far the best) | direct web search tools |
+| LinkedIn scraping | `apify` actors | direct web search tools |
 | WebSearch/WebFetch | native tools, great to try out. 
 
-- Use Apify when the task is linkedin-related scraping (likes on a post, posts, people at a company) and actor-level input needs control.
-- For lead/account lists > 200, the web search tools generally fall short, try to use apollo, crust, hunter, etc enrichment and search providers. Or web scraping with the users assistance.
+- **LinkedIn data** → Apify first (`apimaestro/linkedin-profile-scraper`, `apimaestro/linkedin-company-employees-scraper-no-cookies`). Structured data, faster and cheaper than `call_ai` + WebSearch.
+- **Lists > 200 contacts** → structured providers (apollo, crustdata, hunter) over web search.
+- **Signal extraction from scraped data** → `run_javascript` (free, instant). Use `call_ai` only when you need synthesis JS can't express.
+
+## Role-based contact search (critical)
+
+**Never use exact job titles for people search filters.** Titles are too nuanced and vary wildly across companies (especially startups). Instead use broad keyword + seniority:
+
+- **Bad:** `person_titles: ["Head of Growth", "VP RevOps", "GTM Engineer"]` — misses "Director of Growth Marketing", "Revenue Operations Lead", etc.
+- **Good:** `jobTitlesSimilar: ["Growth"]` + `seniority: ["C-Level", "VP", "Director"]` — catches all growth-related senior roles via fuzzy matching
+
+The pattern: use 1-2 broad keywords for the *function* (Growth, Sales, Revenue, Security, Fraud, Identity, RevOps, Marketing) and let seniority filters handle the level. This works across dropleads, apollo, and crustdata.
+
+For small companies (<500 employees), people search often returns 0 with narrow title filters. Use `dropleads_search_people` with broad keyword + seniority (free), or `apify` LinkedIn company employees scraper with a broad `job_title` keyword. Dropleads is always the first choice for people discovery because it's free.
 
 ## Sample calls by provider
 
@@ -375,6 +388,24 @@ Providers often return garbage, nonsensical, or irrelevant data. Don't assume re
 Default: parallel. Always go parallel. Use sub-agents for independent workstreams when available.
 
 **Deduplication and coalescing:** After merging results from multiple providers, deduplicate by domain or LinkedIn URL. Coalesce fields: pick the richest non-null value per field from parallel provider outputs. Use `run_javascript` inside `deepline enrich` — see [enrich-waterfall.md](enrich-waterfall.md) "Coalescing and cleaning" for patterns. Never leave raw provider columns as final output; always add a coalesce step.
+
+## LinkedIn profile lookup and validation
+
+LinkedIn URLs from providers are often stale. Two phases: find then validate.
+
+**Find** — waterfall, stop on first hit:
+1. Dropleads (`dropleads_search_people`, free)
+2. Google CSE (`"First Last" "Company" site:linkedin.com/in/`)
+3. Exa (`exa_search` with `category: "people"`)
+4. Apollo (`apollo_people_match`)
+5. Crustdata (`crustdata_person_enrichment`)
+
+**Validate (mandatory)** — scrape the profile with Apify (`dev_fusion/linkedin-profile-scraper`):
+- Name + company match → confirmed, update row with fresh data
+- Name matches, company doesn't → job change, update with new company/title
+- Neither matches → wrong profile, try next provider
+
+Normalize company names first (JPM → JPMorgan Chase). Try nickname variants on failure (Robert↔Bob, William↔Bill, Michael↔Mike, etc.).
 
 ## Provider search filters reference
 

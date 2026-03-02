@@ -1,5 +1,7 @@
 Use Exa for web-grounded retrieval, then synthesis.
 
+**`type` vs `category`:** `type` controls the search strategy (auto/fast/neural/deep). `category` filters result type (company/people/news/financial report). These are independent params. `"type":"news"` is a 422 error — use `"category":"news"` for news results.
+
 - In AI-column workflows, instruct the model prompt to use Exa retrieval explicitly for website-derived tech stack and on-site signals.
 - Use direct Exa tool calls when you need tighter provider controls or auditable step-by-step retrieval outside AI-column orchestration.
 - For auditable outputs, run `exa_search`/`exa_contents` first and synthesize after inspecting citations.
