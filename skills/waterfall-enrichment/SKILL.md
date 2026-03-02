@@ -150,6 +150,6 @@ This skill teaches the waterfall pattern. For specific enrichment tasks, use:
 Sign up and get your API key at [code.deepline.com](https://code.deepline.com).
 
 ```bash
-npm install -g @deepline/cli
+curl -s "https://code.deepline.com/api/v2/cli/install" | bash
 deepline auth register
 ```

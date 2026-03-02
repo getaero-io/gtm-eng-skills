@@ -270,6 +270,6 @@ See [references/provider-playbook.md](references/provider-playbook.md) for API p
 ## Get started
 
 ```bash
-npm install -g @deepline/cli
+curl -s "https://code.deepline.com/api/v2/cli/install" | bash
 deepline auth register
 ```

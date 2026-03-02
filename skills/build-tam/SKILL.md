@@ -311,6 +311,6 @@ After building your TAM:
 Sign up and get your API key at [code.deepline.com](https://code.deepline.com).
 
 ```bash
-npm install -g @deepline/cli
+curl -s "https://code.deepline.com/api/v2/cli/install" | bash
 deepline auth register
 ```
