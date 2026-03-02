@@ -14,6 +14,8 @@ description: |
   Requires: Deepline CLI — https://code.deepline.com
 ---
 
+> Start here first: read `gtm-meta-skill` before running this skill.
+
 # Waterfall Enrichment
 
 The waterfall pattern runs multiple enrichment providers in sequence and stops as soon as one returns a valid result. This maximizes coverage while minimizing cost — you only pay for lookups that actually run.
@@ -47,7 +49,7 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
   --with-waterfall "phone" \
   --type phone \
   --result-getters '["data.phone","phone","mobile","data.mobile"]' \
-  --with 'mobile_finder=leadmagic_mobile_finder:{"email":"{{Email}}","first_name":"{{First Name}}","last_name":"{{Last Name}}","company":"{{Company}}"}' \
+  --with 'mobile_finder=leadmagic_mobile_finder:{"email":"{{Email}}"}' \
   --end-waterfall
 ```
 
@@ -149,5 +151,5 @@ Sign up and get your API key at [code.deepline.com](https://code.deepline.com).
 
 ```bash
 npm install -g @deepline/cli
-deepline auth login
+deepline auth register
 ```

@@ -17,6 +17,8 @@ description: |
   Requires: Deepline CLI — https://code.deepline.com
 ---
 
+> Start here first: read `gtm-meta-skill` before running this skill.
+
 # Build TAM
 
 Use this skill to size and build your total addressable market from ICP filters. Start with a count (virtually free), then pull the actual list.
@@ -28,12 +30,12 @@ Use this skill to size and build your total addressable market from ICP filters.
 Set `per_page: 1` — most providers return the total count but only charge for 1 result. This lets you validate your filters before spending credits on a full pull.
 
 ```bash
-deepline tools execute apollo_people_search \
+deepline tools execute apollo_search_people \
   --payload '{
     "person_titles": ["VP Sales", "Head of Revenue"],
     "include_similar_titles": true,
     "organization_num_employees_ranges": ["51,200", "201,500"],
-    "qOrganizationKeywordTags": ["technology"],
+    "q_keywords": "technology",
     "per_page": 1,
     "page": 1
   }' --json
@@ -47,7 +49,7 @@ Look for `total_people` in the response to see your TAM size before pulling.
 # Size first
 deepline tools execute apollo_company_search \
   --payload '{
-    "qOrganizationKeywordTags": ["technology"],
+    "q_organization_keyword_tags": ["technology"],
     "organization_num_employees_ranges": ["51,200"],
     "per_page": 1,
     "page": 1
@@ -56,7 +58,7 @@ deepline tools execute apollo_company_search \
 # Pull list (100 per page)
 deepline tools execute apollo_company_search \
   --payload '{
-    "qOrganizationKeywordTags": ["technology"],
+    "q_organization_keyword_tags": ["technology"],
     "organization_num_employees_ranges": ["51,200"],
     "per_page": 100,
     "page": 1
@@ -66,12 +68,12 @@ deepline tools execute apollo_company_search \
 ## Step 3: Contact-first TAM
 
 ```bash
-deepline tools execute apollo_people_search \
+deepline tools execute apollo_search_people \
   --payload '{
     "person_titles": ["VP Sales", "CRO", "Head of Revenue Operations"],
     "include_similar_titles": true,
     "organization_num_employees_ranges": ["51,200", "201,1000"],
-    "qOrganizationKeywordTags": ["technology"],
+    "q_keywords": "technology",
     "person_locations": ["United States"],
     "per_page": 100,
     "page": 1
@@ -101,8 +103,8 @@ Then score using signals from job listings (hiring relevant roles), tech stack (
 When you have a completed `niche-signal-discovery` report, every signal type translates directly into search criteria. The report provides:
 
 - **Job title signals** → Apollo `person_titles`
-- **Keyword signals** → Apollo `qOrganizationKeywordTags`
-- **Tech stack signals** → Apollo `qOrganizationKeywordTags` or tech stack filters
+- **Keyword signals** → Apollo `q_organization_keyword_tags`
+- **Tech stack signals** → Apollo `q_organization_keyword_tags` or tech stack filters
 - **Firmographic signals** → Apollo `organization_num_employees_ranges`, `person_locations`
 - **Anti-fit signals** → Exclusion criteria (skip companies matching these)
 - **Job listing keywords** → Crustdata `job_listings` search for post-pull verification
@@ -112,8 +114,8 @@ When you have a completed `niche-signal-discovery` report, every signal type tra
 | Report Signal Type | Apollo Parameter | How to Extract | Example |
 |--------------------|-----------------|----------------|---------|
 | Job titles with lift > 2x | `person_titles` | Use title patterns from Section 4 (Job Role Analysis) | "RevOps" at 2.56x → `["Revenue Operations", "RevOps", "Head of RevOps"]` |
-| Keywords with lift > 2x | `qOrganizationKeywordTags` | Use keywords from Section 2 (Website Keyword Differential) | "ABM" at 3.67x → `["account based marketing", "ABM"]` |
-| Tech stack tools with lift > 2x | `qOrganizationKeywordTags` | Use tool names from Section 3 (Tech Stack Analysis) | Gainsight at 3.0x → `["gainsight"]` |
+| Keywords with lift > 2x | `q_organization_keyword_tags` | Use keywords from Section 2 (Website Keyword Differential) | "ABM" at 3.67x → `["account based marketing", "ABM"]` |
+| Tech stack tools with lift > 2x | `q_organization_keyword_tags` | Use tool names from Section 3 (Tech Stack Analysis) | Gainsight at 3.0x → `["gainsight"]` |
 | Employee headcount ranges | `organization_num_employees_ranges` | From Section 0.1 TLDR or Section 1 Executive Summary | "200-1,500 employees" → `["201,500", "501,1000", "1001,5000"]` |
 | Geography | `person_locations` | If report mentions geo patterns | US-focused → `["United States"]` |
 | Anti-fit tech stack | Exclude from results | Tech stack with lift < 0.5x | Salesloft at 0.33x → skip companies using Salesloft |
@@ -126,12 +128,12 @@ The report's "Buyer Persona Quick Reference" table gives you ready-to-use title 
 
 ```bash
 # Example: RevOps Leader persona (2.56x lift, 55% of won companies)
-deepline tools execute apollo_people_search \
+deepline tools execute apollo_search_people \
   --payload '{
     "person_titles": ["Revenue Operations", "RevOps", "Head of Revenue Operations"],
     "include_similar_titles": true,
     "person_seniorities": ["vp", "director", "manager"],
-    "qOrganizationKeywordTags": ["b2b saas"],
+    "q_keywords": "b2b saas",
     "organization_num_employees_ranges": ["201,500", "501,1000", "1001,5000"],
     "person_locations": ["United States"],
     "per_page": 1,
@@ -141,13 +143,13 @@ deepline tools execute apollo_people_search \
 
 **2. Extract keyword-based company searches from Section 2:**
 
-High-lift keywords from the report become `qOrganizationKeywordTags`:
+High-lift keywords from the report become `q_organization_keyword_tags`:
 
 ```bash
 # Example: Companies tagged with ABM (3.67x lift)
 deepline tools execute apollo_company_search \
   --payload '{
-    "qOrganizationKeywordTags": ["account based marketing", "b2b saas"],
+    "q_organization_keyword_tags": ["account based marketing", "b2b saas"],
     "organization_num_employees_ranges": ["201,500", "501,1000", "1001,5000"],
     "per_page": 1,
     "page": 1
@@ -162,7 +164,7 @@ Tech stack tools with high lift → find companies using those tools:
 # Example: Companies using Gainsight (3.0x lift)
 deepline tools execute apollo_company_search \
   --payload '{
-    "qOrganizationKeywordTags": ["gainsight", "b2b saas"],
+    "q_organization_keyword_tags": ["gainsight", "b2b saas"],
     "organization_num_employees_ranges": ["201,500", "501,1000"],
     "per_page": 1,
     "page": 1
@@ -232,16 +234,16 @@ Run one search per buyer persona, deduplicate, then score:
 
 ```bash
 # Search 1: RevOps buyers
-deepline tools execute apollo_people_search \
-  --payload '{"person_titles":["Revenue Operations","RevOps"],"include_similar_titles":true,"person_seniorities":["vp","director","manager"],"qOrganizationKeywordTags":["b2b saas"],"organization_num_employees_ranges":["201,500","501,1000","1001,5000"],"per_page":100,"page":1}' --json > tam-revops.json
+deepline tools execute apollo_search_people \
+  --payload '{"person_titles":["Revenue Operations","RevOps"],"include_similar_titles":true,"person_seniorities":["vp","director","manager"],"q_keywords":"b2b saas","organization_num_employees_ranges":["201,500","501,1000","1001,5000"],"per_page":100,"page":1}' --json > tam-revops.json
 
 # Search 2: BizOps buyers
-deepline tools execute apollo_people_search \
-  --payload '{"person_titles":["Business Operations","BizOps","Head of Operations"],"include_similar_titles":true,"person_seniorities":["vp","director","manager"],"qOrganizationKeywordTags":["b2b saas"],"organization_num_employees_ranges":["201,500","501,1000","1001,5000"],"per_page":100,"page":1}' --json > tam-bizops.json
+deepline tools execute apollo_search_people \
+  --payload '{"person_titles":["Business Operations","BizOps","Head of Operations"],"include_similar_titles":true,"person_seniorities":["vp","director","manager"],"q_keywords":"b2b saas","organization_num_employees_ranges":["201,500","501,1000","1001,5000"],"per_page":100,"page":1}' --json > tam-bizops.json
 
 # Search 3: Data/Analytics buyers
-deepline tools execute apollo_people_search \
-  --payload '{"person_titles":["Head of Data","VP Analytics","Analytics Engineering"],"include_similar_titles":true,"person_seniorities":["vp","director","manager"],"qOrganizationKeywordTags":["b2b saas","data infrastructure"],"organization_num_employees_ranges":["201,500","501,1000","1001,5000"],"per_page":100,"page":1}' --json > tam-data.json
+deepline tools execute apollo_search_people \
+  --payload '{"person_titles":["Head of Data","VP Analytics","Analytics Engineering"],"include_similar_titles":true,"person_seniorities":["vp","director","manager"],"q_keywords":"b2b saas data infrastructure","organization_num_employees_ranges":["201,500","501,1000","1001,5000"],"per_page":100,"page":1}' --json > tam-data.json
 ```
 
 Merge the JSON outputs into a single CSV, deduplicate by company domain, then run the job listing enrichment + scoring pipeline above.
@@ -255,7 +257,7 @@ Merge the JSON outputs into a single CSV, deduplicate by company domain, then ru
 | Job title | `person_titles` | `["VP Sales", "Head of GTM"]` |
 | Similar titles | `include_similar_titles` | `true` |
 | Headcount | `organization_num_employees_ranges` | `["51,200", "201,500"]` |
-| Industry/keywords | `qOrganizationKeywordTags` | `["technology", "SaaS", "fintech"]` |
+| Industry/keywords | `q_organization_keyword_tags` | `["technology", "SaaS", "fintech"]` |
 | Geography | `person_locations` | `["United States", "Canada"]` |
 | Revenue | `revenue_range` | `{"min": 1000000, "max": 50000000}` |
 | Seniority | `person_seniorities` | `["c_suite", "vp", "director", "manager"]` |
@@ -268,18 +270,18 @@ Apollo returns up to 100 results per page. For large TAMs:
 
 ```bash
 # Page 1
-deepline tools execute apollo_people_search --payload '{"per_page": 100, "page": 1, ...}' --json
+deepline tools execute apollo_search_people --payload '{"per_page": 100, "page": 1, ...}' --json
 
 # Page 2
-deepline tools execute apollo_people_search --payload '{"per_page": 100, "page": 2, ...}' --json
+deepline tools execute apollo_search_people --payload '{"per_page": 100, "page": 2, ...}' --json
 ```
 
 ## Cost estimation
 
 | Operation | Credits per call | Notes |
 |-----------|-----------------|-------|
-| `apollo_people_search` (per_page: 1) | ~0.01 | Sizing — nearly free |
-| `apollo_people_search` (per_page: 100) | ~1 | Full pull |
+| `apollo_search_people` (per_page: 1) | ~0.01 | Sizing — nearly free |
+| `apollo_search_people` (per_page: 100) | ~1 | Full pull |
 | `apollo_company_search` (per_page: 100) | ~1 | Full pull |
 | `crustdata_job_listings` | ~1 | Per company |
 | `exa_search` with contents | ~5 | Per company |
@@ -310,5 +312,5 @@ Sign up and get your API key at [code.deepline.com](https://code.deepline.com).
 
 ```bash
 npm install -g @deepline/cli
-deepline auth login
+deepline auth register
 ```

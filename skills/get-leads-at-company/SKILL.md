@@ -13,6 +13,8 @@ description: |
   Requires: Deepline CLI — https://code.deepline.com
 ---
 
+> Start here first: read `gtm-meta-skill` before running this skill.
+
 # Get Leads at Company
 
 From a company name (or list), this skill resolves the company identity, finds GTM employees, picks the best ICP match, researches their LinkedIn activity, and drafts personalized outreach — all in one enrichment chain.
@@ -20,9 +22,9 @@ From a company name (or list), this skill resolves the company identity, finds G
 ## Quickstart: simple contact lookup
 
 ```bash
-deepline tools execute apollo_people_search \
+deepline tools execute apollo_search_people \
   --payload '{
-    "q_organization_name": "Acme Corp",
+    "q_keywords": "Acme Corp",
     "person_titles": ["VP Sales", "Head of Revenue", "GTM", "Revenue Operations"],
     "include_similar_titles": true,
     "per_page": 10
@@ -61,7 +63,7 @@ deepline enrich --input companies.csv --in-place --rows 1: \
 
 ```bash
 deepline enrich --input companies.csv --in-place --rows 0:1 \
-  --with 'contacts=apollo_people_search:{"q_organization_name":"{{Company}}","person_titles":["VP Sales","Head of Revenue","Revenue Operations","GTM"],"include_similar_titles":true,"per_page":5,"page":1}'
+  --with 'contacts=apollo_search_people:{"q_keywords":"{{Company}}","person_titles":["VP Sales","Head of Revenue","Revenue Operations","GTM"],"include_similar_titles":true,"per_page":5,"page":1}'
 ```
 
 ## Column reference after full chain
@@ -80,7 +82,7 @@ If `company_profile.data.company_linkedin` is null, the Apify employee scraper w
 
 ```bash
 deepline enrich --input companies.csv --in-place --rows 0:0 \
-  --with 'contacts=apollo_people_search:{"q_organization_name":"{{Company}}","person_titles":["VP Sales","Head of Revenue","Revenue Operations","GTM","CRO"],"include_similar_titles":true,"person_seniorities":["vp","director","c_suite","owner"],"per_page":10,"page":1}'
+  --with 'contacts=apollo_search_people:{"q_keywords":"{{Company}}","person_titles":["VP Sales","Head of Revenue","Revenue Operations","GTM","CRO"],"include_similar_titles":true,"person_seniorities":["vp","director","c_suite","owner"],"per_page":10,"page":1}'
 ```
 
 ## Seniority filtering
@@ -126,5 +128,5 @@ Sign up and get your API key at [code.deepline.com](https://code.deepline.com).
 
 ```bash
 npm install -g @deepline/cli
-deepline auth login
+deepline auth register
 ```

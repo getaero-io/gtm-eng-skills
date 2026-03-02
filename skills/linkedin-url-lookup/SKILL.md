@@ -18,6 +18,8 @@ description: |
   Requires: Deepline CLI — https://code.deepline.com
 ---
 
+> Start here first: read `gtm-meta-skill` before running this skill.
+
 # LinkedIn URL Lookup
 
 Resolve LinkedIn profile URLs from name + company with strict identity validation. **Without validation, expect ~54% false positive rate** — this skill handles the edge cases that break naive lookups.
@@ -26,7 +28,7 @@ Resolve LinkedIn profile URLs from name + company with strict identity validatio
 
 | Approach | Best for | Coverage | Setup |
 |----------|----------|----------|-------|
-| [Deepline CLI](#deepline-cli-approach) | Quick batch enrichment, simple pipelines | ~70% (Apollo + PDL) | `deepline auth login` |
+| [Deepline CLI](#deepline-cli-approach) | Quick batch enrichment, simple pipelines | ~70% (Apollo + PDL) | `deepline auth register` |
 | [Custom waterfall](#custom-waterfall-approach) | Full control, max coverage, nickname handling | ~85% (Apollo + CSE + Exa) | API keys for CSE + Exa |
 
 ---
@@ -269,5 +271,5 @@ See [references/provider-playbook.md](references/provider-playbook.md) for API p
 
 ```bash
 npm install -g @deepline/cli
-deepline auth login
+deepline auth register
 ```

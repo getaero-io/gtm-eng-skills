@@ -13,6 +13,8 @@ description: |
   Requires: Deepline CLI — https://code.deepline.com
 ---
 
+> Start here first: read `gtm-meta-skill` before running this skill.
+
 # Contact → Email
 
 Three workflows depending on what you already have. Always validate at the end.
@@ -150,5 +152,5 @@ Sign up and get your API key at [code.deepline.com](https://code.deepline.com).
 
 ```bash
 npm install -g @deepline/cli
-deepline auth login
+deepline auth register
 ```
