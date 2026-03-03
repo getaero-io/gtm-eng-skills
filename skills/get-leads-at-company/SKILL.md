@@ -45,7 +45,7 @@ This pipeline:
 ```bash
 deepline enrich --input companies.csv --in-place --rows 0:0 \
   --with 'apollo_company=apollo_company_search:{"q_organization_name":"{{Company}}","per_page":3,"page":1}' \
-  --with 'company_profile=run_javascript:{"code":"const q=(row[\"Company\"]||\"\").trim().toLowerCase(); const d=row[\"apollo_company\"]?.data||{}; const a=(d.accounts||[]).find(x=>((x?.name||\"\").trim().toLowerCase()===q))||(d.accounts||[])[0]||null; if(!a) return null; return {company_name:a.name||null,company_domain:a.primary_domain||a.domain||null,company_linkedin:a.linkedin_url||null};"}' \
+  --with 'company_profile=run_javascript:@$WORKDIR/company_profile.js' \
   --with 'employees=apify_run_actor_sync:{"actorId":"apimaestro/linkedin-company-employees-scraper-no-cookies","input":{"identifier":"{{company_profile.data.company_linkedin}}","max_employees":60,"job_title":"gtm"},"timeoutMs":180000}' \
   --with 'pick_contact=call_ai_claude_code:{"model":"sonnet","json_mode":{"type":"object","properties":{"full_name":{"type":"string"},"headline":{"type":"string"},"linkedin_url":{"type":"string"},"why_fit":{"type":"string"}},"required":["full_name","headline","linkedin_url","why_fit"]},"system":"Pick the single best outreach persona for GTM at this company. Prefer revenue ops, growth, GTM engineering, or sales leadership.","prompt":"Company: {{Company}}\nCandidates: {{employees.data}}\nReturn strict JSON only."}' \
   --with 'recent_posts=apify_run_actor_sync:{"actorId":"apimaestro/linkedin-profile-posts","input":{"username":"{{pick_contact.extracted_json.linkedin_url}}","total_posts":5,"limit":5},"timeoutMs":180000}' \
@@ -59,6 +59,8 @@ After validating one row, scale:
 deepline enrich --input companies.csv --in-place --rows 1: \
   # ... same flags
 ```
+
+Use `run_javascript:@$WORKDIR/<script>.js` for all JS transform columns; do not inline JSON `{"code":"..."}` payloads.
 
 ## Simpler version: just find contacts (no messaging)
 

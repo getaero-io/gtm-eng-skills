@@ -65,7 +65,7 @@ When the waterfall returns null, retry with expanded nicknames. Add a nickname e
 
 ```bash
 deepline enrich --input contacts.csv --in-place --rows 0:1 \
-  --with 'expanded_name=run_javascript:{"code":"const nicknames={\"phil\":[\"philip\"],\"bob\":[\"robert\"],\"mike\":[\"michael\"],\"bill\":[\"william\"],\"jim\":[\"james\"],\"joe\":[\"joseph\"],\"dan\":[\"daniel\"],\"tom\":[\"thomas\"],\"dick\":[\"richard\"],\"ted\":[\"theodore\",\"edward\"],\"rob\":[\"robert\"],\"liz\":[\"elizabeth\"],\"kate\":[\"katherine\",\"catherine\"],\"jen\":[\"jennifer\"],\"chris\":[\"christopher\",\"christine\"],\"alex\":[\"alexander\",\"alexandra\"],\"sam\":[\"samuel\",\"samantha\"],\"matt\":[\"matthew\"],\"dave\":[\"david\"],\"steve\":[\"steven\",\"stephen\"],\"tony\":[\"anthony\"],\"nick\":[\"nicholas\"],\"ben\":[\"benjamin\"],\"greg\":[\"gregory\"],\"pat\":[\"patrick\",\"patricia\"],\"rick\":[\"richard\",\"frederick\"],\"doug\":[\"douglas\"],\"jeff\":[\"jeffrey\"],\"andy\":[\"andrew\"],\"charlie\":[\"charles\"],\"ed\":[\"edward\",\"edmund\"],\"jack\":[\"john\"],\"wes\":[\"wesley\"]}; const f=(row[\"First Name\"]||\"\").trim(); const fl=f.toLowerCase(); const alts=nicknames[fl]||[]; const formals=Object.entries(nicknames).filter(([k,v])=>v.includes(fl)).map(([k])=>k); return {original:f,alternates:[...alts,...formals]};"}' \
+  --with 'expanded_name=run_javascript:@$WORKDIR/expand_nicknames.js' \
   --with-waterfall "linkedin" \
   --type linkedin \
   --result-getters '["linkedin_url","data.linkedin_url"]' \
@@ -74,6 +74,8 @@ deepline enrich --input contacts.csv --in-place --rows 0:1 \
   --with 'pdl=peopledatalabs_person_identify:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company":"{{Company}}"}' \
   --end-waterfall
 ```
+
+For `run_javascript`, use file-backed scripts only (`run_javascript:@$WORKDIR/<script>.js`); avoid inline JSON `{"code":"..."}` payloads.
 
 ### Apify verification (post-waterfall)
 

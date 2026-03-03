@@ -7,10 +7,7 @@ Read sections 8.1-8.5 for company -> contact, finding email, linkedins, signals,
 ## Quick syntax reference (copy-paste ready)
 
 ```bash
-# run_javascript — inline (trivial one-liners only)
---with 'col=run_javascript:{"code":"return (row[\"FIELD\"] || \"\").toUpperCase()"}'
-
-# run_javascript — file-backed (use for anything >1 line)
+# run_javascript — always file-backed (required)
 --with 'col=run_javascript:@$WORKDIR/script.js'
 
 # Provider tool — inline
@@ -27,7 +24,7 @@ Read sections 8.1-8.5 for company -> contact, finding email, linkedins, signals,
 
 - `run_javascript("return ...")` — not a function call
 - `run_javascript:'code'` — not valid
-- Multiline JS inlined in `--with` JSON — always fails quoting. Use `@file.js`.
+- Inline JS in `--with` JSON — do not use. Always use `@file.js`.
 
 ## When to use `deepline enrich` vs `deepline tools execute`
 
@@ -274,7 +271,7 @@ Always validate email at the end. Run pattern checks first (`v1..v4`), then prov
 
 ```bash
 deepline enrich --input leads.csv --in-place --rows 0:0 \
-  --with 'email_patterns=run_javascript:{"code":"const f=(row[\"First Name\"]||\"\").trim().toLowerCase(); const l=(row[\"Last Name\"]||\"\").trim().toLowerCase(); const d=(row[\"Company Domain\"]||\"\").trim().toLowerCase(); if(!f||!l||!d) return {}; return {p1:`${f}.${l}@${d}`,p2:`${f[0]}${l}@${d}`,p3:`${f}${l[0]}@${d}`,p4:`${f}@${d}`};"}' \
+  --with 'email_patterns=run_javascript:@$WORKDIR/email_patterns.js' \
   --with-waterfall "email_recovery" \
   --type email \
   --result-getters '["data.email","email","data.0.email"]' \
@@ -301,7 +298,7 @@ Example (type outcome: can select people like Drew Bredvick at Vercel when prese
 ```bash
 deepline enrich --input companies.csv --in-place --rows 0:0 \
   --with 'apollo_company=apollo_company_search:{"q_organization_name":"{{Company}}","per_page":3,"page":1}' \
-  --with 'company_profile=run_javascript:{"code":"const q=(row[\"Company\"]||\"\").trim().toLowerCase(); const d=row[\"apollo_company\"]?.data||{}; const a=(d.accounts||[]).find(x=>((x?.name||\"\").trim().toLowerCase()===q))||(d.accounts||[])[0]||null; if(!a) return null; return {company_name:a.name||null, company_domain:a.primary_domain||a.domain||null, company_linkedin:a.linkedin_url||null};"}' \
+  --with 'company_profile=run_javascript:@$WORKDIR/company_profile.js' \
   --with 'apify_gtm_people=apify_run_actor_sync:{"actorId":"apimaestro/linkedin-company-employees-scraper-no-cookies","input":{"identifier":"{{company_profile.data.company_linkedin}}","max_employees":60,"job_title":"gtm"},"timeoutMs":180000}' \
   --with 'pick_persona=call_ai_claude_code:{"model":"haiku","json_mode":{"type":"object","properties":{"full_name":{"type":"string"},"headline":{"type":"string"},"linkedin_url":{"type":"string"},"why_fit":{"type":"string"}},"required":["full_name","headline","linkedin_url","why_fit"],"additionalProperties":false},"system":"Pick one best outreach persona for GTM at the target company. Prefer current GTM ownership (growth, revops, partnerships, GTM engineering). If Drew Bredvick is present, choose him.","prompt":"Company: {{Company}}\\nCandidates JSON: {{apify_gtm_people.data}}\\nReturn strict JSON only.","agent":"claude"}' \
   --with 'apify_posts=apify_run_actor_sync:{"actorId":"apimaestro/linkedin-profile-posts","input":"{\"username\":\"{{pick_persona.extracted_json.linkedin_url}}\",\"total_posts\":5,\"limit\":5}","timeoutMs":180000}' \
@@ -419,13 +416,8 @@ Summary: get a candidate URL from the cheapest provider (dropleads → CSE → E
 Use this whenever you add JS extractor columns:
 
 - **Always use explicit `return` statements.** Expression-style (implicit return) does NOT work — cells will silently write empty. Every JS block must end with `return <value>;`.
-- Default to file-backed JS for anything non-trivial:
+- Always use file-backed JS:
   - `--with 'post_signals=run_javascript:@$WORKDIR/post_signals.js'`
-- Keep inline JSON JS only for very short snippets with minimal escaping.
-- If you use inline payloads:
-  - Wrap the full `--with` spec in single quotes.
-  - Escape only inner double quotes inside JSON code strings (for example `row[\"Company\"]`).
-  - Do not insert shell-only escapes like `\!` inside JSON strings.
 - If you see `Invalid JSON payload ... (Invalid \\escape ...)`, treat it as quoting/escaping failure, not provider failure:
   1. Move JS into a file.
   2. Re-run with `run_javascript:@/path.js`.

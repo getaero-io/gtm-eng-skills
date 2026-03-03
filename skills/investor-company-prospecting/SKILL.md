@@ -149,7 +149,12 @@ This is fast because `call_ai` without WebSearch uses model knowledge and these 
 
 ### Step 3: Find contacts at each company
 
-**Important: these are small startups (5-50 people).** Apollo often returns 0 results for the exact job title because the person hasn't started yet (they're hiring for the role). Broaden your search:
+**Important: these are small startups (5-50 people).** Do NOT run a strict-title pilot (for example `person_titles: ["GTM Engineer", "Head of Growth"]`) and then retry. That pattern usually wastes a full attempt because early-stage teams often use titles like "Founding AE", "Founding GTM", or "Revenue Lead."
+
+Use this default for small startups:
+- No `person_titles` filter
+- `include_similar_titles: true`
+- Pull a few contacts and pick the best GTM-adjacent person
 
 ```bash
 deepline enrich --input yc_companies.csv --output yc_with_contacts.csv \
@@ -162,7 +167,7 @@ deepline enrich --input yc_companies.csv --output yc_with_contacts.csv \
   }'
 ```
 
-Note: no `person_titles` filter — for tiny startups, just get whoever is there and pick the best GTM-adjacent contact. Founders, growth leads, and heads of sales are all valid targets when the company has 10 people.
+Note: no `person_titles` filter — for tiny startups, just get whoever is there and pick the best GTM-adjacent contact. Founders, growth leads, founding AEs, and heads of sales are all valid targets when the company has 10 people.
 
 If Apollo returns 0 for a company, fall back to `call_ai` with WebSearch:
 

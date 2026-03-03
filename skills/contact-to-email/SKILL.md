@@ -82,7 +82,7 @@ When you have name + domain but no LinkedIn. Generates common email patterns (fi
 
 ```bash
 deepline enrich --input leads.csv --in-place --rows 0:1 \
-  --with 'patterns=run_javascript:{"code":"const f=(row[\"First Name\"]||\"\").trim().toLowerCase(); const l=(row[\"Last Name\"]||\"\").trim().toLowerCase(); const d=(row[\"Domain\"]||\"\").trim().toLowerCase(); if(!f||!l||!d) return {}; return {p1:`${f}.${l}@${d}`,p2:`${f[0]}${l}@${d}`,p3:`${f}${l[0]}@${d}`,p4:`${f}@${d}`,p5:`${f}${l}@${d}`,p6:`${f}_${l}@${d}`};"}' \
+  --with 'patterns=run_javascript:@$WORKDIR/email_patterns.js' \
   --with-waterfall "email" \
   --type email \
   --result-getters '["data.email","email","data.0.email"]' \
@@ -98,6 +98,8 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
 ```
 
 Required columns: `First Name`, `Last Name`, `Domain`
+
+Always use file-backed JS for `run_javascript` columns (`run_javascript:@$WORKDIR/<script>.js`); avoid inline JSON `{"code":"..."}` payloads to prevent quoting failures.
 
 ---
 
