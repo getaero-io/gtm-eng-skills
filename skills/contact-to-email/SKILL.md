@@ -9,8 +9,6 @@ description: |
   - "get email addresses for my contact list"
   - "email enrichment"
   - "I have LinkedIn URLs and need emails"
-
-  Requires: Deepline CLI — https://code.deepline.com
 ---
 
 > Start here first: read `gtm-meta-skill` before running this skill.
