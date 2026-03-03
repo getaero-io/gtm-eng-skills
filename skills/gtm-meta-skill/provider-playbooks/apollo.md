@@ -18,7 +18,7 @@ Response-shape contract (critical):
 - Apollo's native people-search payload shape is top-level: `{ total_entries, people, pagination }`.
 - Deepline wraps provider payloads in a standard result envelope: `{ data, meta }`.
 - Therefore:
-  - In `deepline tools execute ... --json`, read people at `result.data.people`.
+  - In `deepline tools execute ... `, read people at `result.data.people`.
   - In `deepline enrich` row expressions, read people at `<column>.data.people`.
   - Do not assume `data.people` exists inside Apollo's native payload itself.
 
@@ -51,7 +51,7 @@ return {
 Quick shape check command:
 
 ```bash
-deepline tools execute apollo_company_search --payload '{"q_organization_name":"Langfuse","per_page":3,"page":1}' --json
+deepline tools execute apollo_company_search --payload '{"q_organization_name":"Langfuse","per_page":3,"page":1}'
 ```
 
 Obfuscated last-name handling (for email pattern workflows):
@@ -66,6 +66,6 @@ Obfuscated last-name handling (for email pattern workflows):
 - Keep recall-first behavior: obfuscation checks should gate pattern generation quality, not force strict matching globally.
 
 ```bash
-deepline tools get apollo_search_people --json
-deepline tools get apollo_people_search_paid --json
+deepline tools get apollo_search_people
+deepline tools get apollo_people_search_paid
 ```

@@ -39,7 +39,7 @@ Resolve LinkedIn profile URLs from name + company with strict identity validatio
 
 ```bash
 deepline tools execute apollo_people_match \
-  --payload '{"first_name":"Phil","last_name":"Parvaneh","organization_name":"Acme Corp"}' --json
+  --payload '{"first_name":"Phil","last_name":"Parvaneh","organization_name":"Acme Corp"}'
 ```
 
 Check `linkedin_url` in the response. If null, use the batch waterfall.

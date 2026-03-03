@@ -224,7 +224,7 @@ deepline enrich \
   --output output/{company}-enriched.csv \
   --with 'website=exa_search:{"query":"{exa-query-from-above}","numResults":8,"type":"auto","includeDomains":["{{domain}}"],"contents":{"text":{"maxCharacters":3000,"verbosity":"compact","includeSections":["body"]}}}' \
   --with 'jobs=crustdata_job_listings:{"companyDomains":"{{domain}}","limit":50}' \
-  --json
+ 
 ```
 
 **Why exa_search with contents (not parallel_extract)?**

@@ -28,7 +28,7 @@ deepline tools execute apollo_search_people \
     "person_titles": ["VP Sales", "Head of Revenue", "GTM", "Revenue Operations"],
     "include_similar_titles": true,
     "per_page": 10
-  }' --json
+  }'
 ```
 
 ## Full chain: company list → personalized outreach

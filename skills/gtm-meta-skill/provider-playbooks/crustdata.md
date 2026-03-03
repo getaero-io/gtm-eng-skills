@@ -31,13 +31,13 @@ Use CrustData for structured discovery and enrichment with recall-first filterin
 ### Examples
 
 ```bash
-deepline tools execute crustdata_companydb_autocomplete --payload '{"field":"linkedin_industries","query":"software","limit":5}' --json
+deepline tools execute crustdata_companydb_autocomplete --payload '{"field":"linkedin_industries","query":"software","limit":5}'
 ```
 
 ```bash
-deepline tools execute crustdata_companydb_search --payload '{"filters":[{"filter_type":"linkedin_industries","type":"(.)","value":"software"},{"filter_type":"hq_country","type":"=","value":"USA"}],"limit":5}' --json
+deepline tools execute crustdata_companydb_search --payload '{"filters":[{"filter_type":"linkedin_industries","type":"(.)","value":"software"},{"filter_type":"hq_country","type":"=","value":"USA"}],"limit":5}'
 ```
 
 ```bash
-deepline enrich --input accounts.csv --output accounts.csv.out.csv --with 'company_lookup=crustdata_companydb_autocomplete:{"field":"company_name","query":"{{Company}}","limit":1}' --json
+deepline enrich --input accounts.csv --output accounts.csv.out.csv --with 'company_lookup=crustdata_companydb_autocomplete:{"field":"company_name","query":"{{Company}}","limit":1}'
 ```

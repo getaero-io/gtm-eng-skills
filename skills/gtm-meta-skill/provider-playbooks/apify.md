@@ -16,11 +16,11 @@ Schema drift guardrail:
 - If still unclear, run a 1-row/1-item pilot payload and adjust to pass Deepline validation before scaling.
 
 ```bash
-deepline tools get apify_run_actor_sync --json
+deepline tools get apify_run_actor_sync
 ```
 
 ```bash
-deepline tools execute apify_list_store_actors --payload '{"search":"linkedin jobs scraper","sortBy":"relevance","limit":10}' --json
+deepline tools execute apify_list_store_actors --payload '{"search":"linkedin jobs scraper","sortBy":"relevance","limit":10}'
 ```
 
 ```bash
@@ -30,13 +30,13 @@ deepline tools execute apify_list_store_actors --payload '{"search":"linkedin jo
 
 ```bash
 # Inspect the actor's input schema page before execution
-deepline tools execute apify_get_actor_input_schema --payload '{"actorId":"bebity/linkedin-jobs-scraper"}' --json
+deepline tools execute apify_get_actor_input_schema --payload '{"actorId":"bebity/linkedin-jobs-scraper"}'
 ```
 
 ```bash
-deepline tools execute apify_run_actor_sync --payload '{"actorId":"bebity/linkedin-jobs-scraper","input":{"title":"Web Developer","location":"United States","rows":10},"timeoutMs":300000}' --json
+deepline tools execute apify_run_actor_sync --payload '{"actorId":"bebity/linkedin-jobs-scraper","input":{"title":"Web Developer","location":"United States","rows":10},"timeoutMs":300000}'
 ```
 
 ```bash
-deepline tools execute apify_get_dataset_items --payload '{"datasetId":"{{dataset_id}}","limit":10,"offset":0}' --json
+deepline tools execute apify_get_dataset_items --payload '{"datasetId":"{{dataset_id}}","limit":10,"offset":0}'
 ```

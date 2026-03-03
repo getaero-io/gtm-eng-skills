@@ -17,7 +17,7 @@ deepline enrich --input contacts.csv --output contacts.csv.out.csv \
   --with-waterfall "email-verify" \
   --with 'verify_primary=leadmagic_email_validation:{"email":"{{email_1}}"}' \
   --with 'verify_secondary=leadmagic_email_validation:{"email":"{{email_2}}"}' \
-  --end-waterfall --json
+  --end-waterfall
 ```
 
 Related docs:

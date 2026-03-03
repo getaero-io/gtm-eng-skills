@@ -9,11 +9,30 @@ Use Dropleads as a two-phase flow: low-cost segment discovery first, paid enrich
 - Tighten filters until sample rows clearly match role, industry, and geo expectations.
 - Key filter fields: `filters.jobTitles`, `filters.seniority` (C-Level/VP/Director/Manager/Senior/Entry/Intern), `filters.industries`, `filters.departments`, `filters.companyDomains`, `filters.employeeRanges`, `filters.personalCountries.include` (for geo), `pagination.page`, `pagination.limit`.
 
-### Common filter mistakes
+### Filter best practices
 
-- **Country filter**: Use `filters.personalCountries.include` (array), NOT `filters.countries`. Example: `"personalCountries": {"include": ["United States"]}`.
-- **Seniority values**: Must be exact: `C-Level`, `VP`, `Director`, `Manager`, `Senior`, `Entry`, `Intern`. Not lowercase, not abbreviated.
-- **Industry values**: Use exact strings from Dropleads. When unsure, pilot with a broad search first.
+All Dropleads filters nest under the `filters` object. Pagination nests under `pagination`. The canonical payload shape:
+
+```json
+{
+  "filters": {
+    "companyDomains": ["microsoft.com"],
+    "jobTitles": ["CTO", "VP Engineering"],
+    "seniority": ["C-Level", "VP", "Director"],
+    "personalCountries": {"include": ["United States"]}
+  },
+  "pagination": {"page": 1, "limit": 25}
+}
+```
+
+**Quick reference — correct filter keys:**
+
+| Filter | Correct key | Why |
+|--------|------------|-----|
+| Company | `filters.companyDomains` | Exact domain match. `companyNames` does fuzzy substring matching — "Microsoft" pulls in unrelated businesses. 53K+ results at microsoft.com confirmed. |
+| Country | `filters.personalCountries.include` | Array inside a nested object. |
+| Seniority | `filters.seniority` | Exact values only: `C-Level`, `VP`, `Director`, `Manager`, `Senior`, `Entry`, `Intern`. |
+| Industry | `filters.industries` | Exact strings from Dropleads. Pilot with a broad search first when unsure. |
 
 ## 2) Escalate paid calls only for shortlisted targets
 

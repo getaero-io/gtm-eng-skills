@@ -58,6 +58,7 @@ No-loss rule: moved guidance remains fully documented at its canonical level and
 
 
 
+
 ## 2) Read behavior 
 
 - Start with `SKILL.md`, then open only the relevant sub-doc.
@@ -176,7 +177,10 @@ Use [gtm-definitions-defaults.md](gtm-definitions-defaults.md) as the source of 
 - Even for company → ICP person flows, enrich works: search and filter as part of the process, with providers like Apify to guide.
 - Even when you don't have a CSV, create one and use deepline enrich.
 - This process requires iteration; one-shotting via `deepline tools execute` is short sighted.
+- Before running any Deepline execution command (`deepline enrich`, `deepline tools execute`, `deepline csv --execute_cells`), run `deepline backend start` first in the same session.
+- If backend state is unclear, run `deepline backend status` and only continue execution when backend is running/healthy.
 - If a command created CSV outside enrich, run `deepline csv --render-as-playground start --csv <csv_path> --open`.
+- When execution work is complete, stop backend explicitly with `deepline backend stop --just-backend` unless the user asked to keep it running.
 - In chat, send the file path + playground status, not pasted CSV rows, unless explicitly requested.
 - Preserve lineage columns (especially `_metadata`) end-to-end. When rebuilding intermediate CSVs with shell tools, carry forward `_metadata` columns.
 - Never enrich a user-provided or source CSV in-place. Use `--output` to write to your working directory on the first pass, then `--in-place` on that output for subsequent passes. `--in-place` is for iterating on your own prior outputs — never on source files.
@@ -257,8 +261,8 @@ Approve full run?
 
 
 ```bash
-deepline billing balance --json
-deepline billing limit --json
+deepline billing balance
+deepline billing limit
 ```
 
 When credits at zero, link to https://code.deepline.com/dashboard/billing to top up.
@@ -306,8 +310,8 @@ For sequence and qualification-heavy use cases, open both: [qualification-and-em
 6. Honor `operatorNotes` over public ratings when conflicting.
 
 ```bash
-deepline tools execute apify_list_store_actors --payload '{"search":"linkedin company employees scraper","sortBy":"relevance","limit":20}' --json
-deepline tools execute apify_get_actor_input_schema --payload '{"actorId":"bebity/linkedin-jobs-scraper"}' --json
+deepline tools execute apify_list_store_actors --payload '{"search":"linkedin company employees scraper","sortBy":"relevance","limit":20}'
+deepline tools execute apify_get_actor_input_schema --payload '{"actorId":"bebity/linkedin-jobs-scraper"}'
 ```
 
 ## 7) Feedback & session sharing

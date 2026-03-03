@@ -9,13 +9,13 @@ Use Exa for web-grounded retrieval, then synthesis.
 - Treat `exa_answer` as the summarization layer, not the first retrieval step, when precision matters.
 
 ```bash
-deepline tools execute exa_search --payload '{"query":"series b devtools companies united states","numResults":5,"type":"fast"}' --json
+deepline tools execute exa_search --payload '{"query":"series b devtools companies united states","numResults":5,"type":"fast"}'
 ```
 
 ```bash
-deepline tools execute exa_contents --payload '{"urls":["https://example.com"],"text":true}' --json
+deepline tools execute exa_contents --payload '{"urls":["https://example.com"],"text":true}'
 ```
 
 ```bash
-deepline tools execute exa_answer --payload '{"query":"Summarize the top GTM signals from these results","text":true}' --json
+deepline tools execute exa_answer --payload '{"query":"Summarize the top GTM signals from these results","text":true}'
 ```

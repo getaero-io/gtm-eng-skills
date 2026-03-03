@@ -5,9 +5,9 @@ Use Instantly for campaign activation and lightweight outbound reporting.
 - Keep activation behind enrichment/verification gates to reduce low-quality sends.
 
 ```bash
-deepline tools execute instantly_list_campaigns --payload '{}' --json
+deepline tools execute instantly_list_campaigns --payload '{}'
 ```
 
 ```bash
-deepline tools execute instantly_add_to_campaign --payload '{"campaign_id":"{{campaign_id}}","contacts":[{"email":"ada@example.com","first_name":"Ada","last_name":"Lovelace"}]}' --json
+deepline tools execute instantly_add_to_campaign --payload '{"campaign_id":"{{campaign_id}}","contacts":[{"email":"ada@example.com","first_name":"Ada","last_name":"Lovelace"}]}'
 ```

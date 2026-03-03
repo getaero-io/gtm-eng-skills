@@ -7,13 +7,13 @@ Use People Data Labs when you need explicit, auditable structured filters.
 - If earlier, cheaper steps already returned a usable email, skip PDL for that row.
 
 ```bash
-deepline tools execute peopledatalabs_company_clean --payload '{"name":"Open AI Inc"}' --json
+deepline tools execute peopledatalabs_company_clean --payload '{"name":"Open AI Inc"}' 
 ```
 
 ```bash
-deepline tools execute peopledatalabs_person_search --payload '{"query":{"bool":{"must":[{"term":{"location_country":"united states"}},{"term":{"job_title_role":"marketing"}}]}},"size":5}' --json
+deepline tools execute peopledatalabs_person_search --payload '{"query":{"bool":{"must":[{"term":{"location_country":"united states"}},{"term":{"job_title_role":"marketing"}}]}},"size":5}' 
 ```
 
 ```bash
-deepline tools execute peopledatalabs_autocomplete --payload '{"field":"job_title","text":"growth"}' --json
+deepline tools execute peopledatalabs_autocomplete --payload '{"field":"job_title","text":"growth"}' 
 ```

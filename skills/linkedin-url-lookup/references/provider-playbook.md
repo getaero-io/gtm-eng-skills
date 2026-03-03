@@ -25,7 +25,7 @@ Primary provider for LinkedIn URL lookup. Best when you have name + company. Apo
 ```bash
 # Deepline CLI
 deepline tools execute apollo_people_match \
-  --payload '{"first_name":"Phil","last_name":"Parvaneh","organization_name":"Acme Corp"}' --json
+  --payload '{"first_name":"Phil","last_name":"Parvaneh","organization_name":"Acme Corp"}'
 ```
 
 ### Response Fields
@@ -150,7 +150,7 @@ As a secondary waterfall step after Apollo in Deepline CLI waterfalls. Best with
 
 ```bash
 deepline tools execute peopledatalabs_person_identify \
-  --payload '{"first_name":"Phil","last_name":"Parvaneh","company":"Acme Corp"}' --json
+  --payload '{"first_name":"Phil","last_name":"Parvaneh","company":"Acme Corp"}'
 ```
 
 ### Response Fields
@@ -184,7 +184,7 @@ deepline tools execute apify_run_actor_sync \
     "actorId": "apimaestro/linkedin-profile-scraper-no-cookies",
     "input": {"username": "https://www.linkedin.com/in/johnsmith"},
     "timeoutMs": 60000
-  }' --json
+  }'
 ```
 
 ### Batch verification (post-waterfall)

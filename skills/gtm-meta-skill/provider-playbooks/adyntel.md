@@ -9,9 +9,9 @@ Use Adyntel for paid-media intelligence (creative examples, channel presence, an
 - Billing is request-based for paid endpoints, so pre-filter targets before broad sweeps.
 
 ```bash
-deepline tools execute adyntel_google --payload '{"company_domain":"hubspot.com"}' --json
+deepline tools execute adyntel_google --payload '{"company_domain":"hubspot.com"}'
 ```
 
 ```bash
-deepline tools execute adyntel_google_shopping_sync --payload '{"company_domain":"allbirds.com"}' --json
+deepline tools execute adyntel_google_shopping_sync --payload '{"company_domain":"allbirds.com"}'
 ```

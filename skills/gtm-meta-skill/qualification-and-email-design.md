@@ -125,9 +125,9 @@ Example `icp.md` starter:
 ## Recommended Workflow
 
 ```bash
-deepline tools get read_file --json
-deepline tools get call_ai_claude_code --json
-deepline tools execute read_file --payload '{"path":"./icp.md"}' --json | tee ./icp_context.json
+deepline tools get read_file
+deepline tools get call_ai_claude_code
+deepline tools execute read_file --payload '{"path":"./icp.md"}
 
 QUAL_PROMPT=$(jq -Rs '{prompt: ("You are a B2B qualification analyst. Return strict JSON only with this shape: {data:{score:number,score_label:string,fit_band:string,rationale:string,qualification:{answers:[{question:string,answer:\"Yes\"|\"No\"|\"Unknown\",confidence:\"HIGH\"|\"MEDIUM\"|\"LOW\",rationale:string}],summary:{positives:[string],risks:[string],next_checks:[string]}}}}. Use high recall defaults unless explicitly asked for strict matching. Inputs:\nICP file payload: " + . + "\nProspect payload: {{prospect_payload}}"), model:"haiku", agent:"claude", json_mode:true}' ./icp_context.json)
 
@@ -138,7 +138,7 @@ printf "prospect_payload\n{\"person\":{\"firstName\":\"Rachael\",\"lastName\":\"
 deepline enrich --input ./qualification_email_seed.csv --output ./qualification_email_seed_enriched.csv \
   --with "qualification_output=call_ai_claude_code:${QUAL_PROMPT}" \
   --with "email_sequence_output=call_ai_claude_code:${SEQ_PROMPT}" \
-  --json
+ 
 ```
 
 ## Prompt Templates (Copy/Paste)

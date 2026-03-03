@@ -340,7 +340,7 @@ Use this policy whenever input starts from `Company` name only:
 Minimal fallback when resolver misses:
 
 ```bash
-deepline tools execute google_search --payload '{"query":"site:linkedin.com/company \"{{Company}}\"","num":5}' --json
+deepline tools execute google_search --payload '{"query":"site:linkedin.com/company \"{{Company}}\"","num":5}'
 ```
 
 Then map to `company_profile` and continue with domain/ID-based steps. Do not run name-only `apollo_people_search` or name-only `crustdata_enrich_company`.
@@ -406,7 +406,7 @@ Summary: get a candidate URL from the cheapest provider (dropleads → CSE → E
 ## Pre-flight and shape checks
 
 `deepline auth status`
-`deepline billing balance --json`
+`deepline billing balance `
 
 ### Tool shape validation (required before JS extractors)
 

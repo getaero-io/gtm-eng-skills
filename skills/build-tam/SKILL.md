@@ -3,7 +3,7 @@ name: build-tam
 description: |
   Build a Total Addressable Market (TAM) list using ICP filters. Find all companies
   and contacts that match your ideal customer profile across multiple data providers.
-  Can translate niche-signal-discovery report output directly into Apollo search criteria.
+  Can translate niche-signal-discovery report output directly into provider search criteria.
 
   Triggers:
   - "build my TAM"
@@ -38,7 +38,7 @@ deepline tools execute apollo_search_people \
     "q_keywords": "technology",
     "per_page": 1,
     "page": 1
-  }' --json
+  }'
 ```
 
 Look for `total_people` in the response to see your TAM size before pulling.
@@ -53,7 +53,7 @@ deepline tools execute apollo_company_search \
     "organization_num_employees_ranges": ["51,200"],
     "per_page": 1,
     "page": 1
-  }' --json
+  }'
 
 # Pull list (100 per page)
 deepline tools execute apollo_company_search \
@@ -62,7 +62,7 @@ deepline tools execute apollo_company_search \
     "organization_num_employees_ranges": ["51,200"],
     "per_page": 100,
     "page": 1
-  }' --json
+  }'
 ```
 
 ## Step 3: Contact-first TAM
@@ -77,7 +77,7 @@ deepline tools execute apollo_search_people \
     "person_locations": ["United States"],
     "per_page": 100,
     "page": 1
-  }' --json
+  }'
 ```
 
 ## Step 4: Prioritize your TAM with signals
@@ -138,7 +138,7 @@ deepline tools execute apollo_search_people \
     "person_locations": ["United States"],
     "per_page": 1,
     "page": 1
-  }' --json
+  }'
 ```
 
 **2. Extract keyword-based company searches from Section 2:**
@@ -153,7 +153,7 @@ deepline tools execute apollo_company_search \
     "organization_num_employees_ranges": ["201,500", "501,1000", "1001,5000"],
     "per_page": 1,
     "page": 1
-  }' --json
+  }'
 ```
 
 **3. Search by tech stack signals from Section 3:**
@@ -168,7 +168,7 @@ deepline tools execute apollo_company_search \
     "organization_num_employees_ranges": ["201,500", "501,1000"],
     "per_page": 1,
     "page": 1
-  }' --json
+  }'
 ```
 
 **4. Verify with job listing keywords (post-pull enrichment):**
@@ -235,15 +235,15 @@ Run one search per buyer persona, deduplicate, then score:
 ```bash
 # Search 1: RevOps buyers
 deepline tools execute apollo_search_people \
-  --payload '{"person_titles":["Revenue Operations","RevOps"],"include_similar_titles":true,"person_seniorities":["vp","director","manager"],"q_keywords":"b2b saas","organization_num_employees_ranges":["201,500","501,1000","1001,5000"],"per_page":100,"page":1}' --json > tam-revops.json
+  --payload '{"person_titles":["Revenue Operations","RevOps"],"include_similar_titles":true,"person_seniorities":["vp","director","manager"],"q_keywords":"b2b saas","organization_num_employees_ranges":["201,500","501,1000","1001,5000"],"per_page":100,"page":1}'
 
 # Search 2: BizOps buyers
 deepline tools execute apollo_search_people \
-  --payload '{"person_titles":["Business Operations","BizOps","Head of Operations"],"include_similar_titles":true,"person_seniorities":["vp","director","manager"],"q_keywords":"b2b saas","organization_num_employees_ranges":["201,500","501,1000","1001,5000"],"per_page":100,"page":1}' --json > tam-bizops.json
+  --payload '{"person_titles":["Business Operations","BizOps","Head of Operations"],"include_similar_titles":true,"person_seniorities":["vp","director","manager"],"q_keywords":"b2b saas","organization_num_employees_ranges":["201,500","501,1000","1001,5000"],"per_page":100,"page":1}' 
 
 # Search 3: Data/Analytics buyers
 deepline tools execute apollo_search_people \
-  --payload '{"person_titles":["Head of Data","VP Analytics","Analytics Engineering"],"include_similar_titles":true,"person_seniorities":["vp","director","manager"],"q_keywords":"b2b saas data infrastructure","organization_num_employees_ranges":["201,500","501,1000","1001,5000"],"per_page":100,"page":1}' --json > tam-data.json
+  --payload '{"person_titles":["Head of Data","VP Analytics","Analytics Engineering"],"include_similar_titles":true,"person_seniorities":["vp","director","manager"],"q_keywords":"b2b saas data infrastructure","organization_num_employees_ranges":["201,500","501,1000","1001,5000"],"per_page":100,"page":1}' 
 ```
 
 Merge the JSON outputs into a single CSV, deduplicate by company domain, then run the job listing enrichment + scoring pipeline above.
@@ -270,10 +270,10 @@ Apollo returns up to 100 results per page. For large TAMs:
 
 ```bash
 # Page 1
-deepline tools execute apollo_search_people --payload '{"per_page": 100, "page": 1, ...}' --json
+deepline tools execute apollo_search_people --payload '{"per_page": 100, "page": 1, ...}'
 
 # Page 2
-deepline tools execute apollo_search_people --payload '{"per_page": 100, "page": 2, ...}' --json
+deepline tools execute apollo_search_people --payload '{"per_page": 100, "page": 2, ...}'
 ```
 
 ## Cost estimation

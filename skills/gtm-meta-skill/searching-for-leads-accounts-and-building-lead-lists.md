@@ -38,8 +38,8 @@ deepline tools search hiring
 Investor-backed pilot:
 
 ```bash
-deepline tools execute crustdata_companydb_autocomplete --payload '{"field":"crunchbase_investors","query":"Sequoia","limit":5}' --json
-deepline tools execute crustdata_companydb_search --payload '{"filters":[{"filter_type":"crunchbase_investors","type":"(.)","value":"Sequoia Capital"}],"limit":20}' --json
+deepline tools execute crustdata_companydb_autocomplete --payload '{"field":"crunchbase_investors","query":"Sequoia","limit":5}'
+deepline tools execute crustdata_companydb_search --payload '{"filters":[{"filter_type":"crunchbase_investors","type":"(.)","value":"Sequoia Capital"}],"limit":20}'
 ```
 
 ## Execution philosophy: parallel-first, no deliberation. Use subagents for independent workstreams when available.
@@ -222,7 +222,7 @@ PAYLOAD=$(cat <<'EOF'
 {"sql": "SELECT * FROM company WHERE industry = 'financial services' AND location.country = 'united states' AND size IN ('51-200','201-500') AND latest_funding_stage IN ('series_a','series_b')", "size": 20}
 EOF
 )
-deepline tools execute peopledatalabs_company_search --payload "$PAYLOAD" --json
+deepline tools execute peopledatalabs_company_search --payload "$PAYLOAD"
 ```
 
 ```bash
