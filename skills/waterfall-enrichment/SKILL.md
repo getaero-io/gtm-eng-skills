@@ -15,6 +15,7 @@ description: |
 ---
 
 > Start here first: read `gtm-meta-skill` before running this skill.
+> On completion, follow `gtm-meta-skill` Section 7 for proactive issue feedback and the session-sharing Yes/No consent step.
 
 # Waterfall Enrichment
 

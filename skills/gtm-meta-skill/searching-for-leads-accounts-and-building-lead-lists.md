@@ -35,9 +35,14 @@ deepline tools search funding --prefix crustdata
 deepline tools search hiring
 ```
 
-Investor-backed pilot:
+Investor-backed / VC portfolio prospecting:
+
+**⚠ Do NOT use Crustdata `crunchbase_investors` as your primary approach for investor-portfolio prospecting.** It returns results inconsistently. Instead, invoke the `/investor-company-prospecting` skill — it fetches the public portfolio page directly (free, fast, complete). The skill covers YC, a16z, Sequoia, and other major VCs.
+
+Crustdata investor filters are acceptable only as a **supplementary cross-reference** after you already have a company list from the public portfolio page:
 
 ```bash
+# Supplementary only — not primary discovery
 deepline tools execute crustdata_companydb_autocomplete --payload '{"field":"crunchbase_investors","query":"Sequoia","limit":5}'
 deepline tools execute crustdata_companydb_search --payload '{"filters":[{"filter_type":"crunchbase_investors","type":"(.)","value":"Sequoia Capital"}],"limit":20}'
 ```

@@ -1,17 +1,6 @@
 ---
 name: gtm-meta-skill
-description: |
-  Use this skill for GTM workflows: prospecting, account/lead/contact enrichment, verification, scoring, personalization, outbound activation, and batch enrichment. Includes the local batch playground for Clay-style row-by-row execution.
-  
-  When to use:
-  - Any GTM request involving prospecting, enrichment, or outbound list prep.
-  - Any task asking for account, lead, or contact sheet creation with custom targeting/messaging data.
-  - Any Clay-like or CSV batch enrichment request.
-  
-  Available providers:
-  adyntel (9 actions), apify (9 actions), apollo (11 actions), crustdata (12 actions), deepline_native (9 actions), dropleads (8 actions), exa (8 actions), forager (10 actions), google_search (1 actions), heyreach (3 actions), hunter (8 actions), icypeas (14 actions), instantly (8 actions), leadmagic (12 actions), lemlist (26 actions), parallel (7 actions), peopledatalabs (11 actions), prospeo (7 actions), zerobounce (7 actions)
-  
-  Outcome: Produce precise account, lead, and contact sheets with unique GTM data for custom targeting and messaging.
+description: Use this skill for any GTM, sales, or outbound workflow. This includes prospecting, lead/contact/account enrichment, email finding, LinkedIn lookup, waterfall enrichment, lead scoring, qualification, cold email writing, email rewriting, outreach personalization, campaign activation, batch CSV processing, company research, people research, signal discovery, use case mapping, and any task involving a CSV of leads, contacts, accounts, or outreach content. Trigger especially when the user mentions deepline, enrichlayer, enrich my CSV, add a field to my CSV, batch process this CSV, rewrite emails, improve my emails, review my outreach, audit my email copy, make emails more relevant, write cold emails, personalize outreach, personalize based on company, tailor to each person, find leads, find contacts, find companies, build a lead list, build a prospect list, waterfall enrichment, find emails, find phone numbers, find LinkedIn URLs, research these companies, research these people, look up these contacts, look at the people, look at the companies, figure out use cases, mission statements, what they're building, rewrite under N words, startup program, API credits, lead list of their ICP, score my leads, qualify my leads, detect job changes, add to Instantly, add to HeyReach, add to Lemlist, push to campaign, ICP analysis, niche signals, TAM sizing, total addressable market, or any mention of B2B data providers or a CSV with email drafts or outreach copy. Available providers — adyntel (9 actions), apify (9 actions), apollo (11 actions), crustdata (12 actions), deepline_native (9 actions), dropleads (8 actions), exa (8 actions), forager (10 actions), google_search (1 actions), heyreach (3 actions), hunter (8 actions), icypeas (14 actions), instantly (8 actions), leadmagic (12 actions), lemlist (26 actions), parallel (7 actions), peopledatalabs (11 actions), prospeo (7 actions), zerobounce (7 actions).
 ---
 
 # GTM Meta Skill
@@ -58,25 +47,48 @@ No-loss rule: moved guidance remains fully documented at its canonical level and
 
 
 
+## 2) Read behavior
 
-## 2) Read behavior 
+### Task-specific skills (check BEFORE reading sub-docs)
 
-- Start with `SKILL.md`, then open only the relevant sub-doc.
-- **Search / discovery** → [searching-for-leads-accounts-and-building-lead-lists.md](searching-for-leads-accounts-and-building-lead-lists.md) (provider catalog, sample calls, Crust filter space, routing).
-- **Enrich / waterfall / coalesce** → [enrich-waterfall.md](enrich-waterfall.md). Covers: when to use `deepline enrich` vs `tools execute`, when to use `call_ai` vs direct providers, coalescing parallel outputs with `run_javascript`, waterfall recipes.
+If the task matches a pattern below, invoke that skill (via `/skill-name`) **before** opening any sub-doc. These skills contain proven approaches that override general provider guidance.
 
-has guidance for company -> contact, finding email, linkedins, signals, tech stack, etc, generally read if calling deepline enrich.
-- **Per-row research** (funding, batch, tech stack, news) → `call_ai` inside enrich. See [enrich-waterfall.md](enrich-waterfall.md) "When to use call_ai" — no other sub-doc needed. **Haiku is the default when model is omitted.**
-- **Custom signals / messaging** → [custom-signals.md](custom-signals.md) (signal buckets, prompts.json, guardrails). Haiku is the default for call_ai.
-- **Qualification / sequence** → [qualification-and-email-design.md](qualification-and-email-design.md).
-- Use grep/search for navigation, then read the exact sections needed to execute safely.
+| Task pattern | Skill to invoke | Why |
+|---|---|---|
+| YC / investor-portfolio / accelerator-backed company prospecting | `/investor-company-prospecting` | VC portfolio data is public — fetch it directly, don't discover through providers |
+| Build TAM from ICP filters | `/build-tam` | Apollo search parameter mapping from ICP signals |
+| Find contacts at known companies | `/get-leads-at-company` | Company → contact → outreach chain |
+| Find/verify emails for contacts | `/contact-to-email` | Multi-workflow email enrichment with validation |
+| Resolve LinkedIn URLs | `/linkedin-url-lookup` | Multi-pass waterfall with validation |
 
-### 2.1 Tool search for signals/custom filters (mandatory)
+**If a task-specific skill exists, its guidance takes priority over sub-doc guidance below.**
+
+Start with `SKILL.md`, then open only the relevant reference materials and datasets.
+
+### References
+
+| Doc | Topics |
+|-----|--------|
+| [searching-for-leads-accounts-and-building-lead-lists.md](searching-for-leads-accounts-and-building-lead-lists.md) | Prospecting, company/people search, lead list building, provider catalog, Crust filter space |
+| [enrich-waterfall.md](enrich-waterfall.md) | CSV enrichment, waterfalls, `call_ai`, per-row research/transform, finding emails/phones/LinkedIns, coalescing, `deepline enrich` command reference |
+| [qualification-and-email-design.md](qualification-and-email-design.md) | Email writing/rewriting/personalization, lead scoring, qualification, sequence design, campaign copy |
+| [custom-signals.md](custom-signals.md) | Custom signals: tech stack, hiring, funding, news, `prompts.json` |
+| [playground-guide.md](playground-guide.md) | CSV inspection, playground iteration, `deepline csv` commands |
+| [actor-contracts.md](actor-contracts.md) | Apify actors, scraping, input/output contracts |
+| [gtm-definitions-defaults.md](gtm-definitions-defaults.md) | Time windows, thresholds, interpretation defaults |
+
+### Data
+
+- When the user hands you a CSV, run `deepline csv show --csv <path> --summary` first to understand its shape (row count, columns, sample values) before deciding how to process it.
+- **NEVER read a large CSV into context with the Read tool.** Reading CSV rows into the conversation window exhausts context and produces zero output. This is the single most common failure mode.
+- Use `deepline enrich` for any row-by-row processing (enrichment, rewriting, research, scoring).
+- To explore or understand CSV content without loading it, use `deepline csv show --csv <path> --rows 0:2` for a sample, or spawn an Explore subagent to answer questions about the data.
+
+### Tools
 
 For signal-driven discovery (investor, funding, hiring, headcount, industry, geo, tech stack, compliance), start with `deepline tools search "<intent>"`. Do not guess fields.
 
-Use this loop:
-1. Search 2-4 synonyms, execute in parallel
+Search 2-4 synonyms, execute in parallel:
 
 ```bash
 deepline tools search investor
@@ -193,6 +205,7 @@ See [enrich-waterfall.md](enrich-waterfall.md) for `deepline csv` commands, pre-
 - Keep one intended final CSV path: `FINAL_CSV="${OUTPUT_DIR:-/tmp}/<requested_filename>.csv"`
 - Before finishing: use the post-run inspection script pattern from [enrich-waterfall.md](enrich-waterfall.md). Run it once instead of separate checks.
 - In the final message, always report: exact `FINAL_CSV` and exact Playground URL.
+- Before closing the session, follow the Section 7 consent step for session sharing.
 
 ## 4) Credit and approval gate (paid actions)
 
@@ -281,18 +294,7 @@ Provider path heuristics:
 - For job-change recovery: prefer quality-first (`crustdata_person_enrichment`, `peopledatalabs_*`) before `leadmagic_*` fallbacks.
 - Never treat one provider response as single-source truth for high-value outreach.
 
-## 6) Advanced references
-
-| Doc | Use when |
-|-----|----------|
-| [searching-for-leads-accounts-and-building-lead-lists.md](searching-for-leads-accounts-and-building-lead-lists.md) | Search, discovery, provider sample calls, Crust filter space |
-| [enrich-waterfall.md](enrich-waterfall.md) | Enrich vs tools execute, call_ai vs direct providers, coalescing, waterfalls, command batching |
-| [custom-signals.md](custom-signals.md) | Custom signals, `call_ai`, prompts.json |
-| [qualification-and-email-design.md](qualification-and-email-design.md) | Qualification, 4-step sequence, ICP-driven messaging |
-| [playground-guide.md](playground-guide.md) | Playground workflow, `deepline csv` commands |
-| [actor-contracts.md](actor-contracts.md) | Apify input/output contracts |
-| [gtm-definitions-defaults.md](gtm-definitions-defaults.md) | Time windows, thresholds, interpretation rules |
-| `prompts.json` | Full `call_ai` template catalog — use for exact titles when building custom signals |
+## 6) Additional notes
 
 Critical: keep qualification-and-email-design workflow context active when running any sequence task. It is not optional for ICP-driven messaging.
 
@@ -316,14 +318,37 @@ deepline tools execute apify_get_actor_input_schema --payload '{"actorId":"bebit
 
 ## 7) Feedback & session sharing
 
-When the user asks to send feedback or report an issue, do both steps:
+### 7.1 Proactive issue reporting (mandatory)
 
-1. **Send a text summary** — a searchable description of what went wrong, sent to the Deepline team.
-2. **Send the current session** — uploads the full session to the Deepline team on Slack for review.
+Do not wait for the user to ask. If there is a meaningful failure, send feedback proactively using `deepline provide-feedback`.
+
+Trigger when any of these happen:
+- A provider/tool call fails repeatedly.
+- Output is clearly wrong for the requested task.
+- A CLI/runtime bug blocks completion.
+- You needed a significant workaround to finish.
+
+Run once per issue cluster (avoid spam), and include:
+- workflow goal
+- tool/provider/model used
+- failure point and exact error details
+- reproduction steps attempted
 
 ```bash
-deepline provide-feedback "What happened, what was expected, repro steps, tool/provider involved."
-deepline session send --current-session
+deepline provide-feedback "Goal: <goal>. Tool/provider/model: <details>. Failure: <what broke>. Error: <exact message>. Repro attempted: <steps>."
 ```
 
-Include in the feedback text: workflow goal, tool/provider/model used, failure point, error details, and reproduction notes.
+### 7.2 End-of-session consent gate (mandatory)
+
+At the end of every completed run/session, ask exactly one Yes/No question:
+
+`Would you like me to send this session activity to the Deepline team so they can improve the experience? (Yes/No)`
+
+If user says:
+- **Yes** -> run:
+  ```bash
+  deepline session send --current-session
+  ```
+- **No** -> do not send the session.
+
+Ask once per completed run. Do not nag or re-ask unless the user starts a new run/session.
