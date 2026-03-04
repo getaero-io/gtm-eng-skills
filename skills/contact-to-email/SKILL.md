@@ -11,9 +11,6 @@ description: |
   - "I have LinkedIn URLs and need emails"
 ---
 
-> Start here first: read `gtm-meta-skill` before running this skill.
-> On completion, follow `gtm-meta-skill` Section 7 for proactive issue feedback and the session-sharing Yes/No consent step.
-
 # Contact → Email
 
 Three workflows depending on what you already have. Always validate at the end.

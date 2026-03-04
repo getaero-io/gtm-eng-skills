@@ -49,15 +49,19 @@ No-loss rule: moved guidance remains fully documented at its canonical level and
 
 ## 2) Read behavior — MANDATORY before any execution
 
-**STOP. Do not call any provider, run any `deepline tools execute`, or write any search command until you have opened the correct sub-doc for your task.** SKILL.md is the routing layer — it tells you WHERE to go, not HOW to execute. The sub-docs contain provider schemas, filter syntax, parallel execution patterns, and validated sample payloads. Without them you will guess parameters, pick wrong providers, run searches sequentially instead of in parallel, and produce garbage results. This has happened repeatedly.
+**STOP. Do not call any provider, run any `deepline tools execute`, or write any search command until you have opened the correct sub-doc for your task.**
+
+These skill docs and sub-docs are not generic documentation — they are distilled from hundreds of real runs and encode exactly what works, what fails, and why. They contain validated parameter schemas, correct filter syntax, parallel execution patterns, tested sample payloads, and known pitfalls that took many iterations to discover. Think of them as shortcuts: reading a doc for 5 seconds saves you from 10 failed tool calls, wasted credits, and garbage output. Every time an agent skips reading the docs and tries to "figure it out" from first principles, it re-discovers the same failure modes that are already documented and solved.
+
+SKILL.md is the routing layer — it tells you WHERE to go, not HOW to execute. The sub-docs and task-specific skills contain the HOW. Without them you will guess parameters, pick wrong providers, run searches sequentially instead of in parallel, and produce garbage results. This has happened repeatedly.
 
 ### Step 1: Check task-specific skills FIRST
 
-If the task matches a pattern below, invoke that skill (via `/skill-name`) **before** opening any sub-doc. These skills contain battle-tested, end-to-end playbooks that override general provider guidance. Using them saves 5-10 tool calls and avoids known pitfalls.
+If the task matches a pattern below, read that skill **before** opening any sub-doc. These skills contain battle-tested, end-to-end playbooks distilled from real execution runs — they encode the exact sequences, provider choices, and edge-case handling that actually work. Using them saves 5-10 tool calls and avoids known pitfalls that you will otherwise hit.
 
 | Task pattern | Skill to invoke | Why — what goes wrong without it |
 |---|---|---|
-| YC / investor-portfolio / accelerator-backed company prospecting | `/investor-company-prospecting` | VC portfolio data is public and free. Without this skill you'll burn credits on Crustdata investor filters that return inconsistent results. |
+| YC / investor-portfolio / accelerator-backed company prospecting | `/portfolio-company-prospecting` | VC portfolio data is public and free. Without this skill you'll burn credits on Crustdata investor filters that return inconsistent results. |
 | Provider-led account and contact sourcing at scale (known accounts, coverage completion) | `/build-tam` | Workflow lives in `provider-led-account-and-contact-sourcing.md` (invoked via `/build-tam`). Use this for high-volume coverage completion (example: 935K sourced, need final 65K). |
 | Find contacts at known companies | `/get-leads-at-company` | Company → contact → outreach chain with dedup. Without it you'll forget validation, scrape wrong profiles, and miss the seniority filter pattern. |
 | Find/verify emails for contacts | `/contact-to-email` | Multi-workflow email enrichment with proper waterfall order and validation gates. Without it you'll skip verification and deliver bouncy emails. |
@@ -67,7 +71,9 @@ If the task matches a pattern below, invoke that skill (via `/skill-name`) **bef
 
 ### Step 2: If no skill matched, open the right sub-doc BEFORE executing
 
-**This is not optional.** Read the matching sub-doc. Do not skip this step. Do not "just try Apollo real quick" or "just run one search to see." The sub-docs contain the exact provider filter schemas, parallel execution patterns, canonical sample payloads, and known pitfalls. Every time an agent skips the sub-doc, it guesses field names, picks one provider instead of fanning out in parallel, runs searches sequentially, and delivers worse results while burning more credits.
+**This is not optional.** Read the matching sub-doc. Do not skip this step. Do not "just try Apollo real quick" or "just run one search to see." These sub-docs exist because the correct approach was non-obvious and had to be learned through trial and error — they are shortcuts that let you skip straight to what works. They contain the exact provider filter schemas, parallel execution patterns, canonical sample payloads, and known pitfalls. Every time an agent skips the sub-doc, it guesses field names, picks one provider instead of fanning out in parallel, runs searches sequentially, and delivers worse results while burning more credits.
+
+!important READING MULTIPLE SUB DOCS IS A GREAT IDEA AND OFTEN SUPER ESSENTIAL. JUST READ MORE.
 
 !important READING MULTIPLE SUB DOCS IS A GREAT IDEA AND OFTEN SUPER ESSENTIAL. JUST READ MORE.
 
@@ -227,6 +233,23 @@ See [enrich-waterfall.md](enrich-waterfall.md) for `deepline csv` commands, pre-
 - Keep limits low and windows bounded before scaling.
 - For TAM sizing, a great hack is to keep limits at 1 and most providers will return # of total possible matches but you only get charged for 1.
 - Do not depend on monthly caps as a hard risk control.
+
+### 4.2.1 Over-provision, then filter — never chase missing rows
+
+When the user asks for N rows, start with ~1.4×N (e.g., 35 for 25). Every pipeline phase has natural falloff — contact search misses ~15-20% of companies, email waterfall misses ~5-10% of contacts. Fighting to complete the hard rows is almost always a waste: the companies that providers can't find contacts for are the same ones that won't have email coverage either.
+
+**Do this:**
+1. Pull more candidates than needed at the top of funnel.
+2. Run the full pipeline (contacts → emails → outbound).
+3. At the end, filter to the best N complete rows and deliver those.
+4. Drop incomplete rows — don't retry or manually patch them.
+
+**Do NOT do this:**
+- Trim results to exactly N before running the pipeline.
+- Spend turns retrying failed lookups with fallback providers, `call_ai` + WebSearch, or manual patching.
+- Run enrichment on all rows just to fill gaps in a few (especially expensive tools like `call_ai` with WebSearch).
+
+Provider coverage is a property of the company, not something you can overcome with more effort. Tiny startups with 5 people will have zero coverage across all providers — no amount of retrying changes that. Over-provision at the top and let incomplete rows fall off naturally.
 
 ### 4.3 Approval message content
 

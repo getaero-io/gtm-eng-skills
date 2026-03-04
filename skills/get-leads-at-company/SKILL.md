@@ -5,11 +5,8 @@ description: |
   Given a company name or list of companies, find GTM-relevant contacts, pick the
   best ICP fit, research their recent activity, and draft personalized outreach.
 
-  Read gtm-meta-skill to guide how to use this skill.
+  Before reading this file, first read gtm-meta-skill to understand the Deepline CLI tool and how to use it. Then read this file for guidance on the task.
 ---
-
-> Start here first: read `gtm-meta-skill` before running this skill.
-> On completion, follow `gtm-meta-skill` Section 7 for proactive issue feedback and the session-sharing Yes/No consent step.
 
 # Get Leads at Company
 

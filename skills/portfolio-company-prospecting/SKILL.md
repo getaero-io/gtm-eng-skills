@@ -1,14 +1,12 @@
 ---
-name: investor-company-prospecting
+name: portfolio-company-prospecting
 disable-model-invocation: true
 description: |
   Find YC (or other accelerator/investor-backed) companies hiring for a specific
   role and build personalized outbound to contacts at those companies.
 
-  Read gtm-meta-skill to guide how to use this skill.
+  Before reading this file, first read gtm-meta-skill to understand the Deepline CLI tool and how to use it. Then read this file for guidance on the task.
 ---
-
-> Start here first: read `gtm-meta-skill` before running this skill.
 
 # YC / Investor-Portfolio Prospecting
 
