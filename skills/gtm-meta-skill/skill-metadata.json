@@ -31,6 +31,12 @@
       "tags": ["prospecting", "search"],
       "providers": []
     },
+    "provider-led-account-and-contact-sourcing.md": {
+      "kind": "guide",
+      "title": "Provider-Led Account and Contact Sourcing",
+      "tags": ["lead-sourcing", "coverage", "backfill"],
+      "providers": []
+    },
     "enrich-waterfall.md": {
       "kind": "guide",
       "title": "Enrich and Waterfall",

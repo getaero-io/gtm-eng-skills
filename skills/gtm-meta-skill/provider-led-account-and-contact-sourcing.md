@@ -1,10 +1,18 @@
-# Build TAM
+# Provider-Led Account And Contact Sourcing
 
-Use this skill to size and build your total addressable market from ICP filters. Start with a count (virtually free), then pull the actual list.
+Use this doc for at-scale sourcing from enrichment providers when you already have target accounts/segments and need to backfill missing contacts/emails.
 
-**If you have a niche-signal-discovery report**, jump to [Signal-Driven TAM](#signal-driven-tam-from-niche-signal-discovery-report) — every signal type maps directly to Dropleads search parameters.
+Scope boundary:
+- Use [searching-for-leads-accounts-and-building-lead-lists.md](searching-for-leads-accounts-and-building-lead-lists.md) for net-new discovery/search.
+- Use this doc when the job is coverage completion (example: "935K sourced, need final 65K this week").
 
-## Step 1: Size your TAM first (virtually free)
+Execution default:
+- Start with low-cost count sizing, then run paginated pulls from enrichment providers, dedup, and prioritize.
+- Before you give the user final sizing, rn stuff yourself!
+
+**If you have a niche-signal-discovery report**, jump to [Signal-Driven Lead Sourcing](#signal-driven-lead-sourcing-from-niche-signal-discovery-report) — every signal type maps directly to Dropleads search parameters.
+
+## Step 1: Size backfill volume first (virtually free)
 
 Use `json_file` output for sizing so totals are extractable with the same pattern:
 
@@ -49,7 +57,7 @@ Notes:
 - CrustData `companydb_search` / `persondb_search` currently did not surface a reliable top-level total in successful probes, so use those for retrieval and not total sizing.
 - For budget safety, always compare `total_count`/`total` with your filter set and stop early when a slice is enough for validation.
 
-## Step 2: Company-first TAM
+## Step 2: Company-first sourcing
 
 ```bash
 # Size first
@@ -72,7 +80,7 @@ deepline tools execute dropleads_search_people \
   }'
 ```
 
-## Step 3: Contact-first TAM
+## Step 3: Contact-first sourcing
 
 ```bash
 deepline tools execute dropleads_search_people \
@@ -87,9 +95,9 @@ deepline tools execute dropleads_search_people \
   }'
 ```
 
-## Step 4: Prioritize your TAM with signals
+## Step 4: Prioritize sourced leads with signals
 
-Don't outreach to the entire TAM — prioritize with real signals first. Use the `niche-signal-discovery` skill if you have won/lost data to build a scoring model. Otherwise, enrich with first-party signals:
+Don't outreach to the full sourced list. Prioritize with real signals first. Use the `niche-signal-discovery` skill if you have won/lost data to build a scoring model. Otherwise, enrich with first-party signals:
 
 ```bash
 # Job listings (hiring = budget + pain)
@@ -105,7 +113,7 @@ Then score using signals from job listings (hiring relevant roles), tech stack (
 
 ---
 
-## Signal-Driven TAM (from niche-signal-discovery report)
+## Signal-Driven Lead Sourcing (from niche-signal-discovery report)
 
 When you have a completed `niche-signal-discovery` report, every signal type translates directly into search criteria. The report provides:
 
@@ -239,7 +247,7 @@ site:domain.com "free trial"
 site:domain.com "salesloft"
 ```
 
-### Building a combined TAM from multiple signal searches
+### Building a combined sourced list from multiple signal searches
 
 Run one search per buyer persona, deduplicate, then score:
 
@@ -277,7 +285,7 @@ Valid seniority values: `C-Level`, `VP`, `Director`, `Manager`, `Senior`, `Entry
 
 ## Pagination
 
-Dropleads returns up to 100 results per page. For large TAMs:
+Dropleads returns up to 100 results per page. For large sourcing runs/backfills:
 
 ```bash
 # Page 1
@@ -310,7 +318,7 @@ Size first with `pagination.limit: 1`, then calculate: `total_pages x credits_pe
 
 ## Pipeline next steps
 
-After building your TAM:
+After building your sourced lead list:
 
 1. **Score accounts** → Use `niche-signal-discovery` skill if you have won/lost data
 2. **Find contacts** → Use `get-leads-at-company` skill to find decision-makers

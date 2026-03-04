@@ -1,9 +1,10 @@
 {
+  "title": "Provider-Led Account and Contact Sourcing",
   "documents": {
     "SKILL.md": {
       "kind": "entrypoint",
-      "title": "Build TAM",
-      "tags": ["tam", "prospecting"],
+      "title": "Provider-Led Account and Contact Sourcing",
+      "tags": ["lead-sourcing", "coverage", "prospecting"],
       "providers": []
     }
   }
