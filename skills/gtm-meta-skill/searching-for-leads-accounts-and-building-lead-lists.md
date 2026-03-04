@@ -290,7 +290,7 @@ deepline tools execute parallel_extract --payload '{"urls":["https://openai.com/
 deepline tools execute parallel_run_task --payload '{"processor":"lite-fast","input":"Summarize key GTM signals for OpenAI from recent public web sources in 3 bullets."}'
 ```
 
-Use [src/lib/integrations/parallel/agent-guidance.md](../../src/lib/integrations/parallel/agent-guidance.md) for operator details.
+Use [parallel playbook](provider-playbooks/parallel.md) for operator details.
 
 ### Exa (search, answer, research)
 
@@ -362,7 +362,7 @@ deepline tools execute exa_research --payload '{"instructions":"Research the com
 ## Parallel web research and extraction
 
 Use the dedicated integration guide for operator details and examples:
-[src/lib/integrations/parallel/agent-guidance.md](../../src/lib/integrations/parallel/agent-guidance.md)
+[parallel playbook](provider-playbooks/parallel.md)
 
 Short rule:
 - When the task is managed web research/extraction (including synthesis), prefer `parallel_search` / `parallel_extract` / `parallel_run_task` with a real one-row pilot first.
