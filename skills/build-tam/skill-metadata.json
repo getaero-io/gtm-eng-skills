@@ -1,0 +1,10 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Build TAM",
+      "tags": ["tam", "prospecting"],
+      "providers": []
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Contact to Email",
+      "tags": ["email", "verification"],
+      "providers": []
+    }
+  }
+}

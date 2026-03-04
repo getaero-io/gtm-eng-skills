@@ -1,0 +1,28 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Niche Signal Discovery",
+      "tags": ["signals", "icp"],
+      "providers": []
+    },
+    "references/keyword-catalog.md": {
+      "kind": "guide",
+      "title": "Keyword Catalog",
+      "tags": ["signals"],
+      "providers": []
+    },
+    "references/report-template.md": {
+      "kind": "guide",
+      "title": "Report Template",
+      "tags": ["reporting"],
+      "providers": []
+    },
+    "references/signal-interpretation.md": {
+      "kind": "guide",
+      "title": "Signal Interpretation",
+      "tags": ["signals"],
+      "providers": []
+    }
+  }
+}

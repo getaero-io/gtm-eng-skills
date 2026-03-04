@@ -1,0 +1,22 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "LinkedIn URL Lookup",
+      "tags": ["linkedin", "lookup"],
+      "providers": []
+    },
+    "references/provider-playbook.md": {
+      "kind": "guide",
+      "title": "Provider Playbook",
+      "tags": ["provider"],
+      "providers": []
+    },
+    "references/validation-rules.md": {
+      "kind": "guide",
+      "title": "Validation Rules",
+      "tags": ["validation"],
+      "providers": []
+    }
+  }
+}

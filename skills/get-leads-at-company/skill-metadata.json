@@ -1,0 +1,10 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Get Leads at Company",
+      "tags": ["prospecting", "contacts"],
+      "providers": []
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Investor Company Prospecting",
+      "tags": ["investor", "prospecting"],
+      "providers": []
+    }
+  }
+}

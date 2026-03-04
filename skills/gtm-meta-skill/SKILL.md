@@ -1,6 +1,6 @@
 ---
 name: gtm-meta-skill
-description: Use this skill for GTM prospecting, enrichment, qualification, and outbound workflows, especially when users mention Deepline, CSV processing, lead/account/contact research, waterfall enrichment, email or LinkedIn lookup, personalization, scoring, or campaign activation. Route CSV-heavy and provider-driven requests through this skill, then rely on linked sub-docs and provider playbooks for execution details. Available providers: adyntel (9 actions), apify (9 actions), apollo (11 actions), crustdata (12 actions), deepline_native (9 actions), dropleads (8 actions), exa (8 actions), forager (9 actions), google_search (1 actions), heyreach (3 actions), hunter (8 actions), icypeas (13 actions), instantly (8 actions), leadmagic (12 actions), lemlist (26 actions), parallel (7 actions), peopledatalabs (11 actions), prospeo (6 actions), zerobounce (7 actions).
+description: "Use this skill for GTM prospecting, enrichment, qualification, and outbound workflows, especially when users mention Deepline, CSV processing, lead/account/contact research, waterfall enrichment, email or LinkedIn lookup, personalization, scoring, or campaign activation. Route CSV-heavy and provider-driven requests through this skill, then rely on linked sub-docs and provider playbooks for execution details. Available providers: adyntel, apify, apollo, crustdata, deepline_native, dropleads, exa, forager, google_search, heyreach, hunter, icypeas, instantly, leadmagic, lemlist, parallel, peopledatalabs, prospeo, zerobounce."
 ---
 
 # GTM Meta Skill
@@ -105,83 +105,7 @@ deepline tools search investor --prefix crustdata
 
 Use [gtm-definitions-defaults.md](gtm-definitions-defaults.md) as the source of truth for GTM time windows, thresholds, and interpretation rules.
 
-## Provider Playbooks
-
-- [adyntel playbook](provider-playbooks/adyntel.md)
-  Summary: Use channel-native ad endpoints first, then synthesize cross-channel insights. Keep domains normalized and remember Adyntel bills per request except free polling endpoints.
-  Last reviewed: 2026-02-27
-
-- [apify playbook](provider-playbooks/apify.md)
-  Summary: Prefer sync run (`apify_run_actor_sync`) for actor execution. Use async run plus polling only when you need non-blocking execution. Known actorIds have typed input contracts.
-  Last reviewed: 2026-02-11
-
-- [apollo playbook](provider-playbooks/apollo.md)
-  Summary: Cheap but mediocre quality people/company search with include_similar_titles=true unless strict mode is explicitly requested.
-  Last reviewed: 2026-02-11
-
-- [crustdata playbook](provider-playbooks/crustdata.md)
-  Summary: Start with free autocomplete and default to fuzzy contains operators `(.)` for higher recall.
-  Last reviewed: 2026-02-11
-
-- [deepline_native playbook](provider-playbooks/deepline_native.md)
-  Summary: Launcher actions wait for completion and return final payloads with job_id; finder actions remain available for explicit polling.
-  Last reviewed: 2026-02-23
-
-- [dropleads playbook](provider-playbooks/dropleads.md)
-  Summary: Use Prime-DB search/count first to scope segments efficiently, then run finder/verifier steps only on shortlisted records.
-  Last reviewed: 2026-02-26
-
-- [exa playbook](provider-playbooks/exa.md)
-  Summary: Use search/contents before answer for auditable retrieval, then synthesize with explicit citations.
-  Last reviewed: 2026-02-11
-
-- [forager playbook](provider-playbooks/forager.md)
-  Summary: Use totals endpoints first (free) to estimate volume, then search/lookup with reveal flags for contacts. Strong for verified mobiles.
-  Last reviewed: 2026-02-28
-
-- [google_search playbook](provider-playbooks/google_search.md)
-  Summary: Use Google Search for broad web recall, then follow up with extraction/enrichment tools for structured workflows.
-  Last reviewed: 2026-02-12
-
-- [heyreach playbook](provider-playbooks/heyreach.md)
-  Summary: Resolve campaign IDs first, then batch inserts and confirm campaign stats after writes.
-  Last reviewed: 2026-02-11
-
-- [hunter playbook](provider-playbooks/hunter.md)
-  Summary: Use discover for free ICP shaping first, then domain/email finder for credit-efficient contact discovery, and verifier as the final send gate.
-  Last reviewed: 2026-02-24
-
-- [icypeas playbook](provider-playbooks/icypeas.md)
-  Summary: Use email-search for individual email discovery, bulk-search for volume. Scrape LinkedIn profiles for enrichment. Find-people for prospecting with 16 filters. Count endpoints are free.
-  Last reviewed: 2026-02-28
-
-- [instantly playbook](provider-playbooks/instantly.md)
-  Summary: List campaigns first, then add contacts in controlled batches and verify downstream stats.
-  Last reviewed: 2026-02-11
-
-- [leadmagic playbook](provider-playbooks/leadmagic.md)
-  Summary: Treat validation as gatekeeper and run email-pattern waterfalls before escalating to deeper enrichment.
-  Last reviewed: 2026-02-11
-
-- [lemlist playbook](provider-playbooks/lemlist.md)
-  Summary: List campaign inventory first and push contacts in small batches with post-write stat checks.
-  Last reviewed: 2026-03-01
-
-- [parallel playbook](provider-playbooks/parallel.md)
-  Summary: Prefer run-task/search/extract primitives and avoid monitor/stream complexity for agent workflows.
-  Last reviewed: 2026-02-11
-
-- [peopledatalabs playbook](provider-playbooks/peopledatalabs.md)
-  Summary: Use clean/autocomplete helpers to normalize input before costly person/company search and enrich calls.
-  Last reviewed: 2026-02-11
-
-- [prospeo playbook](provider-playbooks/prospeo.md)
-  Summary: Use enrich-person for individual contacts, search-person for prospecting with 30+ filters, and search-company for account-level lists.
-  Last reviewed: 2026-02-28
-
-- [zerobounce playbook](provider-playbooks/zerobounce.md)
-  Summary: Use as final email validation gate before outbound sends. Check sub_status for granular failure reasons. Use batch for 5+ emails.
-  Last reviewed: 2026-02-28
+{provider_guidance_interpolated}
 
 - Apply defaults when user input is absent.
 - User-specified values always override defaults.
