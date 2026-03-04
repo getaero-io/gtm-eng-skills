@@ -1,21 +1,12 @@
 ---
 name: linkedin-url-lookup
+disable-model-invocation: true
 description: |
   Resolve LinkedIn profile URLs from contact name + company name. Uses a multi-pass
   waterfall with validation to handle nicknames (Phil/Philip), name variations
   (O'Rourke/Rourke), and false positives (54% without validation).
 
-  Two approaches: Deepline CLI for quick batch enrichment, or custom waterfall
-  with Apollo → Google CSE → Exa providers + Apify profile verification.
-
-  Triggers:
-  - "find LinkedIn URL for [name] at [company]"
-  - "get LinkedIn profiles for my contact list"
-  - "linkedin url lookup"
-  - "resolve linkedin urls"
-  - "match contacts to linkedin"
-
-  Requires: Deepline CLI — https://code.deepline.com
+  Read gtm-meta-skill to guide how to use this skill.
 ---
 
 > Start here first: read `gtm-meta-skill` before running this skill.
@@ -29,8 +20,8 @@ Resolve LinkedIn profile URLs from name + company with strict identity validatio
 
 | Approach | Best for | Coverage | Setup |
 |----------|----------|----------|-------|
-| [Deepline CLI](#deepline-cli-approach) | Quick batch enrichment, simple pipelines | ~70% (Apollo + PDL) | `deepline auth register` |
-| [Custom waterfall](#custom-waterfall-approach) | Full control, max coverage, nickname handling | ~85% (Apollo + CSE + Exa) | API keys for CSE + Exa |
+| [Deepline CLI](#deepline-cli-approach) | Quick batch enrichment, simple pipelines | ~70% (Dropleads + PDL) | `deepline auth register` |
+| [Custom waterfall](#custom-waterfall-approach) | Full control, max coverage, nickname handling | ~85% (Dropleads + CSE + Exa) | API keys for CSE + Exa |
 
 ---
 
@@ -39,8 +30,8 @@ Resolve LinkedIn profile URLs from name + company with strict identity validatio
 ### Quick lookup: single contact
 
 ```bash
-deepline tools execute apollo_people_match \
-  --payload '{"first_name":"Phil","last_name":"Parvaneh","organization_name":"Acme Corp"}'
+deepline tools execute dropleads_search_people \
+  --payload '{"filters":{"keywords":["Phil Parvaneh"],"companyNames":["Acme Corp"]},"pagination":{"page":1,"limit":1}}'
 ```
 
 Check `linkedin_url` in the response. If null, use the batch waterfall.
@@ -52,7 +43,7 @@ deepline enrich --input contacts.csv --in-place --rows 0:1 \
   --with-waterfall "linkedin" \
   --type linkedin \
   --result-getters '["linkedin_url","data.linkedin_url","data.0.linkedin_url"]' \
-  --with 'apollo=apollo_people_match:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","organization_name":"{{Company}}"}' \
+  --with 'dropleads=dropleads_search_people:{"filters":{"keywords":["{{First Name}} {{Last Name}}"],"companyNames":["{{Company}}"]},"pagination":{"page":1,"limit":1}}' \
   --with 'pdl=peopledatalabs_person_identify:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company":"{{Company}}"}' \
   --end-waterfall
 ```
@@ -69,8 +60,8 @@ deepline enrich --input contacts.csv --in-place --rows 0:1 \
   --with-waterfall "linkedin" \
   --type linkedin \
   --result-getters '["linkedin_url","data.linkedin_url"]' \
-  --with 'apollo_orig=apollo_people_match:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","organization_name":"{{Company}}"}' \
-  --with 'apollo_alt=apollo_people_match:{"first_name":"{{expanded_name.data.alternates.0}}","last_name":"{{Last Name}}","organization_name":"{{Company}}"}' \
+  --with 'dropleads_orig=dropleads_search_people:{"filters":{"keywords":["{{First Name}} {{Last Name}}"],"companyNames":["{{Company}}"]},"pagination":{"page":1,"limit":1}}' \
+  --with 'dropleads_alt=dropleads_search_people:{"filters":{"keywords":["{{expanded_name.data.alternates.0}} {{Last Name}}"],"companyNames":["{{Company}}"]},"pagination":{"page":1,"limit":1}}' \
   --with 'pdl=peopledatalabs_person_identify:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company":"{{Company}}"}' \
   --end-waterfall
 ```
@@ -92,22 +83,22 @@ Check `profile.data.currentPositions` or `profile.data.experience` to confirm co
 
 ## Custom Waterfall Approach
 
-For maximum coverage (~85%), use a 3-tier waterfall: Apollo → Google CSE → Exa. Then verify all results with Apify.
+For maximum coverage (~85%), use a 3-tier waterfall: Dropleads → Google CSE → Exa. Then verify all results with Apify.
 
 ### Provider hierarchy
 
 | Tier | Provider | Why | Coverage | Cost |
 |------|----------|-----|----------|------|
-| 1 | Apollo People Match | Best structured data, cross-references name + company | ~65% | ~1 credit |
+| 1 | Dropleads People Search | Best structured data, name + company signals | ~65% | ~1 credit |
 | 2 | Google CSE | Broad web index, multi-pass with decreasing specificity | +10% | $5/1000 |
 | 3 | Exa Semantic Search | Neural matching handles nicknames and edge cases | +10% | ~$0.01/call |
 | Verify | Apify Profile Scraper | Confirms identity — scrapes actual LinkedIn profile | 100% of found | ~5 credits |
 
 ### Key implementation patterns
 
-**1. Apollo first, then search-based fallbacks:**
+**1. Dropleads first, then search-based fallbacks:**
 
-Apollo's matching algorithm cross-references multiple fields (name, company, email). When Apollo returns null (nickname mismatch, company name variation), fall back to Google CSE and Exa which use broader matching.
+Dropleads can miss nuanced names and small companies. When it returns null (nickname mismatch, company name variation), fall back to Google CSE and Exa which use broader matching.
 
 **2. Google CSE multi-pass for nickname handling:**
 
@@ -147,7 +138,7 @@ deepline enrich --input contacts.csv --in-place --rows 0:1 \
   --with-waterfall "linkedin" \
   --type linkedin \
   --result-getters '["linkedin_url","data.linkedin_url","data.0.linkedin_url"]' \
-  --with 'apollo=apollo_people_match:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","organization_name":"{{Company}}"}' \
+  --with 'dropleads=dropleads_search_people:{"filters":{"keywords":["{{First Name}} {{Last Name}}"],"companyNames":["{{Company}}"]},"pagination":{"page":1,"limit":1}}' \
   --with 'pdl=peopledatalabs_person_identify:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company":"{{Company}}"}' \
   --end-waterfall
 
@@ -173,8 +164,8 @@ save_checkpoint(checkpoint)
 
 | Step | Provider | Est. Calls | Cost |
 |------|----------|-----------|------|
-| Waterfall | Apollo | ~800 | ~800 credits |
-| Waterfall | PDL (Apollo misses) | ~300 | ~300 credits |
+| Waterfall | Dropleads | ~800 | ~800 credits |
+| Waterfall | PDL (Dropleads misses) | ~300 | ~300 credits |
 | Waterfall | Google CSE (both miss) | ~200 | ~$1.00 |
 | Waterfall | Exa (CSE misses) | ~100 | ~$1.00 |
 | Verification | Apify (all found URLs) | ~600 | ~3000 credits |

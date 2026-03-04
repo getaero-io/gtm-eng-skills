@@ -30,4 +30,4 @@ Forager has 850M+ B2B person records and is especially strong for verified mobil
 
 - Apollo `apollo_search_people` returns obfuscated last names. When building name-dependent workflows (e.g. email pattern generation), bridge through `apollo_people_match` first to get the real last name, then use Forager for phone/email reveals.
 - Forager person search results include `person_id` -- save this for subsequent `forager_person_detail_lookup` calls to avoid re-searching.
-- Use `forager_account` to check remaining credit balance before large batch operations.
+- Check account balance from Forager before large batch operations.

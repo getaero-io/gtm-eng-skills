@@ -1,5 +1,6 @@
 ---
 name: waterfall-enrichment
+disable-model-invocation: true
 description: |
   Enrich a CSV with any data field using a waterfall pattern: try multiple providers
   in sequence, stop at the first successful match. Prevents paying for duplicate
@@ -10,8 +11,7 @@ description: |
   - "add [field] to my CSV"
   - "waterfall enrichment"
   - "try multiple providers to find [data]"
-
-  Requires: Deepline CLI — https://code.deepline.com
+  Read gtm-meta-skill to guide how to use this skill.
 ---
 
 > Start here first: read `gtm-meta-skill` before running this skill.
@@ -61,7 +61,7 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
   --with-waterfall "email" \
   --type email \
   --result-getters '["data.email","email","data.0.email"]' \
-  --with 'apollo_match=apollo_people_match:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","organization_name":"{{Company}}"}' \
+  --with 'dropleads=dropleads_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company_name":"{{Company}}","company_domain":"{{Company Domain}}"}' \
   --with 'crust_profile=crustdata_person_enrichment:{"linkedinProfileUrl":"{{LinkedIn}}","fields":["email","current_employers"],"enrichRealtime":true}' \
   --with 'pdl_enrich=peopledatalabs_enrich_contact:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
   --end-waterfall \
@@ -75,7 +75,7 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
   --with-waterfall "linkedin" \
   --type linkedin \
   --result-getters '["linkedin_url","data.linkedin_url","data.0.linkedin_url"]' \
-  --with 'apollo_match=apollo_people_match:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","organization_name":"{{Company}}"}' \
+  --with 'dropleads_people=dropleads_search_people:{"filters":{"keywords":["{{First Name}} {{Last Name}}"],"companyNames":["{{Company}}"]},"pagination":{"page":1,"limit":1}}' \
   --with 'pdl_identify=peopledatalabs_person_identify:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company":"{{Company}}"}' \
   --end-waterfall
 ```

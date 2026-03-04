@@ -24,8 +24,7 @@ deepline tools execute apify_list_store_actors --payload '{"search":"linkedin jo
 ```
 
 ```bash
-# Convert first result into actorId: username/name
-deepline tools execute apify_list_store_actors --payload '{"search":"linkedin jobs scraper","sortBy":"relevance","limit":10}' --json | jq -r '.result.data.actors[0] | "\(.username)/\(.name)"'
+deepline tools execute apify_list_store_actors --payload '{"search":"linkedin jobs scraper","sortBy":"relevance","limit":10}' 
 ```
 
 ```bash

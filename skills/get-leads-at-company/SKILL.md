@@ -1,16 +1,11 @@
 ---
 name: get-leads-at-company
+disable-model-invocation: true
 description: |
   Given a company name or list of companies, find GTM-relevant contacts, pick the
   best ICP fit, research their recent activity, and draft personalized outreach.
 
-  Triggers:
-  - "get contacts at [company]"
-  - "who works at [company]"
-  - "find decision makers at these accounts"
-  - "get me GTM contacts for my account list"
-
-  Requires: Deepline CLI — https://code.deepline.com
+  Read gtm-meta-skill to guide how to use this skill.
 ---
 
 > Start here first: read `gtm-meta-skill` before running this skill.
@@ -20,15 +15,18 @@ description: |
 
 From a company name (or list), this skill resolves the company identity, finds GTM employees, picks the best ICP match, researches their LinkedIn activity, and drafts personalized outreach — all in one enrichment chain.
 
-## Quickstart: simple contact lookup
+## Quickstart: simple contact lookup - dropleads is great to start with because its free. 
+
+if that has bad results / empty results, broaden filters or switch to a second dropleads query.
 
 ```bash
-deepline tools execute apollo_search_people \
+deepline tools execute dropleads_search_people \
   --payload '{
-    "q_keywords": "Acme Corp",
-    "person_titles": ["VP Sales", "Head of Revenue", "GTM", "Revenue Operations"],
-    "include_similar_titles": true,
-    "per_page": 10
+    "filters": {
+      "companyNames": ["Acme Corp"],
+      "jobTitles": ["VP Sales", "Head of Revenue", "GTM", "Revenue Operations"]
+    },
+    "pagination": {"page": 1, "limit": 10}
   }'
 ```
 
@@ -36,7 +34,7 @@ deepline tools execute apollo_search_people \
 
 This pipeline:
 
-1. Resolves company identity via Apollo
+1. Resolves company identity via dropleads (name + company-level targeting)
 2. Finds LinkedIn employees via Apify
 3. Picks best ICP contact via AI
 4. Researches their recent posts
@@ -66,7 +64,7 @@ Use `run_javascript:@$WORKDIR/<script>.js` for all JS transform columns; do not 
 
 ```bash
 deepline enrich --input companies.csv --in-place --rows 0:1 \
-  --with 'contacts=apollo_search_people:{"q_keywords":"{{Company}}","person_titles":["VP Sales","Head of Revenue","Revenue Operations","GTM"],"include_similar_titles":true,"per_page":5,"page":1}'
+  --with 'contacts=dropleads_search_people:{"filters":{"companyNames":["{{Company}}"],"jobTitles":["VP Sales","Head of Revenue","Revenue Operations","GTM"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":5}}'
 ```
 
 ## Column reference after full chain
@@ -81,11 +79,11 @@ deepline enrich --input companies.csv --in-place --rows 0:1 \
 
 ## When company_linkedin is null
 
-If `company_profile.data.company_linkedin` is null, the Apify employee scraper will fail. Fall back to Apollo people search:
+If `company_profile.data.company_linkedin` is null, the Apify employee scraper will fail. Fall back to broader contact search:
 
 ```bash
 deepline enrich --input companies.csv --in-place --rows 0:0 \
-  --with 'contacts=apollo_search_people:{"q_keywords":"{{Company}}","person_titles":["VP Sales","Head of Revenue","Revenue Operations","GTM","CRO"],"include_similar_titles":true,"person_seniorities":["vp","director","c_suite","owner"],"per_page":10,"page":1}'
+  --with 'contacts=dropleads_search_people:{"filters":{"companyNames":["{{Company}}"],"jobTitles":["VP Sales","Head of Revenue","Revenue Operations","GTM","CRO"],"seniority":["C-Level","VP","Director","Owner"]},"pagination":{"page":1,"limit":10}}'
 ```
 
 ## Seniority filtering
@@ -111,12 +109,12 @@ The full chain is expensive per company — pilot first:
 
 | Step | Credits | Notes |
 |------|---------|-------|
-| `apollo_company_search` | ~1 | Company resolution |
-| `apify_run_actor_sync` (employees) | ~5-10 | LinkedIn scraping, varies by company size |
-| `call_ai_claude_code` (pick + signals + message) | ~0.5 | 3 AI calls total |
+| `dropleads_search_people` | ~1 | Company resolution |
+| `apify_run_actor_sync` (employees) | ~5-10 | LinkedIn scraping, varies by company size. Highest quality |
+| `call_ai_claude_code` (pick + signals + message) | 0 | 3 AI calls total |
 | **Full chain total** | **~7-12** | **Per company** |
 
-For large lists, use the simpler Apollo-only version first, then run the full chain only on high-priority accounts.
+For large lists, use the simpler Dropleads-only version first, then run the full chain only on high-priority accounts.
 
 ## Related skills
 

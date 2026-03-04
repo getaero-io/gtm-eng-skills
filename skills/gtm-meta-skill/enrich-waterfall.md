@@ -46,7 +46,7 @@ Read sections 8.1-8.5 for company -> contact, finding email, linkedins, signals,
 
 **Haiku is the default for call_ai when model is omitted.** Only use sonnet or opus when haiku explicitly fails.
 
-**Use direct provider tools** (e.g. `dropleads_email_finder`, `hunter_email_finder`, `apollo_people_match`, `leadmagic_email_finder`) when:
+**Use direct provider tools** (e.g. `dropleads_email_finder`, `hunter_email_finder`, `leadmagic_email_finder`) when:
 - The task is mechanical: fetch email, validate email, get LinkedIn URL from known identifiers.
 - You have strong identifiers (email, domain, name+company) and need a single structured field.
 - Cost/speed matters and the provider's schema is sufficient.
@@ -95,7 +95,7 @@ deepline enrich --input accounts.csv --in-place --rows 0:1 \
 ## Contact enrichment tips
 
 - **Email is king** — If the user has email, start there. Hit rates are highest and all person/company lookup steps can run simultaneously.
-- **Parallel by default** — When you have email as input, run hunter, apollo, leadmagic (and others) in parallel. No reason to wait; structure `--with` columns so independent steps execute together.
+- **Parallel by default** — When you have email as input, run hunter, leadmagic (and others) in parallel. No reason to wait; structure `--with` columns so independent steps execute together.
 - **Coalesce after parallel** — When merging data across sources, prefer the most detailed version of each field. See "Coalescing and cleaning" below.
 - **Show sources** — Surface which API provided each piece of data so the user knows reliability. Preserve `_metadata` and step columns; in merged outputs, include a `_source` or `source_provider` field per field.
 
@@ -105,18 +105,18 @@ Your very first action (before preflight, before planning) must be: `mkdir -p tm
 
 ## Coalescing and cleaning (run_javascript)
 
-After running parallel providers (e.g. apollo + leadmagic + crustdata), you often get multiple values for the same field. **Always coalesce** — pick the richest non-null value per field. Use `run_javascript` as a follow-up column.
+After running parallel providers (e.g. leadmagic + crustdata), you often get multiple values for the same field. **Always coalesce** — pick the richest non-null value per field. Use `run_javascript` as a follow-up column.
 
-**Rule:** Prefer the value with more detail (longer string, more structure). Prefer validated over unvalidated (e.g. leadmagic-validated email over raw apollo email). Track `_source` so the user knows provenance.
+**Rule:** Prefer the value with more detail (longer string, more structure). Prefer validated over unvalidated (e.g. leadmagic-validated email over unvalidated source email). Track `_source` so the user knows provenance.
 
 **Pattern — coalesce a single field from N providers:**
 
 ```javascript
 // In $WORKDIR/coalesce_email.js — pick first non-null from provider outputs
-const apollo = row["apollo_match"]?.data?.person?.email ?? row["apollo_match"]?._value?.data?.person?.email;
+const dropleads = row["dropleads_email"]?.data?.email ?? row["dropleads_email"]?._value?.data?.email;
 const lm = row["leadmagic_email"]?.data?.email ?? row["leadmagic_email"]?._value?.data?.email;
 const crust = row["crust_profile"]?.data?.[0]?.email ?? row["crust_profile"]?.data?.[0]?.business_email?.[0];
-return apollo || lm || crust || null;
+return dropleads || lm || crust || null;
 ```
 
 **Pattern — coalesce multiple fields and track source:**
@@ -124,13 +124,13 @@ return apollo || lm || crust || null;
 ```javascript
 // In $WORKDIR/coalesce_person.js — return {email, linkedin, _source}
 function pick(a, b, c) { return a || b || c || null; }
-const apollo = row["apollo_match"]?.data ?? row["apollo_match"]?._value?.data;
+const native = row["native_contact"]?.data ?? row["native_contact"]?._value?.data;
 const lm = row["leadmagic_profile"]?.data ?? row["leadmagic_profile"]?._value?.data;
 const crust = row["crust_profile"]?.data?.[0] ?? null;
 
-const email = pick(apollo?.person?.email, lm?.email, crust?.email ?? crust?.business_email?.[0]);
-const linkedin = pick(apollo?.person?.linkedin_url, lm?.linkedin_url, crust?.linkedin_url);
-const _source = email ? (apollo?.person?.email ? "apollo" : lm?.email ? "leadmagic" : "crustdata") : null;
+const email = pick(native?.person?.email, lm?.email, crust?.email ?? crust?.business_email?.[0]);
+const linkedin = pick(native?.person?.linkedin_url, lm?.linkedin_url, crust?.linkedin_url);
+const _source = email ? (native?.person?.email ? "deepline_native" : lm?.email ? "leadmagic" : "crustdata") : null;
 
 return { email, linkedin, _source };
 ```
@@ -160,6 +160,7 @@ If you can't build a specific enough query (missing company AND title AND geo), 
 - `leadmagic_email_validation` — deliverability at scale.
 - `leadmagic_mobile_finder` — phone discovery when profile/email exists.
 - `leadmagic_email_finder` — lower-cost fallback or missing-provider recovery.
+- `forager_person_reverse_lookup` — phone recovery from an email or phone.
 - Apollo/PDL enrichment — corroboration before validation when identifiers are strong.
 
 ## Output policy: Playground-first for CSV
@@ -190,13 +191,7 @@ Default execution stance:
 
 Default provider order for contact enrichment waterfalls:
 
-1. `dropleads`
-2. `hunter`
-3. `apollo`
-4. `leadmagic`
-5. `deepline_native`
-6. `crustdata`
-7. `peopledatalabs`
+{waterfall_default_order}
 
 ### Type/getter contract (critical)
 
@@ -219,9 +214,8 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
   --result-getters '["data.email","email","data.0.email","data.emails.0.value","emails.0.value"]' \
   --with 'dropleads_email=dropleads_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company_name":"{{Company}}"}' \
   --with 'hunter_email=hunter_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
-  --with 'apollo_match=apollo_people_match:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","organization_name":"{{Company}}"}' \
+  --with 'native_contact=deepline_native_enrich_contact:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","organization_name":"{{Company}}"}' \
   --with 'leadmagic_email=leadmagic_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
-  --with 'native_contact=deepline_native_enrich_contact:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
   --with 'crust_profile=crustdata_person_enrichment:{"linkedinProfileUrl":"{{colA.linkedin}}","fields":["email","current_employers"],"enrichRealtime":true}' \
   --with 'pdl_enrich=peopledatalabs_enrich_contact:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
   --end-waterfall \
@@ -237,9 +231,8 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
   --result-getters '["data.0.email","data.email","emails.0.address","data.emails.0.value"]' \
   --with 'dropleads_email=dropleads_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company_name":"{{Company}}"}' \
   --with 'hunter_email=hunter_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
-  --with 'apollo_match=apollo_people_match:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","organization_name":"{{Company}}","domain":"{{Company Domain}}"}' \
+  --with 'native_contact=deepline_native_enrich_contact:{"organization_name":"{{Company}}","domain":"{{Company Domain}}","linkedin":"{{LinkedIn URL}}"}' \
   --with 'leadmagic_email=leadmagic_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
-  --with 'native_contact=deepline_native_enrich_contact:{"linkedin":"{{LinkedIn URL}}","first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
   --with 'crust_profile=crustdata_person_enrichment:{"linkedinProfileUrl":"{{colA.linkedin}}","fields":["email","current_employers"],"enrichRealtime":true}' \
   --with 'pdl_enrich=peopledatalabs_enrich_contact:{"linkedin_url":"{{colA.linkedin}}","first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
   --end-waterfall \
@@ -257,7 +250,6 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
   --type full_name \
   --result-getters '["person.name","data.person.name","data.name","name"]' \
   --with 'hunter_person=hunter_people_find:{"email":"{{Email}}"}' \
-  --with 'apollo_match=apollo_people_match:{"email":"{{Email}}"}' \
   --with 'leadmagic_profile=leadmagic_profile_search:{"profile_url":"{{LinkedIn URL}}"}' \
   --with 'native_contact=deepline_native_enrich_contact:{"email":"{{Email}}"}' \
   --with 'crust_profile=crustdata_person_enrichment:{"linkedinProfileUrl":"{{colA.linkedin}}","fields":["current_employers"],"enrichRealtime":true}' \
@@ -280,9 +272,8 @@ deepline enrich --input leads.csv --in-place --rows 0:0 \
   --with 'v3=leadmagic_email_validation:{"email":"{{email_patterns.p3}}"}' \
   --with 'v4=leadmagic_email_validation:{"email":"{{email_patterns.p4}}"}' \
   --with 'hunter_email=hunter_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
-  --with 'apollo_match=apollo_people_match:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","organization_name":"{{Company}}","domain":"{{Company Domain}}"}' \
+  --with 'native_contact=deepline_native_enrich_contact:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","organization_name":"{{Company}}","domain":"{{Company Domain}}"}' \
   --with 'leadmagic_email=leadmagic_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
-  --with 'native_contact=deepline_native_enrich_contact:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
   --with 'crust_profile=crustdata_person_enrichment:{"linkedinProfileUrl":"{{colA.linkedin}}","fields":["email","current_employers"],"enrichRealtime":true}' \
   --with 'pdl_enrich=peopledatalabs_enrich_contact:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
   --end-waterfall \
@@ -291,7 +282,7 @@ deepline enrich --input leads.csv --in-place --rows 0:0 \
 
 ### 8.5 Company Name / Account List -> Find the specific contact with the right titles.
 
-Apify is the best at this because it has the tighest linkedin integration. Other providers like apollo abstract that away and end up stale / missing data / very bad.
+Apify is the best at this because it has the tighest linkedin integration. Use dropleads for company-name resolution.
 
 Example (type outcome: can select people like Drew Bredvick at Vercel when present):
 
@@ -322,7 +313,7 @@ deepline enrich --input companies.csv --in-place --rows 1:2 ...
 Use this policy whenever input starts from `Company` name only:
 
 1) Resolver/search step may use name:
-- `apollo_company_search` (`q_organization_name`)
+- `dropleads_search_people` (`companyNames`)
 - `crustdata_companydb_search` (name filters)
 
 2) Extract a canonical profile object:
@@ -340,7 +331,7 @@ Minimal fallback when resolver misses:
 deepline tools execute google_search --payload '{"query":"site:linkedin.com/company \"{{Company}}\"","num":5}'
 ```
 
-Then map to `company_profile` and continue with domain/ID-based steps. Do not run name-only `apollo_people_search` or name-only `crustdata_enrich_company`.
+Then map to `company_profile` and continue with domain/ID-based steps. Do not run name-only company-name-only `apollo_*` search as resolver.
 
 ### 8.6 Multi-stage pipeline: search → score → scrape → extract → email
 
@@ -359,13 +350,13 @@ Use this pattern when you need to find contacts matching a specific profile (e.g
 ```bash
 # Stage 1+2: Search and pre-score in one enrich pass
 deepline enrich --input seed.csv --in-place --rows 0:1 \
-  --with 'contacts=dropleads_search_people:{"filters":{"jobTitlesSimilar":["Sales","Revenue","Growth"],"seniority":["C-Level","VP"],"industries":["Software"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":25}}' \
+  --with 'contacts=dropleads_search_people:{"filters":{"jobTitles":["Sales","Revenue","Growth"],"seniority":["C-Level","VP"],"industries":["Software"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":25}}' \
   --with 'title_score=run_javascript:@$WORKDIR/score_titles.js'
 
 # Stage 3: Scrape LinkedIn profiles for qualified contacts
 # BATCHING: Pass all URLs in one profileUrls array instead of one call per row.
 # Collect URLs first, then run a single Apify actor call.
-deepline tools execute apify_run_actor_sync --payload '{"actorId":"apimaestro/linkedin-profile-scraper","input":{"profileUrls":["https://linkedin.com/in/person1","https://linkedin.com/in/person2","https://linkedin.com/in/person3"]},"timeoutMs":180000}' --json
+deepline tools execute apify_run_actor_sync --payload '{"actorId":"apimaestro/linkedin-profile-scraper","input":{"profileUrls":["https://linkedin.com/in/person1","https://linkedin.com/in/person2","https://linkedin.com/in/person3"]},"timeoutMs":180000}'
 
 # Stage 4: Extract founder signal from work history
 deepline enrich --input seed.csv --in-place --rows 0:1 \
@@ -387,7 +378,23 @@ deepline enrich --input qualified.csv --in-place --rows 0:1 \
 
 LinkedIn URLs from any provider can be stale or wrong. Every LinkedIn lookup is two phases: **find** then **validate**. See [searching-for-leads-accounts-and-building-lead-lists.md](searching-for-leads-accounts-and-building-lead-lists.md) "LinkedIn profile lookup and validation" for the full provider waterfall and validation rules.
 
-Summary: get a candidate URL from the cheapest provider (dropleads → CSE → Exa → Apollo → Crustdata), then **always** validate it with Apify by scraping the profile and checking name + work history. If confirmed, update the row with fresh data from the profile. If suspect (name matches but company changed), update with the new company/title.
+Summary: get a candidate URL from the cheapest provider (dropleads → CSE → Exa → Crustdata), then **always** validate it with Apify by scraping the profile and checking name + work history. If confirmed, update the row with fresh data from the profile. If suspect (name matches but company changed), update with the new company/title.
+
+### 8.8 If you need a Phone Number
+
+If you have an email and need a phone, run Forager first as reverse lookup, then fall back to native phone enrichment:
+
+```bash
+deepline enrich --input contacts.csv --output /tmp/contacts_phone.csv --rows 0:2 \
+  --with-waterfall "phone_recovery" \
+  --type phone \
+  --result-getters '["phone_numbers.0","phone","data.phone","results.0.phone","data.results.0.phone"]' \
+  --with 'forager_for_phone=forager_person_reverse_lookup:{"email":"{{Email}}"}' \
+  --with 'native_phone=deepline_native_enrich_phone:{"email":"{{Email}}"}' \
+  --end-waterfall \
+  --with 'phone=run_javascript:{"code":"const f = row[\"forager_for_phone\"]?.data ?? row[\"forager_for_phone\"]?._value?.data; const n = row[\"native_phone\"]?.data ?? row[\"native_phone\"]?._value?.data; return f?.phone_numbers?.[0] ?? f?.person?.phone_numbers?.[0] ?? f?.phone ?? n?.data?.phone ?? n?.person?.phone ?? n?.phone ?? n?.results?.[0]?.phone ?? null;"}' \
+  --with 'phone_source=run_javascript:{"code":"const f = row[\"forager_for_phone\"]?.data ?? row[\"forager_for_phone\"]?._value?.data; const n = row[\"native_phone\"]?.data ?? row[\"native_phone\"]?._value?.data; if (f?.phone_numbers?.[0] || f?.person?.phone_numbers?.[0] || f?.phone) return \"forager\"; if (n?.data?.phone || n?.person?.phone || n?.phone || n?.results?.[0]?.phone) return \"deepline_native\"; return null;"}'
+```
 
 ### Hard rules
 
@@ -439,6 +446,8 @@ Use this whenever you add JS extractor columns:
 | `leadmagic_profile_search` | `profile_url` | `.data.company_website`, `.data.full_name`, `.data.work_experience[0].company_website` |
 | `leadmagic_email_validation` | `email` | `.data.email_status`, `.data.is_domain_catch_all`, `.data.mx_provider` |
 | `crustdata_person_enrichment` | `linkedinProfileUrl` | `.data[0].name`, `.data[0].email`, `.data[0].current_employers[0].employer_company_website_domain[0]` |
+| `forager_person_reverse_lookup` | `email` | `phone_numbers`, `person.phone_numbers`, `work_emails`, `personal_emails`, `linkedin_info.public_identifier` |
+| `deepline_native_enrich_phone` | `email` | `data.phone`, `person.phone`, `results[0].phone` |
 
 ## Understanding results
 

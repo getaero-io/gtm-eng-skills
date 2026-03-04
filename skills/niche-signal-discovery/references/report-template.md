@@ -160,11 +160,11 @@ Score tiers:
 ```markdown
 # {Company Name} ICP Niche Signals Report
 
-**Analysis Date:** {date}
-**Target Company:** {company} ({domain}) — {one-line description}
-**Dataset:** {won_count} Closed Won + {lost_count} Closed Lost accounts
+**Analysis Date:** {{date}}
+**Target Company:** {{company}} ({{domain}}) — {one-line description}
+**Dataset:** {{won_count}} Closed Won + {{lost_count}} Closed Lost accounts
 **Data Sources:** Multi-page website extraction (exa_search with contents, ~8 pages/company) + job listings (Crustdata)
-**Coverage:** {won_with_content}/{won_count} won and {lost_with_content}/{lost_count} lost with website content; {won_with_jobs}/{won_count} won with job listings
+**Coverage:** {{won_with_content}}/{{won_count}} won and {{lost_with_content}}/{{lost_count}} lost with website content; {{won_with_jobs}}/{{won_count}} won with job listings
 ```
 
 ---
@@ -179,11 +179,11 @@ Score tiers:
 - Shows what the ICP looks like in the wild
 
 **Example:**
-> {Target}'s buyers are mid-size companies (100-1000 employees) scaling {domain} operations. Top signals: hiring {domain}-related roles (3-5x lift), using {niche tools} (2-4x lift), mentioning "{buyer pain point}" (3-6x lift).
+> {{Target}}'s buyers are mid-size companies (100-1000 employees) scaling {{domain}} operations. Top signals: hiring {{domain}}-related roles (3-5x lift), using {niche tools} (2-4x lift), mentioning "{buyer pain point}" (3-6x lift).
 >
 > **Companies that fit this profile but aren't customers yet:**
-> - {Company A} ({size} employees) — {specific signal 1}, {specific signal 2}
-> - {Company B} ({size} employees) — {specific signal 1}, {specific signal 2}
+> - {Company A} ({{size}} employees) — {specific signal 1}, {specific signal 2}
+> - {Company B} ({{size}} employees) — {specific signal 1}, {specific signal 2}
 
 **Avoid:** Generic "perfect fit customer" descriptions. Be specific and concrete.
 
@@ -200,7 +200,7 @@ If the dataset has limitations, add a caveat subsection. Common caveats:
 ## Section 2: Website Keyword Differential
 
 Methodology note at the top:
-> Substring matching across multi-page website content for {won_n} won and {lost_n} lost companies. Lift uses Laplace smoothing: `((won + 0.5) / (won_total + 1)) / ((lost + 0.5) / (lost_total + 1))`. **Bold** = lift > 2x.
+> Substring matching across multi-page website content for {{won_n}} won and {{lost_n}} lost companies. Lift uses Laplace smoothing: `((won + 0.5) / (won_total + 1)) / ((lost + 0.5) / (lost_total + 1))`. **Bold** = lift > 2x.
 
 ### Subsections by category (2.1, 2.2, etc.)
 

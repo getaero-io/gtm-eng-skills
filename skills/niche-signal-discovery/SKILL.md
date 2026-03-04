@@ -1,6 +1,7 @@
 ---
 name: niche-signal-discovery
-description: "Discover niche first-party signals that differentiate Closed Won vs Closed Lost accounts for ICP analysis. Use when the user provides won/lost customer domain lists and wants differential signals (website content, job listings, tech stack, maturity markers) to build account scoring models and prospecting criteria. Triggers: ICP analysis, niche signals, won vs lost analysis, differential signals, signal discovery, ICP signal report, account scoring signals, lead scoring, first-party signals, buyer signals."
+disable-model-invocation: true
+description: "Discover niche first-party signals that differentiate Closed Won vs Closed Lost accounts for ICP analysis. Use when the user provides won/lost customer domain lists and wants differential signals (website content, job listings, tech stack, maturity markers) to build account scoring models and prospecting criteria. Triggers: ICP analysis, niche signals, won vs lost analysis, differential signals, signal discovery, ICP signal report, account scoring signals, lead scoring, first-party signals, buyer signals. Read gtm-meta-skill to guide how to use this skill."
 ---
 
 > Start here first: read `gtm-meta-skill` before running this skill.
@@ -80,9 +81,9 @@ Use web search to understand what the target company sells and who they sell to:
 
 ```bash
 # Example
-WebSearch: "{company-domain} product what do they sell"
-WebSearch: "{company-domain} customers use cases who uses"
-WebFetch: https://{company-domain}/ "What does {company} sell? Who are their target customers?"
+WebSearch: "{{company-domain}} product what do they sell"
+WebSearch: "{{company-domain}} customers use cases who uses"
+WebFetch: https://{{company-domain}}/ "What does {{company}} sell? Who are their target customers?"
 ```
 
 **Document the following:**
@@ -109,7 +110,7 @@ Example: For a creative ops/DAM tool, search `"{product category} software alter
 **Tech Stack Discovery:**
 ```bash
 WebSearch: "{buyer persona} common tools tech stack"
-WebSearch: "{industry} companies use what software"
+WebSearch: "{{industry}} companies use what software"
 ```
 
 Example: For creative teams, search `"creative teams common tools software stack"`.
@@ -131,7 +132,7 @@ Example: For creative ops, search `"creative operations job titles creative dire
 
 ## Step 1: Prepare Input CSV
 
-Create `output/{company}-icp-input.csv`:
+Create `output/{{company}}-icp-input.csv`:
 
 ```csv
 domain,status
@@ -151,7 +152,7 @@ duplicate_domains = {d for d, c in domain_counts.items() if c > 1}
 if duplicate_domains:
     print(f"WARNING: {len(duplicate_domains)} domains appear in both won and lost:")
     for d in sorted(duplicate_domains):
-        print(f"  {d}")
+        print(f"  {{d}}")
     print("Remove these rows before enrichment — they pollute lift scores.")
 ```
 
@@ -164,10 +165,10 @@ If duplicates exist, remove ALL rows for those domains (not just one copy). The 
 See `references/keyword-catalog.md` for JSON format and generation guidance.
 
 ```bash
-# Create config files in output/{company}/
-output/{company}-keywords.json    # keyword categories
-output/{company}-tools.json       # tech stack tools by category
-output/{company}-job-roles.json   # job role categories
+# Create config files in output/{{company}}/
+output/{{company}}-keywords.json    # keyword categories
+output/{{company}}-tools.json       # tech stack tools by category
+output/{{company}}-job-roles.json   # job role categories
 ```
 
 **Generation approach:**
@@ -221,9 +222,9 @@ QUERY="company product features playbooks outbound pipeline customers integratio
 
 ```bash
 deepline enrich \
-  --input output/{company}-icp-input.csv \
-  --output output/{company}-enriched.csv \
-  --with 'website=exa_search:{"query":"{exa-query-from-above}","numResults":8,"type":"auto","includeDomains":["{{domain}}"],"contents":{"text":{"maxCharacters":3000,"verbosity":"compact","includeSections":["body"]}}}' \
+  --input output/{{company}}-icp-input.csv \
+  --output output/{{company}}-enriched.csv \
+  --with 'website=exa_search:{"query":"{{exa-query-from-above}}","numResults":8,"type":"auto","includeDomains":["{{domain}}"],"contents":{"text":{"maxCharacters":3000,"verbosity":"compact","includeSections":["body"]}}}' \
   --with 'jobs=crustdata_job_listings:{"companyDomains":"{{domain}}","limit":50}' \
  
 ```
@@ -241,8 +242,8 @@ Get user credit approval before running. Example: "60 companies x 6 credits = ~3
 
 ```bash
 # 1. Check row count matches input
-INPUT_ROWS=$(wc -l < output/{company}-icp-input.csv)
-OUTPUT_ROWS=$(wc -l < output/{company}-enriched.csv)
+INPUT_ROWS=$(wc -l < output/{{company}}-icp-input.csv)
+OUTPUT_ROWS=$(wc -l < output/{{company}}-enriched.csv)
 echo "Input: $INPUT_ROWS rows, Output: $OUTPUT_ROWS rows"
 # Output should equal input (both include header)
 
@@ -250,12 +251,12 @@ echo "Input: $INPUT_ROWS rows, Output: $OUTPUT_ROWS rows"
 python3 -c "
 import csv, json, sys
 csv.field_size_limit(sys.maxsize)
-with open('output/{company}-enriched.csv') as f:
+with open('output/{{company}}-enriched.csv') as f:
     rows = list(csv.DictReader(f))
 won_rows = [r for r in rows if r.get('status') == 'won']
 jobs_col = 'jobs'  # or use column index
 has_jobs = sum(1 for r in won_rows if r.get(jobs_col, '').strip() not in ('', '{}', 'null'))
-print(f'Won rows with job data: {has_jobs}/{len(won_rows)}')
+print(f'Won rows with job data: {{has_jobs}}/{len(won_rows)}')
 # If this is 0 and you know won accounts should have listings, wait and re-run
 "
 ```
@@ -282,16 +283,16 @@ If customer domains came from automated extraction (CRM exports, Exa API, case s
 python3 -c "
 import csv, sys
 csv.field_size_limit(sys.maxsize)
-with open('output/{company}-enriched.csv') as f:
+with open('output/{{company}}-enriched.csv') as f:
     rows = list(csv.DictReader(f))
 for r in rows:
     domain = r.get('domain', '')
     # Flag content platforms used as source URLs, not company domains
     if any(x in domain for x in ['blog.', 'medium.com', 'substack.', 'wordpress.']):
-        print(f'WARNING: {domain} looks like a content platform, not a company domain')
+        print(f'WARNING: {{domain}} looks like a content platform, not a company domain')
     # Flag very short domains that might be generic
     if len(domain.split('.')[0]) <= 2:
-        print(f'CHECK: {domain} — very short domain, verify it belongs to the expected company')
+        print(f'CHECK: {{domain}} — very short domain, verify it belongs to the expected company')
 "
 ```
 
@@ -307,7 +308,7 @@ for r in rows:
 
 ```bash
 # Sample a few enriched companies
-deepline playground output/{company}-enriched.csv
+deepline playground output/{{company}}-enriched.csv
 
 # In playground UI, check:
 # - Do website pages mention the keywords in keywords.json?
@@ -330,11 +331,11 @@ Run the analysis script with the config files:
 
 ```bash
 python3 scripts/analyze_signals.py \
-  --input output/{company}-enriched.csv \
-  --keywords output/{company}-keywords.json \
-  --tools output/{company}-tools.json \
-  --job-roles output/{company}-job-roles.json \
-  --output output/{company}-analysis.json
+  --input output/{{company}}-enriched.csv \
+  --keywords output/{{company}}-keywords.json \
+  --tools output/{{company}}-tools.json \
+  --job-roles output/{{company}}-job-roles.json \
+  --output output/{{company}}-analysis.json
 ```
 
 The script auto-detects `__dl_full_result__` columns for website and jobs data. Override with `--website-col N --jobs-col N` if needed.

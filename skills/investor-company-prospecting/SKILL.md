@@ -1,17 +1,11 @@
 ---
 name: investor-company-prospecting
+disable-model-invocation: true
 description: |
   Find YC (or other accelerator/investor-backed) companies hiring for a specific
   role and build personalized outbound to contacts at those companies.
 
-  Triggers:
-  - "find YC companies hiring [role]"
-  - "Y Combinator companies with [role]"
-  - "outbound to YC startups"
-  - "find companies backed by [investor] hiring [role]"
-  - "prospecting at accelerator-backed companies"
-
-  Requires: Deepline CLI — https://code.deepline.com
+  Read gtm-meta-skill to guide how to use this skill.
 ---
 
 > Start here first: read `gtm-meta-skill` before running this skill.
@@ -149,27 +143,24 @@ This is fast because `call_ai` without WebSearch uses model knowledge and these 
 
 ### Step 3: Find contacts at each company
 
-**Important: these are small startups (5-50 people).** Do NOT run a strict-title pilot (for example `person_titles: ["GTM Engineer", "Head of Growth"]`) and then retry. That pattern usually wastes a full attempt because early-stage teams often use titles like "Founding AE", "Founding GTM", or "Revenue Lead."
-
-Use this default for small startups:
-- No `person_titles` filter
-- `include_similar_titles: true`
-- Pull a few contacts and pick the best GTM-adjacent person
+**Important: these are small startups (5-50 people).** Exact-job-title searches are often sparse in smaller teams, so broaden your search:
 
 ```bash
 deepline enrich --input yc_companies.csv --output yc_with_contacts.csv \
   --rows 0:2 \
-  --with 'contact=apollo_people_search_paid:{
-    "q_organization_domains_list": ["{{domain}}"],
-    "include_similar_titles": true,
-    "per_page": 5,
-    "page": 1
+  --with 'contact=dropleads_search_people:{
+    "filters": {
+      "companyDomains": ["{{domain}}"],
+      "keywords": ["sales", "growth", "marketing", "revenue", "operations"],
+      "seniority": ["C-Level", "VP", "Director", "Manager"]
+    },
+    "pagination": {"page": 1, "limit": 5}
   }'
 ```
 
 Note: no `person_titles` filter — for tiny startups, just get whoever is there and pick the best GTM-adjacent contact. Founders, growth leads, founding AEs, and heads of sales are all valid targets when the company has 10 people.
 
-If Apollo returns 0 for a company, fall back to `call_ai` with WebSearch:
+If Dropleads returns 0 for a company, fall back to `call_ai` with WebSearch:
 
 ```bash
 deepline enrich --input yc_missing.csv --in-place \
@@ -215,7 +206,7 @@ deepline enrich --input yc_with_contacts.csv --in-place --rows 2: \
 |---------|-------------|-----|
 | Trying to discover portfolio companies via Deepline tools | Wastes 60-80% of turn budget on company discovery | Fetch the public portfolio page directly |
 | `json_mode: true` in call_ai | `RuntimeError: json_mode expected object\|string, got boolean` | Pass a JSON schema object: `{"type":"object","properties":{...},"required":[...]}` |
-| Searching Apollo with `person_titles: ["GTM Engineer"]` at small startups | 0 results — person hasn't been hired yet | Remove title filter, get all employees, pick best match |
+| Searching with strict titles at small startups | 0 results — person hasn't been hired yet | Remove title filter, get broader roles, pick best match |
 | Using Hunter as primary email finder for <50 person companies | 0/25 fill rate | Use LeadMagic first — better small-company coverage |
 | Asking for user approval in headless/eval mode | Run stops dead | The prompt says "You have approval to spend up to N credits" — treat that as blanket approval |
 | Storing raw JSON from LeadMagic in email column | Email column contains `{"data":{"email":"x@y.com",...}}` instead of `x@y.com` | Use waterfall syntax with `--result-getters` to auto-extract, or add a `run_javascript` step |
@@ -228,7 +219,7 @@ deepline enrich --input yc_with_contacts.csv --in-place --rows 2: \
 | Portfolio page fetch (curl) | 0 | Free — public web page |
 | Exa search (optional, role filtering) | ~5 | Only if filtering by active job postings |
 | call_ai domain resolution | ~0 | Free (model knowledge, no tools) |
-| Apollo people search (per company) | ~0.1 | Contact lookup |
+| Dropleads contact search (per company) | ~0.1 | Contact lookup |
 | LeadMagic email finder (per contact) | ~0.3 | Primary email source |
 | Dropleads email finder (per contact) | ~0.3 | Waterfall fallback |
 | call_ai outbound copy (per contact) | ~0 | Free |

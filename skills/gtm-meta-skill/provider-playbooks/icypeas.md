@@ -7,5 +7,5 @@
 - **LinkedIn scraping is powerful but costs more.** `icypeas_scrape_profile` (1.5 credits) returns rich contact data including phone numbers and verified emails. `icypeas_scrape_company` (0.5 credits) is cheaper for company-level data.
 - **Find-people supports 16 filters.** Use include/exclude arrays for precise targeting: job title, company, location, skills, languages, school, keywords, and more. Start broad with count, then narrow.
 - **Pagination uses token-based cursors.** For `icypeas_find_people` and `icypeas_find_companies`, pass the `token` from the previous response into the next request's `pagination.token`. Page size max is 200.
-- **Free operations for planning:** `icypeas_count_people`, `icypeas_count_companies`, `icypeas_read_results`, `icypeas_read_bulk_files`, and `icypeas_subscription` cost zero credits. Use them liberally.
-- **Check account status.** Run `icypeas_subscription` to verify credit balance before large operations.
+- **Free operations for planning:** `icypeas_count_people`, `icypeas_count_companies`, `icypeas_read_results`, and `icypeas_read_bulk_files` cost zero credits. Use them liberally.
+- **Check account status.** Use your internal usage dashboard before large operations.
