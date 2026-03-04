@@ -407,11 +407,6 @@ deepline enrich --input contacts.csv --output /tmp/contacts_phone.csv --rows 0:2
 - For complex JS logic, do not inline code inside JSON; use `run_javascript:@/path.js`.
 - Prefer targeted reruns with `--with-force <alias>` over global `--force` when only specific columns need recompute.
 
-## Pre-flight and shape checks
-
-`deepline auth status`
-`deepline billing balance `
-
 ### Tool shape validation (required before JS extractors)
 
 1. `deepline tools get <tool_id>` for each provider in your plan.
