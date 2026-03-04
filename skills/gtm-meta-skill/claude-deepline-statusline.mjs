@@ -9,6 +9,7 @@ const MAX_RUNNING_SHOWN = 2;
 const BACKEND_STATUS_TTL_MS = 15000;
 const ACTIVE_PERSIST_MS = 45_000;
 const STATE_PATH = path.join(os.homedir(), '.claude', 'deepline-statusline-state.json');
+const USER_CMD_PATH = path.join(os.homedir(), '.claude', 'statusline-user-command.txt');
 
 const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 const BACKEND_PULSE = ['●', '◉'];
@@ -643,6 +644,22 @@ function renderActiveLine(frame, status, backend, frameIndex, thinking) {
   return joinInline(left, right);
 }
 
+function runUserStatusline(input) {
+  try {
+    const cmd = fs.readFileSync(USER_CMD_PATH, 'utf8').trim();
+    if (!cmd) return '';
+    const out = execSync(cmd, {
+      input,
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: 2000,
+    });
+    return (out || '').trim();
+  } catch {
+    return '';
+  }
+}
+
 async function main() {
   const input = await readStdin();
   if (!input) return;
@@ -676,6 +693,9 @@ async function main() {
     allowProbe: !activeStatus && !shouldUseCachedBackendOnly(fallbackCommand),
   });
 
+  // Compute deepline-specific output
+  let dlOutput = '';
+
   if (activeStatus) {
     sessionState.was_active = true;
     sessionState.active_summary = activeStatus.summary || activeStatus.detail;
@@ -683,38 +703,40 @@ async function main() {
     state.sessions[sessionId] = sessionState;
     saveState(state);
     const activeThinking = latestThinking ? `Thinking: ${truncateText(latestThinking, 56)}` : '';
-    console.log(renderActiveLine(frame, activeStatus, backendStatus, frameIndex, activeThinking));
-    return;
+    dlOutput = renderActiveLine(frame, activeStatus, backendStatus, frameIndex, activeThinking);
+  } else {
+    const now = Date.now();
+    const lastActiveMs = Number.isFinite(sessionState.active_started_ms) ? sessionState.active_started_ms : 0;
+    if (sessionState.was_active && lastActiveMs && now - lastActiveMs < ACTIVE_PERSIST_MS && sessionState.active_summary) {
+      sessionState.was_active = true;
+      state.sessions[sessionId] = sessionState;
+      saveState(state);
+      const persisted = {
+        detail: sessionState.active_summary,
+        current: sessionState.active_summary,
+        providers: '',
+        summary: sessionState.active_summary,
+      };
+      const activeThinking = latestThinking ? `Thinking: ${truncateText(latestThinking, 56)}` : '';
+      dlOutput = renderActiveLine(frame, persisted, backendStatus, frameIndex, activeThinking);
+    } else {
+      if (sessionState.was_active && sessionState.active_summary) {
+        sessionState.last_ran = sessionState.active_summary;
+      }
+      sessionState.was_active = false;
+      sessionState.active_summary = '';
+      state.sessions[sessionId] = sessionState;
+      saveState(state);
+    }
   }
 
-  const now = Date.now();
-  const lastActiveMs = Number.isFinite(sessionState.active_started_ms) ? sessionState.active_started_ms : 0;
-  if (sessionState.was_active && lastActiveMs && now - lastActiveMs < ACTIVE_PERSIST_MS && sessionState.active_summary) {
-    sessionState.was_active = true;
-    state.sessions[sessionId] = sessionState;
-    saveState(state);
-    const persisted = {
-      detail: sessionState.active_summary,
-      current: sessionState.active_summary,
-      providers: '',
-      summary: sessionState.active_summary,
-    };
-    const activeThinking = latestThinking ? `Thinking: ${truncateText(latestThinking, 56)}` : '';
-    console.log(renderActiveLine(frame, persisted, backendStatus, frameIndex, activeThinking));
-    return;
-  }
+  // Chain user's own statusline (preserved during install)
+  const userOutput = runUserStatusline(input);
 
-  if (sessionState.was_active && sessionState.active_summary) {
-    sessionState.last_ran = sessionState.active_summary;
-  }
-  sessionState.was_active = false;
-  sessionState.active_summary = '';
-
-  state.sessions[sessionId] = sessionState;
-  saveState(state);
-
-  // Stay silent when no Deepline command is active.
-  return;
+  // Line 1: user's personal statusline
+  if (userOutput) console.log(userOutput);
+  // Line 2: deepline status (only when active)
+  if (dlOutput) console.log(dlOutput);
 }
 
 main();
