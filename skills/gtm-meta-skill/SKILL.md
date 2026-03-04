@@ -40,7 +40,7 @@ ICP is NOT required for mechanical tasks — do not ask for it, do not raise it 
 ### Documentation hierarchy
 
 - Level 1 (`SKILL.md`): decision model, guardrails, approval gates, links to sub-docs.
-- Level 2 (task-specific): [searching-for-leads-accounts-and-building-lead-lists.md](searching-for-leads-accounts-and-building-lead-lists.md), [enrich-waterfall.md](enrich-waterfall.md), [custom-signals.md](custom-signals.md), [qualification-and-email-design.md](qualification-and-email-design.md), [playground-guide.md](playground-guide.md), [actor-contracts.md](actor-contracts.md), [gtm-definitions-defaults.md](gtm-definitions-defaults.md), `prompts.json`.
+- Level 2 (task-specific): [searching-for-leads-accounts-and-building-lead-lists.md](searching-for-leads-accounts-and-building-lead-lists.md), [build-tam.md](build-tam.md), [enrich-waterfall.md](enrich-waterfall.md), [custom-signals.md](custom-signals.md), [qualification-and-email-design.md](qualification-and-email-design.md), [playground-guide.md](playground-guide.md), [actor-contracts.md](actor-contracts.md), [gtm-definitions-defaults.md](gtm-definitions-defaults.md), `prompts.json`.
 - Level 3 (`provider-playbooks/*.md`): provider-specific quirks, cost/quality notes, and fallback behavior.
 
 No-loss rule: moved guidance remains fully documented at its canonical level and is linked from here.
@@ -58,7 +58,7 @@ If the task matches a pattern below, invoke that skill (via `/skill-name`) **bef
 | Task pattern | Skill to invoke | Why — what goes wrong without it |
 |---|---|---|
 | YC / investor-portfolio / accelerator-backed company prospecting | `/investor-company-prospecting` | VC portfolio data is public and free. Without this skill you'll burn credits on Crustdata investor filters that return inconsistent results. |
-| Build TAM from ICP filters | `/build-tam` | Dropleads-first people mapping with proper filter syntax. Without it you'll guess Dropleads/Crustdata field names and get empty results. |
+| Build TAM from ICP filters | `/build-tam` | TAM workflow now lives in `build-tam.md` under this skill folder (invoked via `/build-tam`). Without it you'll guess Dropleads/Crustdata field names and get empty results. |
 | Find contacts at known companies | `/get-leads-at-company` | Company → contact → outreach chain with dedup. Without it you'll forget validation, scrape wrong profiles, and miss the seniority filter pattern. |
 | Find/verify emails for contacts | `/contact-to-email` | Multi-workflow email enrichment with proper waterfall order and validation gates. Without it you'll skip verification and deliver bouncy emails. |
 | Resolve LinkedIn URLs | `/linkedin-url-lookup` | Multi-pass waterfall with Apify validation to handle nicknames and false positives. Without it you'll get 54% false positive rate. |
