@@ -1,13 +1,3 @@
----
-name: portfolio-company-prospecting
-disable-model-invocation: true
-description: |
-  Find YC (or other accelerator/investor-backed) companies hiring for a specific
-  role and build personalized outbound to contacts at those companies.
-
-  Before reading this file, first read gtm-meta-skill to understand the Deepline CLI tool and how to use it. Then read this file for guidance on the task.
----
-
 # YC / Investor-Portfolio Prospecting
 
 Find companies backed by a specific investor or accelerator (YC, a16z, Sequoia, etc.) that are hiring for a target role, then find contacts and build personalized outbound.
@@ -222,18 +212,3 @@ deepline enrich --input yc_with_contacts.csv --in-place --rows 2: \
 | Dropleads email finder (per contact) | ~0.3 | Waterfall fallback |
 | call_ai outbound copy (per contact) | ~0 | Free |
 | **Total for 25 companies** | **~15-20** | Well within 150 credit budget |
-
-## Related skills
-
-- **Need emails after finding contacts?** → Use `contact-to-email` skill
-- **Building a broader account list?** → Use `build-tam` skill
-- **Want to score accounts first?** → Use `niche-signal-discovery` skill
-
-## Get started
-
-Sign up and get your API key at [code.deepline.com](https://code.deepline.com).
-
-```bash
-curl -s "https://code.deepline.com/api/v2/cli/install" | bash
-deepline auth register
-```

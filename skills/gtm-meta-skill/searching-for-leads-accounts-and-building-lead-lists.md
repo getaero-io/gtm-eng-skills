@@ -68,7 +68,7 @@ deepline tools search hiring
 
 Investor-backed / VC portfolio prospecting:
 
-**⚠ Do NOT use Crustdata `crunchbase_investors` as your primary approach for investor-portfolio prospecting.** It returns results inconsistently. Instead, invoke the `/portfolio-company-prospecting` skill — it fetches the public portfolio page directly (free, fast, complete). The skill covers YC, a16z, Sequoia, and other major VCs.
+**⚠ Do NOT use Crustdata `crunchbase_investors` as your primary approach for investor-portfolio prospecting.** It returns results inconsistently. Instead, read [portfolio-company-prospecting.md](portfolio-company-prospecting.md) — it covers fetching the public portfolio page directly (free, fast, complete) for YC, a16z, Sequoia, and other major VCs.
 
 Crustdata investor filters are acceptable only as a **supplementary cross-reference** after you already have a company list from the public portfolio page:
 
