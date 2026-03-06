@@ -83,31 +83,37 @@ curl -sS "https://[vc-website]/portfolio" -o /tmp/portfolio.html
 # Parse the HTML to extract company names and domains
 ```
 
-If the portfolio page uses JavaScript rendering and curl returns an empty shell, use `call_ai` with WebSearch to get the list:
+If the portfolio page uses JavaScript rendering and curl returns an empty shell, use the Parallel AI provider to fetch and extract the list:
 
 ```bash
-deepline tools execute call_ai --payload '{
-  "prompt": "List all portfolio companies from [VC Name]. Return company name and website domain for each. Focus on companies founded in the last 3 years.",
-  "json_mode": {"type":"object","properties":{"companies":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string"},"domain":{"type":"string"}},"required":["name"]}}},"required":["companies"]},
-  "tools": ["WebSearch"],
-  "max_tokens": 4000
+deepline tools execute parallel_extract --payload '{
+  "urls": ["https://www.ycombinator.com/companies?batch=W26"],
+  "objective": "Extract all company names, website domains, and one-line descriptions from this YC batch directory page",
+  "full_content": true
 }'
 ```
+
+If the page still renders empty, fall back to `parallel_search`:
+
+```bash
+deepline tools execute parallel_search --payload '{
+  "objective": "List all Y Combinator W26 (Winter 2026) batch companies with their name, domain, and description",
+  "max_results": 20
+}'
+```
+
+Synthesize the results, deduplicate, and write to a CSV. Then proceed to Step 2.
 
 ### Step 1b: Filter to companies hiring your target role (optional)
 
 If you need companies hiring a specific role (e.g., "GTM Engineer"), use Exa to cross-reference against the YC job board. **Exa works well for small datasets (≤50 results) but degrades on larger ones.**
 
 ```bash
-deepline tools execute exa_search --payload '{
-  "query": "GTM Engineer",
-  "numResults": 50,
-  "includeDomains": ["ycombinator.com"],
-  "type": "auto"
-}'
+deepline enrich --input yc_companies.csv --in-place --rows 0:2 \
+  --with 'exa_jobs=exa_search:{"query":"GTM Engineer site:ycombinator.com","numResults":50,"type":"auto"}'
 ```
 
-Cross-reference the Exa results against your portfolio company list to identify which companies are actively hiring for the role.
+Cross-reference the `exa_jobs` results against your company list to identify which companies are actively hiring for the role.
 
 For larger datasets or when Exa returns too few results, use `call_ai` with WebSearch to check job boards:
 

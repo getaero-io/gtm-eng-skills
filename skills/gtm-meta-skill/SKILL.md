@@ -1,6 +1,6 @@
 ---
 name: gtm-meta-skill
-description: "Use this skill for GTM prospecting, enrichment, qualification, and outbound workflows, especially when users mention Deepline, CSV processing, lead/account/contact research, waterfall enrichment, email or LinkedIn lookup, personalization, scoring, or campaign activation. Route CSV-heavy and provider-driven requests through this skill, then rely on linked sub-docs and provider playbooks for execution details. Available providers: adyntel, apify, apollo, crustdata, deepline_native, dropleads, exa, forager, google_search, heyreach, hunter, icypeas, instantly, leadmagic, lemlist, parallel, peopledatalabs, prospeo, zerobounce."
+description: "Use this skill for GTM prospecting, enrichment, qualification, and outbound workflows, especially when users mention Deepline, CSV processing, lead/account/contact research, waterfall enrichment, email or LinkedIn lookup, personalization, scoring, or campaign activation. Route CSV-heavy and provider-driven requests through this skill, then rely on linked sub-docs and provider playbooks for execution details. Available providers: adyntel, apify, apollo, crustdata, deepline_native, dropleads, exa, forager, google_search, heyreach, hunter, icypeas, instantly, leadmagic, lemlist, parallel, peopledatalabs, prospeo, smartlead, zerobounce."
 ---
 
 # GTM Meta Skill
@@ -188,6 +188,10 @@ Use [gtm-definitions-defaults.md](gtm-definitions-defaults.md) as the source of 
   Summary: Use enrich-person for individual contacts, search-person for prospecting with 30+ filters, and search-company for account-level lists.
   Last reviewed: 2026-02-28
 
+- [smartlead playbook](provider-playbooks/smartlead.md)
+  Summary: List campaigns first, then push leads with Smartlead field names and confirm campaign stats afterward.
+  Last reviewed: 2026-03-05
+
 - [zerobounce playbook](provider-playbooks/zerobounce.md)
   Summary: Use as final email validation gate before outbound sends. Check sub_status for granular failure reasons. Use batch for 5+ emails.
   Last reviewed: 2026-02-28
@@ -202,7 +206,6 @@ Use [gtm-definitions-defaults.md](gtm-definitions-defaults.md) as the source of 
 - Even for company → ICP person flows, enrich works: search and filter as part of the process, with providers like Apify to guide.
 - Even when you don't have a CSV, create one and use deepline enrich.
 - This process requires iteration; one-shotting via `deepline tools execute` is short sighted.
-- If backend state is unclear, run `deepline backend status` and only continue execution when backend is running/healthy.
 - If a command created CSV outside enrich, run `deepline csv --render-as-playground start --csv <csv_path> --open`.
 - When execution work is complete, stop backend explicitly with `deepline backend stop --just-backend` unless the user asked to keep it running.
 - In chat, send the file path + playground status, not pasted CSV rows, unless explicitly requested.
@@ -271,6 +274,7 @@ Strict format contract (blocking):
 1. Use the exact four section headers: Assumptions, CSV Preview (ASCII), Credits + Scope + Cap, Approval Question.
 2. If any required section is missing, remain in `AWAIT_APPROVAL` and do not run paid/cost-unknown actions.
 3. Only transition to `FULL_RUN` after an explicit user confirmation to the approval question.
+4. tools like run_javascript, call_ai don't cost any deepline credits...
 
 Approval template:
 
