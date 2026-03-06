@@ -82,6 +82,7 @@ Once installed, describe your task and Claude applies the right skill automatica
 
 **Signal discovery:**
 > "Find buying signals for the companies in my accounts.csv"
+[Example Output](https://www.notion.so/aero-ai/Niche-Signals-Sample-Report-310da8d1d8eb81e399b1fc06ec47f72c)
 
 **Email enrichment:**
 > "My leads.csv has First Name, Last Name, and Company — find their email addresses"
