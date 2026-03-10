@@ -4,6 +4,7 @@ People search split:
 
 - `apollo_search_people` maps to Apollo `mixed_people/api_search` (preview, no Apollo credits, obfuscated names/contact gaps).
 - `apollo_people_search_paid` maps to Apollo `mixed_people/search` (paid, billed per request in Deepline).
+- `apollo_search_people_with_match` runs free preview search and then paid enrichment for discovered IDs, returning enriched `people` rows directly.
 - Use `apollo_search_people` first for cheap discovery and shortlist building; switch to `apollo_people_search_paid` when you need paid Apollo search coverage/filters.
 
 - Keep `include_similar_titles=true` unless the user explicitly asks for strict title matching.

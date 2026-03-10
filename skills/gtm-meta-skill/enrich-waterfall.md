@@ -2,21 +2,22 @@
 
 Use this doc for `deepline enrich`, waterfalls, coalescing, and enrichment mechanics. Read when the task involves CSV enrichment, contact recovery, multi-provider fallbacks, or cleaning/merging data from parallel sources.
 
-Read sections 8.1-8.5 for company -> contact, finding email, linkedins, signals, tech stack, etc, generally read if calling deepline enrich. 
+Use native play tool IDs for concise enrich commands whenever possible:
+`name_and_company_to_email_waterfall`, `person_linkedin_to_email_waterfall`, `person_enrichment_from_email_waterfall`, `cost_aware_first_name_and_domain_to_email_waterfall`, `company_to_contact_by_role_waterfall`.
 
 ## Quick syntax reference (copy-paste ready)
 
 ```bash
 # run_javascript — always file-backed (required)
---with 'col=run_javascript:@$WORKDIR/script.js'
+--with '{"alias":"col","tool":"run_javascript","payload":{"code":"@$WORKDIR/script.js"}}'
 
 # Provider tool — inline
---with 'col=provider_tool:{"param":"{{FIELD}}"}'
+--with '{"alias":"col","tool":"provider_tool","payload":{"param":"{{FIELD}}"}}'
 
 # Waterfall
---with-waterfall "email" --type email --result-getters '["data.email","email"]'
---with 'step1=dropleads_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company_name":"{{Company}}"}'
---with 'step2=hunter_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Domain}}"}'
+--with-waterfall "email"
+--with '{"alias":"step1","tool":"dropleads_email_finder","payload":{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company_name":"{{Company}}"},"extract_js":"extract(\"email\")"}'
+--with '{"alias":"step2","tool":"hunter_email_finder","payload":{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Domain}}"},"extract_js":"extract(\"email\")"}'
 --end-waterfall
 ```
 
@@ -39,7 +40,7 @@ Read sections 8.1-8.5 for company -> contact, finding email, linkedins, signals,
 
 ## When to use `call_ai` vs direct provider tools
 
-**Use `call_ai`** (inside `deepline enrich --with 'col=call_ai:...'`) when:
+**Use `call_ai`** (inside `deepline enrich --with '{"alias":"col","tool":"call_ai","payload":{"prompt":"..."}}'`) when:
 - **Per-row research** — funding stage, YC batch, tech stack, news signals, anything factual that requires web lookup. Individual providers have poor precision/recall; `call_ai` spins up agent instances that call exa, parallel, google search and improve results by ~94%.
 - **Custom signals or messaging** — personalized outreach, qualification scoring, ICP-driven content. Check `prompts.json` first for templates.
 - **Synthesis across sources** — combining multiple tool outputs into one structured answer.
@@ -67,7 +68,7 @@ Read sections 8.1-8.5 for company -> contact, finding email, linkedins, signals,
 ```bash
 # Per-row research — canonical call_ai pattern
 deepline enrich --input leads.csv --in-place --rows 0:1 \
-  --with 'yc_batch=call_ai:{"prompt":"What is the YC batch for {{company_name}}? Return only the code e.g. W21 S23.","agent":"claude","model":"haiku"}'
+  --with '{"alias":"yc_batch","tool":"call_ai","payload":{"prompt":"What is the YC batch for {{company_name}}? Return only the code e.g. W21 S23.","agent":"claude","model":"haiku"}}'
 ```
 
 Add `"allowed_tools":"WebSearch"` for live web access. Add `"json_mode":{...schema...}` for structured output.
@@ -88,8 +89,8 @@ deepline tools search funding --prefix crustdata
 
 ```bash
 deepline enrich --input accounts.csv --in-place --rows 0:1 \
-  --with 'investor_candidates=crustdata_companydb_search:{"filters":[{"filter_type":"crunchbase_investors","type":"(.)","value":"{{target_investor}}"}],"limit":10}' \
-  --with 'investor_signal=call_ai:{"prompt":"Given row data and investor_candidates, return JSON {is_match:boolean,evidence:string}. Keep evidence short and source-backed.","agent":"claude","model":"haiku"}'
+  --with '{"alias":"investor_candidates","tool":"crustdata_companydb_search","payload":{"filters":[{"filter_type":"crunchbase_investors","type":"(.)","value":"{{target_investor}}"}],"limit":10}}' \
+  --with '{"alias":"investor_signal","tool":"call_ai","payload":{"prompt":"Given row data and investor_candidates, return JSON {is_match:boolean,evidence:string}. Keep evidence short and source-backed.","agent":"claude","model":"haiku"}}'
 ```
 
 ## Contact enrichment tips
@@ -186,129 +187,174 @@ When `deepline enrich` runs against an existing output CSV:
 Default execution stance:
 
 1. Run a real pilot first: `--rows 0:1`.
-2. Keep waterfall in one command (`--with-waterfall` + `--end-waterfall`). Prefer a clear `--type` (or at minimum `--result-getters`) per block.
+2. Keep waterfall in one command (`--with-waterfall` + `--end-waterfall`). Put an explicit extractor on every `--with` step.
 3. Review the `deepline enrich` completion output — it has fill rates, source, and miss reasons. Only use `deepline csv show` for sample rows or debugging a specific cell. See "Understanding results".
 
 Default provider order for contact enrichment waterfalls:
 
 {waterfall_default_order}
 
-### Type/getter contract (critical)
+### Extractor contract (critical)
 
+- Canonical scalar targets for `extract("<target>")`: `email`, `phone`, `linkedin`, `first_name`, `last_name`, `full_name`, `title`
 - In CLI, `--with-waterfall <NAME>` is a label only.
-- `--type` is the explicit type for the block and must be one of:
-  - `email`, `phone`, `linkedin`, `first_name`, `last_name`, `full_name`
-- `--type` says what the block is looking for (`email`, `phone`, etc.).
-- `--result-getters` says where in provider output to find that value.
-- Use both when possible: `--type` gives intent, `--result-getters` gives extraction path.
-- After `--end-waterfall`, the waterfall name becomes a plain-text column with the resolved scalar (e.g. `{{email}}` = `"john@example.com"`).
+- Every step inside the block must declare an extractor:
+  - `"extract_js":"extract(\"email\")"`
+  - `"extract_js":"extractList({ keys: [\"full_name\", \"linkedin\", \"email\", \"title\"] })"` for list waterfalls used with `--min-results`
+- Use `extract("<target>")` only for those canonical scalar targets.
+- `extractList({ keys: [...] })` builds each list item from canonical target keys registered on that tool. The keys are not arbitrary JSON paths; they must be supported canonical targets such as `full_name`, `linkedin`, `email`, `title`.
+- If you need explicit paths, shaping, filtering, or logic, write JS instead.
+- Use `extract(...)` for scalar/object waterfalls. Use `extractList(...)` for list waterfalls collecting toward `--min-results`.
 
-Waterfall execution model: Each `--with` step inside a waterfall is evaluated as an independent candidate. The waterfall runs each in order and stops at the first step where `--result-getters` or the `--type` fetcher (which under the hood, encodes some bespoke result-getters itself) finds a non-null value. Steps do not see each other's results. A step using `run_javascript` must directly return the target value — it cannot reference another waterfall step's output via `row["step_name"]`, because that row key isn't populated until after the waterfall resolves.
+### Native plays (concise, preferred)
+
+Use these first before writing manual `--with-waterfall` blocks.
+
+Native play tools compile to standard enrich waterfall specs (`playExpansion.steps`).
+If you need to tune provider order, remove/add providers, or tweak payload params/extractors, inspect the play expansion and copy it into a manual waterfall:
+
+```bash
+deepline tools get person_linkedin_to_email_waterfall --json
+```
+
+Then edit the returned `playExpansion.steps` into:
+- `--with-waterfall ...`
+- repeated `--with '{"alias":"...","tool":"...","payload":{...},"extract_js":"..."}'`
+- `--end-waterfall`
 
 ### 8.1 If you have name + company and need email
 
+Problem category: contact email recovery from person + account identifiers.
+Input profile: `first_name`, `last_name`, `company_name`, `domain`.
+Output target: one best work email (then validate separately when needed).
+
+Play tool: `name_and_company_to_email_waterfall`
+Under the hood this compiles to a waterfall:
+`dropleads_email_finder -> hunter_email_finder -> leadmagic_email_finder -> deepline_native_enrich_contact -> crustdata_person_enrichment -> peopledatalabs_enrich_contact`
+
 ```bash
-deepline enrich --input leads.csv --in-place --rows 0:1 \
-  --with-waterfall "email_recovery" \
-  --type email \
-  --result-getters '["data.email","email","data.0.email","data.emails.0.value","emails.0.value"]' \
-  --with 'dropleads_email=dropleads_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company_name":"{{Company}}"}' \
-  --with 'hunter_email=hunter_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
-  --with 'native_contact=deepline_native_enrich_contact:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","organization_name":"{{Company}}"}' \
-  --with 'leadmagic_email=leadmagic_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
-  --with 'crust_profile=crustdata_person_enrichment:{"linkedinProfileUrl":"{{colA.linkedin}}","fields":["email","current_employers"],"enrichRealtime":true}' \
-  --with 'pdl_enrich=peopledatalabs_enrich_contact:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
-  --end-waterfall \
-  --with 'email_validation=leadmagic_email_validation:{"email":"{{email_recovery}}"}'
+deepline enrich --input leads.csv --output /tmp/name_company_email.csv --rows 0:5 \
+  --with '{"alias":"email_from_name_company","tool":"name_and_company_to_email_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company_name}}","domain":"{{domain}}"}}'
+```
+
+Example query (mixed contacts):
+
+```bash
+deepline enrich --input /tmp/mixed_contacts.csv --output /tmp/mixed_name_company_to_email.csv --rows 0:5 \
+  --with '{"alias":"email_from_name_company","tool":"name_and_company_to_email_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company_name}}","domain":"{{domain}}"}}'
 ```
 
 ### 8.2 If you have LinkedIn URL and need email
 
+Problem category: LinkedIn-seeded email recovery.
+Input profile: `linkedin_url`, `first_name`, `last_name`, `domain` (optional: `company_name`).
+Output target: one best work email resolved from LinkedIn-first enrichment.
+
+Play tool: `person_linkedin_to_email_waterfall`
+Under the hood this compiles to a waterfall:
+`dropleads_email_finder -> hunter_email_finder -> leadmagic_email_finder -> deepline_native_enrich_contact -> crustdata_person_enrichment -> peopledatalabs_enrich_contact`
+
+`linkedin_url` alone is not valid for this native play. The waterfall starts with deterministic providers that require `first_name`, `last_name`, and `domain`, so provide those fields up front.
+
 ```bash
-deepline enrich --input leads.csv --in-place --rows 0:1 \
-  --with-waterfall "email_recovery" \
-  --type email \
-  --result-getters '["data.0.email","data.email","emails.0.address","data.emails.0.value"]' \
-  --with 'dropleads_email=dropleads_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company_name":"{{Company}}"}' \
-  --with 'hunter_email=hunter_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
-  --with 'native_contact=deepline_native_enrich_contact:{"organization_name":"{{Company}}","domain":"{{Company Domain}}","linkedin":"{{LinkedIn URL}}"}' \
-  --with 'leadmagic_email=leadmagic_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
-  --with 'crust_profile=crustdata_person_enrichment:{"linkedinProfileUrl":"{{colA.linkedin}}","fields":["email","current_employers"],"enrichRealtime":true}' \
-  --with 'pdl_enrich=peopledatalabs_enrich_contact:{"linkedin_url":"{{colA.linkedin}}","first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
-  --end-waterfall \
-  --with 'email_validation=leadmagic_email_validation:{"email":"{{email_recovery}}"}'
+deepline enrich --input leads.csv --output /tmp/linkedin_email.csv --rows 0:5 \
+  --with '{"alias":"email_from_linkedin","tool":"person_linkedin_to_email_waterfall","payload":{"linkedin_url":"{{linkedinUrl}}","first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
 ```
 
-(catchall email validation is messaged as an error, but really its just inconclusive and you can continue)
+Example query (mixed Dropleads seed):
+
+```bash
+deepline enrich --input /tmp/mixed_dropleads.csv --output /tmp/mixed_linkedin_to_email.csv --rows 0:8 \
+  --with '{"alias":"email_from_linkedin","tool":"person_linkedin_to_email_waterfall","payload":{"linkedin_url":"{{linkedinUrl}}","first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
+```
 
 ### 8.3 If you have email and need person/company context
 
-```bash
-deepline enrich --input leads.csv --in-place --rows 0:1 \
-  --with 'email_validation=leadmagic_email_validation:{"email":"{{Email}}"}' \
-  --with-waterfall "full_name" \
-  --type full_name \
-  --result-getters '["person.name","data.person.name","data.name","name"]' \
-  --with 'hunter_person=hunter_people_find:{"email":"{{Email}}"}' \
-  --with 'leadmagic_profile=leadmagic_profile_search:{"profile_url":"{{LinkedIn URL}}"}' \
-  --with 'native_contact=deepline_native_enrich_contact:{"email":"{{Email}}"}' \
-  --with 'crust_profile=crustdata_person_enrichment:{"linkedinProfileUrl":"{{colA.linkedin}}","fields":["current_employers"],"enrichRealtime":true}' \
-  --with 'pdl_identify=peopledatalabs_person_identify:{"email":"{{Email}}"}' \
-  --end-waterfall
-```
+Problem category: reverse enrichment from known email.
+Input profile: `email`.
+Output target: hydrated person/company context (name, company, LinkedIn, source).
 
-### 8.4 If you have first name + last name + domain and need email (pattern waterfall)
-
-Always validate email at the end. Run pattern checks first (`v1..v4`), then provider fallbacks.
+Play tool: `person_enrichment_from_email_waterfall`
+Under the hood this compiles to a waterfall:
+`hunter_people_find -> crustdata_enrich_contact -> prospeo_enrich_person -> apollo_people_match -> deepline_native_enrich_contact`
 
 ```bash
-deepline enrich --input leads.csv --in-place --rows 0:0 \
-  --with 'email_patterns=run_javascript:@$WORKDIR/email_patterns.js' \
-  --with-waterfall "email_recovery" \
-  --type email \
-  --result-getters '["data.email","email","data.0.email"]' \
-  --with 'v1=leadmagic_email_validation:{"email":"{{email_patterns.p1}}"}' \
-  --with 'v2=leadmagic_email_validation:{"email":"{{email_patterns.p2}}"}' \
-  --with 'v3=leadmagic_email_validation:{"email":"{{email_patterns.p3}}"}' \
-  --with 'v4=leadmagic_email_validation:{"email":"{{email_patterns.p4}}"}' \
-  --with 'hunter_email=hunter_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
-  --with 'native_contact=deepline_native_enrich_contact:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","organization_name":"{{Company}}","domain":"{{Company Domain}}"}' \
-  --with 'leadmagic_email=leadmagic_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
-  --with 'crust_profile=crustdata_person_enrichment:{"linkedinProfileUrl":"{{colA.linkedin}}","fields":["email","current_employers"],"enrichRealtime":true}' \
-  --with 'pdl_enrich=peopledatalabs_enrich_contact:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
-  --end-waterfall \
-  --with 'email_validation=leadmagic_email_validation:{"email":"{{email_recovery}}"}'
+deepline enrich --input leads.csv --output /tmp/email_context.csv --rows 0:5 \
+  --with '{"alias":"person_context","tool":"person_enrichment_from_email_waterfall","payload":{"email":"{{email}}"}}'
 ```
 
-### 8.5 Company Name / Account List -> Find the specific contact with the right titles.
-
-Apify is the best at this because it has the tighest linkedin integration. Use dropleads for company-name resolution.
-
-Example (type outcome: can select people like Drew Bredvick at Vercel when present):
+Example query (run after 8.1 output):
 
 ```bash
-deepline enrich --input companies.csv --in-place --rows 0:0 \
-  --with 'apollo_company=apollo_company_search:{"q_organization_name":"{{Company}}","per_page":3,"page":1}' \
-  --with 'company_profile=run_javascript:@$WORKDIR/company_profile.js' \
-  --with 'apify_gtm_people=apify_run_actor_sync:{"actorId":"apimaestro/linkedin-company-employees-scraper-no-cookies","input":{"identifier":"{{company_profile.data.company_linkedin}}","max_employees":60,"job_title":"gtm"},"timeoutMs":180000}' \
-  --with 'pick_persona=call_ai_claude_code:{"model":"haiku","json_mode":{"type":"object","properties":{"full_name":{"type":"string"},"headline":{"type":"string"},"linkedin_url":{"type":"string"},"why_fit":{"type":"string"}},"required":["full_name","headline","linkedin_url","why_fit"],"additionalProperties":false},"system":"Pick one best outreach persona for GTM at the target company. Prefer current GTM ownership (growth, revops, partnerships, GTM engineering). If Drew Bredvick is present, choose him.","prompt":"Company: {{Company}}\\nCandidates JSON: {{apify_gtm_people.data}}\\nReturn strict JSON only.","agent":"claude"}' \
-  --with 'apify_posts=apify_run_actor_sync:{"actorId":"apimaestro/linkedin-profile-posts","input":"{\"username\":\"{{pick_persona.extracted_json.linkedin_url}}\",\"total_posts\":5,\"limit\":5}","timeoutMs":180000}' \
-  --with 'post_research=call_ai_claude_code:{"model":"haiku","json_mode":{"type":"object","properties":{"themes":{"type":"array","items":{"type":"string"}},"signals":{"type":"array","items":{"type":"string"}},"hook":{"type":"string"}},"required":["themes","signals","hook"],"additionalProperties":false},"prompt":"Analyze this person for outbound personalization. Person: {{pick_persona.output}}Recent posts: {{apify_posts.extracted_json}}Return strict JSON.","agent":"claude"}' \
-  --with 'custom_message=call_ai_claude_code:{"model":"haiku","json_mode":{"type":"object","properties":{"subject":{"type":"string"},"message":{"type":"string"}},"required":["subject","message"],"additionalProperties":false},"prompt":"Write one concise outbound message (<=90 words) to {{pick_persona.extracted_json.full_name}} at {{company_profile.data.company_name}} using: {{post_research.extracted_json}}. No fluff, specific details only. make is very casual, hook is about something i was interested in the post, about why i cant ignore it because im building gtm tooling."}'
+deepline enrich --input /tmp/mixed_name_company_to_email.csv --output /tmp/mixed_email_context.csv --rows 0:5 \
+  --with '{"alias":"person_context","tool":"person_enrichment_from_email_waterfall","payload":{"email":"{{email_from_name_company}}"}}'
 ```
 
-Interpolation contract for this flow:
-- `company_profile` values are under `{{company_profile.data.*}}`.
-- `pick_persona` parsed JSON fields are consumed via `{{pick_persona.extracted_json.*}}`.
-- `post_research` input intentionally uses `{{pick_persona.output}}` + `{{apify_posts.extracted_json}}`.
+### 8.4 If you have first name + last name + domain and need email
 
-Then continue remaining rows from the same file with in-place (do not re-enrich pilot rows):
+Problem category: pattern-first email recovery.
+Input profile: `first_name`, `last_name`, `domain`.
+Output target: one best work email with deterministic pattern checks before premium lookups.
+
+Play tool: `cost_aware_first_name_and_domain_to_email_waterfall`
+Under the hood this compiles to a waterfall:
+`leadmagic_email_validation (first.last@, firstlast@, first_last@) -> dropleads_email_finder -> hunter_email_finder -> leadmagic_email_finder -> deepline_native_enrich_contact -> peopledatalabs_enrich_contact`
 
 ```bash
-deepline enrich --input companies.csv --in-place --rows 1:2 ...
+deepline enrich --input leads.csv --output /tmp/name_domain_email.csv --rows 0:5 \
+  --with '{"alias":"email_from_name_domain","tool":"cost_aware_first_name_and_domain_to_email_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
 ```
 
-### 8.5.1 Quick domain resolution guide (required before people enrichment)
+Example query (mixed contacts):
+
+```bash
+deepline enrich --input /tmp/mixed_contacts.csv --output /tmp/mixed_name_domain_to_email.csv --rows 0:5 \
+  --with '{"alias":"email_from_name_domain","tool":"cost_aware_first_name_and_domain_to_email_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
+```
+
+### 8.5 Company Name / Account List -> Find specific contacts by role
+
+Problem category: account-to-contact role targeting.
+Input profile: `company_name`, `domain`, `job_titles` (optional: `seniority`, `hunter_seniority`, `hunter_department`, `limit`).
+Output target: candidate contacts for the requested function/title.
+
+Play tool: `company_to_contact_by_role_waterfall`
+Under the hood this compiles to a list waterfall (`min_results: 3`):
+`dropleads_search_people -> hunter_domain_search -> apollo_search_people_with_match -> icypeas_find_people -> crustdata_people_search`
+
+**Key provider notes (tested, validated):**
+- **dropleads**: domain-only (`companyDomains`). Do NOT pass `companyNames` or `keywords` — they degrade recall. Minimal payload: `{"filters":{"companyDomains":["domain.com"],"jobTitles":["sales"],"seniority":["c-level","vp","head","director"]},"pagination":{"page":1,"limit":1}}`.
+- **hunter**: domain-only. Do NOT pass `company` param — it has no positive effect.
+- **apollo**: `person_seniorities` uses a different enum from dropleads. Valid values: `owner`, `founder`, `c_suite`, `partner`, `vp`, `head`, `director`, `manager`, `senior`. Note `c_suite` (not `c-level`). The play hardcodes `["c_suite","vp","head","director"]` — do not pass raw dropleads seniority values. `q_keywords` returns 0 results for this use case — omit it.
+- **icypeas** (`icypeas_find_people`): `currentCompanyWebsite.include=["domain.com"]` works with a bare domain. Title specificity matters a lot: broad terms like `sales` return large sets, while exact phrases like `head of sales` or `vp sales` narrow sharply. Pass `job_titles` as one or more exact titles; do not assume separate seniority filtering exists here.
+- **crustdata** (`crustdata_people_search`): Structured fallback search on PersonDB using `companyDomain`, `titleKeywords`, optional `seniority`, and `limit`. Less brittle than public-web search and can return email when Crust has coverage.
+
+```bash
+deepline enrich --input accounts.csv --output /tmp/company_role_contacts.csv --rows 0:5 \
+  --with '{"alias":"role_contacts","tool":"company_to_contact_by_role_waterfall","payload":{"company_name":"{{}}","domain":"{{domain}}","job_titles":"{{job_titles}}"}}'
+```
+
+Example query (mixed company roles):
+
+```bash
+deepline enrich --input /tmp/mixed_company_roles.csv --output /tmp/mixed_company_role_contacts.csv --rows 0:2 \
+  --with '{"alias":"role_contacts","tool":"company_to_contact_by_role_waterfall","payload":{"company_name":"{{company_name}}","domain":"{{domain}}","job_titles":"{{job_titles}}"}}'
+```
+
+### Coverage and gaps
+
+Covered by native plays:
+- `name_and_company_to_email_waterfall`
+- `person_linkedin_to_email_waterfall`
+- `person_enrichment_from_email_waterfall`
+- `cost_aware_first_name_and_domain_to_email_waterfall`
+- `company_to_contact_by_role_waterfall`
+
+Not a single native play (still compose with multiple steps):
+- `company_to_contact_domain_resolution`
+- `multi_stage_pipeline_search_score_scrape_extract_email`
+
+### company_to_contact_domain_resolution
 
 Use this policy whenever input starts from `Company` name only:
 
@@ -333,7 +379,7 @@ deepline tools execute google_search --payload '{"query":"site:linkedin.com/comp
 
 Then map to `company_profile` and continue with domain/ID-based steps. Do not run name-only company-name-only `apollo_*` search as resolver.
 
-### 8.6 Multi-stage pipeline: search → score → scrape → extract → email
+### multi_stage_pipeline_search_score_scrape_extract_email
 
 Use this pattern when you need to find contacts matching a specific profile (e.g. second-time founders, GTM engineers) where structured search filters alone are insufficient.
 
@@ -350,8 +396,8 @@ Use this pattern when you need to find contacts matching a specific profile (e.g
 ```bash
 # Stage 1+2: Search and pre-score in one enrich pass
 deepline enrich --input seed.csv --in-place --rows 0:1 \
-  --with 'contacts=dropleads_search_people:{"filters":{"jobTitles":["Sales","Revenue","Growth"],"seniority":["C-Level","VP"],"industries":["Software"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":25}}' \
-  --with 'title_score=run_javascript:@$WORKDIR/score_titles.js'
+  --with '{"alias":"contacts","tool":"dropleads_search_people","payload":{"filters":{"jobTitles":["Sales","Revenue","Growth"],"seniority":["C-Level","VP"],"industries":["Software"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":25}}}' \
+  --with '{"alias":"title_score","tool":"run_javascript","payload":{"code":"@$WORKDIR/score_titles.js"}}'
 
 # Stage 3: Scrape LinkedIn profiles for qualified contacts
 # BATCHING: Pass all URLs in one profileUrls array instead of one call per row.
@@ -360,16 +406,15 @@ deepline tools execute apify_run_actor_sync --payload '{"actorId":"apimaestro/li
 
 # Stage 4: Extract founder signal from work history
 deepline enrich --input seed.csv --in-place --rows 0:1 \
-  --with 'is_founder=run_javascript:@$WORKDIR/detect_founder.js'
+  --with '{"alias":"is_founder","tool":"run_javascript","payload":{"code":"@$WORKDIR/detect_founder.js"}}'
 
 # Stage 5: Email waterfall for qualified founders only
 deepline enrich --input qualified.csv --in-place --rows 0:1 \
-  --with-waterfall "email" --type email \
-  --result-getters '["data.email","email","data.0.email"]' \
-  --with 'dropleads_email=dropleads_email_finder:{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company}}"}' \
-  --with 'hunter_email=hunter_email_finder:{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}' \
+  --with-waterfall "email" \
+  --with '{"alias":"dropleads_email","tool":"dropleads_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company}}"},"extract_js":"extract(\"email\")"}' \
+  --with '{"alias":"hunter_email","tool":"hunter_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"},"extract_js":"extract(\"email\")"}' \
   --end-waterfall \
-  --with 'email_valid=leadmagic_email_validation:{"email":"{{email}}"}'
+  --with '{"alias":"email_valid","tool":"leadmagic_email_validation","payload":{"email":"{{email}}"}}'
 ```
 
 **Key:** Prefer `run_javascript` (free, fast) for scoring/extraction, `apify_run_actor_sync` for LinkedIn data, and waterfalls for email. These are the right tools for their respective jobs — `call_ai` adds latency and cost when structured alternatives exist.
@@ -387,13 +432,11 @@ If you have an email and need a phone, run Forager first as reverse lookup, then
 ```bash
 deepline enrich --input contacts.csv --output /tmp/contacts_phone.csv --rows 0:2 \
   --with-waterfall "phone_recovery" \
-  --type phone \
-  --result-getters '["phone_numbers.0","phone","data.phone","results.0.phone","data.results.0.phone"]' \
-  --with 'forager_for_phone=forager_person_reverse_lookup:{"email":"{{Email}}"}' \
-  --with 'native_phone=deepline_native_enrich_phone:{"email":"{{Email}}"}' \
+  --with '{"alias":"forager_for_phone","tool":"forager_person_reverse_lookup","payload":{"email":"{{Email}}"},"extract_js":"extract(\"phone\")"}' \
+  --with '{"alias":"native_phone","tool":"deepline_native_enrich_phone","payload":{"email":"{{Email}}"},"extract_js":"extract(\"phone\")"}' \
   --end-waterfall \
-  --with 'phone=run_javascript:{"code":"const f = row[\"forager_for_phone\"]?.data ?? row[\"forager_for_phone\"]?._value?.data; const n = row[\"native_phone\"]?.data ?? row[\"native_phone\"]?._value?.data; return f?.phone_numbers?.[0] ?? f?.person?.phone_numbers?.[0] ?? f?.phone ?? n?.data?.phone ?? n?.person?.phone ?? n?.phone ?? n?.results?.[0]?.phone ?? null;"}' \
-  --with 'phone_source=run_javascript:{"code":"const f = row[\"forager_for_phone\"]?.data ?? row[\"forager_for_phone\"]?._value?.data; const n = row[\"native_phone\"]?.data ?? row[\"native_phone\"]?._value?.data; if (f?.phone_numbers?.[0] || f?.person?.phone_numbers?.[0] || f?.phone) return \"forager\"; if (n?.data?.phone || n?.person?.phone || n?.phone || n?.results?.[0]?.phone) return \"deepline_native\"; return null;"}'
+  --with '{"alias":"phone","tool":"run_javascript","payload":{"code":"const f = row[\"forager_for_phone\"]?.data ?? row[\"forager_for_phone\"]?._value?.data; const n = row[\"native_phone\"]?.data ?? row[\"native_phone\"]?._value?.data; return f?.phone_numbers?.[0] ?? f?.person?.phone_numbers?.[0] ?? f?.phone ?? n?.data?.phone ?? n?.person?.phone ?? n?.phone ?? n?.results?.[0]?.phone ?? null;"}}' \
+  --with '{"alias":"phone_source","tool":"run_javascript","payload":{"code":"const f = row[\"forager_for_phone\"]?.data ?? row[\"forager_for_phone\"]?._value?.data; const n = row[\"native_phone\"]?.data ?? row[\"native_phone\"]?._value?.data; if (f?.phone_numbers?.[0] || f?.person?.phone_numbers?.[0] || f?.phone) return \"forager\"; if (n?.data?.phone || n?.person?.phone || n?.phone || n?.results?.[0]?.phone) return \"deepline_native\"; return null;"}}'
 ```
 
 ### Hard rules
@@ -402,9 +445,8 @@ deepline enrich --input contacts.csv --output /tmp/contacts_phone.csv --rows 0:2
 - Do not reuse an existing output file path.
 - Scale to full rows only after the one-row pilot returns valid shape.
 - Always include `leadmagic_email_validation` as the final email-quality gate if doing email enrichment, though it may be inconclusive and you can continue.
-- For CLI waterfalls, use canonical type names (`email|phone|linkedin|first_name|last_name|full_name`) in `--type`.
-- Always add `--result-getters` so `{{<waterfall_name>}}` resolves to the matched scalar.
-- For complex JS logic, do not inline code inside JSON; use `run_javascript:@/path.js`.
+- Put `"extract_js":"extract(\"<target>\")"` or `"extract_js":"extract([...paths])"` on every waterfall step so `{{<waterfall_name>}}` resolves to the matched scalar.
+- For complex JS logic, prefer file-backed code loaded into `payload.code` over giant one-line inline JS.
 - Prefer targeted reruns with `--with-force <alias>` over global `--force` when only specific columns need recompute.
 
 ### Tool shape validation (required before JS extractors)
@@ -419,10 +461,10 @@ Use this whenever you add JS extractor columns:
 
 - **Always use explicit `return` statements.** Expression-style (implicit return) does NOT work — cells will silently write empty. Every JS block must end with `return <value>;`.
 - Always use file-backed JS:
-  - `--with 'post_signals=run_javascript:@$WORKDIR/post_signals.js'`
+  - `--with '{"alias":"post_signals","tool":"run_javascript","payload":{"code":"@$WORKDIR/post_signals.js"}}'`
 - If you see `Invalid JSON payload ... (Invalid \\escape ...)`, treat it as quoting/escaping failure, not provider failure:
   1. Move JS into a file.
-  2. Re-run with `run_javascript:@/path.js`.
+  2. Re-run with a JSON `--with` spec that sets `payload.code` from that file.
   3. Continue debugging only after parse passes.
 
 ### Pilot/preview checklist

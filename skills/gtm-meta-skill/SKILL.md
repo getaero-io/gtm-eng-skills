@@ -276,6 +276,7 @@ Strict format contract (blocking):
 3. Only transition to `FULL_RUN` after an explicit user confirmation to the approval question.
 4. tools like run_javascript, call_ai don't cost any deepline credits...
 
+
 Approval template:
 
 ```markdown
@@ -306,12 +307,14 @@ Approve full run?
 ### 4.5 Billing commands
 
 
+
 ```bash
 deepline billing balance
 deepline billing limit
 ```
 
 When credits at zero, link to https://code.deepline.com/dashboard/billing to top up.
+10 credits == $1
 
 ## 5) Provider routing (high level)
 

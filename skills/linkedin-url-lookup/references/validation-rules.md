@@ -144,7 +144,7 @@ After the waterfall resolves candidate URLs, verify with Apify profile scraping:
 
 ```bash
 deepline enrich --input contacts.csv --in-place --rows 0:1 \
-  --with 'profile=apify_run_actor_sync:{"actorId":"apimaestro/linkedin-profile-scraper-no-cookies","input":{"username":"{{linkedin}}"},"timeoutMs":60000}'
+  --with '{"alias":"profile","tool":"apify_run_actor_sync","payload":{"actorId":"apimaestro/linkedin-profile-scraper-no-cookies","input":{"username":"{{linkedin}}"},"timeoutMs":60000}}'
 ```
 
 ### What to check in Apify response

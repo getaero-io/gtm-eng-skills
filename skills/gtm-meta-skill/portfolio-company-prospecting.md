@@ -110,7 +110,7 @@ If you need companies hiring a specific role (e.g., "GTM Engineer"), use Exa to 
 
 ```bash
 deepline enrich --input yc_companies.csv --in-place --rows 0:2 \
-  --with 'exa_jobs=exa_search:{"query":"GTM Engineer site:ycombinator.com","numResults":50,"type":"auto"}'
+  --with '{"alias":"exa_jobs","tool":"exa_search","payload":{"query":"GTM Engineer site:ycombinator.com","numResults":50,"type":"auto"}}'
 ```
 
 Cross-reference the `exa_jobs` results against your company list to identify which companies are actively hiring for the role.
@@ -119,7 +119,7 @@ For larger datasets or when Exa returns too few results, use `call_ai` with WebS
 
 ```bash
 deepline enrich --input yc_companies.csv --in-place --rows 0:2 \
-  --with 'has_role=call_ai:{"prompt":"Is {{company_name}} ({{domain}}) currently hiring a GTM Engineer or similar GTM role? Check their careers page and job boards. Return true or false with the job title if found.","json_mode":{"type":"object","properties":{"hiring":{"type":"boolean"},"job_title":{"type":"string"}},"required":["hiring"]},"tools":["WebSearch"]}'
+  --with '{"alias":"has_role","tool":"call_ai","payload":{"prompt":"Is {{company_name}} ({{domain}}) currently hiring a GTM Engineer or similar GTM role? Check their careers page and job boards. Return true or false with the job title if found.","json_mode":{"type":"object","properties":{"hiring":{"type":"boolean"},"job_title":{"type":"string"}},"required":["hiring"]},"tools":["WebSearch"]}}'
 ```
 
 ### Step 2: Build a clean company seed CSV
@@ -130,7 +130,7 @@ For companies missing domains, resolve them in a single enrichment pass:
 
 ```bash
 deepline enrich --input yc_companies.csv --in-place \
-  --with 'resolved_domain=call_ai:{"prompt":"What is the primary website domain for {{company_name}}? Return ONLY the domain, nothing else (e.g. pump.co, langfuse.com).","max_tokens":20}'
+  --with '{"alias":"resolved_domain","tool":"call_ai","payload":{"prompt":"What is the primary website domain for {{company_name}}? Return ONLY the domain, nothing else (e.g. pump.co, langfuse.com).","max_tokens":20}}'
 ```
 
 This is fast because `call_ai` without WebSearch uses model knowledge and these are well-known VC-backed companies.
@@ -142,14 +142,7 @@ This is fast because `call_ai` without WebSearch uses model knowledge and these 
 ```bash
 deepline enrich --input yc_companies.csv --output yc_with_contacts.csv \
   --rows 0:2 \
-  --with 'contact=dropleads_search_people:{
-    "filters": {
-      "companyDomains": ["{{domain}}"],
-      "keywords": ["sales", "growth", "marketing", "revenue", "operations"],
-      "seniority": ["C-Level", "VP", "Director", "Manager"]
-    },
-    "pagination": {"page": 1, "limit": 5}
-  }'
+  --with '{"alias":"contact","tool":"dropleads_search_people","payload":{"filters":{"companyDomains":["{{domain}}"],"keywords":["sales","growth","marketing","revenue","operations"],"seniority":["C-Level","VP","Director","Manager"]},"pagination":{"page":1,"limit":5}}}'
 ```
 
 Note: no `person_titles` filter — for tiny startups, just get whoever is there and pick the best GTM-adjacent contact. Founders, growth leads, founding AEs, and heads of sales are all valid targets when the company has 10 people.
@@ -158,7 +151,7 @@ If Dropleads returns 0 for a company, fall back to `call_ai` with WebSearch:
 
 ```bash
 deepline enrich --input yc_missing.csv --in-place \
-  --with 'contact_lookup=call_ai:{"prompt":"Find the founder, CEO, or GTM/growth lead at {{company_name}} ({{domain}}). Return their full name, title, and LinkedIn URL.","json_mode":{"type":"object","properties":{"name":{"type":"string"},"title":{"type":"string"},"linkedin_url":{"type":"string"}},"required":["name","title"]},"tools":["WebSearch"]}'
+  --with '{"alias":"contact_lookup","tool":"call_ai","payload":{"prompt":"Find the founder, CEO, or GTM/growth lead at {{company_name}} ({{domain}}). Return their full name, title, and LinkedIn URL.","json_mode":{"type":"object","properties":{"name":{"type":"string"},"title":{"type":"string"},"linkedin_url":{"type":"string"}},"required":["name","title"]},"tools":["WebSearch"]}}'
 ```
 
 ### Step 4: Find emails via waterfall
@@ -168,11 +161,9 @@ deepline enrich --input yc_missing.csv --in-place \
 ```bash
 deepline enrich --input yc_with_contacts.csv --in-place --rows 0:2 \
   --with-waterfall "email" \
-  --type email \
-  --result-getters '["data.email","email"]' \
-  --with 'leadmagic=leadmagic_email_finder:{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}' \
-  --with 'dropleads=dropleads_email_finder:{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_domain":"{{domain}}"}' \
-  --with 'hunter=hunter_email_finder:{"domain":"{{domain}}","first_name":"{{first_name}}","last_name":"{{last_name}}"}' \
+  --with '{"alias":"leadmagic","tool":"leadmagic_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"},"extract_js":"extract(\"email\")"}' \
+  --with '{"alias":"dropleads","tool":"dropleads_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_domain":"{{domain}}"},"extract_js":"extract(\"email\")"}' \
+  --with '{"alias":"hunter","tool":"hunter_email_finder","payload":{"domain":"{{domain}}","first_name":"{{first_name}}","last_name":"{{last_name}}"},"extract_js":"extract(\"email\")"}' \
   --end-waterfall
 ```
 
@@ -182,7 +173,7 @@ Expected fill rate: ~60-70% with the 3-provider waterfall. Lower than typical be
 
 ```bash
 deepline enrich --input yc_with_contacts.csv --in-place --rows 0:2 \
-  --with 'outbound=call_ai:{"prompt":"Write a short (≤80 word) cold email to {{first_name}} at {{company_name}}. They are a {{title}}. Mention Deepline helps GTM teams enrich data across 20+ providers in a single CLI. Be specific to their company — no generic templates. Return subject and body.","json_mode":{"type":"object","properties":{"subject":{"type":"string"},"body":{"type":"string"}},"required":["subject","body"]}}'
+  --with '{"alias":"outbound","tool":"call_ai","payload":{"prompt":"Write a short (≤80 word) cold email to {{first_name}} at {{company_name}}. They are a {{title}}. Mention Deepline helps GTM teams enrich data across 20+ providers in a single CLI. Be specific to their company — no generic templates. Return subject and body.","json_mode":{"type":"object","properties":{"subject":{"type":"string"},"body":{"type":"string"}},"required":["subject","body"]}}}'
 ```
 
 After pilot, run the full batch:
@@ -203,7 +194,7 @@ deepline enrich --input yc_with_contacts.csv --in-place --rows 2: \
 | Searching with strict titles at small startups | 0 results — person hasn't been hired yet | Remove title filter, get broader roles, pick best match |
 | Using Hunter as primary email finder for <50 person companies | 0/25 fill rate | Use LeadMagic first — better small-company coverage |
 | Asking for user approval in headless/eval mode | Run stops dead | The prompt says "You have approval to spend up to N credits" — treat that as blanket approval |
-| Storing raw JSON from LeadMagic in email column | Email column contains `{"data":{"email":"x@y.com",...}}` instead of `x@y.com` | Use waterfall syntax with `--result-getters` to auto-extract, or add a `run_javascript` step |
+| Storing raw JSON from LeadMagic in email column | Email column contains `{"data":{"email":"x@y.com",...}}` instead of `x@y.com` | Put `"extract_js":"extract(\"email\")"` on the waterfall step, or add a `run_javascript` step |
 | Using Exa for large datasets (100+ companies) | Degraded results, missed companies | Exa is fine for ≤50 results; for larger lists, fetch the portfolio page directly |
 
 ## Cost estimation

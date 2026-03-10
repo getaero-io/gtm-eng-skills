@@ -39,5 +39,5 @@ deepline tools execute crustdata_companydb_search --payload '{"filters":[{"filte
 ```
 
 ```bash
-deepline enrich --input accounts.csv --output accounts.csv.out.csv --with 'company_lookup=crustdata_companydb_autocomplete:{"field":"company_name","query":"{{Company}}","limit":1}'
+deepline enrich --input accounts.csv --output accounts.csv.out.csv --with '{"alias":"company_lookup","tool":"crustdata_companydb_autocomplete","payload":{"field":"company_name","query":"{{Company}}","limit":1}}'
 ```

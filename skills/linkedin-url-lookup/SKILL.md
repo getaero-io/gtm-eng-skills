@@ -12,6 +12,7 @@ description: |
 # LinkedIn URL Lookup
 
 Resolve LinkedIn profile URLs from name + company with strict identity validation. **Without validation, expect ~54% false positive rate** — this skill handles the edge cases that break naive lookups.
+Use JS getters via `-> (out,row,helpers)=>...`; they are normalized into the canonical `extract_js` metadata field internally.
 
 ## Choose your approach
 
@@ -38,10 +39,8 @@ Check `linkedin_url` in the response. If null, use the batch waterfall.
 ```bash
 deepline enrich --input contacts.csv --in-place --rows 0:1 \
   --with-waterfall "linkedin" \
-  --type linkedin \
-  --result-getters '["linkedin_url","data.linkedin_url","data.0.linkedin_url"]' \
-  --with 'dropleads=dropleads_search_people:{"filters":{"keywords":["{{First Name}} {{Last Name}}"],"companyNames":["{{Company}}"]},"pagination":{"page":1,"limit":1}}' \
-  --with 'pdl=peopledatalabs_person_identify:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company":"{{Company}}"}' \
+  --with '{"alias":"dropleads","tool":"dropleads_search_people","payload":{"filters":{"keywords":["{{First Name}} {{Last Name}}"],"companyNames":["{{Company}}"]},"pagination":{"page":1,"limit":1}},"extract_js":"(out)=>out.linkedin"}' \
+  --with '{"alias":"pdl","tool":"peopledatalabs_person_identify","payload":{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company":"{{Company}}"},"extract_js":"(out)=>out.linkedin"}' \
   --end-waterfall
 ```
 
@@ -53,17 +52,15 @@ When the waterfall returns null, retry with expanded nicknames. Add a nickname e
 
 ```bash
 deepline enrich --input contacts.csv --in-place --rows 0:1 \
-  --with 'expanded_name=run_javascript:@$WORKDIR/expand_nicknames.js' \
+  --with "@/tmp/expanded-name-step.json" \
   --with-waterfall "linkedin" \
-  --type linkedin \
-  --result-getters '["linkedin_url","data.linkedin_url"]' \
-  --with 'dropleads_orig=dropleads_search_people:{"filters":{"keywords":["{{First Name}} {{Last Name}}"],"companyNames":["{{Company}}"]},"pagination":{"page":1,"limit":1}}' \
-  --with 'dropleads_alt=dropleads_search_people:{"filters":{"keywords":["{{expanded_name.data.alternates.0}} {{Last Name}}"],"companyNames":["{{Company}}"]},"pagination":{"page":1,"limit":1}}' \
-  --with 'pdl=peopledatalabs_person_identify:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company":"{{Company}}"}' \
+  --with '{"alias":"dropleads_orig","tool":"dropleads_search_people","payload":{"filters":{"keywords":["{{First Name}} {{Last Name}}"],"companyNames":["{{Company}}"]},"pagination":{"page":1,"limit":1}},"extract_js":"(out)=>out.linkedin"}' \
+  --with '{"alias":"dropleads_alt","tool":"dropleads_search_people","payload":{"filters":{"keywords":["{{expanded_name.data.alternates.0}} {{Last Name}}"],"companyNames":["{{Company}}"]},"pagination":{"page":1,"limit":1}},"extract_js":"(out)=>out.linkedin"}' \
+  --with '{"alias":"pdl","tool":"peopledatalabs_person_identify","payload":{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company":"{{Company}}"},"extract_js":"(out)=>out.linkedin"}' \
   --end-waterfall
 ```
 
-For `run_javascript`, use file-backed scripts only (`run_javascript:@$WORKDIR/<script>.js`); avoid inline JSON `{"code":"..."}` payloads.
+For `run_javascript`, keep scripts file-backed and inject file contents into `payload.code`; avoid giant inline JSON code literals.
 
 ### Apify verification (post-waterfall)
 
@@ -71,7 +68,7 @@ After resolving LinkedIn URLs, verify them with Apify profile scraping to confir
 
 ```bash
 deepline enrich --input contacts.csv --in-place --rows 0:1 \
-  --with 'profile=apify_run_actor_sync:{"actorId":"apimaestro/linkedin-profile-scraper-no-cookies","input":{"username":"{{linkedin}}"},"timeoutMs":60000}'
+  --with '{"alias":"profile","tool":"apify_run_actor_sync","payload":{"actorId":"apimaestro/linkedin-profile-scraper-no-cookies","input":{"username":"{{linkedin}}"},"timeoutMs":60000}}'
 ```
 
 Check `profile.data.currentPositions` or `profile.data.experience` to confirm company match. This catches false positives where the name matched but it's a different person.
@@ -133,15 +130,13 @@ Don't verify inline during the waterfall — it's expensive. Run the full waterf
 # Step 1: Waterfall to find URLs (cheap)
 deepline enrich --input contacts.csv --in-place --rows 0:1 \
   --with-waterfall "linkedin" \
-  --type linkedin \
-  --result-getters '["linkedin_url","data.linkedin_url","data.0.linkedin_url"]' \
-  --with 'dropleads=dropleads_search_people:{"filters":{"keywords":["{{First Name}} {{Last Name}}"],"companyNames":["{{Company}}"]},"pagination":{"page":1,"limit":1}}' \
-  --with 'pdl=peopledatalabs_person_identify:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company":"{{Company}}"}' \
+  --with '{"alias":"dropleads","tool":"dropleads_search_people","payload":{"filters":{"keywords":["{{First Name}} {{Last Name}}"],"companyNames":["{{Company}}"]},"pagination":{"page":1,"limit":1}},"extract_js":"(out)=>out.linkedin"}' \
+  --with '{"alias":"pdl","tool":"peopledatalabs_person_identify","payload":{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company":"{{Company}}"},"extract_js":"(out)=>out.linkedin"}' \
   --end-waterfall
 
 # Step 2: Verify found URLs with Apify (only rows that have a URL)
 deepline enrich --input contacts.csv --in-place --rows 0:1 \
-  --with 'profile=apify_run_actor_sync:{"actorId":"apimaestro/linkedin-profile-scraper-no-cookies","input":{"username":"{{linkedin}}"},"timeoutMs":60000}'
+  --with '{"alias":"profile","tool":"apify_run_actor_sync","payload":{"actorId":"apimaestro/linkedin-profile-scraper-no-cookies","input":{"username":"{{linkedin}}"},"timeoutMs":60000}}'
 ```
 
 Then validate `profile.data` against expected name + company using the validation rules in [references/validation-rules.md](references/validation-rules.md).

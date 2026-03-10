@@ -221,8 +221,8 @@ QUERY="company product features playbooks outbound pipeline customers integratio
 deepline enrich \
   --input output/{{company}}-icp-input.csv \
   --output output/{{company}}-enriched.csv \
-  --with 'website=exa_search:{"query":"{{exa-query-from-above}}","numResults":8,"type":"auto","includeDomains":["{{domain}}"],"contents":{"text":{"maxCharacters":3000,"verbosity":"compact","includeSections":["body"]}}}' \
-  --with 'jobs=crustdata_job_listings:{"companyDomains":"{{domain}}","limit":50}' \
+  --with '{"alias":"website","tool":"exa_search","payload":{"query":"{{exa-query-from-above}}","numResults":8,"type":"auto","includeDomains":["{{domain}}"],"contents":{"text":{"maxCharacters":3000,"verbosity":"compact","includeSections":["body"]}}}}' \
+  --with '{"alias":"jobs","tool":"crustdata_job_listings","payload":{"companyDomains":"{{domain}}","limit":50}}' \
  
 ```
 

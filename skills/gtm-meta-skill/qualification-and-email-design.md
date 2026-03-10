@@ -136,8 +136,8 @@ SEQ_PROMPT=$(jq -Rs '{prompt: ("You are a B2B email strategist. Return strict JS
 printf "prospect_payload\n{\"person\":{\"firstName\":\"Rachael\",\"lastName\":\"Foster\",\"title\":\"Vice President AMER Field Marketing, Public Sector, Services, & Community\"},\"company\":{\"name\":\"Cloudera\",\"domain\":\"cloudera.com\"}}\n" > ./qualification_email_seed.csv
 
 deepline enrich --input ./qualification_email_seed.csv --output ./qualification_email_seed_enriched.csv \
-  --with "qualification_output=call_ai_claude_code:${QUAL_PROMPT}" \
-  --with "email_sequence_output=call_ai_claude_code:${SEQ_PROMPT}" \
+  --with '{"alias":"qualification_output","tool":"call_ai_claude_code","payload":{"prompt":"${QUAL_PROMPT}"}}' \
+  --with '{"alias":"email_sequence_output","tool":"call_ai_claude_code","payload":{"prompt":"${SEQ_PROMPT}"}}' \
  
 ```
 

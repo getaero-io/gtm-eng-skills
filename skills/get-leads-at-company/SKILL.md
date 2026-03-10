@@ -39,13 +39,13 @@ This pipeline:
 
 ```bash
 deepline enrich --input companies.csv --in-place --rows 0:0 \
-  --with 'apollo_company=apollo_company_search:{"q_organization_name":"{{Company}}","per_page":3,"page":1}' \
-  --with 'company_profile=run_javascript:@$WORKDIR/company_profile.js' \
-  --with 'employees=apify_run_actor_sync:{"actorId":"apimaestro/linkedin-company-employees-scraper-no-cookies","input":{"identifier":"{{company_profile.data.company_linkedin}}","max_employees":60,"job_title":"gtm"},"timeoutMs":180000}' \
-  --with 'pick_contact=call_ai_claude_code:{"model":"haiku","json_mode":{"type":"object","properties":{"full_name":{"type":"string"},"headline":{"type":"string"},"linkedin_url":{"type":"string"},"why_fit":{"type":"string"}},"required":["full_name","headline","linkedin_url","why_fit"]},"system":"Pick the single best outreach persona for GTM at this company. Prefer revenue ops, growth, GTM engineering, or sales leadership.","prompt":"Company: {{Company}}\nCandidates: {{employees.data}}\nReturn strict JSON only."}' \
-  --with 'recent_posts=apify_run_actor_sync:{"actorId":"apimaestro/linkedin-profile-posts","input":{"username":"{{pick_contact.extracted_json.linkedin_url}}","total_posts":5,"limit":5},"timeoutMs":180000}' \
-  --with 'post_signals=call_ai_claude_code:{"model":"haiku","json_mode":{"type":"object","properties":{"themes":{"type":"array","items":{"type":"string"}},"signals":{"type":"array","items":{"type":"string"}},"hook":{"type":"string"}},"required":["themes","signals","hook"]},"prompt":"Analyze for outbound personalization.\nPerson: {{pick_contact.output}}\nPosts: {{recent_posts.extracted_json}}\nReturn strict JSON."}' \
-  --with 'message=call_ai_claude_code:{"model":"haiku","json_mode":{"type":"object","properties":{"subject":{"type":"string"},"body":{"type":"string"}},"required":["subject","body"]},"prompt":"Write a concise outbound message (≤90 words) to {{pick_contact.extracted_json.full_name}} at {{company_profile.data.company_name}}. Use these signals: {{post_signals.extracted_json}}. Be casual, specific, no fluff."}'
+  --with '{"alias":"apollo_company","tool":"apollo_company_search","payload":{"q_organization_name":"{{Company}}","per_page":3,"page":1}}' \
+  --with '{"alias":"company_profile","tool":"run_javascript","payload":{"code":"@$WORKDIR/company_profile.js"}}' \
+  --with '{"alias":"employees","tool":"apify_run_actor_sync","payload":{"actorId":"apimaestro/linkedin-company-employees-scraper-no-cookies","input":{"identifier":"{{company_profile.data.company_linkedin}}","max_employees":60,"job_title":"gtm"},"timeoutMs":180000}}' \
+  --with '{"alias":"pick_contact","tool":"call_ai_claude_code","payload":{"model":"haiku","json_mode":{"type":"object","properties":{"full_name":{"type":"string"},"headline":{"type":"string"},"linkedin_url":{"type":"string"},"why_fit":{"type":"string"}},"required":["full_name","headline","linkedin_url","why_fit"]},"system":"Pick the single best outreach persona for GTM at this company. Prefer revenue ops, growth, GTM engineering, or sales leadership.","prompt":"Company: {{Company}}\nCandidates: {{employees.data}}\nReturn strict JSON only."}}' \
+  --with '{"alias":"recent_posts","tool":"apify_run_actor_sync","payload":{"actorId":"apimaestro/linkedin-profile-posts","input":{"username":"{{pick_contact.extracted_json.linkedin_url}}","total_posts":5,"limit":5},"timeoutMs":180000}}' \
+  --with '{"alias":"post_signals","tool":"call_ai_claude_code","payload":{"model":"haiku","json_mode":{"type":"object","properties":{"themes":{"type":"array","items":{"type":"string"}},"signals":{"type":"array","items":{"type":"string"}},"hook":{"type":"string"}},"required":["themes","signals","hook"]},"prompt":"Analyze for outbound personalization.\nPerson: {{pick_contact.output}}\nPosts: {{recent_posts.extracted_json}}\nReturn strict JSON."}}' \
+  --with '{"alias":"message","tool":"call_ai_claude_code","payload":{"model":"haiku","json_mode":{"type":"object","properties":{"subject":{"type":"string"},"body":{"type":"string"}},"required":["subject","body"]},"prompt":"Write a concise outbound message (≤90 words) to {{pick_contact.extracted_json.full_name}} at {{company_profile.data.company_name}}. Use these signals: {{post_signals.extracted_json}}. Be casual, specific, no fluff."}}'
 ```
 
 After validating one row, scale:
@@ -55,13 +55,13 @@ deepline enrich --input companies.csv --in-place --rows 1: \
   # ... same flags
 ```
 
-Use `run_javascript:@$WORKDIR/<script>.js` for all JS transform columns; do not inline JSON `{"code":"..."}` payloads.
+Use JSON `--with` specs for all JS transform columns and load script content into `payload.code`; avoid giant inline code literals where possible.
 
 ## Simpler version: just find contacts (no messaging)
 
 ```bash
 deepline enrich --input companies.csv --in-place --rows 0:1 \
-  --with 'contacts=dropleads_search_people:{"filters":{"companyNames":["{{Company}}"],"jobTitles":["VP Sales","Head of Revenue","Revenue Operations","GTM"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":5}}'
+  --with '{"alias":"contacts","tool":"dropleads_search_people","payload":{"filters":{"companyNames":["{{Company}}"],"jobTitles":["VP Sales","Head of Revenue","Revenue Operations","GTM"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":5}}}'
 ```
 
 ## Column reference after full chain
@@ -80,7 +80,7 @@ If `company_profile.data.company_linkedin` is null, the Apify employee scraper w
 
 ```bash
 deepline enrich --input companies.csv --in-place --rows 0:0 \
-  --with 'contacts=dropleads_search_people:{"filters":{"companyNames":["{{Company}}"],"jobTitles":["VP Sales","Head of Revenue","Revenue Operations","GTM","CRO"],"seniority":["C-Level","VP","Director","Owner"]},"pagination":{"page":1,"limit":10}}'
+  --with '{"alias":"contacts","tool":"dropleads_search_people","payload":{"filters":{"companyNames":["{{Company}}"],"jobTitles":["VP Sales","Head of Revenue","Revenue Operations","GTM","CRO"],"seniority":["C-Level","VP","Director","Owner"]},"pagination":{"page":1,"limit":10}}}'
 ```
 
 ## Seniority filtering

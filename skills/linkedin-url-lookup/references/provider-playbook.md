@@ -192,7 +192,7 @@ deepline tools execute apify_run_actor_sync \
 ```bash
 # Only run on rows that have a linkedin URL resolved
 deepline enrich --input contacts.csv --in-place --rows 0:1 \
-  --with 'profile=apify_run_actor_sync:{"actorId":"apimaestro/linkedin-profile-scraper-no-cookies","input":{"username":"{{linkedin}}"},"timeoutMs":60000}'
+  --with '{"alias":"profile","tool":"apify_run_actor_sync","payload":{"actorId":"apimaestro/linkedin-profile-scraper-no-cookies","input":{"username":"{{linkedin}}"},"timeoutMs":60000}}'
 ```
 
 ### Response Fields for Validation

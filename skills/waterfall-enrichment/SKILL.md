@@ -21,8 +21,8 @@ The waterfall pattern runs multiple enrichment providers in sequence and stops a
 ## Key concepts
 
 - `--with-waterfall <NAME>` — start a waterfall block named `<NAME>`
-- `--type` — what you're looking for: `email`, `phone`, `linkedin`, `first_name`, `last_name`, `full_name`
-- `--result-getters` — JSON path(s) where to find the value in provider output
+- `--with '{"alias":"step","tool":"tool","payload":{...},"extract_js":"extract(\"email\")"}'` — each waterfall step declares its own extractor
+- `extract("email")` uses registry defaults; `extract(["data.email","email"])` uses explicit fallback paths
 - `--end-waterfall` — close the block; the waterfall name becomes a column with the resolved value
 - After `--end-waterfall`, use `{{<waterfall_name>}}` to reference the resolved scalar
 
@@ -31,10 +31,8 @@ The waterfall pattern runs multiple enrichment providers in sequence and stops a
 ```bash
 deepline enrich --input leads.csv --in-place --rows 0:1 \
   --with-waterfall "email" \
-  --type email \
-  --result-getters '["data.email","email","data.0.email"]' \
-  --with 'provider_a=tool_name:{"param":"{{Column}}"}' \
-  --with 'provider_b=tool_name:{"param":"{{Column}}"}' \
+  --with '{"alias":"provider_a","tool":"tool_name","payload":{"param":"{{Column}}"},"extract_js":"extract(\"email\")"}' \
+  --with '{"alias":"provider_b","tool":"tool_name","payload":{"param":"{{Column}}"},"extract_js":"extract(\"email\")"}' \
   --end-waterfall
 ```
 
@@ -45,9 +43,7 @@ Review output, then scale to `--rows 1:` for remaining rows.
 ```bash
 deepline enrich --input leads.csv --in-place --rows 0:1 \
   --with-waterfall "phone" \
-  --type phone \
-  --result-getters '["data.phone","phone","mobile","data.mobile"]' \
-  --with 'mobile_finder=leadmagic_mobile_finder:{"email":"{{Email}}"}' \
+  --with '{"alias":"mobile_finder","tool":"leadmagic_mobile_finder","payload":{"email":"{{Email}}"},"extract_js":"extract(\"phone\")"}' \
   --end-waterfall
 ```
 
@@ -56,13 +52,11 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
 ```bash
 deepline enrich --input leads.csv --in-place --rows 0:1 \
   --with-waterfall "email" \
-  --type email \
-  --result-getters '["data.email","email","data.0.email"]' \
-  --with 'dropleads=dropleads_email_finder:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company_name":"{{Company}}","company_domain":"{{Company Domain}}"}' \
-  --with 'crust_profile=crustdata_person_enrichment:{"linkedinProfileUrl":"{{LinkedIn}}","fields":["email","current_employers"],"enrichRealtime":true}' \
-  --with 'pdl_enrich=peopledatalabs_enrich_contact:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"}' \
+  --with '{"alias":"dropleads","tool":"dropleads_email_finder","payload":{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company_name":"{{Company}}","company_domain":"{{Company Domain}}"},"extract_js":"extract(\"email\")"}' \
+  --with '{"alias":"crust_profile","tool":"crustdata_person_enrichment","payload":{"linkedinProfileUrl":"{{LinkedIn}}","fields":["email","current_employers"],"enrichRealtime":true},"extract_js":"extract(\"email\")"}' \
+  --with '{"alias":"pdl_enrich","tool":"peopledatalabs_enrich_contact","payload":{"first_name":"{{First Name}}","last_name":"{{Last Name}}","domain":"{{Company Domain}}"},"extract_js":"extract(\"email\")"}' \
   --end-waterfall \
-  --with 'email_validation=leadmagic_email_validation:{"email":"{{email}}"}'
+  --with '{"alias":"email_validation","tool":"leadmagic_email_validation","payload":{"email":"{{email}}"}}'
 ```
 
 ## LinkedIn URL waterfall
@@ -70,10 +64,8 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
 ```bash
 deepline enrich --input leads.csv --in-place --rows 0:1 \
   --with-waterfall "linkedin" \
-  --type linkedin \
-  --result-getters '["linkedin_url","data.linkedin_url","data.0.linkedin_url"]' \
-  --with 'dropleads_people=dropleads_search_people:{"filters":{"keywords":["{{First Name}} {{Last Name}}"],"companyNames":["{{Company}}"]},"pagination":{"page":1,"limit":1}}' \
-  --with 'pdl_identify=peopledatalabs_person_identify:{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company":"{{Company}}"}' \
+  --with '{"alias":"dropleads_people","tool":"dropleads_search_people","payload":{"filters":{"keywords":["{{First Name}} {{Last Name}}"],"companyNames":["{{Company}}"]},"pagination":{"page":1,"limit":1}},"extract_js":"extract(\"linkedin\")"}' \
+  --with '{"alias":"pdl_identify","tool":"peopledatalabs_person_identify","payload":{"first_name":"{{First Name}}","last_name":"{{Last Name}}","company":"{{Company}}"},"extract_js":"extract(\"linkedin\")"}' \
   --end-waterfall
 ```
 
@@ -122,7 +114,7 @@ Set expectations with stakeholders before running. Diminishing returns after 2-3
 - Use `--rows 0:1` pilot before any full run
 - Do not reuse an existing output CSV path
 - Chain one waterfall at a time; close `--end-waterfall` before starting another
-- Use canonical `--type` values: `email | phone | linkedin | first_name | last_name | full_name`
+- Use `extract("email")`, `extract("phone")`, `extract("linkedin")`, `extract("full_name")`, etc. on every waterfall step
 - **Never call enrichment without minimum data**: email waterfalls need name + company OR LinkedIn URL. Phone waterfalls need a verified email. Don't waste credits on rows missing required fields.
 
 ## After a waterfall run

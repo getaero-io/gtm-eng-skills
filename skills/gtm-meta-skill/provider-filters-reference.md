@@ -116,20 +116,7 @@ Apollo company API search input.
 
 Searches CompanyDB using /screener/companydb/search with filters.
 
-  - `filters` (array, **required**) — Array of filter conditions (AND-combined). Each: {filter_type, type, value} or {filter_name, type, value}. filter_name is syntactic sugar for filter_type (e.g. company_investors → crunchbase_investors, company_funding_stage → last_funding_round_type). Single object is accepted. Nested {op,conditions} groups supported for OR logic.
-  - `filters[]` (object, **required**)
-  - `filters[].filter_type` ("acquisition_status" | "company_name" | "company_type" | "company_website_domain" | "competitor_ids" | "competitor_websites" | "crunchbase_categories" | "crunchbase_investors" | "crunchbase_total_investment_usd" | "employee_count_range" | "employee_metrics.growth_12m" | "employee_metrics.growth_12m_percent" | "employee_metrics.growth_6m_percent" | "employee_metrics.latest_count" | "estimated_revenue_higher_bound_usd" | "estimated_revenue_lower_bound_usd" | "follower_metrics.growth_6m_percent" | "follower_metrics.latest_count" | "hq_country" | "hq_location" | "ipo_date" | "largest_headcount_country" | "last_funding_date" | "last_funding_round_type" | "linkedin_id" | "linkedin_industries" | "linkedin_profile_url" | "markets" | "region" | "tracxn_investors" | "year_founded", optional) — Field to filter on. Accepts filter_name as alias. Key mappings: company_investors → crunchbase_investors, company_funding_stage → last_funding_round_type, funding stage/round → last_funding_round_type, headcount/size → employee_count_range or employee_metrics.latest_count, industry → linkedin_industries, location → hq_country (ISO alpha-3) or hq_location or region, revenue → estimated_revenue_lower_bound_usd / estimated_revenue_higher_bound_usd, funding amount → crunchbase_total_investment_usd, domain → company_website_domain.
-  - `filters[].type` ("=" | "!=" | "in" | "not_in" | ">" | "<" | "=>" | "=<" | "(.)" | "[.]", optional) — Operator: =, !=, in, not_in, >, <, =>, =<, (.) fuzzy contains, [.] substring.
-  - `filters[].value` (string | number | boolean | (string | number | boolean)[], optional) — Filter value. When unsure of exact values for a field, call crustdata_companydb_autocomplete first (free, no credits): e.g. deepline tools execute crustdata_companydb_autocomplete --payload '{"field":"last_funding_round_type","query":"series","limit":10}' --json. hq_country uses ISO 3166-1 alpha-3 codes (USA, GBR, CAN).
-  - `filters[].value[]` (string | number | boolean, optional)
-  - `filters[].op` ("and" | "or", optional) — Logical operator for conditions.
-  - `filters[].conditions` (array, optional) — Nested filter conditions.
-  - `filters[].conditions[]` (object, optional)
-  - `filters[].conditions[].filter_type` ("acquisition_status" | "company_name" | "company_type" | "company_website_domain" | "competitor_ids" | "competitor_websites" | "crunchbase_categories" | "crunchbase_investors" | "crunchbase_total_investment_usd" | "employee_count_range" | "employee_metrics.growth_12m" | "employee_metrics.growth_12m_percent" | "employee_metrics.growth_6m_percent" | "employee_metrics.latest_count" | "estimated_revenue_higher_bound_usd" | "estimated_revenue_lower_bound_usd" | "follower_metrics.growth_6m_percent" | "follower_metrics.latest_count" | "hq_country" | "hq_location" | "ipo_date" | "largest_headcount_country" | "last_funding_date" | "last_funding_round_type" | "linkedin_id" | "linkedin_industries" | "linkedin_profile_url" | "markets" | "region" | "tracxn_investors" | "year_founded", optional) — Field to filter on. Accepts filter_name as alias. Key mappings: company_investors → crunchbase_investors, company_funding_stage → last_funding_round_type, funding stage/round → last_funding_round_type, headcount/size → employee_count_range or employee_metrics.latest_count, industry → linkedin_industries, location → hq_country (ISO alpha-3) or hq_location or region, revenue → estimated_revenue_lower_bound_usd / estimated_revenue_higher_bound_usd, funding amount → crunchbase_total_investment_usd, domain → company_website_domain.
-  - `filters[].conditions[].type` ("=" | "!=" | "in" | "not_in" | ">" | "<" | "=>" | "=<" | "(.)" | "[.]", optional) — Operator: =, !=, in, not_in, >, <, =>, =<, (.) fuzzy contains, [.] substring.
-  - `filters[].conditions[].value` (string | number | boolean | (string | number | boolean)[], optional) — Filter value. When unsure of exact values for a field, call crustdata_companydb_autocomplete first (free, no credits): e.g. deepline tools execute crustdata_companydb_autocomplete --payload '{"field":"last_funding_round_type","query":"series","limit":10}' --json. hq_country uses ISO 3166-1 alpha-3 codes (USA, GBR, CAN).
-  - `filters[].conditions[].op` ("and" | "or", optional) — Logical operator for conditions.
-  - `filters[].conditions[].conditions` (array, optional) — Nested filter conditions.
+  - `filters` (unknown, **required**) — Array of filter conditions (AND-combined). Each: {filter_type, type, value} or {filter_name, type, value}. filter_name is syntactic sugar for filter_type (e.g. company_investors → crunchbase_investors, company_funding_stage → last_funding_round_type). Single object is accepted. Nested {op,conditions} groups supported for OR logic.
   - `limit` (number, optional)
   - `cursor` (string, optional) — Pagination cursor.
   - `sorts` (array, optional) — Sort criteria array.
@@ -142,23 +129,7 @@ Searches CompanyDB using /screener/companydb/search with filters.
 
 Searches PersonDB using /screener/persondb/search with filters.
 
-  - `filters` (array, **required**) — Array of filter conditions (AND-combined). Each: {filter_type, type, value} or {filter_name, type, value}. filter_name is syntactic sugar for filter_type. Single object is accepted. Nested {op,conditions} groups supported for OR logic.
-  - `filters[]` (object, **required**)
-  - `filters[].filter_type` ("current_employers.company_website_domain" | "current_employers.seniority_level" | "current_employers.title" | "headline" | "num_of_connections" | "region" | "years_of_experience_raw", optional) — Field to filter on. Key mappings: job title → current_employers.title, seniority → current_employers.seniority_level, company/employer → current_employers.company_website_domain, location → region, experience → years_of_experience_raw, bio/summary → headline, connections → num_of_connections.
-  - `filters[].type` ("=" | "!=" | "in" | "not_in" | ">" | "<" | "=>" | "=<" | "(.)" | "[.]" | "geo_distance", optional) — Operator: =, !=, in, not_in, >, <, =>, =<, (.) fuzzy contains, [.] substring, geo_distance (region only).
-  - `filters[].value` (string | number | boolean | (string | number | boolean)[] | object, optional) — Filter value (or geo_distance object for region). When unsure of exact values for a field, call crustdata_persondb_autocomplete first (free, no credits): e.g. deepline tools execute crustdata_persondb_autocomplete --payload '{"field":"current_employers.title","query":"engineer","limit":10}' --json.
-  - `filters[].value[]` (string | number | boolean, optional)
-  - `filters[].value.location` (string, optional)
-  - `filters[].value.distance` (number, optional)
-  - `filters[].value.unit` ("km" | "mi" | "miles" | "m" | "meters" | "ft" | "feet", optional)
-  - `filters[].op` ("and" | "or", optional) — Logical operator for conditions.
-  - `filters[].conditions` (array, optional) — Nested filter conditions.
-  - `filters[].conditions[]` (object, optional)
-  - `filters[].conditions[].filter_type` ("current_employers.company_website_domain" | "current_employers.seniority_level" | "current_employers.title" | "headline" | "num_of_connections" | "region" | "years_of_experience_raw", optional) — Field to filter on. Key mappings: job title → current_employers.title, seniority → current_employers.seniority_level, company/employer → current_employers.company_website_domain, location → region, experience → years_of_experience_raw, bio/summary → headline, connections → num_of_connections.
-  - `filters[].conditions[].type` ("=" | "!=" | "in" | "not_in" | ">" | "<" | "=>" | "=<" | "(.)" | "[.]" | "geo_distance", optional) — Operator: =, !=, in, not_in, >, <, =>, =<, (.) fuzzy contains, [.] substring, geo_distance (region only).
-  - `filters[].conditions[].value` (string | number | boolean | (string | number | boolean)[] | object, optional) — Filter value (or geo_distance object for region). When unsure of exact values for a field, call crustdata_persondb_autocomplete first (free, no credits): e.g. deepline tools execute crustdata_persondb_autocomplete --payload '{"field":"current_employers.title","query":"engineer","limit":10}' --json.
-  - `filters[].conditions[].op` ("and" | "or", optional) — Logical operator for conditions.
-  - `filters[].conditions[].conditions` (array, optional) — Nested filter conditions.
+  - `filters` (unknown, **required**) — Array of filter conditions (AND-combined). Each: {filter_type, type, value} or {filter_name, type, value}. filter_name is syntactic sugar for filter_type. Single object is accepted. Nested {op,conditions} groups supported for OR logic.
   - `limit` (number, optional)
   - `cursor` (string, optional) — Pagination cursor.
   - `sorts` (array, optional) — Sort criteria array.
@@ -174,7 +145,7 @@ Searches PersonDB using /screener/persondb/search with filters.
 
 Fetches exact filter values using /screener/companydb/autocomplete. Free, no credits consumed.
 
-  - `field` ("acquisition_status" | "company_name" | "company_type" | "company_website_domain" | "competitor_ids" | "competitor_websites" | "crunchbase_categories" | "crunchbase_investors" | "crunchbase_total_investment_usd" | "employee_count_range" | "employee_metrics.growth_12m" | "employee_metrics.growth_12m_percent" | "employee_metrics.growth_6m_percent" | "employee_metrics.latest_count" | "estimated_revenue_higher_bound_usd" | "estimated_revenue_lower_bound_usd" | "follower_metrics.growth_6m_percent" | "follower_metrics.latest_count" | "hq_country" | "hq_location" | "ipo_date" | "largest_headcount_country" | "last_funding_date" | "last_funding_round_type" | "linkedin_id" | "linkedin_industries" | "linkedin_profile_url" | "markets" | "region" | "tracxn_investors" | "year_founded", **required**) — Field name to autocomplete. Must be one of: acquisition_status, company_name, company_type, company_website_domain, competitor_ids, competitor_websites, crunchbase_categories, crunchbase_investors, crunchbase_total_investment_usd, employee_count_range, employee_metrics.growth_12m, employee_metrics.growth_12m_percent, employee_metrics.growth_6m_percent, employee_metrics.latest_count, estimated_revenue_higher_bound_usd, estimated_revenue_lower_bound_usd, follower_metrics.growth_6m_percent, follower_metrics.latest_count, hq_country, hq_location, ipo_date, largest_headcount_country, last_funding_date, last_funding_round_type, linkedin_id, linkedin_industries, linkedin_profile_url, markets, region, tracxn_investors, year_founded. Key mappings: funding stage/round → last_funding_round_type, headcount/size → employee_count_range, industry → linkedin_industries, location → hq_country (ISO alpha-3) or hq_location. Note: hq_country uses 3-letter ISO codes (USA, GBR, CAN), not country names.
+  - `field` (unknown, **required**) — Field name to autocomplete. Must be one of: acquisition_status, company_name, company_type, company_website_domain, competitor_ids, competitor_websites, crunchbase_categories, crunchbase_investors, crunchbase_total_investment_usd, employee_count_range, employee_metrics.growth_12m, employee_metrics.growth_12m_percent, employee_metrics.growth_6m_percent, employee_metrics.latest_count, estimated_revenue_higher_bound_usd, estimated_revenue_lower_bound_usd, follower_metrics.growth_6m_percent, follower_metrics.latest_count, hq_country, hq_location, ipo_date, largest_headcount_country, last_funding_date, last_funding_round_type, linkedin_id, linkedin_industries, linkedin_profile_url, markets, region, tracxn_investors, year_founded. Key mappings: funding stage/round → last_funding_round_type, headcount/size → employee_count_range, industry → linkedin_industries, location → hq_country (ISO alpha-3) or hq_location. Note: hq_country uses 3-letter ISO codes (USA, GBR, CAN), not country names.
   - `query` (string, **required**) — Partial text to match. For hq_country, use ISO code patterns (e.g. "US", "USA", "GBR") rather than country names.
   - `limit` (number, optional)
 
@@ -184,7 +155,7 @@ Fetches exact filter values using /screener/companydb/autocomplete. Free, no cre
 
 Fetches exact filter values using /screener/persondb/autocomplete. Free, no credits consumed.
 
-  - `field` ("current_employers.company_website_domain" | "current_employers.seniority_level" | "current_employers.title" | "headline" | "num_of_connections" | "region" | "years_of_experience_raw", **required**) — Field name to autocomplete. Must be one of: current_employers.company_website_domain, current_employers.seniority_level, current_employers.title, headline, num_of_connections, region, years_of_experience_raw. Key mappings: job title → current_employers.title, seniority → current_employers.seniority_level, location → region, company/employer → current_employers.company_website_domain, experience → years_of_experience_raw, bio/summary → headline.
+  - `field` (unknown, **required**) — Field name to autocomplete. Must be one of: current_employers.company_website_domain, current_employers.seniority_level, current_employers.title, headline, num_of_connections, region, years_of_experience_raw. Key mappings: job title → current_employers.title, seniority → current_employers.seniority_level, location → region, company/employer → current_employers.company_website_domain, experience → years_of_experience_raw, bio/summary → headline.
   - `query` (string, **required**) — Partial text to match. Examples: "san franci" for region, "Eng" for job titles.
   - `limit` (number, optional)
 
@@ -383,7 +354,7 @@ Exa research input.
 Enrich one person by email or LinkedIn profile.
 
   - `email` (string, optional) — Work email for person enrichment lookup.
-  - `linkedin` (string, optional) — LinkedIn profile URL or handle.
+  - `linkedin_handle` (string, optional) — LinkedIn profile handle used by Hunter enrichment.
 
 ### Hunter Companies Find
 
@@ -400,7 +371,7 @@ Enrich one company profile by domain.
 Fetch person and company enrichment in one response envelope.
 
   - `email` (string, optional) — Email for combined person+company enrichment.
-  - `linkedin` (string, optional) — LinkedIn profile URL/handle for person enrichment.
+  - `linkedin_handle` (string, optional) — LinkedIn profile handle used by Hunter enrichment.
   - `domain` (string, optional) — Company domain when person identity is incomplete.
 
 ### Hunter Discover
@@ -548,5 +519,17 @@ Run a Google Custom Search JSON API query. Best for broad B2B recall (contact, c
 
 Parallel search input. Requires objective or search_queries.
 
-No documented fields.
+  - `mode` ("one-shot" | "agentic", optional)
+  - `objective` (string, optional) — Required unless search_queries is provided.
+  - `search_queries` (string[], optional) — Required unless objective is provided.
+  - `max_results` (number, optional)
+  - `excerpts.max_chars_per_result` (number, optional)
+  - `excerpts.max_chars_total` (number, optional)
+  - `source_policy.include_domains` (string[], optional)
+  - `source_policy.exclude_domains` (string[], optional)
+  - `source_policy.after_date` (string, optional)
+  - `fetch_policy.max_age_seconds` (number, optional)
+  - `fetch_policy.timeout_seconds` (number, optional)
+  - `fetch_policy.disable_cache_fallback` (boolean, optional)
+  - `betas` (string | string[], optional)
 

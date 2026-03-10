@@ -14,42 +14,28 @@ Execution default:
 
 ## Step 1: Size backfill volume first (virtually free)
 
-Use `json_file` output for sizing so totals are extractable with the same pattern:
+Default output shows totals inline — just run the command and read the count from the result. For search tools, use `limit:1` or `per_page:1` to minimize cost while getting the total.
 
-```bash
-JSON_OUTPUT=$(deepline tools execute <tool> --payload '<payload>' --payload-output-format json_file)
-PAYLOAD_FILE=$(printf '%s' "$JSON_OUTPUT" | jq -r '.payload_file')
-jq '<total_path>' "$PAYLOAD_FILE"
-```
-
-## Count-capable providers (verified; all have a direct total path)
+## Count-capable providers (verified)
 
 Use these when you want fast sizing before doing the full list pull.
 
-| Provider | Tool | Executable command (query + total extraction) |
+| Provider | Tool | Command |
 |---|---|---|
-| Apollo | `apollo_search_people` | `JSON=$(deepline tools execute apollo_search_people --payload '{"page":1,"per_page":1}' --payload-output-format json_file); FILE=$(printf '%s' "$JSON" | jq -r '.payload_file'); jq '.result.data.total_entries' "$FILE"` |
-| Apollo | `apollo_people_search_paid` | `JSON=$(deepline tools execute apollo_people_search_paid --payload '{"q_keywords":"sales","per_page":1,"page":1}' --payload-output-format json_file); FILE=$(printf '%s' "$JSON" | jq -r '.payload_file'); jq '.result.data.pagination.total_entries' "$FILE"` |
-| Dropleads | `dropleads_get_lead_count` | `JSON=$(deepline tools execute dropleads_get_lead_count --payload '{"filters":{"jobTitles":["CEO"],"industries":["Technology"]}}' --payload-output-format json_file); FILE=$(printf '%s' "$JSON" | jq -r '.payload_file'); jq '.result.data.count' "$FILE"` |
-| Dropleads | `dropleads_search_people` | `JSON=$(deepline tools execute dropleads_search_people --payload '{"filters":{"jobTitles":["VP Sales"],"industries":["Technology"]},"pagination":{"page":1,"limit":1}}' --payload-output-format json_file); FILE=$(printf '%s' "$JSON" | jq -r '.payload_file'); jq '.result.data.pagination.total // .result.data.total' "$FILE"` |
-| Forager | `forager_organization_search_totals` | `JSON=$(deepline tools execute forager_organization_search_totals --payload '{"industries":[1]}' --payload-output-format json_file); FILE=$(printf '%s' "$JSON" | jq -r '.payload_file'); jq '.result.data.total_search_results' "$FILE"` |
-| Forager | `forager_job_search_totals` | `JSON=$(deepline tools execute forager_job_search_totals --payload '{"title":"\"Sales Engineer\""}' --payload-output-format json_file); FILE=$(printf '%s' "$JSON" | jq -r '.payload_file'); jq '.result.data.total_search_results' "$FILE"` |
-| Forager | `forager_person_role_search_totals` | `JSON=$(deepline tools execute forager_person_role_search_totals --payload '{"role_title":"\"Software Engineer\""}' --payload-output-format json_file); FILE=$(printf '%s' "$JSON" | jq -r '.payload_file'); jq '.result.data.total_search_results' "$FILE"` |
-| Icypeas | `icypeas_count_people` | `JSON=$(deepline tools execute icypeas_count_people --payload '{"query":{"currentJobTitle":{"include":["CTO"]}}}' --payload-output-format json_file); FILE=$(printf '%s' "$JSON" | jq -r '.payload_file'); jq '.result.data.total' "$FILE"` |
-| Prospeo | `prospeo_search_person` | `JSON=$(deepline tools execute prospeo_search_person --payload '{"person_job_title":{"include":["VP Sales"]},"page":1}' --payload-output-format json_file); FILE=$(printf '%s' "$JSON" | jq -r '.payload_file'); jq '.result.data.pagination.total_count' "$FILE"` |
-| Prospeo | `prospeo_search_company` | `JSON=$(deepline tools execute prospeo_search_company --payload '{"company":{"names":{"include":["Intercom"]},"websites":{"include":["intercom.com"]}},"page":1}' --payload-output-format json_file); FILE=$(printf '%s' "$JSON" | jq -r '.payload_file'); jq '.result.data.pagination.total_count' "$FILE"` |
-| Hunter | `hunter_email_count` | `JSON=$(deepline tools execute hunter_email_count --payload '{"domain":"stripe.com"}' --payload-output-format json_file); FILE=$(printf '%s' "$JSON" | jq -r '.payload_file'); jq '.result.data.total' "$FILE"` |
-| Hunter | `hunter_discover` | `JSON=$(deepline tools execute hunter_discover --payload '{"query":"B2B SaaS companies","limit":1}' --payload-output-format json_file); FILE=$(printf '%s' "$JSON" | jq -r '.payload_file'); jq '.result.data[0].emails_count.total' "$FILE"` |
-| People Data Labs | `peopledatalabs_person_search` | `JSON=$(deepline tools execute peopledatalabs_person_search --payload '{"query":{"bool":{"must":[{"term":{"location_country":"United States"}},{"term":{"job_title_role":"marketing"}}]},"size":1}}' --payload-output-format json_file); FILE=$(printf '%s' "$JSON" | jq -r '.payload_file'); jq '.result.data.total' "$FILE"` |
-| CrustData | `crustdata_people_search` | `JSON=$(deepline tools execute crustdata_people_search --payload '{"companyDomain":"notion.so","titleKeywords":["VP","Head"],"limit":1}' --payload-output-format json_file); FILE=$(printf '%s' "$JSON" | jq -r '.payload_file'); jq '.result.data.meta.totalCount' "$FILE"` |
-
-Optional ad-hoc CSV output for quick visual checks:
-
-```bash
-deepline tools execute apollo_search_people \
-  --payload '{"q_keywords":"engineering","page":1,"per_page":1}' \
-  --payload-output-format csv_file
-```
+| Apollo | `apollo_search_people` | `deepline tools execute apollo_search_people --payload '{"page":1,"per_page":1}'` |
+| Apollo | `apollo_people_search_paid` | `deepline tools execute apollo_people_search_paid --payload '{"q_keywords":"sales","per_page":1,"page":1}'` |
+| Dropleads | `dropleads_get_lead_count` | `deepline tools execute dropleads_get_lead_count --payload '{"filters":{"jobTitles":["CEO"],"industries":["Technology"]}}'` |
+| Dropleads | `dropleads_search_people` | `deepline tools execute dropleads_search_people --payload '{"filters":{"jobTitles":["VP Sales"],"industries":["Technology"]},"pagination":{"page":1,"limit":1}}'` |
+| Forager | `forager_organization_search_totals` | `deepline tools execute forager_organization_search_totals --payload '{"industries":[1]}'` |
+| Forager | `forager_job_search_totals` | `deepline tools execute forager_job_search_totals --payload '{"title":"\"Sales Engineer\""}'` |
+| Forager | `forager_person_role_search_totals` | `deepline tools execute forager_person_role_search_totals --payload '{"role_title":"\"Software Engineer\""}'` |
+| Icypeas | `icypeas_count_people` | `deepline tools execute icypeas_count_people --payload '{"query":{"currentJobTitle":{"include":["CTO"]}}}'` |
+| Prospeo | `prospeo_search_person` | `deepline tools execute prospeo_search_person --payload '{"person_job_title":{"include":["VP Sales"]},"page":1}'` |
+| Prospeo | `prospeo_search_company` | `deepline tools execute prospeo_search_company --payload '{"company":{"names":{"include":["Intercom"]},"websites":{"include":["intercom.com"]}},"page":1}'` |
+| Hunter | `hunter_email_count` | `deepline tools execute hunter_email_count --payload '{"domain":"stripe.com"}'` |
+| Hunter | `hunter_discover` | `deepline tools execute hunter_discover --payload '{"query":"B2B SaaS companies","limit":1}'` |
+| People Data Labs | `peopledatalabs_person_search` | `deepline tools execute peopledatalabs_person_search --payload '{"query":{"bool":{"must":[{"term":{"location_country":"United States"}},{"term":{"job_title_role":"marketing"}}]}},"size":1}'` |
+| CrustData | `crustdata_people_search` | `deepline tools execute crustdata_people_search --payload '{"companyDomain":"notion.so","titleKeywords":["VP","Head"],"limit":1}'` |
 
 Notes:
 
@@ -102,11 +88,11 @@ Don't outreach to the full sourced list. Prioritize with real signals first. Use
 ```bash
 # Job listings (hiring = budget + pain)
 deepline enrich --input tam.csv --in-place --rows 0:1 \
-  --with 'jobs=crustdata_job_listings:{"companyDomains":"{{Domain}}","limit":20}'
+  --with '{"alias":"jobs","tool":"crustdata_job_listings","payload":{"companyDomains":"{{Domain}}","limit":20}}'
 
 # Website content (multi-page discovery)
 deepline enrich --input tam.csv --in-place --rows 0:1 \
-  --with 'website=exa_search:{"query":"company product features integrations pricing careers about","numResults":5,"type":"auto","includeDomains":["{{Domain}}"],"contents":{"text":{"maxCharacters":2000,"verbosity":"compact","includeSections":["body"]}}}'
+  --with '{"alias":"website","tool":"exa_search","payload":{"query":"company product features integrations pricing careers about","numResults":5,"type":"auto","includeDomains":["{{Domain}}"],"contents":{"text":{"maxCharacters":2000,"verbosity":"compact","includeSections":["body"]}}}}'
 ```
 
 Then score using signals from job listings (hiring relevant roles), tech stack (integration readiness), and website content (pain language, compliance maturity).
@@ -196,7 +182,7 @@ The highest-lift signals are often job-specific keywords (e.g., "fragmented" at 
 
 ```bash
 deepline enrich --input tam.csv --in-place --rows 0:1 \
-  --with 'jobs=crustdata_job_listings:{"companyDomains":"{{Domain}}","limit":50}'
+  --with '{"alias":"jobs","tool":"crustdata_job_listings","payload":{"companyDomains":"{{Domain}}","limit":50}}'
 ```
 
 Then search job listing text for high-lift keywords:
