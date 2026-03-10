@@ -34,8 +34,6 @@ When you have LinkedIn profile URLs but no email. Crustdata goes first since it 
 ```bash
 deepline enrich --input leads.csv --in-place --rows 0:1 \
   --with-waterfall "email" \
-  --type email \
-  --result-getters '["data.0.email","data.email","emails.0.address"]' \
   --with '{"alias":"crustdata","tool":"crustdata_person_enrichment","payload":{"linkedinProfileUrl":"{{LinkedIn URL}}","fields":["email","current_employers"],"enrichRealtime":true},"extract_js":"extract(\"email\")"}' \
   --with '{"alias":"pdl","tool":"peopledatalabs_enrich_contact","payload":{"linkedin_url":"{{LinkedIn URL}}"},"extract_js":"extract(\"email\")"}' \
   --end-waterfall \
@@ -61,8 +59,6 @@ When you have name + domain but no LinkedIn. Generates common email patterns (fi
 deepline enrich --input leads.csv --in-place --rows 0:1 \
   --with '{"alias":"patterns","tool":"run_javascript","payload":{"code":"@$WORKDIR/email_patterns.js"}}' \
   --with-waterfall "email" \
-  --type email \
-  --result-getters '["data.email","email","data.0.email"]' \
   --with '{"alias":"v1","tool":"leadmagic_email_validation","payload":{"email":"{{patterns.p1}}"},"extract_js":"extract(\"email\")"}' \
   --with '{"alias":"v2","tool":"leadmagic_email_validation","payload":{"email":"{{patterns.p2}}"},"extract_js":"extract(\"email\")"}' \
   --with '{"alias":"v3","tool":"leadmagic_email_validation","payload":{"email":"{{patterns.p3}}"},"extract_js":"extract(\"email\")"}' \

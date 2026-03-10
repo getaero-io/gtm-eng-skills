@@ -450,8 +450,6 @@ For small startups, use LeadMagic as primary (not Hunter -- Hunter has poor cove
 ```bash
 deepline enrich --input yc_with_contacts.csv --in-place --rows 0:2 \
   --with-waterfall "email" \
-  --type email \
-  --result-getters '["data.email","email"]' \
   --with '{"alias":"leadmagic","tool":"leadmagic_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"},"extract_js":"extract(\"email\")"}' \
   --with '{"alias":"dropleads","tool":"dropleads_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_domain":"{{domain}}"},"extract_js":"extract(\"email\")"}' \
   --with '{"alias":"hunter","tool":"hunter_email_finder","payload":{"domain":"{{domain}}","first_name":"{{first_name}}","last_name":"{{last_name}}"},"extract_js":"extract(\"email\")"}' \

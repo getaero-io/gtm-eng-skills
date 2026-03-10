@@ -105,7 +105,7 @@ deepline tools execute deepline_native_enrich_company --payload '{"domain":"stri
 
 ```bash
 deepline enrich --input contacts.csv --output contacts.csv.out.csv \
-  --with 'job_change=deepline_native_job_change:{"company_domain":"{{domain}}","professional_email":"{{email}}"}'
+  --with '{"alias":"job_change","tool":"deepline_native_job_change","payload":{"company_domain":"{{domain}}","professional_email":"{{email}}"}}'
 ```
 
 ## Anti-Patterns to Avoid
