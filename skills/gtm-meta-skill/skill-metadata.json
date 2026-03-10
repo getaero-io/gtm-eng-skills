@@ -7,58 +7,28 @@
       "tags": ["gtm", "router"],
       "providers": []
     },
-    "playground-guide.md": {
+    "finding-companies-and-contacts.md": {
       "kind": "guide",
-      "title": "Playground Guide",
-      "tags": ["playground", "csv"],
+      "title": "Finding Companies and Contacts",
+      "tags": ["prospecting", "search", "discovery"],
+      "providers": []
+    },
+    "enriching-and-researching.md": {
+      "kind": "guide",
+      "title": "Enriching and Researching",
+      "tags": ["enrichment", "waterfall", "signals"],
+      "providers": []
+    },
+    "writing-outreach.md": {
+      "kind": "guide",
+      "title": "Writing Outreach",
+      "tags": ["qualification", "email", "outreach"],
       "providers": []
     },
     "actor-contracts.md": {
       "kind": "guide",
       "title": "Actor Contracts",
       "tags": ["apify", "actors"],
-      "providers": []
-    },
-    "qualification-and-email-design.md": {
-      "kind": "guide",
-      "title": "Qualification and Email Design",
-      "tags": ["qualification", "email"],
-      "providers": []
-    },
-    "searching-for-leads-accounts-and-building-lead-lists.md": {
-      "kind": "guide",
-      "title": "Searching for Leads/Accounts and Building Lead Lists",
-      "tags": ["prospecting", "search"],
-      "providers": []
-    },
-    "provider-led-account-and-contact-sourcing.md": {
-      "kind": "guide",
-      "title": "Provider-Led Account and Contact Sourcing",
-      "tags": ["lead-sourcing", "coverage", "backfill"],
-      "providers": []
-    },
-    "enrich-waterfall.md": {
-      "kind": "guide",
-      "title": "Enrich and Waterfall",
-      "tags": ["enrichment", "waterfall"],
-      "providers": []
-    },
-    "custom-signals.md": {
-      "kind": "guide",
-      "title": "Custom Signals",
-      "tags": ["signals", "call_ai"],
-      "providers": []
-    },
-    "gtm-definitions-defaults.md": {
-      "kind": "guide",
-      "title": "GTM Definitions and Defaults",
-      "tags": ["gtm", "defaults"],
-      "providers": []
-    },
-    "provider-filters-reference.md": {
-      "kind": "guide",
-      "title": "Provider Filters Reference",
-      "tags": ["providers", "filters"],
       "providers": []
     }
   },

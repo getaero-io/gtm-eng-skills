@@ -1,9 +1,9 @@
-# Enrich and Waterfall
+# Enriching and Researching
 
-Use this doc for `deepline enrich`, waterfalls, coalescing, and enrichment mechanics. Read when the task involves CSV enrichment, contact recovery, multi-provider fallbacks, or cleaning/merging data from parallel sources.
+Use this doc for `deepline enrich`, waterfalls, coalescing, and enrichment mechanics. Read when the task involves CSV enrichment, contact recovery, multi-provider fallbacks, cleaning/merging data from parallel sources, custom signals, research columns, email/phone/LinkedIn recovery, or coalescing.
 
-Use native play tool IDs for concise enrich commands whenever possible:
-`name_and_company_to_email_waterfall`, `person_linkedin_to_email_waterfall`, `person_enrichment_from_email_waterfall`, `cost_aware_first_name_and_domain_to_email_waterfall`, `company_to_contact_by_role_waterfall`.
+Read sections 8.1-8.5 for company -> contact, finding email, linkedins, signals, tech stack, etc, generally read if calling deepline enrich.
+Use native play tool IDs for concise enrich commands whenever possible: `name_and_company_to_email_waterfall`, `person_linkedin_to_email_waterfall`, `person_enrichment_from_email_waterfall`, `cost_aware_first_name_and_domain_to_email_waterfall`, `company_to_contact_by_role_waterfall`.
 
 ## Quick syntax reference (copy-paste ready)
 
@@ -60,8 +60,33 @@ Use native play tool IDs for concise enrich commands whenever possible:
 3. **`run_javascript`** — For parsing/scoring/extracting signals from structured provider or Apify output. Free and instant. Use for founder detection, title scoring, signal extraction — anywhere you're transforming existing data, not fetching new data.
 4. **`call_ai`** — For per-row research, synthesis, and custom signals that no provider tool covers. Good for: funding stage lookup, YC batch, competitive landscape, personalized messaging. Haiku is the default model.
 
+### Separate concerns into passes — don't combine research and generation
+
+When a row needs both **research** (fetching new information) and **generation** (writing content from that information), always split them into separate `deepline enrich` passes. Never combine research + generation into a single `call_ai` prompt.
+
+**Why this matters:**
+- **Speed**: Research prompts with `web_search` are I/O-bound (web fetches). Generation prompts are compute-bound (writing). Combining them doubles the time per row, pushing past the 180s `call_ai` timeout and causing ~40% failure rates.
+- **Retryability**: When a combined prompt times out, you lose both the research and the generation. With separate passes, the research column persists — retrying the generation pass with `--in-place` is instant because the research is already there.
+- **Auditability**: Separate columns let you inspect research quality independently from generation quality. If emails are bad, you can see whether the research was wrong or the writing prompt needs work.
+- **Cost**: Failed combined prompts waste both the web search credits AND the LLM tokens. Separate passes mean you never re-research rows that already have data.
+
+**Pattern — 2-pass pipeline:**
+
+```bash
+# Pass 1: Research (fetch + synthesize into a structured column)
+deepline enrich --input leads.csv --output enriched.csv --rows 0:1 \
+  --with '{"alias":"company_research","tool":"call_ai","payload":{"prompt":"Research {{company_name}} ({{company_domain}}). Return JSON: {what_they_build, who_they_sell_to, recent_news}","agent":"claude","model":"haiku","allowed_tools":"WebSearch","json_mode":{"type":"object","properties":{"what_they_build":{"type":"string"},"who_they_sell_to":{"type":"string"},"recent_news":{"type":"string"}}}}}'
+
+# Pass 2: Generation (use research column, no web search needed)
+deepline enrich --input enriched.csv --in-place --rows 0:1 \
+  --with '{"alias":"email_draft","tool":"call_ai","payload":{"prompt":"Write a cold email to {{first_name}} at {{company_name}}. Context: {{company_research}}. Keep under 70 words.","agent":"claude","model":"haiku"}}'
+```
+
+**Rule of thumb:** if a `call_ai` prompt includes both `allowed_tools` (fetching) and content generation instructions, split it.
+
 **Known failure modes to avoid:**
 
+- **Combining research + generation in a single `call_ai` prompt** — Causes timeouts, wastes credits on retries, and makes debugging impossible. Split into a research pass (with `web_search`/`allowed_tools`) and a generation pass (interpolating `{{research_column}}`). See "Separate concerns into passes" above.
 - **`call_ai_claude_code`** — Do not use. Spawns nested Claude sessions that error out. Use `call_ai` with `agent:"claude"` instead.
 - **`call_ai` with `"allowed_tools":"WebSearch"` for LinkedIn data** — Tends to time out (180s) and returns noisy results. Apify is faster and returns structured data for LinkedIn tasks. Use Exa, Google CSE, or Parallel search directly when you need web data.
 
@@ -178,7 +203,7 @@ If you can't build a specific enough query (missing company AND title AND geo), 
 When `deepline enrich` runs against an existing output CSV:
 
 - Match `--with` steps to existing enrich columns by the same `--with` output column name.
-- If a matched cell already has a successful non-empty value, it is not rerun. Empty, errored, or rerunnable misses are rerun. If this is not the desired behavior, use --with-force instead, though this (may) waste money since we lose past enrichments. 
+- If a matched cell already has a successful non-empty value, it is not rerun. Empty, errored, or rerunnable misses are rerun. If this is not the desired behavior, use --with-force instead, though this (may) waste money since we lose past enrichments.
 - you may also just create new columns and merge the results later with run_javascript.
 - Rename/relabel alone is not new work.
 
@@ -358,9 +383,14 @@ Not a single native play (still compose with multiple steps):
 
 Use this policy whenever input starts from `Company` name only:
 
-1) Resolver/search step may use name:
-- `dropleads_search_people` (`companyNames`)
-- `crustdata_companydb_search` (name filters)
+1) Resolver/search step — use company name to get domain:
+- `hunter_companies_find` (`company_name`) — fast, returns domain directly. Best first choice.
+- `peopledatalabs_enrich_company` (`name`) — returns domain + full company profile. May miss very new startups.
+- `apollo_enrich_company` (`name`) — returns domain + company data.
+- `crustdata_companydb_search` (name filters) — returns domain + firmographics.
+- `dropleads_search_people` (`companyNames`) — returns people with company domain attached.
+
+Do NOT use `call_ai` + WebSearch for domain resolution — it takes ~10s/row. The providers above return domains in <1s.
 
 2) Extract a canonical profile object:
 - `company_name`
@@ -379,11 +409,11 @@ deepline tools execute google_search --payload '{"query":"site:linkedin.com/comp
 
 Then map to `company_profile` and continue with domain/ID-based steps. Do not run name-only company-name-only `apollo_*` search as resolver.
 
-### multi_stage_pipeline_search_score_scrape_extract_email
+### 8.6 Multi-stage pipeline: search -> score -> scrape -> extract -> email
 
 Use this pattern when you need to find contacts matching a specific profile (e.g. second-time founders, GTM engineers) where structured search filters alone are insufficient.
 
-**Stage 1: Search** — See [searching-for-leads-accounts-and-building-lead-lists.md](searching-for-leads-accounts-and-building-lead-lists.md) for search patterns and provider selection. Use `dropleads_search_people` with broad keyword + seniority filters (see "Role-based contact search" in that doc).
+**Stage 1: Search** — See finding-companies-and-contacts.md for search patterns and provider selection. Use `dropleads_search_people` with broad keyword + seniority filters (see "Role-based contact search" in that doc).
 
 **Stage 2: Pre-score** — Use `run_javascript` to score/filter candidates by title keywords before paying for enrichment. Fast and free.
 
@@ -421,9 +451,9 @@ deepline enrich --input qualified.csv --in-place --rows 0:1 \
 
 ### 8.7 LinkedIn Profile Validation
 
-LinkedIn URLs from any provider can be stale or wrong. Every LinkedIn lookup is two phases: **find** then **validate**. See [searching-for-leads-accounts-and-building-lead-lists.md](searching-for-leads-accounts-and-building-lead-lists.md) "LinkedIn profile lookup and validation" for the full provider waterfall and validation rules.
+LinkedIn URLs from any provider can be stale or wrong. Every LinkedIn lookup is two phases: **find** then **validate**. See finding-companies-and-contacts.md "LinkedIn profile lookup and validation" for the full provider waterfall and validation rules.
 
-Summary: get a candidate URL from the cheapest provider (dropleads → CSE → Exa → Crustdata), then **always** validate it with Apify by scraping the profile and checking name + work history. If confirmed, update the row with fresh data from the profile. If suspect (name matches but company changed), update with the new company/title.
+Summary: get a candidate URL from the cheapest provider (dropleads -> CSE -> Exa -> Crustdata), then **always** validate it with Apify by scraping the profile and checking name + work history. If confirmed, update the row with fresh data from the profile. If suspect (name matches but company changed), update with the new company/title.
 
 ### 8.8 If you need a Phone Number
 
@@ -499,4 +529,83 @@ Use this whenever you add JS extractor columns:
 - `--format table --rows 0:4` — readable sample to show the user
 - `--format json --verbose --rows N:N 2>/dev/null` — returns `{"rows": [{...}, ...]}`, pipe to `jq '.rows[]'` (not `.[]`)
 
-See [playground-guide.md](playground-guide.md) for re-run blocks (`--execute_cells`), etc.
+## Custom signals and prompts.json
+
+Use this section when building enrichment prompts for custom signals, messaging, qualification, or outreach content. Read when the task involves `call_ai*`, `call_ai_claude_code`, or `call_ai_codex`.
+
+### Messaging and enrichment quality
+
+- `call_ai*` (`call_ai`, `call_ai_claude_code`, `call_ai_codex`) — highest-quality custom signals. Messaging. Anything custom. Use to build your OWN signals. These can call parallel, exa, themselves directly.
+- `exa_*`/`parallel_*` direct calls are faster and cheaper but usually lower depth than full AI-column orchestration.
+
+### Signal buckets
+
+Use these signal buckets when building enrichment prompts:
+
+- Funding recency: last round type/date/amount, investor names, use-of-proceeds clues.
+- Hiring acceleration: new roles in sales, revenue ops, solutions, partnerships, AI.
+- Job-posting drift: compare job post stack/signals vs company website stack.
+- Org change: new leaders, promotions, team expansion, leadership churn.
+- Product or packaging shifts: new SKUs, pricing model changes, enterprise plans.
+- Stack changes: newly adopted data/CRM/support/analytics/AI tools.
+- Geographic expansion: new regions, markets, offices.
+- Compliance/security signals: SOC2, ISO, HIPAA, FedRAMP, procurement readiness.
+- Channel/partner motion: alliances, marketplace entries, reseller changes.
+- Running ads: use `leadmagic_b2b_ads_search` and `adyntel_facebook_ad_search` together for Meta B2B ad presence, then synthesize into a signal with `call_ai` or `run_javascript`.
+
+### Prompt pattern guidance
+
+- Start from templates in `prompts.json` (has 50+ template/prompts)
+- Include all schema keys you need (score/summary/notes) in `json_mode` or system instructions.
+- Include source URLs per claim in outputs.
+- Keep missing values explicit (`null`), avoid inventing fields.
+- Start with lightweight model/short prompt; increase detail only when shape is stable.
+
+### Template index (for `call_ai`)
+
+Pick the closest match, adapt, don't write from scratch. Skipping this produces weaker prompts and wastes credits on bad schema outputs:
+
+- `10-K Analysis of Top Annual Initiatives` — strategic/company signals, annual priorities, exec-level research
+- `5 interesting facts about a candidate` — person research, personalization data points
+- `Accelerator participation` — startup signals, funding stage, accelerator/investor context
+- `AI Outbound - Followup with Event Attendees` — outreach content, personalized messaging, event-triggered hooks
+
+The full `call_ai` prompt catalog (including all custom-signal templates) is stored in `prompts.json`.
+
+### Structured output quality guardrails
+
+- **Show sources** — Include source URLs per claim and indicate which API or tool provided each piece of data so the user can assess reliability.
+- Use `null` explicitly for missing fields.
+- Keep confidence where practical for non-trivial claims.
+- Prefer entity-stable matching (name + domain + LinkedIn).
+- For `call_ai*`, `json_mode` expects JSON Schema object/stringified schema.
+- **Haiku is the default for call_ai when model is omitted.** Only use sonnet or opus when haiku explicitly fails.
+- Do not invent values.
+
+## GTM definitions and defaults
+
+Use this section as the default interpretation layer for GTM workflows when the user has not provided explicit definitions.
+
+### Override rule
+
+- User-specified definitions always win.
+- If a term is not specified by the user, apply the default below.
+- For paid full runs, include active defaults in the approval assumptions summary.
+
+### Core defaults
+
+| Term | Default | Notes |
+|---|---|---|
+| `job_change` | lookback window = 12 months | Treat a person as "job changed" when the move is within the last 12 months unless overridden. |
+| `recent_funding` | lookback window = 12 months | Use for "recently funded" targeting when the user does not specify recency. |
+| `hiring_acceleration` | window = 90 days | Compare current hiring signals over the last 90 days. |
+| `new_exec_hire` | lookback window = 12 months | Applies to VP/CRO/CMO or equivalent leadership move signals. |
+| `verification_success` | `email_status == "valid"` | Treat `catch_all` and `unknown` as unresolved unless the user accepts risk. |
+| `pilot_scope` | first 1-2 rows | Default pilot size is `--rows 0:1` unless the user requests a different sample. |
+
+### Output rule
+
+When a workflow depends on one of these terms, do not leave the interpretation implicit. Use either:
+
+1. user-provided definition, or
+2. the default from this file.

@@ -1,10 +1,10 @@
-# Searching for Leads/Accounts and Building Lead Lists
+# Finding Companies and Contacts
 
-Use this doc for prospecting, company research, profile discovery, signal extraction, and news, or any tasks that involve building lead/account lists. 
+Use this doc for discovery, prospecting, contact finding, coverage completion, and portfolio/VC prospecting. Covers the full journey from net-new search through at-scale sourcing and investor-portfolio outbound.
 
 ## Search-to-enrichment handoff (mandatory)
 
-This doc governs **discovery/search only**. The moment the workflow shifts to per-row or per-column enrichment, route to [enrich-waterfall.md](enrich-waterfall.md) and execute there.
+This doc governs **discovery/search only**. The moment the workflow shifts to per-row or per-column enrichment, route to [enriching-and-researching.md](enriching-and-researching.md) and execute there.
 
 Use this handoff trigger:
 - You now have a seed list (or can create one) and need contact fill, email finding/validation, signal scoring, personalization, coalescing, or any other column-level transforms.
@@ -13,7 +13,7 @@ Use this handoff trigger:
 Required behavior after trigger:
 - Stop adding ad-hoc shell/python/node scripts for row stitching, coalescing, ranking, or enrichment.
 - Move all per-column operations into `deepline enrich --with ...` columns.
-- Keep lineage in-sheet (`_metadata`) and iterate in Playground per [enrich-waterfall.md](enrich-waterfall.md).
+- Keep lineage in-sheet (`_metadata`) and iterate in Playground per [enriching-and-researching.md](enriching-and-researching.md).
 
 Hard rule:
 - **Do not use custom scripts for per-row/per-column enrichment pipelines when `deepline enrich` can express the step.**
@@ -21,10 +21,10 @@ Hard rule:
 
 ## Simple lead-count query
 
-Use this when someone asks for a lead count. Default output shows totals inline — just run the command and read the result:
+Use this when someone asks for a lead count. Default output shows totals inline -- just run the command and read the result:
 
 ```bash
-# Get match count — total is visible in the default output
+# Get match count -- total is visible in the default output
 deepline tools execute dropleads_search_people --payload '{"pagination":{"page":1,"limit":1},"filters":{"jobTitles":["Software"],"personalCountries":{"include":["United States"]}}}'
 ```
 
@@ -44,184 +44,157 @@ deepline tools execute dropleads_search_people --payload '{"pagination":{"page":
 
 deepline tools execute dropleads_search_people --payload '{"pagination":{"page":1,"limit":1},"filters":{"companyDomains":["stripe.com"],"jobTitles":["Growth","Sales","Revenue"],"personalCountries":{"include":["United States"]}}}'
 ```
-## Tool discovery loop for signals / potential datasources for lists....
 
-Use `deepline tools search` first for any signal-driven ask.
+## Provider selection
 
-Rules:
-1. Search 3-6 synonyms.
-2. Use matched fields exactly; do not invent.
-3. Run `Search execute example` as pilot.
-4. For CrustData enums, run autocomplete first.
+**Shortlist → Inspect → Validate → Execute.** Don't guess params or fire everything in parallel.
 
-```bash
-deepline tools search investor
-deepline tools search funding --prefix crustdata
-deepline tools search hiring
-```
+### Step 0: Check if you already have the data or know where it lives
 
-Investor-backed / VC portfolio prospecting:
+Before reaching for API providers, check these (in order):
 
-**⚠ Do NOT use Crustdata `crunchbase_investors` as your primary approach for investor-portfolio prospecting.** It returns results inconsistently. Instead, read [portfolio-company-prospecting.md](portfolio-company-prospecting.md) — it covers fetching the public portfolio page directly (free, fast, complete) for YC, a16z, Sequoia, and other major VCs.
-
-Crustdata investor filters are acceptable only as a **supplementary cross-reference** after you already have a company list from the public portfolio page:
-
-```bash
-# Supplementary only — not primary discovery
-deepline tools execute crustdata_companydb_autocomplete --payload '{"field":"crunchbase_investors","query":"Sequoia","limit":5}'
-deepline tools execute crustdata_companydb_search --payload '{"filters":[{"filter_type":"crunchbase_investors","type":"(.)","value":"Sequoia Capital"}],"limit":20}'
-```
-
-## Execution philosophy: parallel-first, no deliberation. Use subagents for independent workstreams when available.
-
-**Do not deliberate about which single provider to use. Fire multiple vectors in parallel immediately.**
-
-**DO not guess params, read schemas either below in this file or by calling deepline tools get `<provider>`**
-
-Every search/discovery task should launch 2-3+ parallel searches on the first tool call — a mix of web search (exa, google, parallel_search) and structured API (dropleads, crustdata, pdl). Don't reason about "which approach is best" — try them all simultaneously and merge results. The cost of an extra cheap search is near-zero; the cost of overthinking is wasted turns.
-
-Website research is super underrated and often the best way to get lists, esp `&lt; 200` leads. But try everything.
-
-**Default pattern for any search task:**
-1. Immediately fire parallel searches: web (exa/google/parallel_search) + structured API (dropleads/crustdata/pdl) — same tool call, no deliberation step.
-2. Read results, validate quality (discard garbage/nonsensical hits), merge/deduplicate.
-3. If coverage is short or responses are poor, fan out to more providers or refine queries. Iterate fast.
-
-**Anti-patterns (do NOT do these):**
-- Thinking "let me consider which provider is best for this" — just run them all.
-- Running a single provider, waiting for results, then deciding whether to try another.
-- Writing a multi-step plan before executing anything.
-- Asking the user which approach they prefer when you can just try all approaches.
-- **Trusting provider responses blindly** — providers often return garbage, nonsensical, or irrelevant data. Validate and fallback immediately.
-- **After discovery, continuing in shell/python scripts for per-column enrichment instead of handing off to [enrich-waterfall.md](enrich-waterfall.md).**
-- **Reaching for `call_ai` when a direct provider tool or Apify actor would work** — for LinkedIn work history, profile signals, and company employees, prefer `apify_run_actor_sync` first (structured data, faster, cheaper). For email/phone, prefer waterfalls. Reserve `call_ai` for research and synthesis that no provider covers.
-
-## Subagent orchestration for parallel search
-
-When the `deepline-list-builder` subagent is available, use it to fan out searches
-across providers in parallel. This is the preferred execution pattern because:
-- Each provider search runs in an isolated context (no context pollution)
-- Results can be compared side-by-side for quality
-- The main agent stays clean for merging/deduplication/next steps
-
-### How to use
-
-1. Identify which providers are relevant for the query type (see Provider mix table below)
-2. Spawn one `deepline-list-builder` subagent per provider — all in a single tool call for true parallelism
-3. Each subagent receives: the user's query + the provider to use
-4. When all subagents return, compare result quality:
-   - Which providers returned relevant, complete data?
-   - Which returned garbage/empty/irrelevant results?
-5. Merge the best results, deduplicate by domain or LinkedIn URL
-6. Hand off to enrich-waterfall.md for per-row enrichment
-
-### Example: spawning parallel subagents
-
-For "Find Series B AI companies selling to healthcare in the US":
-
-Spawn these subagents in parallel (single message, multiple Task tool calls):
-- deepline-list-builder: query="Series B AI healthcare companies US", provider=exa
-- deepline-list-builder: query="Series B AI healthcare companies US", provider=crustdata
-- deepline-list-builder: query="Series B AI healthcare companies US", provider=dropleads
-- deepline-list-builder: query="Series B AI healthcare companies US", provider=google
-- deepline-list-builder: query="Series B AI healthcare companies US", provider=peopledatalabs
-
-### Provider selection by query type
-
-Use the same provider mix table already in this doc. The number of subagents is
-not fixed — use as many providers as are relevant. For most queries, 3-5 is ideal.
-
-### When NOT to use subagents
-
-- Single-provider lookups (e.g., "get this person's email from Apollo")
-- Enrichment tasks (use `deepline enrich` directly)
-- When the user has already specified a single provider
-
-## Quick catalog
-
-- `google_search_google_search` — broad recall and URL discovery.
-- `parallel_search` — fast candidate discovery when speed matters.
-- `exa_answer` — schema-light quick answers with citations.
-- `exa_research` — deeper multi-source synthesis under schema constraints.
-- `dropleads_search_people` — structured people discovery with free trialing. Use as first-pass for people pull and segmentation.
-- `apollo_people_search` / `apollo_search_people` — fallback only, mixed_people-based APIs.
-- `crustdata_companydb_search` — **primary tool for structured company list building through a vendor**. Supports investor filters (`crunchbase_investors`), funding stage (`last_funding_round_type`), headcount, industry, geography, revenue. Use autocomplete first for canonical values. This is the right tool for "find companies backed by Sequoia", etc.
-- `adyntel_facebook_ad_search` — Meta keyword-based ad search for additional channel coverage.
-- `crustdata_job_listings` — **primary tool for hiring signals.** Accepts multiple `companyDomains` in one call — always batch domains together instead of calling per-company. Use `limit` to control response size.
-- `crustdata_people_search` / `crustdata_persondb_search` — LinkedIn-oriented person discovery.
-- `crustdata_companydb_autocomplete` — free, no credits. Always run this before `crustdata_companydb_search` to get exact canonical values for fields like `last_funding_round_type`, `crunchbase_investors`, `linkedin_industries`.
-- `parallel_run_task` / `parallel_extract` — richer synthesis or URL-bound extraction. Slow.
-- WebSearch/WebFetch — great for discovery and list building.
-
-## Provider mix — run these in parallel, not sequentially
-
-Don't pick one — run several from the appropriate row simultaneously:
-
-| Objective | Run all of these in parallel | Add if coverage is thin |
+| Source | When to use | How |
 |---|---|---|
-| Discovery/search | `dropleads_search_people` + `google_search_google_search` + `exa_search` | `crustdata_people_search`, `parallel_search` |
-| Company list building | `exa_search` (or `exa_company_search`) + `crustdata_companydb_search` | `parallel_search`, `google_search_google_search` |
-| Profile/company matching | `dropleads_search_people` + `hunter_people_find` + `deepline_native_enrich_contact` | `crustdata_person_enrichment` |
-| Website evidence + signal extraction | `exa_research` + `parallel_extract` | — |
-| LinkedIn scraping | `apify` actors | direct web search tools |
-| WebSearch/WebFetch | native tools, great to try out. 
+| User-provided files | User gave you a CSV, list, or URL | Read it directly. Skip to enriching-and-researching.md for per-row work. |
+| Previous API responses | You already called a provider that returned the data | Extract fields from existing response. Don't re-enrich with `call_ai` for data you already have. |
+| Known public directories | The entity has a public listing page (VC portfolios, accelerator batches, conference speakers, industry associations, open-source contributor lists) | Fetch directly with `curl`, `parallel_extract`, or `WebFetch`. **A single page fetch returns the complete dataset; search tools return fragments that require many calls to piece together.** Always prefer direct fetch over indirect search when you know the URL. |
+| The company's own website | Need hiring signals, product info, team pages | `exa_search` with `includeDomains:["{{domain}}"]` or `parallel_extract` on the URL. |
 
-- **LinkedIn data** → Apify first (`apimaestro/linkedin-profile-scraper`, `apimaestro/linkedin-company-employees-scraper-no-cookies`). Structured data, faster and cheaper than `call_ai` + WebSearch.
-- **Lists > 200 contacts** → structured providers (dropleads, crustdata, hunter) over web search.
-- **Signal extraction from scraped data** → `run_javascript` (free, instant). Use `call_ai` only when you need synthesis JS can't express.
+If none of these apply — you need to *discover* entities matching criteria — continue to Step 1.
+
+### Step 1: Shortlist — scan the provider reference table below, pick 1-2 tools based on "Best for"
+
+Website research is underrated and often the best way to get lists, esp < 200 leads — don't overlook WebSearch/WebFetch and `google_search`.
+
+### Step 2: Inspect — read the tool schema before building payloads
+
+```bash
+# Free, instant — shows all available fields, valid values, and gotchas
+deepline tools get <tool_id>
+```
+
+Run this on each shortlisted tool. Look at available filter fields, operators, and value formats. This prevents picking the wrong field (e.g. `linkedin_industries` when `crunchbase_categories` is more specific for your vertical).
+
+### Step 3: Validate — autocomplete enum fields
+
+For providers with enum filters (crustdata, dropleads), validate values before searching:
+
+```bash
+# Free, no credits — get canonical values for the field you plan to filter on
+deepline tools execute crustdata_companydb_autocomplete --payload '{"field":"crunchbase_categories","query":"fraud","limit":5}'
+```
+
+Compare multiple fields if unsure which is more specific (e.g. autocomplete both `crunchbase_categories` and `linkedin_industries` — use whichever returns tighter matches for your vertical).
+
+### Step 4: Execute — build the query with validated fields and values
+
+Now build the payload using the exact field names and values from steps 2-3. Extract all available data from the response (headcount, funding, HQ, growth) — don't re-enrich with `call_ai` for data already in the response.
+
+**Anti-patterns:**
+- **Using search tools to find data at a known URL.** If you know the data lives at `ycombinator.com/companies`, `a16z.com/portfolio`, or any public directory — fetch the page directly with `curl`/`parallel_extract`. Running 10+ exa searches to reconstruct a list that exists on one page wastes turns and credits.
+- Firing all providers in parallel for company list building — wastes credits on providers that can't filter your ICP constraints.
+- Skipping inspect/validate and guessing filter field names or values — causes silent empty results or broad/noisy results.
+- Trusting provider responses blindly — providers often return garbage. Validate and fallback.
+- Using `call_ai` when a direct provider tool or Apify actor would work — for LinkedIn work history, profile signals, company employees, prefer `apify_run_actor_sync` first.
+- After discovery, continuing in shell/python scripts for per-column enrichment instead of handing off to [enriching-and-researching.md](enriching-and-researching.md).
+
+## Convergence rules (critical)
+
+When building lists iteratively, follow these rules to avoid wasting time:
+
+- **Filter, don't restart.** If enrichment reveals some rows don't match ICP, filter them out and supplement the gap with additional targeted searches. Never restart discovery from scratch — your existing valid rows are sunk cost you've already paid for.
+- **Stop at good enough.** If you have >= 80% of the target count after filtering, output what you have. Don't over-optimize for the last few rows.
+- **Extract fields from search responses.** `crustdata_companydb_search` responses include headcount (`employee_metrics`), funding (`last_funding_round_type`), HQ (`hq_country`), growth (`employee_metrics.growth_6m_percent`), and categories. Extract these directly into your seed CSV — don't re-enrich with `call_ai` for data you already have.
+
+## Provider reference
+
+| Tool | Best for | Server-side filters | Cost | Gotchas |
+|---|---|---|---|---|
+| `curl` / `parallel_extract` / `WebFetch` | Data at known URLs: VC portfolios, accelerator directories, job boards, team pages, conference speaker lists | URL + optional CSS/objective | free (`curl`) or ~1 cr (`parallel_extract`) | Use `curl` for static HTML, `parallel_extract` for JS-rendered pages. A single fetch returns the complete dataset — search tools return fragments requiring 10+ calls to piece together. |
+| `crustdata_companydb_search` | Company lists with ICP constraints (funding, headcount, geography, industry) | funding stage, headcount range, hq_country, crunchbase_categories, linkedin_industries, employee growth, investor | ~1 cr/search | `hq_country` = ISO 3-letter codes (`USA` not `United States`) — silent empty on wrong format. Use `crunchbase_categories` for niche verticals (Fraud Detection, Identity Management), not `linkedin_industries` (too broad). Response includes headcount + funding — don't re-enrich with `call_ai`. `employee_metrics.growth_6m_percent` is a free hiring proxy. |
+| `crustdata_companydb_autocomplete` | Get canonical filter values before searching | — | free | Always run before `companydb_search` for fields like `crunchbase_categories`, `linkedin_industries`, `last_funding_round_type`. Requires non-empty `query` (≥1 char). |
+| `crustdata_job_listings` | Hiring signals at known companies | company domains | ~0.4 cr/result | Batch domains in one call. Spotty coverage on <200 emp companies — only ~25% have listings. No server-side title filter — filter client-side. |
+| `crustdata_people_search` | LinkedIn-oriented person discovery | company domain, title keywords | ~1 cr | — |
+| `exa_search` | Concept-driven company/people discovery, gap-filling | semantic query only (no ICP filters) | ~5 cr with contents | Returns unfiltered results — expect to discard 30-50%. `category:"company"` incompatible with `includeDomains`/`includeText`. |
+| `exa_people_search` | Contacts at small startups (<50 emp) | query string | ~0.1 cr/result | Returns structured entities. Use via `deepline enrich`. |
+| `exa_research` | Deep multi-source synthesis | outputSchema, multi-query | ~10 cr | Slow. Use for research, not list building. |
+| `dropleads_search_people` | People discovery + segmentation with structured filters | job titles, seniority, headcount, geography, keywords | free | Near-zero coverage for <50 emp startups. `keywords` must be split: `["GTM","Engineer"]` not `["GTM Engineer"]`. |
+| `dropleads_get_lead_count` | Sizing before full pull | same as search_people | free | — |
+| `google_search_google_search` | URL discovery, `site:` scoped searches | query string | free | Keyword soup without `site:` = noisy. Use `site:` + quoted phrases for precision. |
+| `parallel_search` | Broad discovery when you don't know which domains hold the data | objective string | ~1 cr | Lower precision than domain-scoped search. |
+| `parallel_extract` | URL-bound extraction, JS-rendered pages | URLs + objective | ~1 cr | Slow. Good for portfolio pages, job boards. |
+| `apollo_people_search` | People fallback when dropleads returns 0 | title, domain, location | ~0.2 cr | Mixed quality. Fallback only. |
+| `apollo_people_search_paid` | Large company contact pull with email | domain, title keywords | 1 cr/result | Expensive. Good coverage for large cos. |
+| `hunter_email_finder` | Email finding in waterfall | domain, first/last name | ~0.3 cr | Poor coverage for <50 emp companies. |
+| `peopledatalabs_company_search` | SQL-based company search | SQL (industry, size, funding, location) | expensive | Last resort. Exhaust others first. |
+| `crustdata_person_enrichment` | LinkedIn profile enrichment | LinkedIn URL | ~1 cr | — |
+| `apify_run_actor_sync` | LinkedIn scraping (profiles, company employees) | actor-specific | varies | Structured data, faster than `call_ai` + WebSearch. |
+| `adyntel_facebook_ad_search` | Meta keyword-based ad search | keyword | ~1 cr | Additional channel coverage. |
+| WebSearch/WebFetch | General web research, quick lookups | query string | free | Great for discovery and list building. |
+
+## Subagent orchestration
+
+When the `deepline-list-builder` subagent is available, use it to fan out searches across providers in parallel. Each provider search runs in an isolated context (no context pollution), results can be compared side-by-side, and the main agent stays clean for merging/dedup.
+
+**When to use:** Large multi-provider searches where you genuinely want to compare results across 3+ sources. Spawn one subagent per provider in a single tool call.
+
+**When NOT to use:** Single-provider lookups, enrichment tasks (use `deepline enrich`), or when provider selection routing above points to one clear primary provider.
 
 ## Role-based contact search (critical)
 
 **Never use exact job titles for people search filters.** Titles are too nuanced and vary wildly across companies (especially startups). Instead use broad keyword + seniority:
 
-- **Bad:** `person_titles: ["Head of Growth", "VP RevOps", "GTM Engineer"]` — misses "Director of Growth Marketing", "Revenue Operations Lead", etc.
-- **Good:** `jobTitles: ["Growth"]` + `seniority: ["C-Level", "VP", "Director"]` — catches all growth-related senior roles via fuzzy matching
+- **Bad:** `person_titles: ["Head of Growth", "VP RevOps", "GTM Engineer"]` -- misses "Director of Growth Marketing", "Revenue Operations Lead", etc.
+- **Good:** `jobTitles: ["Growth"]` + `seniority: ["C-Level", "VP", "Director"]` -- catches all growth-related senior roles via fuzzy matching
 
 The pattern: use 1-2 broad keywords for the *function* (Growth, Sales, Revenue, Security, Fraud, Identity, RevOps, Marketing) and let seniority filters handle the level. This works across dropleads and crustdata.
 
-For small companies (&lt;500 employees), people search often returns 0 with narrow title filters. Use `dropleads_search_people` with broad keyword + seniority (free), or `apify` LinkedIn company employees scraper with a broad `job_title` keyword. Dropleads is always the first choice for people discovery because it's free.
+For small companies (<500 employees), people search often returns 0 with narrow title filters. Use broad keyword + seniority filters. Dropleads is free for people discovery but has near-zero coverage for tiny startups (<50 people). For small startups, use `exa_people_search` instead (see next section).
+
+## Finding contacts at known companies
+
+Pick the right tool based on what you have and what you need:
+
+| Tool | Cost | Input needed | Returns | Best for | Limitation |
+|---|---|---|---|---|---|
+| `exa_people_search` | 0.1 cr/result | company name + role keyword | Structured entities: name, title, LinkedIn, work history | Any company size, especially small startups | Finds *associated* people, not guaranteed exact role match |
+| `dropleads_search_people` | free | company domain or keyword filters | Name, title, email (sometimes), company | Mid/large companies (>50 employees) | Near-zero coverage for tiny startups (<50 people) |
+| `call_ai` + WebSearch | free (LLM cost only) | company name/domain | Unstructured — needs json_mode for parsing | Fallback when providers return 0 | Slow (~10s/row), prone to timeouts |
+| `apollo_people_search_paid` | 1 cr/result | domain, title keywords | Name, title, email, LinkedIn | Large companies with good Apollo coverage | Expensive, poor for small startups |
+
+**Default: `exa_people_search` via `deepline enrich`.** Returns structured person entities (name, title, LinkedIn, work history) — no parsing needed. Works across company sizes.
+
+```bash
+deepline enrich --input seed.csv --in-place --rows 0:1 \
+  --with '{"alias":"contact","tool":"exa_people_search","payload":{"query":"{{role}} at {{Company}}","numResults":3}}'
+```
+
+**Fallback: `dropleads_search_people`** when you need structured filters (seniority, geography, headcount) and companies are >50 employees. Then `call_ai` + WebSearch as last resort.
 
 ## Sample calls by provider
 
 ### Google Search
 
 **Query structuring:**
-- `site:` scoping to an authoritative domain is the highest-signal pattern — use it whenever you know where the data lives.
-  - `site:ycombinator.com` — YC company/job data. Great for YC-specific queries (job listings by role, batch info, funding stage).
-  - `site:crunchbase.com` — funding and firmographic lookup.
-  - `site:linkedin.com/company` — indexes company **tagline/description only**, not employee data. Useful for finding companies by what they *are* (e.g. a keyword in their description), not by employee titles or funding attributes. Multiple exact-phrase filters (e.g. `"Series B" "Y Combinator"`) return 0 results since those strings don't appear in company descriptions.
-  - `site:linkedin.com` (broad) — also surfaces **posts** (`/posts/...`). Useful for signal extraction (who's discussing a topic).
+- `site:` scoping to an authoritative domain is the highest-signal pattern -- use it whenever you know where the data lives.
+  - `site:ycombinator.com` -- YC company/job data.
+  - `site:crunchbase.com` -- funding and firmographic lookup.
+  - `site:linkedin.com/company` -- indexes company **tagline/description only**, not employee data.
+  - `site:linkedin.com` (broad) -- also surfaces **posts** (`/posts/...`). Useful for signal extraction.
 - Keyword soup without `site:` = noisy. Expect Reddit, newsletters, LinkedIn profiles, tangentially related content.
 - Use quoted phrases for exact match: `"Series B"`, `"GTM engineer"`. Combine with `site:` for high precision.
 
 ```bash
-# YC job listings for a specific role — very high precision
+# YC job listings for a specific role
 deepline tools execute google_search_google_search --payload '{"query":"site:ycombinator.com \"GTM engineer\" \"Series B\"","num":10}'
 
-# Company LinkedIn URL discovery (search without site: scope, then extract)
+# Company LinkedIn URL discovery
 deepline tools execute google_search_google_search --payload '{"query":"\"{{Company}}\" site:linkedin.com/company","num":3}'
 ```
 
-### Finding contacts at known companies
+### Dropleads (people search)
 
-**Default: `exa_people_search` via `deepline enrich`.** When you have a seed list of companies and need to find contacts/decision-makers, use `exa_people_search` as a per-row enrichment. It returns structured person entities (name, title, LinkedIn, work history) — no parsing needed.
-
-```bash
-deepline enrich --input seed.csv --in-place --rows 0:1 \
-  --with 'contact=exa_people_search:{"query":"{{role}} at {{Company}}","numResults":3}'
-```
-
-After exa discovery → use `exa_people_search` for contacts at those companies. Do not use `call_ai` or manual scripts for contact lookup — `exa_people_search` is faster, cheaper, and returns structured data.
-
-**Fallback: `dropleads_search_people`** when exa coverage is thin or you need structured filters (seniority, geography, headcount). Use Apollo only as a last resort.
-
-### People search provider default and fallback
-
-Default to `dropleads_search_people` for people discovery when you need structured filters. Use Apollo only when you need a fallback source and have limited options.
-
-```bash
-deepline tools get dropleads_search_people
-```
+Default to `dropleads_search_people` for people discovery when you need structured filters. Use Apollo only when you need a fallback source.
 
 ```bash
 deepline enrich --input leads.csv --in-place --rows 0:1 \
@@ -231,43 +204,43 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
 Dropleads note: keep title filters broad (`jobTitles`) and allow seniority to do the heavy lifting.
 
 **Dropleads query gotchas:**
-- `keywords`: multi-word strings return 0 — use `["GTM","engineer"]` not `["GTM Engineer"]`.
+- `keywords`: multi-word strings return 0 -- use `["GTM","engineer"]` not `["GTM Engineer"]`.
 - `jobTitles`: substring match, OR'd. Niche titles work (`"GTM Engineer"` = ~20 results).
-- `jobTitlesExactMatch`: no observable effect — ignore it.
-- `companyNames`: fuzzy — prefer `companyDomains` for precision.
+- `jobTitlesExactMatch`: no observable effect -- ignore it.
+- `companyNames`: fuzzy -- prefer `companyDomains` for precision.
 - `departments`/`seniority`: enum-only (see schema).
 - Use `limit:1` first to check `data.pagination.total`, then pull full pages. Don't iterate exploratory queries.
 
-**Apollo remains fallback-only for people search.** The fallback may return partial/partial-match results.
-
 ### CrustData (company + person search, autocomplete)
 
-**Always read the [crustdata playbook](provider-playbooks/crustdata.md) before building filter payloads if considering crust. .** Filter field names, valid enum values, and operator behavior are non-obvious — guessing wastes rounds. In particular: run `crustdata_companydb_autocomplete` for any field where you don't know the exact canonical value (industries, funding round types, regions, etc.). Autocomplete requires a non-empty `query` string (at least 1 character). Also note: `employee_metrics.latest_count` is valid for `sorts` but NOT as a `filter_type` — use `employee_count_range` (string enum) for headcount filters.
+**Always read the [crustdata playbook](provider-playbooks/crustdata.md) before building filter payloads.** Filter field names, valid enum values, and operator behavior are non-obvious -- guessing wastes rounds.
 
-CrustData has structured filters. Use autocomplete to discover canonical values before search.
+**Key rules:**
+- Run `crustdata_companydb_autocomplete` for any field where you don't know the exact canonical value. Autocomplete requires a non-empty `query` string (at least 1 character).
+- `employee_metrics.latest_count` is valid for `sorts` but NOT as a `filter_type` -- use `employee_count_range` (string enum like `"51-200"`, `"201-500"`) for headcount filters.
+- **`hq_country` uses ISO 3-letter codes**: `USA`, `GBR`, `IND`, `DEU`, etc. — NOT full country names. Passing `"United States"` returns 0 results with no error (silent failure).
+- **For niche verticals** (fraud, identity, compliance, fintech sub-segments), prefer `crunchbase_categories` over `linkedin_industries`. LinkedIn industries are broad buckets (`"Financial Services"`); crunchbase categories map to specific business functions (`"Fraud Detection"`, `"Identity Management"`). Always autocomplete both to compare specificity.
+- **Search responses include firmographic data** — headcount (`employee_metrics.latest_count`), funding (`last_funding_round_type`), HQ (`hq_country`), categories, and employee growth (`employee_metrics.growth_6m_percent`). Extract these fields directly into your seed CSV. Do not re-enrich with `call_ai` for data already in the response.
+- **`employee_metrics.growth_6m_percent`** is a free hiring proxy already in every search response. Positive 6-month growth suggests active hiring. Use this before spending credits on `crustdata_job_listings`, especially for smaller companies where job listing coverage is thin.
 
 **Operators**: `(.)` = fuzzy contains (default), `[.]` = substring, `=`, `!=`, `in`, `not_in`, `>`, `<`, `=>`, `=<`.
 
-For investor/funding signals, `deepline tools search investor` should route you directly to `crustdata_companydb_search` with field matches such as `crunchbase_investors` and `tracxn_investors`. Use those exact field names in payloads.
-
 ```bash
-deepline tools execute crustdata_companydb_autocomplete --payload '{"field":"linkedin_industries","query":"software","limit":5}'
+# Always autocomplete first — compare crunchbase_categories vs linkedin_industries for your vertical
+deepline tools execute crustdata_companydb_autocomplete --payload '{"field":"crunchbase_categories","query":"fraud","limit":5}'
+deepline tools execute crustdata_companydb_autocomplete --payload '{"field":"linkedin_industries","query":"financial","limit":5}'
 ```
 
 ```bash
-deepline tools execute crustdata_companydb_search --payload '{"filters":[{"filter_type":"linkedin_industries","type":"(.)","value":"software"},{"filter_type":"hq_country","type":"=","value":"USA"}],"limit":5}'
-```
-
-```bash
-deepline enrich --input accounts.csv --in-place --rows 0:1 \
-  --with '{"alias":"company_lookup","tool":"crustdata_companydb_autocomplete","payload":{"field":"company_name","query":"{{Company}}","limit":1}}'
+# Use crunchbase_categories for niche verticals, hq_country with ISO codes
+deepline tools execute crustdata_companydb_search --payload '{"filters":[{"filter_type":"crunchbase_categories","type":"in","value":["Fraud Detection","Identity Management"]},{"filter_type":"hq_country","type":"=","value":"USA"},{"filter_type":"employee_count_range","type":"in","value":["51-200","201-500"]},{"filter_type":"last_funding_round_type","type":"in","value":["Series A","Series B"]}],"sorts":[{"column":"employee_metrics.latest_count","order":"desc"}],"limit":50}'
 ```
 
 ### People Data Labs
 
-**PDL is expensive — use it as a last resort.** Exhaust Exa, Google, Apollo, and Crustdata first. Only reach for PDL when other providers have clearly failed to return coverage.
+**PDL is expensive -- use it as a last resort.** Exhaust Exa, Google, Apollo, and Crustdata first.
 
-**Shell quoting with PDL SQL:** PDL takes a raw SQL string. Avoid inline single-quote escaping in bash — it breaks silently. Instead write the payload to a temp file and pass it with `--payload-file`, or use a bash heredoc with `$()`:
+**Shell quoting with PDL SQL:** PDL takes a raw SQL string. Avoid inline single-quote escaping in bash -- it breaks silently. Instead write the payload to a temp file and pass it with `--payload-file`, or use a bash heredoc:
 
 ```bash
 PAYLOAD=$(cat <<'EOF'
@@ -277,191 +250,272 @@ EOF
 deepline tools execute peopledatalabs_company_search --payload "$PAYLOAD"
 ```
 
+### Exa (search, answer, research)
+
+Exa is a semantic web index -- it finds pages by meaning, not just keywords.
+
+**Query rules:** Write natural-language descriptions, not keyword soup (`"B2B SaaS companies that sell sales automation tools"` not `"SaaS B2B sales tools 2025"`). Use `type: "neural"` (default) for concept-driven queries, `"deep"` with `additionalQueries` for broad coverage. Use `startPublishedDate`/`endPublishedDate` for recency. Use `contents.summary` for per-result LLM summaries, `contents.highlights` for snippets.
+
+**Critical: `category` vs `includeDomains` -- NOT interchangeable:**
+- `category: "company"` / `"people"` uses Exa's entity index. **`includeDomains`, `excludeDomains`, `includeText`, `excludeText` are NOT supported with `category`** -- throws an error. Use for "companies that *are* X" (concept-driven), NOT "companies that *have* X" (attribute-based).
+- `includeDomains` / `excludeDomains` -- scope a regular web search (no category) to specific sites.
+
+**"Companies that hire X role" -- use `includeDomains` on job boards, NOT `category:"company"`:**
 ```bash
-deepline tools get peopledatalabs_person_search
+deepline tools execute exa_search --payload '{"query":"GTM engineer job opening at Y Combinator startup","numResults":15,"type":"neural","includeDomains":["ycombinator.com"],"contents":{"highlights":{"numSentences":2,"highlightsPerUrl":1}}}'
+```
+
+**Tool selection:** `exa_search` (general-purpose, start here), `exa_company_search` (category:"company" shorthand), `exa_people_search` (structured person entities via `deepline enrich`), `exa_answer` (fact-checking only, low recall), `exa_research` (deep multi-source, supports `outputSchema`).
+
+```bash
+# Concept-based company search (category OK here)
+deepline tools execute exa_search --payload '{"query":"B2B SaaS companies building AI-powered sales tools","category":"company","numResults":10,"type":"neural","contents":{"summary":{"query":"What does this company do and what funding stage are they?"}}}'
+
+# Attribute + domain-scoped search (NO category -- use includeDomains instead)
+deepline tools execute exa_search --payload '{"query":"Series B fintech startups in New York","type":"neural","additionalQueries":["fintech companies Series B NYC"],"numResults":20,"includeDomains":["techcrunch.com","crunchbase.com"],"startPublishedDate":"2024-01-01T00:00:00Z","contents":{"summary":{"query":"What does this company do and what stage are they?"}}}'
 ```
 
 ### Parallel (managed research)
 
-**When to use:** Good for broad discovery when you don't have a strong prior on which domains hold the data. Lower precision than domain-scoped Exa/Google but finds things others miss (e.g. company blogs, press releases, niche directories). Use in parallel with scoped searches, not instead of them. Set `max_chars_total` > 10000 for more than ~5 results.
+Good for broad discovery when you don't know which domains hold the data. Lower precision than domain-scoped Exa/Google but finds things others miss. Set `max_chars_total` > 10000 for 5+ results.
 
 ```bash
 deepline tools execute parallel_search --payload '{"mode":"agentic","objective":"Find recent hiring and launch signals for OpenAI","max_results":5,"excerpts":{"max_chars_per_result":1200,"max_chars_total":12000}}'
 ```
 
-```bash
-deepline tools execute parallel_extract --payload '{"urls":["https://openai.com/research/index/release/"],"objective":"Extract key product launch signal, release summary, and source evidence","full_content":true}'
-```
+## At-scale coverage completion
+
+Use this section when the job is coverage completion -- you already have target accounts/segments and need to backfill missing contacts/emails.
+
+### Count-capable providers (verified)
+
+Use these when you want fast sizing before doing the full list pull.
+
+| Provider | Tool | Command |
+|---|---|---|
+| Apollo | `apollo_search_people` | `deepline tools execute apollo_search_people --payload '{"page":1,"per_page":1}'` |
+| Apollo | `apollo_people_search_paid` | `deepline tools execute apollo_people_search_paid --payload '{"q_keywords":"sales","per_page":1,"page":1}'` |
+| Dropleads | `dropleads_get_lead_count` | `deepline tools execute dropleads_get_lead_count --payload '{"filters":{"jobTitles":["CEO"],"industries":["Technology"]}}'` |
+| Dropleads | `dropleads_search_people` | `deepline tools execute dropleads_search_people --payload '{"filters":{"jobTitles":["VP Sales"],"industries":["Technology"]},"pagination":{"page":1,"limit":1}}'` |
+| Forager | `forager_organization_search_totals` | `deepline tools execute forager_organization_search_totals --payload '{"industries":[1]}'` |
+| Forager | `forager_job_search_totals` | `deepline tools execute forager_job_search_totals --payload '{"title":"\"Sales Engineer\""}'` |
+| Forager | `forager_person_role_search_totals` | `deepline tools execute forager_person_role_search_totals --payload '{"role_title":"\"Software Engineer\""}'` |
+| Icypeas | `icypeas_count_people` | `deepline tools execute icypeas_count_people --payload '{"query":{"currentJobTitle":{"include":["CTO"]}}}'` |
+| Prospeo | `prospeo_search_person` | `deepline tools execute prospeo_search_person --payload '{"person_job_title":{"include":["VP Sales"]},"page":1}'` |
+| Prospeo | `prospeo_search_company` | `deepline tools execute prospeo_search_company --payload '{"company":{"names":{"include":["Intercom"]},"websites":{"include":["intercom.com"]}},"page":1}'` |
+| Hunter | `hunter_email_count` | `deepline tools execute hunter_email_count --payload '{"domain":"stripe.com"}'` |
+| Hunter | `hunter_discover` | `deepline tools execute hunter_discover --payload '{"query":"B2B SaaS companies","limit":1}'` |
+| People Data Labs | `peopledatalabs_person_search` | `deepline tools execute peopledatalabs_person_search --payload '{"query":{"bool":{"must":[{"term":{"location_country":"United States"}},{"term":{"job_title_role":"marketing"}}]}},"size":1}'` |
+| CrustData | `crustdata_people_search` | `deepline tools execute crustdata_people_search --payload '{"companyDomain":"notion.so","titleKeywords":["VP","Head"],"limit":1}'` |
+
+Notes: Some providers need an actual page pull (small `limit`/`per_page`) instead of dedicated count tools. CrustData `companydb_search`/`persondb_search` don't surface reliable totals -- use for retrieval, not sizing. Always compare `total_count`/`total` with your filter set and stop early when a slice suffices.
+
+### Company-first sourcing
 
 ```bash
-deepline tools execute parallel_run_task --payload '{"processor":"lite-fast","input":"Summarize key GTM signals for OpenAI from recent public web sources in 3 bullets."}'
+# Size first
+deepline tools execute dropleads_get_lead_count \
+  --payload '{
+    "filters": {
+      "keywords": ["technology"],
+      "employeeRanges": ["51-200"]
+    }
+  }'
+
+# Pull list (100 per page)
+deepline tools execute dropleads_search_people \
+  --payload '{
+    "filters": {
+      "keywords": ["technology"],
+      "employeeRanges": ["51-200"]
+    },
+    "pagination": {"page": 1, "limit": 100}
+  }'
 ```
 
-Use [parallel playbook](provider-playbooks/parallel.md) for operator details.
-
-### Exa (search, answer, research)
-
-Exa is a semantic web index — it finds pages by meaning, not just keywords. Structure queries accordingly.
-
-**Query structuring rules:**
-
-- Write queries as natural-language descriptions of what you want to find, not keyword soup. Exa performs semantic matching.
-  - Bad: `"SaaS B2B sales tools 2025"`
-  - Good: `"B2B SaaS companies that sell sales automation tools"`
-- Use `type` to control search strategy:
-  - `fast` — keyword-like match. Fast but low precision for concept-driven queries — avoid for GTM discovery.
-  - `neural` — semantic similarity. Best for concept-driven queries. Default to this.
-  - `deep` — combines multiple strategies; use with `additionalQueries` for broad topic coverage.
-  - `auto` (default) — Exa picks the best strategy.
-- `startPublishedDate` / `endPublishedDate` — constrain to a time window (ISO date-time). Use for recency-sensitive signals (hiring, funding, launches).
-- `contents` — control what you get back:
-  - `text: true` for full page text; `{ maxCharacters: 2000 }` for truncated.
-  - `highlights: { numSentences: 3, highlightsPerUrl: 2 }` for snippet extraction.
-  - `summary: { query: "What does this company do?" }` for LLM-generated summaries per result.
-- `context: { maxCharacters: 10000 }` — returns a combined context string from all results. Useful when feeding results directly into `call_ai`.
-
-**Critical: `category` vs `includeDomains` — they are NOT interchangeable:**
-
-- `category: "company"` / `"people"` searches Exa's **dedicated entity index** (LinkedIn-derived company/person profiles). It matches against company *descriptions*, not attributes like funding stage or employee titles. **`includeDomains`, `excludeDomains`, `includeText`, and `excludeText` are NOT supported with `category`** — using them throws an error.
-  - Use `category:"company"` for: "companies that *are* X" (concept-driven: "AI sales tools companies", "fintech startups")
-  - Do NOT use for: "companies that *have* X" (attribute-based: "companies with GTM engineers", "Series B companies") — it will match company descriptions that mention the phrase, not the underlying attribute
-
-  - You may cross reference multiple queries / this problem is more agentic in nature. Finding proxies and then filtering down via deepline enrich is also a good approach here. 
-- `includeDomains` / `excludeDomains` — scope a **regular web search** (no category) to specific sites. This is the right pattern when you know where the data lives (job boards, YC site, news sources).
-  - Use for job listing discovery: `includeDomains: ["ycombinator.com", "greenhouse.io", "lever.co"]`
-  - Use to avoid aggregator noise: `excludeDomains: ["wellfound.com", "builtinnyc.com"]`
-
-**"Companies that hire X role" pattern — use `includeDomains` on job boards, NOT `category:"company"`:**
-```bash
-# Find YC companies hiring GTM engineers — scope to YC job board
-deepline tools execute exa_search --payload '{"query":"GTM engineer job opening at Y Combinator startup","numResults":15,"type":"neural","includeDomains":["ycombinator.com"],"contents":{"highlights":{"numSentences":2,"highlightsPerUrl":1}}}'
-```
-
-**Watch out for duplicate-heavy results.** Exa often returns multiple results for the same company. Mitigate by: (a) using `additionalQueries` with varied phrasings, (b) post-processing to deduplicate by domain, (c) using `excludeDomains` (only valid without `category`) to block aggregator sites.
-
-**Tool selection:**
-
-- `exa_search` — general-purpose semantic search. Start here.
-- `exa_company_search` — shorthand for `exa_search` with `category: "company"`. Use for concept-based company discovery only.
-- `exa_people_search` — find a specific role at a known company. Returns structured person entities (name, title, LinkedIn, work history). Faster and cheaper than `call_ai` for contact discovery. Use via `deepline enrich` for per-row contact lookup:
-  ```bash
-  deepline enrich --input seed.csv --in-place --rows 0:1 \
-    --with 'contact=exa_people_search:{"query":"GTM Engineer at {{Company}}","numResults":3}'
-  ```
-- `exa_answer` — cited answer synthesis. **Low recall by design** — returns only 2-5 well-verified results. Use for fact-checking a specific known entity, NOT for "find me a list of" discovery queries.
-- `exa_research` — multi-source deep research. Slower but thorough. Supports `outputSchema`. Use `exa-research-fast` model for speed, `exa-research-pro` for depth.
+### Contact-first sourcing
 
 ```bash
-# Concept-based company search (category OK here)
-deepline tools execute exa_search --payload '{"query":"B2B SaaS companies building AI-powered sales tools","category":"company","numResults":10,"type":"neural","contents":{"summary":{"query":"What does this company do and what funding stage are they?"}}}'
+deepline tools execute dropleads_search_people \
+  --payload '{
+    "filters": {
+      "jobTitles": ["VP Sales", "CRO", "Head of Revenue Operations"],
+      "employeeRanges": ["51-200", "201-1000"],
+      "keywords": ["technology"],
+      "personalCountries": {"include": ["United States"]}
+    },
+    "pagination": {"page": 1, "limit": 100}
+  }'
 ```
+
+### Signal prioritization
+
+Don't outreach to the full sourced list. Prioritize with real signals first. Use the `niche-signal-discovery` skill if you have won/lost data to build a scoring model. Otherwise, enrich with first-party signals:
 
 ```bash
-# Attribute + domain-scoped search (NO category — use includeDomains instead)
-deepline tools execute exa_search --payload '{"query":"Series B fintech startups in New York","type":"neural","additionalQueries":["fintech companies Series B NYC","New York financial technology startups raised Series B"],"numResults":20,"includeDomains":["techcrunch.com","crunchbase.com"],"startPublishedDate":"2024-01-01T00:00:00Z","contents":{"summary":{"query":"What does this company do and what stage are they?"}}}'
+# Job listings (hiring = budget + pain)
+deepline enrich --input tam.csv --in-place --rows 0:1 \
+  --with '{"alias":"jobs","tool":"crustdata_job_listings","payload":{"companyDomains":"{{Domain}}","limit":20}}'
+
+# Website content (multi-page discovery)
+deepline enrich --input tam.csv --in-place --rows 0:1 \
+  --with '{"alias":"website","tool":"exa_search","payload":{"query":"company product features integrations pricing careers about","numResults":5,"type":"auto","includeDomains":["{{Domain}}"],"contents":{"text":{"maxCharacters":2000,"verbosity":"compact","includeSections":["body"]}}}}'
 ```
+
+Then score using signals from job listings (hiring relevant roles), tech stack (integration readiness), and website content (pain language, compliance maturity).
+
+## Signal-driven lead sourcing
+
+When you have a completed `niche-signal-discovery` report, every signal type translates directly into search criteria.
+
+### Signal -> Search Parameter Mapping
+
+| Report Signal Type | Dropleads Parameter | How to Extract | Example |
+|--------------------|-----------------|----------------|---------|
+| Job titles with lift > 2x | `jobTitles` | Use title patterns from Section 4 (Job Role Analysis) | "RevOps" at 2.56x -> `["Revenue Operations", "RevOps", "Head of RevOps"]` |
+| Keywords with lift > 2x | `q_organization_keyword_tags` | Use keywords from Section 2 (Website Keyword Differential) | "ABM" at 3.67x -> `["account based marketing", "ABM"]` |
+| Tech stack tools with lift > 2x | `q_organization_keyword_tags` | Use tool names from Section 3 (Tech Stack Analysis) | Gainsight at 3.0x -> `["gainsight"]` |
+| Employee headcount ranges | `employeeRanges` | From Section 0.1 TLDR or Section 1 Executive Summary | "200-1,500 employees" -> `["201-500", "501-1000", "1001-5000"]` |
+| Geography | `personalCountries` | If report mentions geo patterns | US-focused -> `{"include": ["United States"]}` |
+| Anti-fit tech stack | Exclude from results | Tech stack with lift < 0.5x | Salesloft at 0.33x -> skip companies using Salesloft |
+
+### Example: Report -> Lead List
+
+**1. Map buyer personas to Dropleads searches** using the report's "Buyer Persona Quick Reference" table:
 
 ```bash
-# exa_answer: fact-check a specific company, not list discovery
-deepline tools execute exa_answer --payload '{"query":"What are the top hiring signals for Stripe in the last 6 months?","text":true}'
+# RevOps Leader persona (2.56x lift, 55% of won companies)
+deepline tools execute dropleads_search_people \
+  --payload '{"filters":{"jobTitles":["Revenue Operations","RevOps","Head of Revenue Operations"],"seniority":["VP","Director","Manager"],"keywords":["b2b saas"],"employeeRanges":["201-500","501-1000","1001-5000"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":1}}'
 ```
+
+**2. Verify with job listing keywords (post-pull).** High-lift keywords like "fragmented" (13x), "ICP" (9x) can't be person-search filters -- use Crustdata for post-pull verification:
 
 ```bash
-deepline tools execute exa_research --payload '{"instructions":"Research the competitive landscape for AI-powered CRM tools. Identify the top 5 companies, their funding, and key differentiators.","model":"exa-research-fast"}'
+deepline enrich --input tam.csv --in-place --rows 0:1 \
+  --with '{"alias":"jobs","tool":"crustdata_job_listings","payload":{"companyDomains":"{{Domain}}","limit":50}}'
 ```
 
-## Parallel web research and extraction
+**3. Build combined list:** Run one search per buyer persona, deduplicate by company domain, then run the job listing enrichment + scoring pipeline above.
 
-Use the dedicated integration guide for operator details and examples:
-[parallel playbook](provider-playbooks/parallel.md)
+## Portfolio/VC prospecting
 
-Short rule:
-- When the task is managed web research/extraction (including synthesis), prefer `parallel_search` / `parallel_extract` / `parallel_run_task` with a real one-row pilot first.
+### Core insight: VC portfolio data is public
 
-## Parallel execution and multi-step lead list building
+Every major VC and accelerator publishes their portfolio online. **Do NOT waste turns trying to discover portfolio companies through Deepline search tools.** Instead, fetch the public portfolio page directly and extract company names from it. This is faster, cheaper, and more complete than any provider-based approach.
 
-**This is the default execution pattern, not a fallback.** Always run multiple search paths simultaneously and merge results.
+### What NOT to do
 
-Fire searches across multiple providers at the same time — don't wait for one to finish before trying the next.
+Tested and failed: Apollo investor filtering (irrelevant results), people-first then verify investor (~7-9% hit rate, wastes 60-80% of turns), Crustdata `crunchbase_investors` (inconsistent), `call_ai` per-row investor verification (~5-10s/row, unacceptable at scale).
 
-**Parallel search pattern:**
+### Proven approach
+
+**Step 1: Get the company list from the VC's public portfolio.** Common URLs: YC (`ycombinator.com/companies`), a16z (`a16z.com/portfolio`), Sequoia (`sequoiacap.com/our-companies`), Greylock/Benchmark (`/portfolio`).
 
 ```bash
-#!/usr/bin/env bash
-set -euo pipefail
+# Fetch YC companies page (or use parallel_extract if JS-rendered)
+curl -sS "https://www.ycombinator.com/companies" -H "Accept: text/html" -o /tmp/yc_page.html
 
-# Run multiple providers simultaneously — each writes to its own column
-deepline enrich --input seed.csv --in-place --rows 0:2 \
-  --with '{"alias":"dropleads_hits","tool":"dropleads_search_people","payload":{"filters":{"jobTitles":["CTO","VP Engineering","Growth"]},"pagination":{"page":1,"limit":3}}}' \
-  --with '{"alias":"crust_hits","tool":"crustdata_companydb_search","payload":{"filters":[{"filter_type":"company_name","type":"(.)","value":"{{Company}}"}],"limit":3}}' \
-  --with '{"alias":"exa_hits","tool":"exa_search","payload":{"query":"{{Company}} AI healthcare","category":"company","numResults":3,"type":"fast"}}'
+deepline tools execute parallel_extract --payload '{"urls":["https://www.ycombinator.com/companies?batch=W26"],"objective":"Extract all company names, website domains, and one-line descriptions from this YC batch directory page","full_content":true}'
 ```
 
-All `--with` columns in a single `deepline enrich` call execute in parallel. Use this to fan out across providers.
-
-**Multi-step lead list building (hard queries):**
-
-When a single search pass isn't enough, break the task into stages:
-
-1. **Seed stage** — cast a wide net. Run broad searches across 2-3 providers to build a raw candidate list.
-2. **Refine stage** — enrich the seed list with additional signals (company size, funding, tech stack) to filter down.
-3. **Validate stage** — deduplicate, cross-reference across providers, and score.
-
-Example flow for "Find 50 Series B AI companies selling to healthcare in the US":
+**Step 2: Filter to companies hiring your target role (optional).**
 
 ```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-# Stage 1: Seed from multiple sources in parallel
-deepline enrich --input empty_50.csv --in-place \
-  --with '{"alias":"exa","tool":"exa_search","payload":{"query":"Series B AI companies selling to healthcare in the United States","category":"company","numResults":50,"type":"deep","additionalQueries":["AI healthcare startups Series B funding USA"],"contents":{"summary":{"query":"Company name, what they do, and funding stage"}}}}' \
-  --with '{"alias":"crust","tool":"crustdata_companydb_search","payload":{"filters":[{"filter_type":"linkedin_industries","type":"(.)","value":"healthcare"},{"filter_type":"hq_country","type":"=","value":"USA"},{"filter_type":"last_funding_round_type","type":"in","value":["Series B"]}],"limit":50}}'
-
-# Stage 2: Take the merged seed list, enrich with Dropleads for people
-deepline enrich --input seed_merged.csv --in-place --rows 0:4 \
-  --with '{"alias":"contacts","tool":"dropleads_search_people","payload":{"filters":{"jobTitles":["Sales","Revenue","Growth"],"seniority":["C-Level","VP","Director"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":5}}}'
-
-# Stage 3: Validate emails
-deepline enrich --input seed_merged.csv --in-place --rows 0:4 \
-  --with '{"alias":"email_valid","tool":"leadmagic_email_validation","payload":{"email":"{{email}}"}}'
+deepline enrich --input yc_companies.csv --in-place --rows 0:2 \
+  --with '{"alias":"exa_jobs","tool":"exa_search","payload":{"query":"GTM Engineer site:ycombinator.com","numResults":50,"type":"auto"}}'
 ```
 
-**Always go multi-step when:**
-- The user wants a specific count (e.g. "find me 50 companies") — single providers rarely have enough coverage alone.
-- The query combines multiple constraints (industry + funding stage + geography + tech stack).
-- Initial results from one provider have low hit rates — immediately fan out to others.
-- The user needs both account-level and contact-level data — that's inherently two stages.
-- **Provider returns poor-quality or nonsensical results** — retry with different params or switch providers immediately. Don't waste turns debugging.
+**Step 3: Find contacts at each company.**
 
-**Provider response quality — validate and fallback:**
-Providers often return garbage, nonsensical, or irrelevant data. Don't assume responses are valid.
+For small startups (5-50 people), dropleads has near-zero coverage. Use `exa_people_search` — it returns structured person entities (name, title, LinkedIn, work history) and works well for startups:
 
-- If a provider returns empty, sparse, or obviously wrong results (wrong company names, wrong industries, duplicate noise, irrelevant hits): treat it as a miss and fan out to other providers. Don't reason about why — just retry elsewhere.
-- Cross-reference across providers when coalescing — prefer the provider that returned consistent, field-rich data. Discard obviously bad rows.
-- When responses are suspicious, try different params (broader query, different filters) or a different provider entirely. The cost of an extra search is low; the cost of downstream garbage is high.
+```bash
+deepline enrich --input yc_companies.csv --output yc_with_contacts.csv \
+  --rows 0:2 \
+  --with '{"alias":"contact","tool":"exa_people_search","payload":{"query":"GTM Engineer at {{company_name}}","numResults":3}}'
+```
 
-Default: parallel. Always go parallel. Use sub-agents for independent workstreams when available.
+Write a `run_javascript` step to extract the best contact from exa entities (walk `results[].entities[].properties.workHistory[]` for title keywords). If exa returns 0 for a company, fall back to `call_ai` with WebSearch:
 
-**Deduplication and coalescing:** After merging results from multiple providers, deduplicate by domain or LinkedIn URL. Coalesce fields: pick the richest non-null value per field from parallel provider outputs. Use `run_javascript` inside `deepline enrich` — see [enrich-waterfall.md](enrich-waterfall.md) "Coalescing and cleaning" for patterns. Never leave raw provider columns as final output; always add a coalesce step.
+```bash
+deepline enrich --input yc_missing.csv --in-place \
+  --with '{"alias":"contact_lookup","tool":"call_ai","payload":{"prompt":"Find the founder, CEO, or GTM/growth lead at {{company_name}} ({{domain}}). Return their full name, title, and LinkedIn URL.","json_mode":{"type":"object","properties":{"name":{"type":"string"},"title":{"type":"string"},"linkedin_url":{"type":"string"}},"required":["name","title"]},"tools":["WebSearch"]}}'
+```
+
+**Step 4: Find emails via waterfall.**
+
+For small startups, use LeadMagic as primary (not Hunter -- Hunter has poor coverage for <50 person companies):
+
+```bash
+deepline enrich --input yc_with_contacts.csv --in-place --rows 0:2 \
+  --with-waterfall "email" \
+  --type email \
+  --result-getters '["data.email","email"]' \
+  --with '{"alias":"leadmagic","tool":"leadmagic_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"},"extract_js":"extract(\"email\")"}' \
+  --with '{"alias":"dropleads","tool":"dropleads_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_domain":"{{domain}}"},"extract_js":"extract(\"email\")"}' \
+  --with '{"alias":"hunter","tool":"hunter_email_finder","payload":{"domain":"{{domain}}","first_name":"{{first_name}}","last_name":"{{last_name}}"},"extract_js":"extract(\"email\")"}' \
+  --end-waterfall
+```
+
+**Step 5: Generate personalized email copy** using `call_ai` with `json_mode` for subject/body. Pilot on rows 0:2, then run full batch.
 
 ## LinkedIn profile lookup and validation
 
 LinkedIn URLs from providers are often stale. Two phases: find then validate.
 
-**Find** — waterfall, stop on first hit:
+**Find** -- waterfall, stop on first hit:
 1. Dropleads (`dropleads_search_people`, free)
 2. Google CSE (`"First Last" "Company" site:linkedin.com/in/`)
 3. Exa (`exa_search` with `category: "people"`)
-4. Apollo (`apollo_people_match`) — **fallback only**
+4. Apollo (`apollo_people_match`) -- **fallback only**
 5. Crustdata (`crustdata_person_enrichment`)
 
-**Validate (mandatory)** — scrape the profile with Apify (`dev_fusion/linkedin-profile-scraper`):
-- Name + company match → confirmed, update row with fresh data
-- Name matches, company doesn't → job change, update with new company/title
-- Neither matches → wrong profile, try next provider
+**Validate (mandatory)** -- scrape the profile with Apify (`dev_fusion/linkedin-profile-scraper`):
+- Name + company match -> confirmed, update row with fresh data
+- Name matches, company doesn't -> job change, update with new company/title
+- Neither matches -> wrong profile, try next provider
 
-Normalize company names first (JPM → JPMorgan Chase). Try nickname variants on failure (Robert↔Bob, William↔Bill, Michael↔Mike, etc.).
+Normalize company names first (JPM -> JPMorgan Chase). Try nickname variants on failure (Robert<->Bob, William<->Bill, Michael<->Mike, etc.).
+
+## Common ICP filter parameters (Dropleads)
+
+| Filter | Parameter | Example values |
+|---|---|---|
+| Job title | `jobTitles` | `["VP Sales", "Head of GTM"]` |
+| Similar titles | use `jobTitles` variants in title list | `true` |
+| Headcount | `employeeRanges` | `["51-200", "201-500"]` |
+| Industry/keywords | `keywords`/`industries` | `["technology", "SaaS", "fintech"]` |
+| Geography | `personalCountries` | `{"include": ["United States", "Canada"]}` |
+| Revenue | `revenueRange` | `{"min": 1000000, "max": 50000000}` |
+| Seniority | `seniority` | `["C-Level", "VP", "Director", "Manager"]` |
+
+Valid seniority values: `C-Level`, `VP`, `Director`, `Manager`, `Senior`, `Entry`, `Intern`
+
+## Pagination
+
+Dropleads returns up to 100 results per page. For large sourcing runs/backfills:
+
+```bash
+# Page 1
+deepline tools execute dropleads_search_people --payload '{"pagination":{"page":1,"limit":100}, ...}'
+
+# Page 2
+deepline tools execute dropleads_search_people --payload '{"pagination":{"page":2,"limit":100}, ...}'
+```
+
+## Cost estimation
+
+| Operation | Credits | Notes |
+|-----------|---------|-------|
+| `dropleads_search_people` (limit: 1) | ~0.01 | Sizing -- nearly free |
+| `dropleads_search_people` (limit: 100) | ~1 | Full pull |
+| `crustdata_job_listings` | ~1 | Per company |
+| `exa_search` with contents | ~5 | Per company |
+| Portfolio page fetch (curl) | 0 | Free |
+| LeadMagic email finder | ~0.3 | Per contact |
+
+Size first with `pagination.limit: 1`, then calculate: `total_pages x credits_per_page`.
 
 ## Provider search filters reference
 

@@ -1,19 +1,3 @@
----
-name: waterfall-enrichment
-disable-model-invocation: true
-description: |
-  Enrich a CSV with any data field using a waterfall pattern: try multiple providers
-  in sequence, stop at the first successful match. Prevents paying for duplicate
-  lookups and maximizes fill rates.
-
-  Triggers:
-  - "enrich my lead list"
-  - "add [field] to my CSV"
-  - "waterfall enrichment"
-  - "try multiple providers to find [data]"
-  Before reading this file, first read gtm-meta-skill to understand the Deepline CLI tool and how to use it. Then read this file for guidance on the task.
----
-
 # Waterfall Enrichment
 
 The waterfall pattern runs multiple enrichment providers in sequence and stops as soon as one returns a valid result. This maximizes coverage while minimizing cost — you only pay for lookups that actually run.
@@ -126,20 +110,3 @@ deepline playground start --csv leads.csv --open
 ```
 
 Use `--rows 0:1` in the playground to re-run a single block for debugging.
-
-## Related skills
-
-This skill teaches the waterfall pattern. For specific enrichment tasks, use:
-- **Finding emails** → `contact-to-email` (pre-built email waterfalls)
-- **Finding LinkedIn URLs** → `linkedin-url-lookup` (with nickname expansion + validation)
-- **Finding contacts at companies** → `get-leads-at-company`
-- **Building prospect lists** → `build-tam`
-
-## Get started
-
-Sign up and get your API key at [code.deepline.com](https://code.deepline.com).
-
-```bash
-curl -s "https://code.deepline.com/api/v2/cli/install" | bash
-deepline auth register
-```

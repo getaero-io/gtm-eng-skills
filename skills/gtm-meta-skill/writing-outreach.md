@@ -1,6 +1,6 @@
-# Qualification And Email Design Skill
+# Writing Outreach Skill
 
-Use this skill when you need better outbound copy grounded in real ICP context, not generic templates. It helps you convert raw prospect data into clear fit scoring, credible rationale, and sharp sequence copy that sounds specific to the buyer.
+Use this skill when the task involves cold emails, personalization, lead scoring, qualification, sequence design, campaign copy, or playground inspection of enrichment results.
 
 ## What This Skill Does
 
@@ -122,6 +122,20 @@ Example `icp.md` starter:
 }
 ```
 
+## Personalization: `run_javascript` vs `call_ai`
+
+When you already have contact + company context in CSV columns, use `run_javascript` for email generation — it's instant, deterministic, and zero LLM cost. Only use `call_ai` when you need per-row web research or complex reasoning.
+
+```bash
+# Fast path: template personalization via run_javascript (instant, free)
+deepline enrich --input enriched.csv --in-place \
+  --with '{"alias":"outbound_email","tool":"run_javascript","payload":{"code":"@${OUTPUT_DIR}/template_email.js"}}'
+
+# Slow path: call_ai when you need per-row research (adds ~60s, LLM cost)
+deepline enrich --input enriched.csv --in-place \
+  --with '{"alias":"outbound_email","tool":"call_ai","payload":{"prompt":"Research {{company_domain}} and write a personalized email to {{first_name}}...","tools":["WebSearch"]}}'
+```
+
 ## Recommended Workflow
 
 ```bash
@@ -138,7 +152,6 @@ printf "prospect_payload\n{\"person\":{\"firstName\":\"Rachael\",\"lastName\":\"
 deepline enrich --input ./qualification_email_seed.csv --output ./qualification_email_seed_enriched.csv \
   --with '{"alias":"qualification_output","tool":"call_ai_claude_code","payload":{"prompt":"${QUAL_PROMPT}"}}' \
   --with '{"alias":"email_sequence_output","tool":"call_ai_claude_code","payload":{"prompt":"${SEQ_PROMPT}"}}' \
- 
 ```
 
 ## Prompt Templates (Copy/Paste)
@@ -196,3 +209,45 @@ Use these as `call_ai_claude_code` payload templates inside `--with` columns. **
 - Prefer high recall unless strict matching is explicitly requested.
 - Keep outputs strict JSON (no markdown wrappers).
 - Keep email copy concise, specific to role/company context, and grounded in qualification rationale.
+
+## Playground Inspection
+
+Use these commands to interact with `deepline csv` directly for inspecting and debugging enrichment results.
+
+### Open an existing CSV in Playground
+
+```bash
+deepline csv render --csv leads.csv --open
+```
+
+- Use `--open` to launch the UI.
+
+### Inspect rows (`deepline csv show`)
+
+`deepline csv show --csv <path> [--format json|table|csv] [--verbose] [--summary] [--rows START:END]`
+
+- format: json (default, `{rows, _metadata}`), table (ASCII, 40-char cap), csv (RFC 4180)
+- --verbose: include step columns + full cell values
+- --summary: per-column stats + miss_reasons
+- --rows: `start:end` bounds (default `0:19`)
+
+```bash
+deepline csv show --csv leads.csv
+deepline csv show --csv leads.csv --format table --rows 0:10
+deepline csv show --csv leads.csv --summary
+```
+
+### Re-run a playground block
+
+```bash
+deepline csv --execute_cells --csv leads.csv --rows 0:10 --cols 9:9 --wait
+```
+
+- `--cols` is the column index range to re-run (`N:N` for one column).
+- Keep `--rows` explicit.
+- Use `--wait` when you need completion before the next command.
+
+### CLI-only debug posture
+
+- If you need to inspect or re-execute, use these playground commands directly.
+- If you need to add columns or add providers, switch back to `deepline enrich` workflow docs instead of extending this page.

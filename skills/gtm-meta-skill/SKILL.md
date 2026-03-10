@@ -40,7 +40,8 @@ ICP is NOT required for mechanical tasks — do not ask for it, do not raise it 
 ### Documentation hierarchy
 
 - Level 1 (`SKILL.md`): decision model, guardrails, approval gates, links to sub-docs.
-- Level 2 (task-specific): [searching-for-leads-accounts-and-building-lead-lists.md](searching-for-leads-accounts-and-building-lead-lists.md), [provider-led-account-and-contact-sourcing.md](provider-led-account-and-contact-sourcing.md), [enrich-waterfall.md](enrich-waterfall.md), [custom-signals.md](custom-signals.md), [qualification-and-email-design.md](qualification-and-email-design.md), [playground-guide.md](playground-guide.md), [actor-contracts.md](actor-contracts.md), [gtm-definitions-defaults.md](gtm-definitions-defaults.md), [portfolio-company-prospecting.md](portfolio-company-prospecting.md), `prompts.json`.
+- Level 2 (phase docs): [finding-companies-and-contacts.md](finding-companies-and-contacts.md), [enriching-and-researching.md](enriching-and-researching.md), [writing-outreach.md](writing-outreach.md), `prompts.json`.
+- Level 2.5 (`recipes/*.md`): step-by-step playbooks for specific tasks (email lookup, LinkedIn resolution, waterfall patterns, contact finding, actor contracts). Search like code with Grep.
 - Level 3 (`provider-playbooks/*.md`): provider-specific quirks, cost/quality notes, and fallback behavior.
 
 No-loss rule: moved guidance remains fully documented at its canonical level and is linked from here.
@@ -55,40 +56,37 @@ These skill docs and sub-docs are not generic documentation — they are distill
 
 SKILL.md is the routing layer — it tells you WHERE to go, not HOW to execute. The sub-docs and task-specific skills contain the HOW. Without them you will guess parameters, pick wrong providers, run searches sequentially instead of in parallel, and produce garbage results. This has happened repeatedly.
 
-### Step 1: Check task-specific skills FIRST
+### Open the right doc BEFORE executing
 
-If the task matches a pattern below, read that skill **before** opening any sub-doc. These skills contain battle-tested, end-to-end playbooks distilled from real execution runs — they encode the exact sequences, provider choices, and edge-case handling that actually work. Using them saves 5-10 tool calls and avoids known pitfalls that you will otherwise hit.
+**This is not optional.** Read the matching doc. Do not skip this step. Do not "just try Apollo real quick" or "just run one search to see." These docs exist because the correct approach was non-obvious and had to be learned through trial and error — they are shortcuts that let you skip straight to what works.
 
-| Task pattern | Skill to invoke | Why — what goes wrong without it |
-|---|---|---|
-| YC / investor-portfolio / accelerator-backed company prospecting | [portfolio-company-prospecting.md](portfolio-company-prospecting.md) | VC portfolio data is public and free. Without this doc you'll burn credits on Crustdata investor filters that return inconsistent results. |
-| Provider-led account and contact sourcing at scale (known accounts, coverage completion) | `/build-tam` | Workflow lives in `provider-led-account-and-contact-sourcing.md` (invoked via `/build-tam`). Use this for high-volume coverage completion (example: 935K sourced, need final 65K). |
-| Find contacts at known companies | `/get-leads-at-company` | Company → contact → outreach chain with dedup. Without it you'll forget validation, scrape wrong profiles, and miss the seniority filter pattern. |
-| Find/verify emails for contacts | `/contact-to-email` | Multi-workflow email enrichment with proper waterfall order and validation gates. Without it you'll skip verification and deliver bouncy emails. |
-| Resolve LinkedIn URLs | `/linkedin-url-lookup` | Multi-pass waterfall with Apify validation to handle nicknames and false positives. Without it you'll get 54% false positive rate. |
-
-**If a task-specific skill matches, its guidance takes priority over everything below.**
-
-### Step 2: If no skill matched, open the right sub-doc BEFORE executing
-
-**This is not optional.** Read the matching sub-doc. Do not skip this step. Do not "just try Apollo real quick" or "just run one search to see." These sub-docs exist because the correct approach was non-obvious and had to be learned through trial and error — they are shortcuts that let you skip straight to what works. They contain the exact provider filter schemas, parallel execution patterns, canonical sample payloads, and known pitfalls. Every time an agent skips the sub-doc, it guesses field names, picks one provider instead of fanning out in parallel, runs searches sequentially, and delivers worse results while burning more credits.
-
-!important READING MULTIPLE SUB DOCS IS A GREAT IDEA AND OFTEN SUPER ESSENTIAL. JUST READ MORE.
-
-!important READING MULTIPLE SUB DOCS IS A GREAT IDEA AND OFTEN SUPER ESSENTIAL. JUST READ MORE.
+!important READING MULTIPLE DOCS IS A GREAT IDEA AND OFTEN SUPER ESSENTIAL. JUST READ MORE.
 
 **Routing rules — match your task to a doc and READ IT:**
 
-| When the task involves... | You MUST read this doc first | What it gives you (that SKILL.md doesn't) | What goes wrong if you skip it |
-|---|---|---|---|
-| **Finding companies, finding people, building lead lists, company search, people search, prospecting, "find me X companies that Y"** | [searching-for-leads-accounts-and-building-lead-lists.md](searching-for-leads-accounts-and-building-lead-lists.md) | Exact provider filter schemas (Crustdata operators, Apollo fields, Exa query patterns, Dropleads pagination). Parallel execution patterns — run 3-5 providers simultaneously. Provider mix tables by objective. Role-based search rules (never use exact job titles). Multi-step seed→refine→validate flow for hard queries. Subagent orchestration for fan-out. | You'll pick one provider, run it alone, guess field names, use exact job titles (which return 0 results for small companies), skip dedup, and deliver a weak single-source list. This is the #1 failure mode. |
-| **Backfilling contacts/emails at scale on a known account list, coverage completion, "we already sourced most and need the remaining X%, finding how many leads each provider has, finding the best provider for a job to maximize TAM coverage"** | [provider-led-account-and-contact-sourcing.md](provider-led-account-and-contact-sourcing.md) | At-scale sourcing strategy optimized for enrichment providers and coverage completion (count-first sizing, pagination, dedup, and prioritization). | You'll treat it as pure net-new search, burn credits on low-yield discovery, and miss the fast path to fill remaining coverage. |
-| **Enriching a CSV, adding columns, waterfall enrichment, finding emails/phones/LinkedIn for existing contacts, coalescing data, `deepline enrich` usage** | [enrich-waterfall.md](enrich-waterfall.md) | `deepline enrich` command syntax and all flags. Waterfall column patterns with fallback chains. `call_ai` / `run_javascript` column types. Coalescing patterns for merging provider outputs. Email/phone/LinkedIn waterfall orders. Pre-flight and post-run inspection scripts. | You'll write ad-hoc shell scripts instead of using `deepline enrich`, lose lineage (`_metadata`), skip coalescing, and produce CSVs that can't be iterated on in Playground. |
-| **Writing cold emails, rewriting email copy, personalizing outreach, lead scoring, qualification, sequence design, campaign copy** | [qualification-and-email-design.md](qualification-and-email-design.md) | Prompt templates from `prompts.json`. Scoring rubrics. Email length/tone/structure rules. Personalization patterns using company signals. Qualification frameworks. Sequence timing. | You'll write generic emails without signal-based personalization, skip qualification, and produce copy that sounds like every other AI-generated outreach. |
-| **Custom signal extraction (tech stack, hiring signals, funding news, competitive intel), research columns** | [custom-signals.md](custom-signals.md) | `call_ai` prompt patterns for signal extraction. `prompts.json` templates. Provider-to-signal mapping (which providers give which signals). Signal scoring patterns. | You'll use `call_ai` with vague prompts, miss provider-native signals that are cheaper and more reliable, and produce inconsistent signal columns. |
-| **Inspecting CSVs, debugging Playground, iterating on enrichment results, `deepline csv` commands** | [playground-guide.md](playground-guide.md) | `deepline csv show` / `deepline csv --render-as-playground` commands. Playground iteration workflows. Cell-level re-execution. Debug patterns for failed cells. | You'll read CSVs into context (killing your context window), paste raw rows to the user, and miss the Playground-first output policy. |
-| **Scraping LinkedIn/websites with Apify, choosing actors, structuring actor inputs** | [actor-contracts.md](actor-contracts.md) | Known actor IDs with typed input contracts. Cost/quality notes. Actor selection heuristics. Input schema patterns. | You'll run discovery searches for actors that are already documented, pick rental-priced actors, and guess input schemas that fail silently. |
-| **Interpreting GTM defaults — time windows, thresholds, recency, freshness** | [gtm-definitions-defaults.md](gtm-definitions-defaults.md) | Canonical definitions for "recent" (90 days), "actively hiring" (3+ jobs posted in 30 days), stale data thresholds, recency windows. | You'll use inconsistent definitions across the session, interpret "recent funding" as 5 years ago, and apply no time bounds to searches. |
+| When the task involves... | You MUST read this doc first | What it gives you (that SKILL.md doesn't) |
+|---|---|---|
+| **Finding companies, finding people, building lead lists, prospecting, portfolio/VC sourcing, contact finding at known companies, coverage completion at scale** | [finding-companies-and-contacts.md](finding-companies-and-contacts.md) | Provider filter schemas, parallel execution patterns, provider mix tables, role-based search rules, subagent orchestration, at-scale coverage completion, portfolio/VC shortcuts, contact finding patterns. |
+| **Researching companies or people, understanding what they build, figuring out use cases, personalizing based on mission/product/industry, enriching a CSV, adding data columns, waterfall enrichment, finding emails/phones/LinkedIn, coalescing data, custom signals, `call_ai` prompts, Apify actors — any task that adds or transforms row-level data** | [enriching-and-researching.md](enriching-and-researching.md) | `deepline enrich` syntax and all flags. Waterfall patterns with fallback chains. `call_ai` / `run_javascript` types. Multi-pass pipeline patterns (research pass → generation pass). Coalescing patterns. Email/phone/LinkedIn waterfall orders. Custom signal buckets. Apify actor selection. GTM definitions and defaults. |
+| **Writing cold emails, personalizing outreach, lead scoring, qualification, sequence design, campaign copy, inspecting CSVs in Playground.** If the task also requires researching companies/people to inform the writing, read [enriching-and-researching.md](enriching-and-researching.md) too — it has the multi-pass pipeline pattern. | [writing-outreach.md](writing-outreach.md) | Prompt templates from `prompts.json`. Scoring rubrics. Email length/tone/structure rules. Personalization patterns. Qualification frameworks. Playground inspection commands. |
+
+### Recipes: step-by-step playbooks for specific tasks (check before executing)
+
+The `recipes/` directory contains battle-tested playbooks. **Before you start executing, scan this list and read any recipe that matches your task.**
+
+When a recipe matches: **follow it step-by-step as your execution plan.** Recipes encode hard-won sequencing and provider choices — trust them over generic guidance or your own intuition. If the user's request doesn't perfectly fit, adapt the recipe using the phase docs above, but keep the recipe's structure and ordering as your baseline.
+
+| Recipe | Use when... |
+|---|---|
+| `portfolio-prospecting.md` | Target is a VC portfolio, accelerator batch, or investor-backed companies (YC, a16z, Sequoia, etc.) |
+| `build-tam.md` | Building a total addressable market list or large company list from ICP criteria |
+| `get-leads-at-company.md` | Finding contacts/people at known companies |
+| `contact-to-email.md` | You have names + companies, need email addresses |
+| `waterfall-enrichment.md` | Multi-provider fallback enrichment for any field |
+| `linkedin-url-lookup.md` | Finding or validating LinkedIn profile URLs |
+| `actor-contracts.md` | Apify actor selection, known actor IDs, input schemas |
+
+If none match, grep for more specific keywords: `Grep pattern="<keyword>" path="<directory containing this SKILL.md>/recipes/" glob="*.md" output_mode="files_with_matches"`
 
 ### Data
 
@@ -112,7 +110,7 @@ deepline tools search investor --prefix crustdata
 
 ### 3.1 Definitions and defaults
 
-Use [gtm-definitions-defaults.md](gtm-definitions-defaults.md) as the source of truth for GTM time windows, thresholds, and interpretation rules.
+GTM time windows, thresholds, and interpretation rules are defined in the Definitions section of [enriching-and-researching.md](enriching-and-researching.md).
 
 ## Provider Playbooks
 
@@ -213,12 +211,12 @@ Use [gtm-definitions-defaults.md](gtm-definitions-defaults.md) as the source of 
 - Never enrich a user-provided or source CSV in-place. Use `--output` to write to your working directory on the first pass, then `--in-place` on that output for subsequent passes. `--in-place` is for iterating on your own prior outputs — never on source files.
 - For reruns, keep successful existing cells by default; use `--with-force <alias>` only for targeted recompute.
 
-See [enrich-waterfall.md](enrich-waterfall.md) for `deepline csv` commands, pre-flight/post-run script templates, and inspection details.
+See [enriching-and-researching.md](enriching-and-researching.md) for `deepline csv` commands, pre-flight/post-run script templates, and inspection details.
 
 ### 3.3 Final file + playground check (light)
 
 - Keep one intended final CSV path: `FINAL_CSV="${OUTPUT_DIR:-/tmp}/<requested_filename>.csv"`
-- Before finishing: use the post-run inspection script pattern from [enrich-waterfall.md](enrich-waterfall.md). Run it once instead of separate checks.
+- Before finishing: use the post-run inspection script pattern from [enriching-and-researching.md](enriching-and-researching.md). Run it once instead of separate checks.
 - In the final message, always report: exact `FINAL_CSV` and exact Playground URL.
 - Before closing the session, follow the Section 7 consent step for session sharing.
 
@@ -320,12 +318,12 @@ When credits at zero, link to https://code.deepline.com/dashboard/billing to top
 
 **Reminder: you should have already read the relevant sub-doc from Section 2 before reaching this point. If you haven't, go back and read it now. This section is a quick-reference summary, NOT a substitute for the sub-docs.**
 
-- **Search / discovery** → You MUST have [searching-for-leads-accounts-and-building-lead-lists.md](searching-for-leads-accounts-and-building-lead-lists.md) open. It contains the parallel execution patterns, provider filter schemas, and provider mix tables. Start with `deepline tools search <intent>` and execute field-matched provider calls in parallel; when the `deepline-list-builder` subagent is available, use subagent-based parallel search orchestration as the preferred pattern. Use `call_ai` for synthesis/fallback, not as the only first step.
-- **Enrich / waterfall / coalesce** → You MUST have [enrich-waterfall.md](enrich-waterfall.md) open. It contains `deepline enrich` syntax, waterfall column patterns, and coalescing logic. Default waterfall order: dropleads → hunter → leadmagic → deepline_native → crustdata → peopledatalabs.
-- **Custom signals / messaging** → Read [custom-signals.md](custom-signals.md). Use `call_ai*`; start from `prompts.json`.
+- **Search / discovery** → You MUST have [finding-companies-and-contacts.md](finding-companies-and-contacts.md) open. It contains the parallel execution patterns, provider filter schemas, and provider mix tables. Start with `deepline tools search <intent>` and execute field-matched provider calls in parallel; when the `deepline-list-builder` subagent is available, use subagent-based parallel search orchestration as the preferred pattern. Use `call_ai` for synthesis/fallback, not as the only first step.
+- **Enrich / waterfall / coalesce** → You MUST have [enriching-and-researching.md](enriching-and-researching.md) open. It contains `deepline enrich` syntax, waterfall column patterns, and coalescing logic. Default waterfall order: dropleads → hunter → leadmagic → deepline_native → crustdata → peopledatalabs.
+- **Custom signals / messaging** → Read [enriching-and-researching.md](enriching-and-researching.md) (custom signals section). Use `call_ai*`; start from `prompts.json`.
 - **Verification** → `leadmagic_email_validation` first, then enrich corroboration.
-- **LinkedIn scraping** → Apify actors, by far the best. Read [actor-contracts.md](actor-contracts.md) for known actor IDs.
-- For phone recovery, read [enrich-waterfall.md](enrich-waterfall.md) section 8.8 (Forager reverse lookup + `deepline_native_enrich_phone` fallback).
+- **LinkedIn scraping** → Apify actors, by far the best. Search `recipes/actor-contracts.md` for known actor IDs.
+- For phone recovery, read [enriching-and-researching.md](enriching-and-researching.md) section 8.8 (Forager reverse lookup + `deepline_native_enrich_phone` fallback).
 
 Provider path heuristics:
 - Broad first pass: direct tool calls for high-volume discovery.
@@ -335,16 +333,14 @@ Provider path heuristics:
 
 ## 6) Additional notes
 
-Critical: keep qualification-and-email-design workflow context active when running any sequence task. It is not optional for ICP-driven messaging.
-
-For sequence and qualification-heavy use cases, open both: [qualification-and-email-design.md](qualification-and-email-design.md), [playground-guide.md](playground-guide.md).
+Critical: keep [writing-outreach.md](writing-outreach.md) workflow context active when running any sequence task. It is not optional for ICP-driven messaging.
 
 ### Apify actor flow (short canonical policy)
 
 **Sites requiring auth:** Don't use Apify. Tell the user to use Claude in Chrome or guide them through Inspect Element to get a curl command with headers (user is non-technical).
 
 1. If user provides actor ID/name/URL: use it directly.
-2. If not, use actor-contracts.md to find the actor id, or try deepline tools search. 
+2. If not, search `recipes/actor-contracts.md` for the actor id, or try deepline tools search.
 3. If not present, run discovery search.
 4. Avoid rental-priced actors.
 5. Pick value-over-quality-fit; when tied, choose best evidence-quality/price balance.

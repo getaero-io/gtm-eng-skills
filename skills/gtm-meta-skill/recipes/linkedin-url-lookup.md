@@ -1,14 +1,3 @@
----
-name: linkedin-url-lookup
-disable-model-invocation: true
-description: |
-  Resolve LinkedIn profile URLs from contact name + company name. Uses a multi-pass
-  waterfall with validation to handle nicknames (Phil/Philip), name variations
-  (O'Rourke/Rourke), and false positives (54% without validation).
-
-  Before reading this file, first read gtm-meta-skill to understand the Deepline CLI tool and how to use it. Then read this file for guidance on the task.
----
-
 # LinkedIn URL Lookup
 
 Resolve LinkedIn profile URLs from name + company with strict identity validation. **Without validation, expect ~54% false positive rate** — this skill handles the edge cases that break naive lookups.
@@ -139,7 +128,7 @@ deepline enrich --input contacts.csv --in-place --rows 0:1 \
   --with '{"alias":"profile","tool":"apify_run_actor_sync","payload":{"actorId":"apimaestro/linkedin-profile-scraper-no-cookies","input":{"username":"{{linkedin}}"},"timeoutMs":60000}}'
 ```
 
-Then validate `profile.data` against expected name + company using the validation rules in [references/validation-rules.md](references/validation-rules.md).
+Then validate `profile.data` against expected name + company using the validation rules described below.
 
 **5. Batch checkpointing:**
 
@@ -169,7 +158,7 @@ save_checkpoint(checkpoint)
 
 ## Validation rules (CRITICAL)
 
-**Every resolved LinkedIn URL must pass validation before acceptance.** See [references/validation-rules.md](references/validation-rules.md) for the full validation framework, nickname mappings, and company aliases.
+**Every resolved LinkedIn URL must pass validation before acceptance.** See the full validation framework, nickname mappings, and company aliases below.
 
 ### Quick reference
 
@@ -205,7 +194,7 @@ save_checkpoint(checkpoint)
 
 CRM says "Phil Parvaneh" but LinkedIn says "Philip Parvaneh". Quoted searches `"Phil Parvaneh"` return 0 results.
 
-**Fix:** When the initial lookup returns null, retry with expanded nicknames. See the [nickname mapping table](references/validation-rules.md#nickname-mappings) for all 30+ mappings.
+**Fix:** When the initial lookup returns null, retry with expanded nicknames. See the nickname mapping table for all 30+ mappings.
 
 ### 2. Name spelling variations (O'Rourke vs Rourke)
 
@@ -245,17 +234,4 @@ Spot-check 5-10 resolved URLs manually. If false positive rate > 10%, tighten va
 
 ## Provider details
 
-See [references/provider-playbook.md](references/provider-playbook.md) for API patterns, quirks, and cost details per provider.
-
-## Related skills
-
-- **Need emails after resolving LinkedIn?** → Use `contact-to-email` skill (Workflow B)
-- **Finding contacts at companies?** → Use `get-leads-at-company` skill
-- **Understanding waterfall patterns?** → See `waterfall-enrichment` skill
-
-## Get started
-
-```bash
-curl -s "https://code.deepline.com/api/v2/cli/install" | bash
-deepline auth register
-```
+See the provider playbook for API patterns, quirks, and cost details per provider.

@@ -1,18 +1,8 @@
----
-name: get-leads-at-company
-disable-model-invocation: true
-description: |
-  Given a company name or list of companies, find GTM-relevant contacts, pick the
-  best ICP fit, research their recent activity, and draft personalized outreach.
-
-  Before reading this file, first read gtm-meta-skill to understand the Deepline CLI tool and how to use it. Then read this file for guidance on the task.
----
-
 # Get Leads at Company
 
 From a company name (or list), this skill resolves the company identity, finds GTM employees, picks the best ICP match, researches their LinkedIn activity, and drafts personalized outreach — all in one enrichment chain.
 
-## Quickstart: simple contact lookup - dropleads is great to start with because its free. 
+## Quickstart: simple contact lookup - dropleads is great to start with because its free.
 
 if that has bad results / empty results, broaden filters or switch to a second dropleads query.
 
@@ -112,19 +102,3 @@ The full chain is expensive per company — pilot first:
 | **Full chain total** | **~7-12** | **Per company** |
 
 For large lists, use the simpler Dropleads-only version first, then run the full chain only on high-priority accounts.
-
-## Related skills
-
-- **Need emails after finding contacts?** → Use `contact-to-email` skill
-- **Need LinkedIn URLs?** → Use `linkedin-url-lookup` skill
-- **Building the account list from scratch?** → Use `build-tam` skill first
-- **Want to score accounts before outreach?** → Use `niche-signal-discovery` skill
-
-## Get started
-
-Sign up and get your API key at [code.deepline.com](https://code.deepline.com).
-
-```bash
-curl -s "https://code.deepline.com/api/v2/cli/install" | bash
-deepline auth register
-```
