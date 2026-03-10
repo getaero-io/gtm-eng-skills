@@ -304,8 +304,6 @@ Approve full run?
 
 ### 4.5 Billing commands
 
-
-
 ```bash
 deepline billing balance
 deepline billing limit
