@@ -28,7 +28,7 @@ Use this when someone asks for a lead count. Default output shows totals inline 
 deepline tools execute dropleads_search_people --payload '{"pagination":{"page":1,"limit":1},"filters":{"jobTitles":["Software"],"personalCountries":{"include":["United States"]}}}'
 ```
 
-Operator sequence and payload shape are documented in [Dropleads playbook](/Users/ctoprani/src/deepline-api/src/lib/integrations/dropleads/agent-guidance.md).
+Operator sequence and payload shape are documented in the Dropleads agent-guidance doc (`src/lib/integrations/dropleads/agent-guidance.md` in the repo).
 
 How to use it:
 - If you want a rough idea of effort, call this once and check the total.
@@ -213,7 +213,7 @@ Dropleads note: keep title filters broad (`jobTitles`) and allow seniority to do
 
 ### CrustData (company + person search, autocomplete)
 
-**Always read the [crustdata playbook](provider-playbooks/crustdata.md) before building filter payloads.** Filter field names, valid enum values, and operator behavior are non-obvious -- guessing wastes rounds.
+**Always read the crustdata integration docs (`src/lib/integrations/crustdata/`) before building filter payloads.** Filter field names, valid enum values, and operator behavior are non-obvious -- guessing wastes rounds.
 
 **Key rules:**
 - Run `crustdata_companydb_autocomplete` for any field where you don't know the exact canonical value. Autocomplete requires a non-empty `query` string (at least 1 character).

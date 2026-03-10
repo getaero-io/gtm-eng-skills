@@ -4,7 +4,7 @@ This skill now follows the same documentation pattern as `gtm-meta-skill`.
 
 ## Required read order
 
-1. Read `SKILL.md` first for global GTM policy, approval gates, and execution defaults.
+1. Read the phase docs for global GTM policy, approval gates, and execution defaults.
 2. Read and execute the sourcing workflow at `finding-companies-and-contacts.md`.
 
 ## Where to use this
