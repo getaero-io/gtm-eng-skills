@@ -129,14 +129,19 @@ List every Deepline pass in topological order, with explicit dependency statemen
 ```markdown
 ## Deepline Pass Plan
 
-| Pass | Column | Tool | Model | Depends on | Notes |
+| Pass | Column alias | Deepline tool | Model | Depends on | Notes |
 |---|---|---|---|---|---|
-| 1 | `clay_record` | `run_javascript` (fetch) | — | record_id | Fetches raw Clay data via bulk-fetch-records API |
-| 2 | `fields` | `run_javascript` (flatten) | — | clay_record | Extracts all subfields to top level |
-| 3 | `exa_research` | `exa_search` | — | fields.company_name, fields.company_domain | Paid tool — pilot gate required |
-| 4 | `job_function` | `call_ai` haiku | auto | fields.job_title | Simple classification |
-| 5 | `strategic_initiatives` | `call_ai` sonnet | claude | fields, exa_research | json_mode — reference via .extracted_json |
-| 6 | `qualify_person` | `call_ai` sonnet | claude | fields, strategic_initiatives.extracted_json | ICP score 0-10 |
+| 1 | `clay_record` | `run_javascript` (`@fetch_records.js`) | — | record_id | Clay bulk-fetch-records API; cookie from env |
+| 2 | `fields` | `run_javascript` (`@flatten.js`) | — | clay_record | Extracts all Clay subfields to top-level |
+| 3 | `person_profile` | `leadmagic_profile_search` | — | fields.linkedin_url | Person enrichment; fallback: `crustdata_person_enrichment` |
+| 4 | `company_data` | `run_javascript` (`@join_company.js`) | — | fields.company_domain | Local CSV join of exported company table |
+| 5 | `work_email` | `person_linkedin_to_email_waterfall` | — | person_profile, fields.first_name, fields.last_name, fields.company_domain | Replaces all 6 Clay email finders; pilot gate required |
+| 6 | `email_valid` | `leadmagic_email_validation` | — | work_email | One validation gate replaces all Clay validate-email steps |
+| 7 | `job_function` | `call_ai` haiku | auto | fields.job_title | Replaces `chat-gpt-schema-mapper` |
+| 8 | `company_research` | `call_ai` haiku + `"allowed_tools":"WebSearch"` | auto | fields.company_domain | Pass 1 of 2 for claygent columns; pilot gate required |
+| 9 | `strategic_initiatives` | `call_ai` sonnet, json_mode | claude | company_research | Pass 2 of 2; reference via `{{strategic_initiatives.extracted_json}}` |
+| 10 | `qualify_person` | `call_ai` sonnet, json_mode | claude | person_profile, strategic_initiatives | Replaces `octave-qualify-person`; ICP score 0-10 |
+| 11 | `email_sequence` | `call_ai` sonnet, json_mode | claude | qualify_person, strategic_initiatives | Replaces `octave-run-sequence-runner`; outputs subject + body |
 ```
 
 ### 1.4 — Assumptions Log
@@ -203,17 +208,29 @@ enrich_code = r"""return (async () => {
 
 ## Clay Action → Deepline Tool Mapping
 
-Read [clay-action-mappings.md](references/clay-action-mappings.md) for the full mapping table.
+Full CLI patterns and tool IDs: [clay-action-mappings.md](references/clay-action-mappings.md). Always use actual tool IDs from that file — never generic descriptions.
 
-| Clay action | Deepline equivalent | Notes |
+| Clay action | Deepline tool / native play | `--with` tool alias |
 |---|---|---|
-| `run_javascript` | `run_javascript` | Direct — same JS, wrap in `(async () => {})()` |
-| `use-ai` (no web) | `call_ai` haiku/sonnet | Match model to Clay model tier |
-| `use-ai` (claygent + web) | `exa_search` pass → `call_ai` sonnet | Two separate passes |
-| `chat-gpt-schema-mapper` | `call_ai` haiku | Simple classify, agent: "auto" |
-| `octave-qualify-person` | `call_ai` sonnet, custom ICP prompt | See ICP scoring pattern |
-| `exa_search` | `exa_search` | Native deepline tool |
-| `score-your-data` | `call_ai` haiku scoring prompt | If unconfigured in Clay, build from ICP |
+| `run_javascript` | `run_javascript` (file-backed) | `"tool":"run_javascript","payload":{"code":"@$WORKDIR/script.js"}` |
+| `enrich-person-with-mixrank-v2` | `leadmagic_profile_search` → `crustdata_person_enrichment` waterfall | `"tool":"leadmagic_profile_search","payload":{"profile_url":"{{linkedin_url}}"}` |
+| `lookup-company-in-other-table` | `run_javascript` (local CSV join) | `"tool":"run_javascript","payload":{"code":"@$WORKDIR/join_company.js"}` |
+| **Entire email waterfall** (wiza+hunter+leadmagic+findymail+pdl+dropcontact) | `person_linkedin_to_email_waterfall` | `"tool":"person_linkedin_to_email_waterfall","payload":{"linkedin_url":"...","first_name":"...","last_name":"...","domain":"..."}` |
+| `validate-email` (all instances) | `leadmagic_email_validation` (one final gate) | `"tool":"leadmagic_email_validation","payload":{"email":"{{work_email}}"}` |
+| `generate-email-permutations` | `run_javascript` | `"tool":"run_javascript","payload":{"code":"@$WORKDIR/email_permutations.js"}` |
+| `normalize-company-name` | `call_ai` haiku | `"tool":"call_ai","payload":{"prompt":"Normalize: {{company_raw}}...","model":"haiku","agent":"auto"}` |
+| `chat-gpt-schema-mapper` | `call_ai` haiku, no json_mode | `"tool":"call_ai","payload":{"prompt":"Classify: {{job_title}}...","model":"haiku","agent":"auto"}` |
+| `use-ai` (no web, simple) | `call_ai` haiku | `"tool":"call_ai","payload":{"prompt":"...","model":"haiku","agent":"auto"}` |
+| `use-ai` (claygent + web) | Pass 1: `call_ai` haiku + `"allowed_tools":"WebSearch"` → Pass 2: `call_ai` sonnet | Always 2 separate enrich calls |
+| `octave-qualify-person` | `call_ai` sonnet, json_mode ICP scorer | `"tool":"call_ai","payload":{"prompt":"Score...","model":"sonnet","agent":"claude","json_mode":{...}}` |
+| `octave-enrich-person` | `call_ai` sonnet + `"allowed_tools":"WebSearch"` | 1 pass |
+| `octave-run-sequence-runner` | Pass 1: `call_ai` haiku (signals) → Pass 2: `call_ai` sonnet (email) | 2 separate enrich calls |
+| `social-posts-*` | `apify_run_actor_sync` (`apimaestro/linkedin-profile-scraper`) | Run-as-button in Clay — omit unless requested |
+| `score-your-data` (unconfigured) | `run_javascript` keyword scorer | `"tool":"run_javascript","payload":{"code":"@$WORKDIR/score_row.js"}` |
+| `add-lead-to-campaign` (Smartlead) | `smartlead_api_request` (POST /v1/campaigns/{id}/leads) | `"tool":"smartlead_api_request","payload":{"method":"POST","endpoint":"/v1/campaigns/<id>/leads","data":{...}}` |
+| `add-lead-to-campaign` (Instantly) | `instantly_add_to_campaign` | `"tool":"instantly_add_to_campaign","payload":{"campaign_id":"...","leads":[...]}` |
+| `add-lead-to-campaign` (HeyReach) | `heyreach_add_to_campaign` | LinkedIn sequences; run `deepline tools search "add leads campaign"` to see all platforms |
+| `exa_search` | `exa_search` | Direct equivalent |
 
 ---
 
