@@ -1,3 +1,8 @@
+---
+name: contact-to-email
+description: "Find and verify email addresses for contacts. Handles name+company, LinkedIn URL, or name+domain starting points."
+---
+
 # Contact → Email
 
 This skill is a router. Do not invent your own email workflow here. Read the `gtm-meta-skill` doc `enriching-and-researching.md` and use the native plays documented there.

@@ -1,3 +1,8 @@
+---
+name: build-tam
+description: "Build a Total Addressable Market list by sourcing accounts and contacts from providers like Apollo, Crustdata, and PDL."
+---
+
 # Provider-Led Account And Contact Sourcing
 
 This skill now follows the same documentation pattern as `gtm-meta-skill`.

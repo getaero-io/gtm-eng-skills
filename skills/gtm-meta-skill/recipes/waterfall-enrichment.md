@@ -1,3 +1,8 @@
+---
+name: waterfall-enrichment
+description: "Run multiple enrichment providers in sequence, stopping at the first valid result to maximize coverage and minimize cost."
+---
+
 # Waterfall Enrichment
 
 The waterfall pattern runs multiple enrichment providers in sequence and stops as soon as one returns a valid result. This maximizes coverage while minimizing cost — you only pay for lookups that actually run.

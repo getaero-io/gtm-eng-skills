@@ -1,3 +1,8 @@
+---
+name: linkedin-url-lookup
+description: "Resolve LinkedIn profile URLs from name + company with strict identity validation to avoid false positives."
+---
+
 # LinkedIn URL Lookup
 
 Resolve LinkedIn profile URLs from name + company with strict identity validation. **Without validation, expect ~54% false positive rate** — this skill handles the edge cases that break naive lookups.

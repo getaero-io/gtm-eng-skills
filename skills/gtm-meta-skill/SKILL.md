@@ -1,6 +1,6 @@
 ---
 name: gtm-meta-skill
-description: "Use this skill for GTM prospecting, enrichment, qualification, and outbound workflows, especially when users mention Deepline, CSV processing, lead/account/contact research, waterfall enrichment, email or LinkedIn lookup, personalization, scoring, or campaign activation. Route CSV-heavy and provider-driven requests through this skill, then rely on linked sub-docs and provider playbooks for execution details. Available providers: adyntel, apify, apollo, crustdata, deepline_native, dropleads, exa, forager, google_search, heyreach, hunter, icypeas, instantly, leadmagic, lemlist, parallel, peopledatalabs, prospeo, smartlead, zerobounce."
+description: "Use this skill for GTM prospecting, enrichment, qualification, and outbound workflows, especially when users mention Deepline, CSV processing, lead/account/contact research, waterfall enrichment, email or LinkedIn lookup, personalization, scoring, or campaign activation. Route CSV-heavy and provider-driven requests through this skill, then rely on linked sub-docs and provider playbooks for execution details. Available providers: adyntel, apify, apollo, cloudflare, crustdata, deepline_native, dropleads, exa, firecrawl, forager, google_search, heyreach, hunter, icypeas, instantly, leadmagic, lemlist, parallel, peopledatalabs, prospeo, smartlead, zerobounce."
 ---
 
 # GTM Meta Skill
@@ -126,6 +126,10 @@ GTM time windows, thresholds, and interpretation rules are defined in the Defini
   Summary: Cheap but mediocre quality people/company search with include_similar_titles=true unless strict mode is explicitly requested.
   Last reviewed: 2026-02-11
 
+- [cloudflare playbook](provider-playbooks/cloudflare.md)
+  Summary: Use cloudflare_crawl to crawl websites and extract content as markdown, HTML, or JSON. Returns partial results on timeout — check timedOut field. Browser rendering is enabled by default.
+  Last reviewed: 2026-03-11
+
 - [crustdata playbook](provider-playbooks/crustdata.md)
   Summary: Start with free autocomplete and default to fuzzy contains operators `(.)` for higher recall.
   Last reviewed: 2026-02-11
@@ -141,6 +145,10 @@ GTM time windows, thresholds, and interpretation rules are defined in the Defini
 - [exa playbook](provider-playbooks/exa.md)
   Summary: Use search/contents before answer for auditable retrieval, then synthesize with explicit citations.
   Last reviewed: 2026-02-11
+
+- [firecrawl playbook](provider-playbooks/firecrawl.md)
+  Summary: Web scraping, crawling, search, and AI extraction. Use firecrawl_scrape for single pages, firecrawl_search for web search + scraping, firecrawl_map for URL discovery, firecrawl_crawl for multi-page crawls, firecrawl_extract for structured extraction.
+  Last reviewed: 2026-03-11
 
 - [forager playbook](provider-playbooks/forager.md)
   Summary: Use totals endpoints first (free) to estimate volume, then search/lookup with reveal flags for contacts. Strong for verified mobiles.

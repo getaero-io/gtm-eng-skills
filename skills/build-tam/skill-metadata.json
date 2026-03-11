@@ -1,0 +1,12 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Provider-Led Account And Contact Sourcing",
+      "tags": [
+        "recipe"
+      ],
+      "providers": []
+    }
+  }
+}

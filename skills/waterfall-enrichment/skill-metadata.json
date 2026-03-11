@@ -1,0 +1,12 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Waterfall Enrichment",
+      "tags": [
+        "recipe"
+      ],
+      "providers": []
+    }
+  }
+}

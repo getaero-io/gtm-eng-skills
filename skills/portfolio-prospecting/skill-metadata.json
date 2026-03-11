@@ -1,0 +1,12 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Portfolio/VC Prospecting",
+      "tags": [
+        "recipe"
+      ],
+      "providers": []
+    }
+  }
+}

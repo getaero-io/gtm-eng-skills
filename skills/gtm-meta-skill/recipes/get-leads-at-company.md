@@ -1,3 +1,8 @@
+---
+name: get-leads-at-company
+description: "From a company name, find GTM contacts, pick the best ICP match, and draft personalized outreach."
+---
+
 # Get Leads at Company
 
 From a company name (or list), this skill resolves the company identity, finds GTM employees, picks the best ICP match, researches their LinkedIn activity, and drafts personalized outreach — all in one enrichment chain.
