@@ -1,0 +1,35 @@
+{
+  "title": "Clay to Deepline",
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Clay to Deepline Migration Skill",
+      "tags": ["clay", "deepline", "migration"],
+      "providers": []
+    },
+    "references/clay-action-mappings.md": {
+      "kind": "guide",
+      "title": "Clay Action Mappings",
+      "tags": ["clay", "deepline", "tools"],
+      "providers": []
+    },
+    "references/script-templates.md": {
+      "kind": "guide",
+      "title": "Script Templates",
+      "tags": ["scripts", "bash", "deepline"],
+      "providers": []
+    },
+    "references/pitfalls.md": {
+      "kind": "guide",
+      "title": "Known Pitfalls and Fixes",
+      "tags": ["debugging", "errors"],
+      "providers": []
+    }
+  },
+  "default_document": {
+    "kind": "other",
+    "title": "Document",
+    "tags": [],
+    "providers": []
+  }
+}
