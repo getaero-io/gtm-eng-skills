@@ -42,8 +42,16 @@ All Dropleads filters nest under the `filters` object. Pagination nests under `p
 
 ## 3) Gate outbound with verifier status
 
-- Treat `invalid`, `catch_all`, and `unknown` as non-send by default.
-- Treat `valid` as the only status that passes automatic send gates.
+LeadMagic returns five distinct statuses — use this table as the send gate:
+
+| Status | Send? | Notes |
+|---|---|---|
+| `valid` | ✅ Yes | SMTP-verified, <1% bounce |
+| `valid_catch_all` | ✅ Yes | Engagement-confirmed on catch-all domain, <5% bounce — treat same as `valid` |
+| `catch_all` | ✅ Yes | Domain-level only, unverified, but sendable (same risk as Clay's default) |
+| `unknown` | ❌ No | Server no response; don't send |
+| `invalid` | ❌ No | Will bounce; discard |
+
 - Respect `credits_charged` in responses for post-execution billing accuracy.
 
 ## 4) Practical sequencing
