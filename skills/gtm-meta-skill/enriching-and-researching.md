@@ -600,7 +600,7 @@ Use this section as the default interpretation layer for GTM workflows when the 
 | `recent_funding` | lookback window = 12 months | Use for "recently funded" targeting when the user does not specify recency. |
 | `hiring_acceleration` | window = 90 days | Compare current hiring signals over the last 90 days. |
 | `new_exec_hire` | lookback window = 12 months | Applies to VP/CRO/CMO or equivalent leadership move signals. |
-| `verification_success` | `email_status` is `valid`, `valid_catch_all`, or `catch_all` | `valid_catch_all` = engagement-confirmed on catch-all domain (<5% bounce) — always accept. `catch_all` = domain-level, unverified but sendable. Reject `unknown` (server no response) and `invalid` (bounces). |
+| `verification_success` | `email_status == "valid"` | Treat `catch_all` and `unknown` as unresolved unless the user accepts risk. |
 | `pilot_scope` | first 1-2 rows | Default pilot size is `--rows 0:1` unless the user requests a different sample. |
 
 ### Output rule

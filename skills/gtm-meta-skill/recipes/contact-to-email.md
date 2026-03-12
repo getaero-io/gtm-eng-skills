@@ -87,13 +87,12 @@ After validation, check `validation.data.email_status`:
 
 | Status | Meaning | Action |
 |---|---|---|
-| `valid` | SMTP-verified deliverable, <1% bounce | ✅ Use for outreach |
-| `valid_catch_all` | Catch-all domain + engagement signal confirms address, <5% bounce | ✅ Use for outreach — best result for catch-all domains |
-| `catch_all` | Domain accepts all — unverifiable without engagement signal | ✅ Use with caution (same risk as Clay default) |
-| `unknown` | Could not verify (server no response) | ❌ Skip or try pattern matching |
-| `invalid` | Not deliverable | ❌ Skip or try another workflow |
+| `valid` | Deliverable | Use for outreach |
+| `catch_all` | Domain accepts all — inconclusive | Use with caution |
+| `invalid` | Not deliverable | Skip or try another workflow |
+| `unknown` | Could not verify | Try pattern matching as backup |
 
-> **Critical:** `valid_catch_all` is the highest-confidence result for catch-all domains. It is confirmed via engagement signals and has <5% bounce rate. Never treat it as `invalid` or `unknown`. Accept `valid`, `valid_catch_all`, and `catch_all`; reject `unknown` and `invalid`.
+> **Note:** `catch_all` is not a failure — many business domains use catch-all. Continue with outreach, just expect slightly higher bounce rates.
 
 ---
 
