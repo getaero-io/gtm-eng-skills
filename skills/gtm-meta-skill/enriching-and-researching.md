@@ -17,7 +17,8 @@ Run deepline enrich in the foreground so you don't waste tokens while it complet
 | Scenario | Use when | Default play/tool | Why |
 |---|---|---|---|
 | Name + company -> work email | You have strong person + account identifiers | `Name + company -> work email` | Stable default for deterministic email recovery |
-| LinkedIn URL -> work email | The LinkedIn profile is already known | `LinkedIn URL -> work email` | Better use of a strong profile identifier |
+| LinkedIn URL + name, no domain | You have a LinkedIn URL and name but no company domain (e.g. from a people search result) | `LinkedIn URL only -> work email` | waterfall from specific providers who just need these params; no domain resolution step needed |
+| LinkedIn URL -> work email | The LinkedIn profile and domain are both known | `LinkedIn URL -> work email` | Better use of a strong profile identifier when domain is available |
 | Email -> person/company context | You have an inbound or work email and need person + company details | `Email -> person/company context` | Good for hydrating context from a single strong identifier |
 | First + last + domain -> work email | Company name is missing but the domain is known | `First + last + domain -> work email` | Canonical cost-aware path for weaker but still structured identifiers |
 | Company -> persona lookup | You have an account and need candidate contacts by role or seniority | `Company -> persona lookup` | Canonical play for company-to-persona lookup |
@@ -41,7 +42,8 @@ Run deepline enrich in the foreground so you don't waste tokens while it complet
 - Domain lookup / homepage recovery is mechanical. Use `exa_search` with rich context or `google_search_google_search`, not `call_ai`.
 - Persona lookup means "find candidate contacts at a company for a target role or seniority." Treat that as a dedicated play, not as generic research.
 - Validate after recovery or coalescing, not during each waterfall step.
-- For contact-to-email work, route by the strongest identifiers you already have: name + company + domain -> `Name + company -> work email`, LinkedIn URL + name + domain -> `LinkedIn URL -> work email`, name + domain -> `First + last + domain -> work email`.
+- For contact-to-email work, route by the strongest identifiers you already have: name + company + domain -> `Name + company -> work email`, LinkedIn URL + name (no domain) -> `LinkedIn URL only -> work email`, LinkedIn URL + name + domain -> `LinkedIn URL -> work email`, name + domain -> `First + last + domain -> work email`.
+- If you got contacts from a people search (e.g. dropleads_search_people) and they have LinkedIn URLs but no domains, do NOT try to resolve domains first — use `person_linkedin_only_to_email_waterfall` directly.
 - Validation interpretation: `valid` is deliverable, `catch_all` is usable but riskier, `invalid` should be dropped, and `unknown` is unresolved.
 - Phone recovery usually comes later in the pipeline than email or LinkedIn recovery.
 - Prefer inline code for short `run_javascript` transforms. Only move code into files when the logic is long, reused, or too awkward to keep inline.
@@ -74,23 +76,47 @@ deepline enrich --input leads.csv --output leads_with_emails.csv --rows 0:1 \
   --with '{"alias":"email_from_name_company","tool":"name_and_company_to_email_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company_name}}","domain":"{{domain}}"}}'
 ```
 
+### LinkedIn URL only -> work email
+
+Problem category: LinkedIn-seeded email recovery with no domain.
+Input profile: `linkedin_url`, `first_name`, `last_name`.
+Output target: one best work email resolved from LinkedIn URL and name alone.
+
+Play tool: `person_linkedin_only_to_email_waterfall`
+
+Why this play:
+- Use when contacts came from a people search (e.g. dropleads_search_people) and have LinkedIn URLs but no company domains.
+- Do NOT resolve domains first — this play handles it without domain.
+- `dropleads_single_person_enrichment` resolves email from LinkedIn + name alone and hits on the first step in most cases.
+
+Play details:
+- Required inputs are `linkedin_url`, `first_name`, `last_name`.
+- `company_name` is optional and used as a hint.
+- Current provider order is `dropleads_single_person_enrichment -> deepline_native_enrich_contact -> crustdata_person_enrichment -> peopledatalabs_enrich_contact`.
+
+Example:
+
+```bash
+deepline enrich --input contacts.csv --output contacts_with_emails.csv --rows 0:1 \
+  --with '{"alias":"email","tool":"person_linkedin_only_to_email_waterfall","payload":{"linkedin_url":"{{linkedin_url}}","first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company_name}}"}}'
+```
+
 ### LinkedIn URL -> work email
 
-Problem category: LinkedIn-seeded email recovery.  
-Input profile: `linkedin_url`, `first_name`, `last_name`, `domain`.  
+Problem category: LinkedIn-seeded email recovery when domain is known.
+Input profile: `linkedin_url`, `first_name`, `last_name`, `domain`.
 Output target: one best work email resolved from a strong profile identifier.
 
 Play tool: `person_linkedin_to_email_waterfall`
 
 Why this play:
-- Uses the LinkedIn URL as a strong identity anchor.
-- Still expects structured identifiers; this is not a generic web-research job.
-- Better than trying to synthesize from web results.
+- Use when you have a LinkedIn URL and already know the company domain.
+- Adds domain-dependent providers (dropleads_email_finder, hunter, leadmagic) before the LinkedIn-native fallbacks.
+- If you do not have the domain, use `person_linkedin_only_to_email_waterfall` instead.
 
 Play details:
 - Required inputs are `linkedin_url`, `first_name`, `last_name`, and `domain`.
-- `company_name` is optional, but the deterministic providers still rely on the name + domain inputs.
-- This is not a "LinkedIn URL only" play. If you only have the URL and not name/domain context, enrich the profile first rather than assuming the native play will cover it.
+- `company_name` is optional.
 - Current provider order is `dropleads_email_finder -> hunter_email_finder -> leadmagic_email_finder -> deepline_native_enrich_contact -> crustdata_person_enrichment -> peopledatalabs_enrich_contact`.
 
 Example:
@@ -254,9 +280,9 @@ Example:
 ```bash
 deepline enrich --input leads.csv --in-place --rows 0:1 \
   --with-waterfall "email" \
-  --with '{"alias":"dropleads","tool":"dropleads_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company_name}}","company_domain":"{{domain}}"},"extract_js":"extract(\"email\")"}' \
-  --with '{"alias":"hunter","tool":"hunter_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"},"extract_js":"extract(\"email\")"}' \
-  --with '{"alias":"leadmagic","tool":"leadmagic_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"},"extract_js":"extract(\"email\")"}' \
+  --with '{"alias":"dropleads","tool":"dropleads_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company_name}}","company_domain":"{{domain}}"},"extract_js":"(output_data) => extract(\"dropleads_email_finder\", output_data, \"email\")"}' \
+  --with '{"alias":"hunter","tool":"hunter_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"},"extract_js":"(output_data) => extract(\"hunter_email_finder\", output_data, \"email\")"}' \
+  --with '{"alias":"leadmagic","tool":"leadmagic_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"},"extract_js":"(output_data) => extract(\"leadmagic_email_finder\", output_data, \"email\")"}' \
   --end-waterfall \
   --with '{"alias":"email_validation","tool":"leadmagic_email_validation","payload":{"email":"{{email}}"}}'
 ```
