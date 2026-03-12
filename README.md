@@ -60,6 +60,7 @@ Without Deepline, you'd need to:
 | [`get-leads-at-company`](skills/get-leads-at-company/SKILL.md) | Find GTM contacts at a company, pick best ICP fit, research posts, draft outreach |
 | [`build-tam`](skills/build-tam/SKILL.md) | Build your Total Addressable Market from ICP filters using Apollo, PDL, and Crustdata |
 | [`linkedin-url-lookup`](skills/linkedin-url-lookup/SKILL.md) | Resolve LinkedIn profile URLs from name+company with nickname handling and Apify verification |
+| [`clay-to-deepline`](skills/clay-to-deepline/SKILL.md) | Migrate Clay table configurations to local Deepline enrichment scripts — schema analysis, dependency graph, and script generation |
 
 ---
 
@@ -85,7 +86,7 @@ deepline auth login
 npx skills add getaero-io/gtm-eng-skills --all
 ```
 
-This installs all 6 skills and symlinks them into your agent directories.
+This installs all skills and symlinks them into your agent directories.
 
 To install specific skills only:
 
@@ -139,6 +140,9 @@ Once installed, describe your task and Claude applies the right skill automatica
 
 **Waterfall enrichment:**
 > "Enrich my CSV with phone numbers using the waterfall pattern"
+
+**Clay migration:**
+> "I have this Clay table export — convert it to a Deepline enrichment script"
 
 ---
 
