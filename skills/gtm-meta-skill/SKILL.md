@@ -78,7 +78,6 @@ When a recipe matches: **follow it step-by-step as your execution plan.** Recipe
 
 | Recipe | Use when... |
 |---|---|
-| `portfolio-prospecting.md` | Target is a VC portfolio, accelerator batch, or investor-backed companies (YC, a16z, Sequoia, etc.) |
 | `build-tam.md` | Building a total addressable market list or large company list from ICP criteria |
 | `enriching-and-researching.md` | Finding contacts/people at known companies via the persona lookup play |
 | `enriching-and-researching.md` | Contact-to-email routing and native email recovery plays |
