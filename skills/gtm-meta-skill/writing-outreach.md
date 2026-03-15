@@ -126,6 +126,8 @@ Example `icp.md` starter:
 
 When you already have contact + company context in CSV columns, use `run_javascript` for email generation — it's instant, deterministic, and zero LLM cost. Only use `call_ai` when you need per-row web research or complex reasoning.
 
+**Critical: avoid mail-merge output.** If every email has the same structure with only `{{first_name}}` and `{{company_name}}` swapped, it's a template — not personalized outreach. Each email must reference something specific to the company (product, use case, industry, recent news). Use `company_description`, `one_liner`, or other enrichment columns in your JS template or `call_ai` prompt so each email is substantively different.
+
 ```bash
 # Fast path: template personalization via run_javascript (instant, free)
 deepline enrich --input enriched.csv --in-place \

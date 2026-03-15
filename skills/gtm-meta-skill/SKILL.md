@@ -17,6 +17,8 @@ Use this skill for prospecting, account research, contact enrichment, verificati
 
 Customer is generally trying to go from "I have an ICP" to "Here's a list of prospects with email/linkedin and very personalized content or signals". They may be anywhere in this process, but guide them along.
 
+**Discovery order: companies first, then people.** When the task requires finding contacts at companies matching criteria (portfolio, ICP, hiring signal), discover the company set first, then find people at each company. Do not start with broad people-search queries.
+
 ### When ICP context matters (and when it doesn't)
 
 ICP context is required for:

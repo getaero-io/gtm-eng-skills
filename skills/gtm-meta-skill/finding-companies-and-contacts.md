@@ -4,9 +4,11 @@ Use this doc for discovery, sourcing, TAM/list building, known-source extraction
 
 This doc does **not** cover email waterfalls, row-level `deepline enrich` mechanics, coalescing, validation, or personalization columns. If you already have rows and need to fill or transform columns, stop and use `enriching-and-researching.md`.
 
-## Core rule
+## Core rules
 
 Default to discovery/search here. The moment the work becomes per-row enrichment, hand off to `enriching-and-researching.md`.
+
+**Companies first, then people.** When the task involves finding contacts at companies matching criteria (ICP, portfolio, accelerator, hiring signal), always discover the company set first, then search for people at those companies. Do not start with people-search tools (`exa_people_search`, `dropleads_search_people`, etc.) using broad title+industry queries — you will get noisy, unaffiliated results. The only exception is when the user provides a specific named company list and only needs contacts.
 
 Use a list-building/search subagent when discovery is genuinely multi-provider and non-trivial. Tell subagents to read this file. Only use the parent agent inline for small, obvious lookups.
 
@@ -53,6 +55,7 @@ After tool discovery, do not jump straight into broad execution. Shortlist 1-2 r
 | 4 | Execute a count-like or narrow first pass | Cheaply confirm fit before full pull |
 
 Anti-patterns:
+- **jumping to people-search first** — searching for "GTM Engineer at YC startup" via `exa_people_search` or `dropleads_search_people` before having a company list. Find companies first, then find people at each.
 - reconstructing a known directory with repeated search queries
 - firing all providers in parallel before routing
 - guessing filter names or enum values
@@ -88,10 +91,9 @@ Recommended course of action:
 1. Start with the audience you actually care about: people, companies, jobs, or a rough domain-level signal.
 2. Prefer a dedicated count endpoint when one exists.
 3. Otherwise run the likely retrieval path with `limit:1`, `per_page:1`, or `size:1`.
-4. For sizing passes, use `--payload-output-format json_file`.
-5. Read totals from the raw payload, not preview output.
-6. If the first path is weak, switch to a closer retrieval path or a better-matched count path.
-7. Only pull full pages after the audience shape and size look right.
+4. Read totals from the inline output (counts render directly, rows auto-extract to CSV with preview).
+5. If the first path is weak, switch to a closer retrieval path or a better-matched count path.
+6. Only pull full pages after the audience shape and size look right.
 
 ### Trying to size a people audience
 
@@ -109,17 +111,15 @@ Good first paths:
 - Prospeo person search with `page:1`
 - PDL person search with `size:1`
 
-Use `--payload-output-format json_file` for these sizing passes:
-
 ```bash
-deepline tools execute dropleads_get_lead_count --payload '{"filters":{"jobTitles":["CEO"],"industries":["Technology"]}}' --payload-output-format json_file
-deepline tools execute dropleads_search_people --payload '{"filters":{"jobTitles":["VP Sales"],"industries":["Technology"]},"pagination":{"page":1,"limit":1}}' --payload-output-format json_file
-deepline tools execute apollo_search_people --payload '{"page":1,"per_page":1}' --payload-output-format json_file
-deepline tools execute apollo_people_search_paid --payload '{"q_keywords":"sales","per_page":1,"page":1}' --payload-output-format json_file
-deepline tools execute forager_person_role_search_totals --payload '{"role_title":"\"Software Engineer\""}' --payload-output-format json_file
-deepline tools execute icypeas_count_people --payload '{"query":{"currentJobTitle":{"include":["CTO"]}}}' --payload-output-format json_file
-deepline tools execute prospeo_search_person --payload '{"person_job_title":{"include":["VP Sales"]},"page":1}' --payload-output-format json_file
-deepline tools execute peopledatalabs_person_search --payload '{"query":{"bool":{"must":[{"term":{"location_country":"United States"}},{"term":{"job_title_role":"marketing"}}]}},"size":1}' --payload-output-format json_file
+deepline tools execute dropleads_get_lead_count --payload '{"filters":{"jobTitles":["CEO"],"industries":["Technology"]}}'
+deepline tools execute dropleads_search_people --payload '{"filters":{"jobTitles":["VP Sales"],"industries":["Technology"]},"pagination":{"page":1,"limit":1}}'
+deepline tools execute apollo_search_people --payload '{"page":1,"per_page":1}'
+deepline tools execute apollo_people_search_paid --payload '{"q_keywords":"sales","per_page":1,"page":1}'
+deepline tools execute forager_person_role_search_totals --payload '{"role_title":"\"Software Engineer\""}'
+deepline tools execute icypeas_count_people --payload '{"query":{"currentJobTitle":{"include":["CTO"]}}}'
+deepline tools execute prospeo_search_person --payload '{"person_job_title":{"include":["VP Sales"]},"page":1}'
+deepline tools execute peopledatalabs_person_search --payload '{"query":{"bool":{"must":[{"term":{"location_country":"United States"}},{"term":{"job_title_role":"marketing"}}]}},"size":1}'
 ```
 
 Default to Dropleads first for people-audience sizing. It is usually the strongest free first pass here and gives you LinkedIn-rich retrieval if you continue.
@@ -135,9 +135,9 @@ Use this when the user wants to know how many accounts match the ICP.
 Start with a structured company path at `limit:1`, then move to dedicated totals only if they fit better.
 
 ```bash
-deepline tools execute crustdata_companydb_search --payload '{"filters":[{"filter_type":"crunchbase_categories","type":"in","value":["Identity Management","Fraud Detection"]},{"filter_type":"hq_country","type":"=","value":"USA"},{"filter_type":"employee_count_range","type":"in","value":["51-200","201-500"]},{"filter_type":"last_funding_round_type","type":"in","value":["Series A","Series B"]}],"limit":1}' --payload-output-format json_file
-deepline tools execute forager_organization_search_totals --payload '{"industries":[1]}' --payload-output-format json_file
-deepline tools execute prospeo_search_company --payload '{"company":{"names":{"include":["Intercom"]},"websites":{"include":["intercom.com"]}},"page":1}' --payload-output-format json_file
+deepline tools execute crustdata_companydb_search --payload '{"filters":[{"filter_type":"crunchbase_categories","type":"in","value":["Identity Management","Fraud Detection"]},{"filter_type":"hq_country","type":"=","value":"USA"},{"filter_type":"employee_count_range","type":"in","value":["51-200","201-500"]},{"filter_type":"last_funding_round_type","type":"in","value":["Series A","Series B"]}],"limit":1}'
+deepline tools execute forager_organization_search_totals --payload '{"industries":[1]}'
+deepline tools execute prospeo_search_company --payload '{"company":{"names":{"include":["Intercom"]},"websites":{"include":["intercom.com"]}},"page":1}'
 ```
 
 When the sizing path looks right, rerun the chosen pull path in normal output mode.
@@ -152,11 +152,9 @@ Start here:
 - job totals if the job market itself is the thing being sized
 - hiring evidence on known companies if you already have the company set
 
-Use `--payload-output-format json_file` for these sizing passes:
-
 ```bash
-deepline tools execute forager_job_search_totals --payload '{"title":"\"Sales Engineer\""}' --payload-output-format json_file
-deepline tools execute hunter_discover --payload '{"query":"B2B SaaS companies","limit":1}' --payload-output-format json_file
+deepline tools execute forager_job_search_totals --payload '{"title":"\"Sales Engineer\""}'
+deepline tools execute hunter_discover --payload '{"query":"B2B SaaS companies","limit":1}'
 ```
 
 ### Trying to get a rough domain-level signal
@@ -166,10 +164,8 @@ Use this when the user wants a quick directional answer about a company or domai
 Start here:
 - domain-level count endpoints
 
-Use `--payload-output-format json_file` for this directional sizing pass:
-
 ```bash
-deepline tools execute hunter_email_count --payload '{"domain":"stripe.com"}' --payload-output-format json_file
+deepline tools execute hunter_email_count --payload '{"domain":"stripe.com"}'
 ```
 
 Watch out for:
@@ -187,7 +183,7 @@ Start here:
 Representative command:
 
 ```bash
-deepline tools execute crustdata_people_search --payload '{"companyDomain":"notion.so","titleKeywords":["VP","Head"],"limit":1}' --payload-output-format json_file
+deepline tools execute crustdata_people_search --payload '{"companyDomain":"notion.so","titleKeywords":["VP","Head"],"limit":1}'
 ```
 
 Watch out for:
@@ -275,9 +271,19 @@ deepline tools execute dropleads_search_people --payload '{"filters":{"jobTitles
 
 ### Tiny-startup fallback
 
+exa_people_search returns keyword-matched LinkedIn profiles, not verified employees. For startups <50 people, expect freelancers and consultants matching across multiple companies. Check each result's title for the correct company name before using it; if >30% are unaffiliated, switch to `call_ai` with `WebSearch`.
+
+**Disambiguate common company names.** If the company name is a common word (e.g. "Ergo", "Bloom", "Newton"), add disambiguating context to the query — accelerator batch (`YC W25`), domain (`joinergo.com`), or product description. Without this, Exa returns people from unrelated companies with the same name.
+
 ```bash
-deepline tools execute exa_people_search --payload '{"query":"GTM or Growth leader at Anthropic","numResults":5}'
+# Bad — "Ergo" matches ERGO Direkt AG, ErgoPack, THE ERGO CORP, etc.
+deepline tools execute exa_people_search --payload '{"query":"GTM engineer at Ergo","numResults":5}'
+
+# Good — YC batch + domain disambiguates
+deepline tools execute exa_people_search --payload '{"query":"GTM engineer at Ergo joinergo.com YC W25","company_name":"Ergo","numResults":5}'
 ```
+
+Use `company_name` to pass the target company as structured input — it appends to the query if not already present and tags the response meta for downstream validation.
 
 ## Role-based contact search
 
@@ -294,7 +300,7 @@ For small companies, switch to `exa_people_search` sooner.
 Use this section when the user wants companies that are actively hiring for a specific role or likely need a specific function.
 
 Recommended course of action:
-1. Discover the plausible company set first.
+1. Discover the plausible company set first. If companies come from a known portfolio or accelerator (YC, a16z, etc.), extract the portfolio first via `Known-source extraction` — you'll get domains for free and skip domain-resolution.
 2. Then qualify that set with hiring evidence.
 3. Use public-job or semantic evidence only when structured hiring coverage is thin.
 4. Treat hiring as a qualification layer, not the only discovery step.
@@ -436,8 +442,8 @@ Do the tool search once near the top, inspect the shortlisted tools, then pick t
 | `crustdata_companydb_autocomplete` | Canonical filter value lookup | — | free | Run before `companydb_search` for enums like `crunchbase_categories`, `linkedin_industries`, and funding stages. Requires a non-empty query. |
 | `crustdata_job_listings` | Hiring signals at known companies | company domains | ~0.4 cr/result | Spotty coverage on smaller companies; no server-side title filter. Missing jobs is not strong negative evidence on small accounts. |
 | `crustdata_people_search` | LinkedIn-oriented person discovery | company domain, title keywords | ~1 cr | Better as structured fallback than TAM source of truth. Useful for retrieval fit checks, but weak as a source-of-truth sizing path. |
-| `exa_search` | Concept-driven company/people discovery | semantic query | ~5 cr with contents | Expect noisy discard rate; not ideal for crisp ICP filtering. Also the quick answer for company domain lookup when you can provide rich context. `category:"company"` cannot be combined with `includeDomains`/`includeText`; use plain search plus domain scoping when you need source-bounded discovery. |
-| `exa_people_search` | Contacts at small startups | query string | ~0.1 cr/result | Strong default for tiny startups. Returns associated people/entities, not guaranteed exact role owners, so validate against title/work history before handoff. |
+| `exa_search` | Concept-driven company/people discovery | semantic query | ~5 cr with contents | Expect noisy discard rate; not ideal for crisp ICP filtering. When searching for companies associated with an accelerator/investor, top results tend to be the accelerator's directory page (e.g. `ycombinator.com/companies/X`), not the company's own domain — use `parallel_extract` on the portfolio page instead. `category:"company"` cannot be combined with `includeDomains`/`includeText`; use plain search plus domain scoping when you need source-bounded discovery. |
+| `exa_people_search` | Contacts at small startups | query string | ~0.1 cr/result | Returns keyword-matched profiles, not verified employees — expect freelancers for <50-person companies. Filter by company name before handoff. |
 | `exa_research` | Deep multi-source synthesis | outputSchema, multi-query | ~10 cr | Use for research, not list building |
 | `dropleads_search_people` | Free structured people discovery | titles, seniority, headcount, geography, keywords | free | Poor startup coverage under ~50 employees. Split keyword phrases into separate tokens. Prefer `companyDomains` over `companyNames`. `jobTitles` already does fuzzy/substring matching; `jobTitlesExactMatch` is not useful. Start with `limit:1` when exploring. |
 | `dropleads_get_lead_count` | Sizing before full pull | same as search_people | free | Best cheap sizing path for Dropleads. Use before paging through full people-search pulls. |

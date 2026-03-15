@@ -270,7 +270,7 @@ Why this play:
 
 Key waterfall rules:
 - Always pilot first with `--rows 0:1`, then scale after the shape looks right.
-- Every waterfall step needs its own `extract_js`.
+- Every waterfall step needs its own `extract_js`. Before writing it: run `deepline tools get <tool>` to see the response shape, then confirm the path from `result.data`. Use `@path/to/file.js` for multi-line or regex-heavy JS — inline JS in `--with` JSON breaks on escapes.
 - Close each waterfall with `--end-waterfall` before starting another one.
 - Do not run email waterfalls without minimum match data: name + company, name + domain, or a strong LinkedIn-seeded identity.
 - If you need different validation behavior, remember the native cost-aware play only accepts pattern hits when the validator says `valid`.
@@ -287,6 +287,19 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
   --with '{"alias":"email_validation","tool":"leadmagic_email_validation","payload":{"email":"{{email}}"}}'
 ```
 
+If extract_js returns raw objects instead of scalars, you can store the raw response and use `run_javascript` in a second pass to parse it — useful when you need to inspect the shape before writing extraction logic.
+
+## Post-enrichment validation
+
+After enrichment, validate data quality before moving to the next phase. Run read-only checks — never modify the enriched CSV during validation.
+
+```bash
+# Email domain vs company domain — catches previous-employer or wrong-contact emails
+python3 ~/.claude/skills/gtm-meta-skill/scripts/validate-emails.py enriched.csv \
+    --email-col email --domain-col domain
+```
+
+Flag and investigate mismatched rows — these are often from a previous employer or a wrong-person match. If >20% of rows mismatch, the contact-finding step likely needs re-running with better company disambiguation.
 
 ## Custom enrichment with call_ai
 
