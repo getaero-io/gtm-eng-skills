@@ -15,5 +15,5 @@ deepline tools execute peopledatalabs_person_search --payload '{"query":{"bool":
 ```
 
 ```bash
-deepline tools execute peopledatalabs_autocomplete --payload '{"field":"job_title","text":"growth"}' 
+deepline tools execute peopledatalabs_autocomplete --payload '{"field":"title","text":"growth"}' 
 ```

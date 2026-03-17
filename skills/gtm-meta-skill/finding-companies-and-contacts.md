@@ -437,38 +437,945 @@ Do the tool search once near the top, inspect the shortlisted tools, then pick t
 
 | Tool | Best for | Server-side filters | Cost | Gotchas |
 |---|---|---|---|---|
-| `curl` / `parallel_extract` / `WebFetch` | Known URLs like VC portfolios, job boards, team pages | URL + optional CSS/objective | free or ~1 cr | Prefer direct fetch over reconstructing known pages via search. One fetch often returns the complete dataset; search tools usually return fragments. Use `parallel_extract` for JS-rendered pages. |
-| `crustdata_companydb_search` | Company lists with ICP constraints | funding, headcount, geography, industry, investor, growth | ~1 cr/search | `hq_country` must use ISO 3-letter codes like `USA`, not full country names. Use `employee_count_range` for filtering, not `employee_metrics.latest_count`. Prefer `crunchbase_categories` over `linkedin_industries` for niche verticals. Response already includes firmographics and `employee_metrics.growth_6m_percent`; extract them directly instead of re-enriching. |
-| `crustdata_companydb_autocomplete` | Canonical filter value lookup | — | free | Run before `companydb_search` for enums like `crunchbase_categories`, `linkedin_industries`, and funding stages. Requires a non-empty query. |
-| `crustdata_job_listings` | Hiring signals at known companies | company domains | ~0.4 cr/result | Spotty coverage on smaller companies; no server-side title filter. Missing jobs is not strong negative evidence on small accounts. |
-| `crustdata_people_search` | LinkedIn-oriented person discovery | company domain, title keywords | ~1 cr | Better as structured fallback than TAM source of truth. Useful for retrieval fit checks, but weak as a source-of-truth sizing path. |
-| `exa_search` | Concept-driven company/people discovery | semantic query | ~5 cr with contents | Expect noisy discard rate; not ideal for crisp ICP filtering. When searching for companies associated with an accelerator/investor, top results tend to be the accelerator's directory page (e.g. `ycombinator.com/companies/X`), not the company's own domain — use `parallel_extract` on the portfolio page instead. `category:"company"` cannot be combined with `includeDomains`/`includeText`; use plain search plus domain scoping when you need source-bounded discovery. |
-| `exa_people_search` | Contacts at small startups | query string | ~0.1 cr/result | Returns keyword-matched profiles, not verified employees — expect freelancers for <50-person companies. Filter by company name before handoff. |
-| `exa_research` | Deep multi-source synthesis | outputSchema, multi-query | ~10 cr | Use for research, not list building |
-| `dropleads_search_people` | Free structured people discovery | titles, seniority, headcount, geography, keywords | free | Poor startup coverage under ~50 employees. Split keyword phrases into separate tokens. Prefer `companyDomains` over `companyNames`. `jobTitles` already does fuzzy/substring matching; `jobTitlesExactMatch` is not useful. Start with `limit:1` when exploring. |
-| `dropleads_get_lead_count` | Sizing before full pull | same as search_people | free | Best cheap sizing path for Dropleads. Use before paging through full people-search pulls. |
-| `google_search_google_search` | URL discovery and `site:`-scoped searches | query string | free | Without `site:` and quotes it gets noisy fast |
-| `parallel_search` | Broad discovery when source domains are unknown | objective string | ~1 cr | Lower precision than domain-scoped search |
-| `parallel_extract` | JS-rendered page extraction | URLs + objective | ~1 cr | Slower, but ideal for portfolio pages and job boards |
-| `apollo_people_search` | People fallback when Dropleads returns 0 | title, domain, location | ~0.2 cr | Fallback only |
-| `apollo_people_search_paid` | Large-company contact pull with email | domain, title keywords | 1 cr/result | Expensive, but useful for large companies |
-| `hunter_email_finder` | Email finding in waterfalls | domain, first/last name | ~0.3 cr | Weak on small startups |
-| `peopledatalabs_company_search` | SQL-heavy company search | SQL | expensive | Last resort after easier providers. Be careful with shell quoting for SQL payloads; prefer heredocs or payload files instead of brittle inline escaping. |
-| `crustdata_person_enrichment` | LinkedIn profile enrichment | LinkedIn URL | ~1 cr | Better for enrichment than discovery |
-| `apify_run_actor_sync` | LinkedIn scraping | actor-specific | varies | Faster and more structured than `call_ai` for LinkedIn tasks. Prefer this over LLM-driven scraping when the source is already known. |
-| `adyntel_facebook_ad_search` | Meta keyword ad search | keyword | ~1 cr | Extra channel coverage, not default discovery |
-| WebSearch/WebFetch | General web research | query string | free | Good for discovery and quick verification |
+| `curl` / `parallel_extract` / `WebFetch` | Data at known URLs: VC portfolios, accelerator directories, job boards, team pages, conference speaker lists | URL + optional CSS/objective | free (`curl`) or ~1 cr (`parallel_extract`) | Use `curl` for static HTML, `parallel_extract` for JS-rendered pages. A single fetch returns the complete dataset — search tools return fragments requiring 10+ calls to piece together. |
+| `crustdata_companydb_search` | Company lists with ICP constraints (funding, headcount, geography, industry) | funding stage, headcount range, hq_country, crunchbase_categories, linkedin_industries, employee growth, investor | ~1 cr/search | `hq_country` = ISO 3-letter codes (`USA` not `United States`) — silent empty on wrong format. Use `crunchbase_categories` for niche verticals (Fraud Detection, Identity Management), not `linkedin_industries` (too broad). Response includes headcount + funding — don't re-enrich with `call_ai`. `employee_metrics.growth_6m_percent` is a free hiring proxy. |
+| `crustdata_companydb_autocomplete` | Get canonical filter values before searching | — | free | Always run before `companydb_search` for fields like `crunchbase_categories`, `linkedin_industries`, `last_funding_round_type`. Requires non-empty `query` (≥1 char). |
+| `crustdata_job_listings` | Hiring signals at known companies | company domains | ~0.4 cr/result | Batch domains in one call. Spotty coverage on <200 emp companies — only ~25% have listings. No server-side title filter — filter client-side. |
+| `crustdata_people_search` | LinkedIn-oriented person discovery | company domain, title keywords | ~1 cr | — |
+| `exa_search` | Concept-driven company/people discovery, gap-filling | semantic query only (no ICP filters) | ~5 cr with contents | Returns unfiltered results — expect to discard 30-50%. `category:"company"` incompatible with `includeDomains`/`includeText`. |
+| `exa_people_search` | Contacts at small startups (<50 emp) | query string | ~0.1 cr/result | Returns structured entities. Use via `deepline enrich`. |
+| `exa_research` | Deep multi-source synthesis | outputSchema, multi-query | ~10 cr | Slow. Use for research, not list building. |
+| `dropleads_search_people` | People discovery + segmentation with structured filters | job titles, seniority, headcount, geography, keywords | free | Near-zero coverage for <50 emp startups. `keywords` must be split: `["GTM","Engineer"]` not `["GTM Engineer"]`. |
+| `dropleads_get_lead_count` | Sizing before full pull | same as search_people | free | — |
+| `google_search_google_search` | URL discovery, `site:` scoped searches | query string | free | Keyword soup without `site:` = noisy. Use `site:` + quoted phrases for precision. |
+| `parallel_search` | Broad discovery when you don't know which domains hold the data | objective string | ~1 cr | Lower precision than domain-scoped search. |
+| `parallel_extract` | URL-bound extraction, JS-rendered pages | URLs + objective | ~1 cr | Slow. Good for portfolio pages, job boards. |
+| `apollo_people_search` | People fallback when dropleads returns 0 | title, domain, location | ~0.2 cr | Mixed quality. Fallback only. |
+| `apollo_people_search_paid` | Large company contact pull with email | domain, title keywords | 1 cr/result | Expensive. Good coverage for large cos. |
+| `hunter_email_finder` | Email finding in waterfall | domain, first/last name | ~0.3 cr | Poor coverage for <50 emp companies. |
+| `peopledatalabs_company_search` | SQL-based company search | SQL (industry, size, funding, location) | expensive | Last resort. Exhaust others first. |
+| `crustdata_person_enrichment` | LinkedIn profile enrichment | LinkedIn URL | ~1 cr | — |
+| `apify_run_actor_sync` | LinkedIn scraping (profiles, company employees) | actor-specific | varies | Structured data, faster than `call_ai` + WebSearch. |
+| `adyntel_facebook_ad_search` | Meta keyword-based ad search | keyword | ~1 cr | Additional channel coverage. |
+| WebSearch/WebFetch | General web research, quick lookups | query string | free | Great for discovery and list building. |
 
-## Handoff to enrichment
+## Subagent orchestration
 
-The moment the task becomes "fill columns on these rows", route out.
+When the `deepline-list-builder` subagent is available, use it to fan out searches across providers in parallel. Each provider search runs in an isolated context (no context pollution), results can be compared side-by-side, and the main agent stays clean for merging/dedup.
 
-Trigger phrases:
-- "find work emails"
-- "validate these emails"
-- "research each company"
-- "add a personalization column"
-- "coalesce providers"
-- "run a waterfall"
+**When to use:** Large multi-provider searches where you genuinely want to compare results across 3+ sources. Spawn one subagent per provider in a single tool call.
 
-At that point, stop discovery work and use `enriching-and-researching.md`.
+**When NOT to use:** Single-provider lookups, enrichment tasks (use `deepline enrich`), or when provider selection routing above points to one clear primary provider.
+
+## Role-based contact search (critical)
+
+**Never use exact job titles for people search filters.** Titles are too nuanced and vary wildly across companies (especially startups). Instead use broad keyword + seniority:
+
+- **Bad:** `person_titles: ["Head of Growth", "VP RevOps", "GTM Engineer"]` -- misses "Director of Growth Marketing", "Revenue Operations Lead", etc.
+- **Good:** `jobTitles: ["Growth"]` + `seniority: ["C-Level", "VP", "Director"]` -- catches all growth-related senior roles via fuzzy matching
+
+The pattern: use 1-2 broad keywords for the *function* (Growth, Sales, Revenue, Security, Fraud, Identity, RevOps, Marketing) and let seniority filters handle the level. This works across dropleads and crustdata.
+
+For small companies (<500 employees), people search often returns 0 with narrow title filters. Use broad keyword + seniority filters. Dropleads is free for people discovery but has near-zero coverage for tiny startups (<50 people). For small startups, use `exa_people_search` instead (see next section).
+
+## Finding contacts at known companies
+
+Pick the right tool based on what you have and what you need:
+
+| Tool | Cost | Input needed | Returns | Best for | Limitation |
+|---|---|---|---|---|---|
+| `exa_people_search` | 0.1 cr/result | company name + role keyword | Structured entities: name, title, LinkedIn, work history | Any company size, especially small startups | Finds *associated* people, not guaranteed exact role match |
+| `dropleads_search_people` | free | company domain or keyword filters | Name, title, email (sometimes), company | Mid/large companies (>50 employees) | Near-zero coverage for tiny startups (<50 people) |
+| `call_ai` + WebSearch | free (LLM cost only) | company name/domain | Unstructured — needs json_mode for parsing | Fallback when providers return 0 | Slow (~10s/row), prone to timeouts |
+| `apollo_people_search_paid` | 1 cr/result | domain, title keywords | Name, title, email, LinkedIn | Large companies with good Apollo coverage | Expensive, poor for small startups |
+
+**Default: `exa_people_search` via `deepline enrich`.** Returns structured person entities (name, title, LinkedIn, work history) — no parsing needed. Works across company sizes.
+
+```bash
+deepline enrich --input seed.csv --in-place --rows 0:1 \
+  --with '{"alias":"contact","tool":"exa_people_search","payload":{"query":"{{role}} at {{Company}}","numResults":3}}'
+```
+
+**Fallback: `dropleads_search_people`** when you need structured filters (seniority, geography, headcount) and companies are >50 employees. Then `call_ai` + WebSearch as last resort.
+
+## Sample calls by provider
+
+### Google Search
+
+**Query structuring:**
+- `site:` scoping to an authoritative domain is the highest-signal pattern -- use it whenever you know where the data lives.
+  - `site:ycombinator.com` -- YC company/job data.
+  - `site:crunchbase.com` -- funding and firmographic lookup.
+  - `site:linkedin.com/company` -- indexes company **tagline/description only**, not employee data.
+  - `site:linkedin.com` (broad) -- also surfaces **posts** (`/posts/...`). Useful for signal extraction.
+- Keyword soup without `site:` = noisy. Expect Reddit, newsletters, LinkedIn profiles, tangentially related content.
+- Use quoted phrases for exact match: `"Series B"`, `"GTM engineer"`. Combine with `site:` for high precision.
+
+```bash
+# YC job listings for a specific role
+deepline tools execute google_search_google_search --payload '{"query":"site:ycombinator.com \"GTM engineer\" \"Series B\"","num":10}'
+
+# Company LinkedIn URL discovery
+deepline tools execute google_search_google_search --payload '{"query":"\"{{Company}}\" site:linkedin.com/company","num":3}'
+```
+
+### Dropleads (people search)
+
+Default to `dropleads_search_people` for people discovery when you need structured filters. Use Apollo only when you need a fallback source.
+
+```bash
+deepline enrich --input leads.csv --in-place --rows 0:1 \
+  --with '{"alias":"people_search","tool":"dropleads_search_people","payload":{"filters":{"jobTitles":["Sales","Growth"],"seniority":["VP","Director","C-Level"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":5}}}'
+```
+
+Dropleads note: keep title filters broad (`jobTitles`) and allow seniority to do the heavy lifting.
+
+**Dropleads query gotchas:**
+- `keywords`: multi-word strings return 0 -- use `["GTM","engineer"]` not `["GTM Engineer"]`.
+- `jobTitles`: substring match, OR'd. Niche titles work (`"GTM Engineer"` = ~20 results).
+- `jobTitlesExactMatch`: no observable effect -- ignore it.
+- `companyNames`: fuzzy -- prefer `companyDomains` for precision.
+- `departments`/`seniority`: enum-only (see schema).
+- Use `limit:1` first to check `data.pagination.total`, then pull full pages. Don't iterate exploratory queries.
+
+### CrustData (company + person search, autocomplete)
+
+**Always read the crustdata integration docs (`src/lib/integrations/crustdata/`) before building filter payloads.** Filter field names, valid enum values, and operator behavior are non-obvious -- guessing wastes rounds.
+
+**Key rules:**
+- Run `crustdata_companydb_autocomplete` for any field where you don't know the exact canonical value. Autocomplete requires a non-empty `query` string (at least 1 character).
+- `employee_metrics.latest_count` is valid for `sorts` but NOT as a `filter_type` -- use `employee_count_range` (string enum like `"51-200"`, `"201-500"`) for headcount filters.
+- **`hq_country` uses ISO 3-letter codes**: `USA`, `GBR`, `IND`, `DEU`, etc. — NOT full country names. Passing `"United States"` returns 0 results with no error (silent failure).
+- **For niche verticals** (fraud, identity, compliance, fintech sub-segments), prefer `crunchbase_categories` over `linkedin_industries`. LinkedIn industries are broad buckets (`"Financial Services"`); crunchbase categories map to specific business functions (`"Fraud Detection"`, `"Identity Management"`). Always autocomplete both to compare specificity.
+- **Search responses include firmographic data** — headcount (`employee_metrics.latest_count`), funding (`last_funding_round_type`), HQ (`hq_country`), categories, and employee growth (`employee_metrics.growth_6m_percent`). Extract these fields directly into your seed CSV. Do not re-enrich with `call_ai` for data already in the response.
+- **`employee_metrics.growth_6m_percent`** is a free hiring proxy already in every search response. Positive 6-month growth suggests active hiring. Use this before spending credits on `crustdata_job_listings`, especially for smaller companies where job listing coverage is thin.
+
+**Operators**: `(.)` = fuzzy contains (default), `[.]` = substring, `=`, `!=`, `in`, `not_in`, `>`, `<`, `=>`, `=<`.
+
+```bash
+# Always autocomplete first — compare crunchbase_categories vs linkedin_industries for your vertical
+deepline tools execute crustdata_companydb_autocomplete --payload '{"field":"crunchbase_categories","query":"fraud","limit":5}'
+deepline tools execute crustdata_companydb_autocomplete --payload '{"field":"linkedin_industries","query":"financial","limit":5}'
+```
+
+```bash
+# Use crunchbase_categories for niche verticals, hq_country with ISO codes
+deepline tools execute crustdata_companydb_search --payload '{"filters":[{"filter_type":"crunchbase_categories","type":"in","value":["Fraud Detection","Identity Management"]},{"filter_type":"hq_country","type":"=","value":"USA"},{"filter_type":"employee_count_range","type":"in","value":["51-200","201-500"]},{"filter_type":"last_funding_round_type","type":"in","value":["Series A","Series B"]}],"sorts":[{"column":"employee_metrics.latest_count","order":"desc"}],"limit":50}'
+```
+
+### People Data Labs
+
+**PDL is expensive -- use it as a last resort.** Exhaust Exa, Google, Apollo, and Crustdata first.
+
+**Shell quoting with PDL SQL:** PDL takes a raw SQL string. Avoid inline single-quote escaping in bash -- it breaks silently. Instead write the payload to a temp file and pass it with `--payload-file`, or use a bash heredoc:
+
+```bash
+PAYLOAD=$(cat <<'EOF'
+{"sql": "SELECT * FROM company WHERE industry = 'financial services' AND location.country = 'united states' AND size IN ('51-200','201-500') AND latest_funding_stage IN ('series_a','series_b')", "size": 20}
+EOF
+)
+deepline tools execute peopledatalabs_company_search --payload "$PAYLOAD"
+```
+
+### Exa (search, answer, research)
+
+Exa is a semantic web index -- it finds pages by meaning, not just keywords.
+
+**Query rules:** Write natural-language descriptions, not keyword soup (`"B2B SaaS companies that sell sales automation tools"` not `"SaaS B2B sales tools 2025"`). Use `type: "neural"` (default) for concept-driven queries, `"deep"` with `additionalQueries` for broad coverage. Use `startPublishedDate`/`endPublishedDate` for recency. Use `contents.summary` for per-result LLM summaries, `contents.highlights` for snippets.
+
+**Critical: `category` vs `includeDomains` -- NOT interchangeable:**
+- `category: "company"` / `"people"` uses Exa's entity index. **`includeDomains`, `excludeDomains`, `includeText`, `excludeText` are NOT supported with `category`** -- throws an error. Use for "companies that *are* X" (concept-driven), NOT "companies that *have* X" (attribute-based).
+- `includeDomains` / `excludeDomains` -- scope a regular web search (no category) to specific sites.
+
+**"Companies that hire X role" -- use `includeDomains` on job boards, NOT `category:"company"`:**
+```bash
+deepline tools execute exa_search --payload '{"query":"GTM engineer job opening at Y Combinator startup","numResults":15,"type":"neural","includeDomains":["ycombinator.com"],"contents":{"highlights":{"numSentences":2,"highlightsPerUrl":1}}}'
+```
+
+**Tool selection:** `exa_search` (general-purpose, start here), `exa_company_search` (category:"company" shorthand), `exa_people_search` (structured person entities via `deepline enrich`), `exa_answer` (fact-checking only, low recall), `exa_research` (deep multi-source, supports `outputSchema`).
+
+```bash
+# Concept-based company search (category OK here)
+deepline tools execute exa_search --payload '{"query":"B2B SaaS companies building AI-powered sales tools","category":"company","numResults":10,"type":"neural","contents":{"summary":{"query":"What does this company do and what funding stage are they?"}}}'
+
+# Attribute + domain-scoped search (NO category -- use includeDomains instead)
+deepline tools execute exa_search --payload '{"query":"Series B fintech startups in New York","type":"neural","additionalQueries":["fintech companies Series B NYC"],"numResults":20,"includeDomains":["techcrunch.com","crunchbase.com"],"startPublishedDate":"2024-01-01T00:00:00Z","contents":{"summary":{"query":"What does this company do and what stage are they?"}}}'
+```
+
+### Parallel (managed research)
+
+Good for broad discovery when you don't know which domains hold the data. Lower precision than domain-scoped Exa/Google but finds things others miss. Set `max_chars_total` > 10000 for 5+ results.
+
+```bash
+deepline tools execute parallel_search --payload '{"mode":"agentic","objective":"Find recent hiring and launch signals for OpenAI","max_results":5,"excerpts":{"max_chars_per_result":1200,"max_chars_total":12000}}'
+```
+
+## At-scale coverage completion
+
+Use this section when the job is coverage completion -- you already have target accounts/segments and need to backfill missing contacts/emails.
+
+### Count-capable providers (verified)
+
+Use these when you want fast sizing before doing the full list pull.
+
+| Provider | Tool | Command |
+|---|---|---|
+| Apollo | `apollo_search_people` | `deepline tools execute apollo_search_people --payload '{"page":1,"per_page":1}'` |
+| Apollo | `apollo_people_search_paid` | `deepline tools execute apollo_people_search_paid --payload '{"q_keywords":"sales","per_page":1,"page":1}'` |
+| Dropleads | `dropleads_get_lead_count` | `deepline tools execute dropleads_get_lead_count --payload '{"filters":{"jobTitles":["CEO"],"industries":["Technology"]}}'` |
+| Dropleads | `dropleads_search_people` | `deepline tools execute dropleads_search_people --payload '{"filters":{"jobTitles":["VP Sales"],"industries":["Technology"]},"pagination":{"page":1,"limit":1}}'` |
+| Forager | `forager_organization_search_totals` | `deepline tools execute forager_organization_search_totals --payload '{"industries":[1]}'` |
+| Forager | `forager_job_search_totals` | `deepline tools execute forager_job_search_totals --payload '{"title":"\"Sales Engineer\""}'` |
+| Forager | `forager_person_role_search_totals` | `deepline tools execute forager_person_role_search_totals --payload '{"role_title":"\"Software Engineer\""}'` |
+| Icypeas | `icypeas_count_people` | `deepline tools execute icypeas_count_people --payload '{"query":{"currentJobTitle":{"include":["CTO"]}}}'` |
+| Prospeo | `prospeo_search_person` | `deepline tools execute prospeo_search_person --payload '{"person_job_title":{"include":["VP Sales"]},"page":1}'` |
+| Prospeo | `prospeo_search_company` | `deepline tools execute prospeo_search_company --payload '{"company":{"names":{"include":["Intercom"]},"websites":{"include":["intercom.com"]}},"page":1}'` |
+| Hunter | `hunter_email_count` | `deepline tools execute hunter_email_count --payload '{"domain":"stripe.com"}'` |
+| Hunter | `hunter_discover` | `deepline tools execute hunter_discover --payload '{"query":"B2B SaaS companies","limit":1}'` |
+| People Data Labs | `peopledatalabs_person_search` | `deepline tools execute peopledatalabs_person_search --payload '{"query":{"bool":{"must":[{"term":{"location_country":"United States"}},{"term":{"job_title_role":"marketing"}}]}},"size":1}'` |
+| CrustData | `crustdata_people_search` | `deepline tools execute crustdata_people_search --payload '{"companyDomain":"notion.so","titleKeywords":["VP","Head"],"limit":1}'` |
+
+Notes: Some providers need an actual page pull (small `limit`/`per_page`) instead of dedicated count tools. CrustData `companydb_search`/`persondb_search` don't surface reliable totals -- use for retrieval, not sizing. Always compare `total_count`/`total` with your filter set and stop early when a slice suffices.
+
+### Company-first sourcing
+
+```bash
+# Size first
+deepline tools execute dropleads_get_lead_count \
+  --payload '{
+    "filters": {
+      "keywords": ["technology"],
+      "employeeRanges": ["51-200"]
+    }
+  }'
+
+# Pull list (100 per page)
+deepline tools execute dropleads_search_people \
+  --payload '{
+    "filters": {
+      "keywords": ["technology"],
+      "employeeRanges": ["51-200"]
+    },
+    "pagination": {"page": 1, "limit": 100}
+  }'
+```
+
+### Contact-first sourcing
+
+```bash
+deepline tools execute dropleads_search_people \
+  --payload '{
+    "filters": {
+      "jobTitles": ["VP Sales", "CRO", "Head of Revenue Operations"],
+      "employeeRanges": ["51-200", "201-500", "501-1000"],
+      "keywords": ["technology"],
+      "personalCountries": {"include": ["United States"]}
+    },
+    "pagination": {"page": 1, "limit": 100}
+  }'
+```
+
+### Signal prioritization
+
+Don't outreach to the full sourced list. Prioritize with real signals first. Use the `niche-signal-discovery` skill if you have won/lost data to build a scoring model. Otherwise, enrich with first-party signals:
+
+```bash
+# Job listings (hiring = budget + pain)
+deepline enrich --input tam.csv --in-place --rows 0:1 \
+  --with '{"alias":"jobs","tool":"crustdata_job_listings","payload":{"companyDomains":"{{Domain}}","limit":20}}'
+
+# Website content (multi-page discovery)
+deepline enrich --input tam.csv --in-place --rows 0:1 \
+  --with '{"alias":"website","tool":"exa_search","payload":{"query":"company product features integrations pricing careers about","numResults":5,"type":"auto","includeDomains":["{{Domain}}"],"contents":{"text":{"maxCharacters":2000,"verbosity":"compact","includeSections":["body"]}}}}'
+```
+
+Then score using signals from job listings (hiring relevant roles), tech stack (integration readiness), and website content (pain language, compliance maturity).
+
+## Signal-driven lead sourcing
+
+When you have a completed `niche-signal-discovery` report, every signal type translates directly into search criteria.
+
+### Signal -> Search Parameter Mapping
+
+| Report Signal Type | Dropleads Parameter | How to Extract | Example |
+|--------------------|-----------------|----------------|---------|
+| Job titles with lift > 2x | `jobTitles` | Use title patterns from Section 4 (Job Role Analysis) | "RevOps" at 2.56x -> `["Revenue Operations", "RevOps", "Head of RevOps"]` |
+| Keywords with lift > 2x | `q_organization_keyword_tags` | Use keywords from Section 2 (Website Keyword Differential) | "ABM" at 3.67x -> `["account based marketing", "ABM"]` |
+| Tech stack tools with lift > 2x | `q_organization_keyword_tags` | Use tool names from Section 3 (Tech Stack Analysis) | Gainsight at 3.0x -> `["gainsight"]` |
+| Employee headcount ranges | `employeeRanges` | From Section 0.1 TLDR or Section 1 Executive Summary | "200-1,500 employees" -> `["201-500", "501-1000", "1001-5000"]` |
+| Geography | `personalCountries` | If report mentions geo patterns | US-focused -> `{"include": ["United States"]}` |
+| Anti-fit tech stack | Exclude from results | Tech stack with lift < 0.5x | Salesloft at 0.33x -> skip companies using Salesloft |
+
+### Example: Report -> Lead List
+
+**1. Map buyer personas to Dropleads searches** using the report's "Buyer Persona Quick Reference" table:
+
+```bash
+# RevOps Leader persona (2.56x lift, 55% of won companies)
+deepline tools execute dropleads_search_people \
+  --payload '{"filters":{"jobTitles":["Revenue Operations","RevOps","Head of Revenue Operations"],"seniority":["VP","Director","Manager"],"keywords":["b2b saas"],"employeeRanges":["201-500","501-1000","1001-5000"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":1}}'
+```
+
+**2. Verify with job listing keywords (post-pull).** High-lift keywords like "fragmented" (13x), "ICP" (9x) can't be person-search filters -- use Crustdata for post-pull verification:
+
+```bash
+deepline enrich --input tam.csv --in-place --rows 0:1 \
+  --with '{"alias":"jobs","tool":"crustdata_job_listings","payload":{"companyDomains":"{{Domain}}","limit":50}}'
+```
+
+**3. Build combined list:** Run one search per buyer persona, deduplicate by company domain, then run the job listing enrichment + scoring pipeline above.
+
+## Portfolio/VC prospecting
+
+### Core insight: VC portfolio data is public
+
+Every major VC and accelerator publishes their portfolio online. **Do NOT waste turns trying to discover portfolio companies through Deepline search tools.** Instead, fetch the public portfolio page directly and extract company names from it. This is faster, cheaper, and more complete than any provider-based approach.
+
+### What NOT to do
+
+Tested and failed: Apollo investor filtering (irrelevant results), people-first then verify investor (~7-9% hit rate, wastes 60-80% of turns), Crustdata `crunchbase_investors` (inconsistent), `call_ai` per-row investor verification (~5-10s/row, unacceptable at scale).
+
+### Proven approach
+
+**Step 1: Get the company list from the VC's public portfolio.** Common URLs: YC (`ycombinator.com/companies`), a16z (`a16z.com/portfolio`), Sequoia (`sequoiacap.com/our-companies`), Greylock/Benchmark (`/portfolio`).
+
+```bash
+# Fetch YC companies page (or use parallel_extract if JS-rendered)
+curl -sS "https://www.ycombinator.com/companies" -H "Accept: text/html" -o /tmp/yc_page.html
+
+deepline tools execute parallel_extract --payload '{"urls":["https://www.ycombinator.com/companies?batch=W26"],"objective":"Extract all company names, website domains, and one-line descriptions from this YC batch directory page","full_content":true}'
+```
+
+**Step 2: Filter to companies hiring your target role (optional).**
+
+```bash
+deepline enrich --input yc_companies.csv --in-place --rows 0:2 \
+  --with '{"alias":"exa_jobs","tool":"exa_search","payload":{"query":"GTM Engineer site:ycombinator.com","numResults":50,"type":"auto"}}'
+```
+
+**Step 3: Find contacts at each company.**
+
+For small startups (5-50 people), dropleads has near-zero coverage. Use `exa_people_search` — it returns structured person entities (name, title, LinkedIn, work history) and works well for startups:
+
+```bash
+deepline enrich --input yc_companies.csv --output yc_with_contacts.csv \
+  --rows 0:2 \
+  --with '{"alias":"contact","tool":"exa_people_search","payload":{"query":"GTM Engineer at {{company_name}}","numResults":3}}'
+```
+
+Write a `run_javascript` step to extract the best contact from exa entities (walk `results[].entities[].properties.workHistory[]` for title keywords). If exa returns 0 for a company, fall back to `call_ai` with WebSearch:
+
+```bash
+deepline enrich --input yc_missing.csv --in-place \
+  --with '{"alias":"contact_lookup","tool":"call_ai","payload":{"prompt":"Find the founder, CEO, or GTM/growth lead at {{company_name}} ({{domain}}). Return their full name, title, and LinkedIn URL.","json_mode":{"type":"object","properties":{"name":{"type":"string"},"title":{"type":"string"},"linkedin_url":{"type":"string"}},"required":["name","title"]},"tools":["WebSearch"]}}'
+```
+
+**Step 4: Find emails via waterfall.**
+
+For small startups, use LeadMagic as primary (not Hunter -- Hunter has poor coverage for <50 person companies):
+
+```bash
+deepline enrich --input yc_with_contacts.csv --in-place --rows 0:2 \
+  --with-waterfall "email" \
+  --with '{"alias":"leadmagic","tool":"leadmagic_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"},"extract_js":"extract(\"email\")"}' \
+  --with '{"alias":"dropleads","tool":"dropleads_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_domain":"{{domain}}"},"extract_js":"extract(\"email\")"}' \
+  --with '{"alias":"hunter","tool":"hunter_email_finder","payload":{"domain":"{{domain}}","first_name":"{{first_name}}","last_name":"{{last_name}}"},"extract_js":"extract(\"email\")"}' \
+  --end-waterfall
+```
+
+**Step 5: Generate personalized email copy** using `call_ai` with `json_mode` for subject/body. Pilot on rows 0:2, then run full batch.
+
+## LinkedIn profile lookup and validation
+
+LinkedIn URLs from providers are often stale. Two phases: find then validate.
+
+**Find** -- waterfall, stop on first hit:
+1. Dropleads (`dropleads_search_people`, free)
+2. Google CSE (`"First Last" "Company" site:linkedin.com/in/`)
+3. Exa (`exa_search` with `category: "people"`)
+4. Apollo (`apollo_people_match`) -- **fallback only**
+5. Crustdata (`crustdata_person_enrichment`)
+
+**Validate (mandatory)** -- scrape the profile with Apify (`dev_fusion/linkedin-profile-scraper`):
+- Name + company match -> confirmed, update row with fresh data
+- Name matches, company doesn't -> job change, update with new company/title
+- Neither matches -> wrong profile, try next provider
+
+Normalize company names first (JPM -> JPMorgan Chase). Try nickname variants on failure (Robert<->Bob, William<->Bill, Michael<->Mike, etc.).
+
+## Common ICP filter parameters (Dropleads)
+
+| Filter | Parameter | Example values |
+|---|---|---|
+| Job title | `jobTitles` | `["VP Sales", "Head of GTM"]` |
+| Similar titles | use `jobTitles` variants in title list | `true` |
+| Headcount | `employeeRanges` | `["51-200", "201-500"]` |
+| Industry/keywords | `keywords`/`industries` | `["technology", "SaaS", "fintech"]` |
+| Geography | `personalCountries` | `{"include": ["United States", "Canada"]}` |
+| Revenue | `revenueRange` | `{"min": 1000000, "max": 50000000}` |
+| Seniority | `seniority` | `["C-Level", "VP", "Director", "Manager"]` |
+
+Valid seniority values: `C-Level`, `VP`, `Director`, `Manager`, `Senior`, `Entry`, `Intern`
+
+## Pagination
+
+Dropleads returns up to 100 results per page. For large sourcing runs/backfills:
+
+```bash
+# Page 1
+deepline tools execute dropleads_search_people --payload '{"pagination":{"page":1,"limit":100}, ...}'
+
+# Page 2
+deepline tools execute dropleads_search_people --payload '{"pagination":{"page":2,"limit":100}, ...}'
+```
+
+## Cost estimation
+
+| Operation | Credits | Notes |
+|-----------|---------|-------|
+| `dropleads_search_people` (limit: 1) | ~0.01 | Sizing -- nearly free |
+| `dropleads_search_people` (limit: 100) | ~1 | Full pull |
+| `crustdata_job_listings` | ~1 | Per company |
+| `exa_search` with contents | ~5 | Per company |
+| Portfolio page fetch (curl) | 0 | Free |
+| LeadMagic email finder | ~0.3 | Per contact |
+
+Size first with `pagination.limit: 1`, then calculate: `total_pages x credits_per_page`.
+
+## Provider search filters reference
+
+All providers support structured filters. This section is auto-generated from provider input schemas.
+
+### Apollo People Search (preview)
+
+`apollo_search_people`
+
+Apollo people API search input.
+
+  - `page` (number, optional) — Page number (1-500).
+  - `per_page` (number, optional) — Results per page (1-100).
+  - `person_titles` (string[], optional) — Job titles to match.
+  - `include_similar_titles` (boolean, optional) — Include similar titles for person_titles matches.
+  - `person_seniorities` (("owner" | "founder" | "c_suite" | "partner" | "vp" | "head" | "director" | "manager" | "senior" | "entry" | "intern")[], optional) — Seniority filter values defined by Apollo.
+  - `person_locations` (string[], optional) — Person locations.
+  - `organization_locations` (string[], optional) — Organization HQ locations.
+  - `organization_num_employees_ranges` (string[], optional) — Employee ranges like '1,10', '11,50', '51,200'.
+  - `q_organization_domains_list` (string[], optional) — Organization domains to include.
+  - `contact_email_status` (string[], optional) — Email status values (e.g., 'verified', 'guessed').
+  - `organization_ids` (string[], optional) — Apollo organization IDs to include.
+  - `q_keywords` (string, optional) — Keyword query across person and organization fields.
+  - `revenue_range.min` (number, optional) — Minimum numeric value.
+  - `revenue_range.max` (number, optional) — Maximum numeric value.
+  - `currently_using_any_of_technology_uids` (string[], optional) — Organizations using ANY of these technology UIDs.
+  - `currently_using_all_of_technology_uids` (string[], optional) — Organizations using ALL of these technology UIDs.
+  - `currently_not_using_any_of_technology_uids` (string[], optional) — Exclude organizations using ANY of these technology UIDs.
+  - `q_organization_job_titles` (string[], optional) — Organizations hiring for these job titles.
+  - `organization_job_locations` (string[], optional) — Organizations hiring in these locations.
+  - `organization_num_jobs_range.min` (number, optional) — Minimum integer value.
+  - `organization_num_jobs_range.max` (number, optional) — Maximum integer value.
+  - `organization_job_posted_at_range.min` (string, optional) — Minimum date/time (ISO 8601).
+  - `organization_job_posted_at_range.max` (string, optional) — Maximum date/time (ISO 8601).
+
+### Apollo People Search (paid)
+
+`apollo_people_search_paid`
+
+Apollo people API search input.
+
+  - `page` (number, optional) — Page number (1-500).
+  - `per_page` (number, optional) — Results per page (1-100).
+  - `person_titles` (string[], optional) — Job titles to match.
+  - `include_similar_titles` (boolean, optional) — Include similar titles for person_titles matches.
+  - `person_seniorities` (("owner" | "founder" | "c_suite" | "partner" | "vp" | "head" | "director" | "manager" | "senior" | "entry" | "intern")[], optional) — Seniority filter values defined by Apollo.
+  - `person_locations` (string[], optional) — Person locations.
+  - `organization_locations` (string[], optional) — Organization HQ locations.
+  - `organization_num_employees_ranges` (string[], optional) — Employee ranges like '1,10', '11,50', '51,200'.
+  - `q_organization_domains_list` (string[], optional) — Organization domains to include.
+  - `contact_email_status` (string[], optional) — Email status values (e.g., 'verified', 'guessed').
+  - `organization_ids` (string[], optional) — Apollo organization IDs to include.
+  - `q_keywords` (string, optional) — Keyword query across person and organization fields.
+  - `revenue_range.min` (number, optional) — Minimum numeric value.
+  - `revenue_range.max` (number, optional) — Maximum numeric value.
+  - `currently_using_any_of_technology_uids` (string[], optional) — Organizations using ANY of these technology UIDs.
+  - `currently_using_all_of_technology_uids` (string[], optional) — Organizations using ALL of these technology UIDs.
+  - `currently_not_using_any_of_technology_uids` (string[], optional) — Exclude organizations using ANY of these technology UIDs.
+  - `q_organization_job_titles` (string[], optional) — Organizations hiring for these job titles.
+  - `organization_job_locations` (string[], optional) — Organizations hiring in these locations.
+  - `organization_num_jobs_range.min` (number, optional) — Minimum integer value.
+  - `organization_num_jobs_range.max` (number, optional) — Maximum integer value.
+  - `organization_job_posted_at_range.min` (string, optional) — Minimum date/time (ISO 8601).
+  - `organization_job_posted_at_range.max` (string, optional) — Maximum date/time (ISO 8601).
+
+### Apollo People Match
+
+`apollo_people_match`
+
+Apollo people match input. Supports id-based matching. `reveal_personal_emails` defaults to true.
+
+  - `name` (string, optional) — Person's full name.
+  - `email` (string, optional) — Person's email address.
+  - `hashed_email` (string, optional) — Person's MD5-hashed email address.
+  - `first_name` (string, optional) — Person's first name.
+  - `last_name` (string, optional) — Person's last name.
+  - `linkedin_url` (string, optional) — Person's LinkedIn profile URL.
+  - `domain` (string, optional) — Company domain (e.g., 'apollo.io').
+  - `organization_name` (string, optional) — Employer/company name.
+  - `id` (string, optional) — Apollo person ID from a prior lookup. For best reliability, pair `id` with `first_name` (or email/linkedin_url).
+  - `reveal_personal_emails` (boolean, optional) — When true, request personal email reveal (credit-consuming).
+
+### Apollo Company Search
+
+`apollo_company_search`
+
+Apollo company API search input.
+
+  - `page` (number, optional) — Page number (1-500).
+  - `per_page` (number, optional) — Results per page (1-100).
+  - `q_organization_domains_list` (string[], optional) — Organization domains to include.
+  - `q_organization_name` (string, optional) — Organization name keyword search.
+  - `organization_ids` (string[], optional) — Apollo organization IDs to include.
+  - `organization_num_employees_ranges` (string[], optional) — Employee ranges like '1,10', '11,50', '51,200'.
+  - `organization_locations` (string[], optional) — Organization HQ locations to include.
+  - `organization_not_locations` (string[], optional) — Organization HQ locations to exclude.
+  - `q_organization_keyword_tags` (string[], optional) — Organization keyword tags.
+  - `revenue_range.min` (number, optional) — Minimum numeric value.
+  - `revenue_range.max` (number, optional) — Maximum numeric value.
+  - `currently_using_any_of_technology_uids` (string[], optional) — Organizations using ANY of these technology UIDs.
+  - `latest_funding_amount_range.min` (number, optional) — Minimum numeric value.
+  - `latest_funding_amount_range.max` (number, optional) — Maximum numeric value.
+  - `total_funding_range.min` (number, optional) — Minimum numeric value.
+  - `total_funding_range.max` (number, optional) — Maximum numeric value.
+  - `latest_funding_date_range.min` (string, optional) — Minimum date/time (ISO 8601).
+  - `latest_funding_date_range.max` (string, optional) — Maximum date/time (ISO 8601).
+  - `q_organization_job_titles` (string[], optional) — Organizations hiring for these job titles.
+  - `organization_job_locations` (string[], optional) — Organizations hiring in these locations.
+  - `organization_num_jobs_range.min` (number, optional) — Minimum integer value.
+  - `organization_num_jobs_range.max` (number, optional) — Maximum integer value.
+  - `organization_job_posted_at_range.min` (string, optional) — Minimum date/time (ISO 8601).
+  - `organization_job_posted_at_range.max` (string, optional) — Maximum date/time (ISO 8601).
+
+### CrustData Company Search
+
+`crustdata_companydb_search`
+
+Searches CompanyDB using /screener/companydb/search with filters.
+
+  - `filters` (unknown, **required**) — Array of filter conditions (AND-combined). Each: {filter_type, type, value} or {filter_name, type, value}. filter_name is syntactic sugar for filter_type (e.g. company_investors → crunchbase_investors, company_funding_stage → last_funding_round_type). Single object is accepted. Nested {op,conditions} groups supported for OR logic.
+  - `limit` (number, optional)
+  - `cursor` (string, optional) — Pagination cursor.
+  - `sorts` (array, optional) — Sort criteria array.
+  - `sorts[].column` (string, optional) — Field to sort by (e.g. employee_metrics.latest_count).
+  - `sorts[].order` ("asc" | "desc", optional) — Sort order: asc or desc.
+
+### CrustData Person Search
+
+`crustdata_persondb_search`
+
+Searches PersonDB using /screener/persondb/search with filters.
+
+  - `filters` (unknown, **required**) — Array of filter conditions (AND-combined). Each: {filter_type, type, value} or {filter_name, type, value}. filter_name is syntactic sugar for filter_type. Single object is accepted. Nested {op,conditions} groups supported for OR logic.
+  - `limit` (number, optional)
+  - `cursor` (string, optional) — Pagination cursor.
+  - `sorts` (array, optional) — Sort criteria array.
+  - `sorts[].column` (string, optional) — Field to sort by (e.g. employee_metrics.latest_count).
+  - `sorts[].order` ("asc" | "desc", optional) — Sort order: asc or desc.
+  - `postProcessing.exclude_profiles` (string[], optional) — Exclude specific profile IDs.
+  - `postProcessing.exclude_names` (string[], optional) — Exclude matching names.
+  - `preview` (boolean, optional) — Enable preview mode.
+
+### CrustData Company Autocomplete
+
+`crustdata_companydb_autocomplete`
+
+Fetches exact filter values using /screener/companydb/autocomplete. Free, no credits consumed.
+
+  - `field` (unknown, **required**) — Field name to autocomplete. Must be one of: acquisition_status, company_name, company_type, company_website_domain, competitor_ids, competitor_websites, crunchbase_categories, crunchbase_investors, crunchbase_total_investment_usd, employee_count_range, employee_metrics.growth_12m, employee_metrics.growth_12m_percent, employee_metrics.growth_6m_percent, employee_metrics.latest_count, estimated_revenue_higher_bound_usd, estimated_revenue_lower_bound_usd, follower_metrics.growth_6m_percent, follower_metrics.latest_count, hq_country, hq_location, ipo_date, largest_headcount_country, last_funding_date, last_funding_round_type, linkedin_id, linkedin_industries, linkedin_profile_url, markets, region, tracxn_investors, year_founded. Key mappings: funding stage/round → last_funding_round_type, headcount/size → employee_count_range, industry → linkedin_industries, location → hq_country (ISO alpha-3) or hq_location. Note: hq_country uses 3-letter ISO codes (USA, GBR, CAN), not country names.
+  - `query` (string, **required**) — Partial text to match. For hq_country, use ISO code patterns (e.g. "US", "USA", "GBR") rather than country names.
+  - `limit` (number, optional)
+
+### CrustData Person Autocomplete
+
+`crustdata_persondb_autocomplete`
+
+Fetches exact filter values using /screener/persondb/autocomplete. Free, no credits consumed.
+
+  - `field` (unknown, **required**) — Field name to autocomplete. Must be one of: current_employers.company_website_domain, current_employers.seniority_level, current_employers.title, headline, num_of_connections, region, years_of_experience_raw. Key mappings: job title → current_employers.title, seniority → current_employers.seniority_level, location → region, company/employer → current_employers.company_website_domain, experience → years_of_experience_raw, bio/summary → headline.
+  - `query` (string, **required**) — Partial text to match. Examples: "san franci" for region, "Eng" for job titles.
+  - `limit` (number, optional)
+
+### CrustData People Search
+
+`crustdata_people_search`
+
+Searches people at a company via PersonDB using derived filters.
+
+  - `companyDomain` (string, **required**) — Company website domain to match.
+  - `titleKeywords` (string | string[], **required**) — Title keyword(s) to match.
+  - `profileKeywords` (string | string[], optional) — Profile headline keyword(s).
+  - `country` (string, optional) — Country or region filter.
+  - `seniority` (string | string[], optional) — Seniority level(s). Canonical values: CXO, Vice President, Director, Manager, Senior, Entry, Training, Owner, Partner, Unpaid. Common aliases (c-suite, vp, founder, junior, intern) are auto-normalized.
+  - `fuzzyTitle` (boolean, optional) — Use fuzzy title matching (default true).
+  - `limit` (number, optional)
+
+### PDL Person Search
+
+`peopledatalabs_person_search`
+
+People Data Labs person search input.
+
+  - `query` (record, optional) — Elasticsearch-style query. Use this OR `sql`, not both. If you are unsure about field names, prefer `sql` with known fields.
+  - `sql` (string, optional) — SQL must be in the form `SELECT * FROM person WHERE ...`. Use single quotes for string literals (e.g., name='people data labs'). You must use valid PDL field names and nested subfields (e.g., `experience.title.name`, not `experience`). Column selection and LIMIT are ignored by PDL; always use `SELECT *`. Example: SELECT * FROM person WHERE location_country='mexico' AND job_title_role='health' AND phone_numbers IS NOT NULL.
+  - `size` (number, optional) — Number of records to return (1-100).
+  - `scroll_token` (string, optional) — Token for retrieving the next page of results.
+  - `dataset` (string, optional) — Optional dataset selector supported by PDL.
+  - `titlecase` (boolean, optional) — Normalize output text casing.
+  - `data_include` (string, optional) — Avoid using data_include unless you want partial fields only.
+  - `pretty` (boolean, optional) — Pretty-print response JSON.
+
+### PDL Company Search
+
+`peopledatalabs_company_search`
+
+People Data Labs company search input.
+
+  - `query` (record, optional) — Elasticsearch-style query. Use this OR `sql`, not both. If you are unsure about field names, prefer `sql` with known fields.
+  - `sql` (string, optional) — SQL must be in the form `SELECT * FROM company WHERE ...`. Use single quotes for string literals. You must use valid PDL field names and nested subfields (e.g., `location.country`, not `location`). Column selection and LIMIT are ignored by PDL; always use `SELECT *`. Example: SELECT * FROM company WHERE location_country='mexico' AND phone IS NOT NULL.
+  - `size` (number, optional) — Number of records to return (1-100).
+  - `scroll_token` (string, optional) — Token for retrieving the next page of results.
+  - `titlecase` (boolean, optional) — Normalize output text casing.
+  - `data_include` (string, optional) — Avoid using data_include unless you want partial fields only.
+  - `pretty` (boolean, optional) — Pretty-print response JSON.
+
+### Exa Search
+
+`exa_search`
+
+Exa raw search input.
+
+  - `query` (string, **required**) — The search query string.
+  - `additionalQueries` (string[], optional) — Additional queries (used with type="deep" to expand coverage).
+  - `type` ("auto" | "fast" | "deep" | "neural" | "instant", optional) — Search type (auto chooses the best strategy).
+  - `category` ("company" | "people" | "news" | "research paper" | "tweet" | "personal site" | "financial report", optional) — Optional result category filter.
+  - `numResults` (number, optional) — Number of results to return (max 100).
+  - `includeDomains` (string[], optional) — Only include results from these domains.
+  - `excludeDomains` (string[], optional) — Exclude results from these domains.
+  - `startCrawlDate` (string, optional) — Only include links crawled after this ISO date-time.
+  - `endCrawlDate` (string, optional) — Only include links crawled before this ISO date-time.
+  - `startPublishedDate` (string, optional) — Only include links published after this ISO date-time.
+  - `endPublishedDate` (string, optional) — Only include links published before this ISO date-time.
+  - `includeText` (string[], optional) — Require these text snippets to appear in page content (max 1 string of up to 5 words).
+  - `excludeText` (string[], optional) — Exclude pages containing these text snippets (max 1 string of up to 5 words).
+  - `userLocation` (string, optional) — Two-letter ISO country code, e.g. "US".
+  - `contents.text` (boolean | object, optional) — Text extraction settings.
+  - `contents.text.maxCharacters` (number, optional) — Maximum characters for full page text (use to cap response size).
+  - `contents.text.includeHtmlTags` (boolean, optional) — Include HTML tags in the returned text.
+  - `contents.text.verbosity` ("compact" | "standard" | "full", optional) — Controls verbosity of extracted text.
+  - `contents.text.includeSections` (("header" | "navigation" | "banner" | "body" | "sidebar" | "footer" | "metadata")[], optional) — Only include content from these sections.
+  - `contents.text.excludeSections` (("header" | "navigation" | "banner" | "body" | "sidebar" | "footer" | "metadata")[], optional) — Exclude content from these sections.
+  - `contents.highlights` (boolean | object, optional) — Highlight settings.
+  - `contents.highlights.numSentences` (number, optional) — Number of sentences per highlight snippet.
+  - `contents.highlights.highlightsPerUrl` (number, optional) — Number of highlight snippets per URL.
+  - `contents.highlights.query` (string, optional) — Custom query to guide highlight selection.
+  - `contents.highlights.maxCharacters` (number, optional) — Maximum characters returned for highlights.
+  - `contents.summary.query` (string, optional) — Custom query for the summary.
+  - `contents.summary.schema` (record, optional) — JSON Schema for structured summary output (validated).
+  - `contents.livecrawl` ("never" | "fallback" | "preferred" | "always", optional) — Live crawl behavior (deprecated in Exa docs; prefer maxAgeHours).
+  - `contents.livecrawlTimeout` (number, optional) — Live crawl timeout in milliseconds.
+  - `contents.maxAgeHours` (number, optional) — Max age (hours) for cached content before live crawl.
+  - `contents.subpages` (number, optional) — Number of subpages to crawl from each result.
+  - `contents.subpageTarget` (string | string[], optional) — Subpage keyword(s) to target.
+  - `contents.extras.links` (number, optional) — Number of links to return per result.
+  - `contents.extras.imageLinks` (number, optional) — Number of image links to return per result.
+  - `contents.context` (boolean | object, optional) — Combined context settings. Returns a single context string from all results.
+  - `contents.context.maxCharacters` (number, optional) — Maximum characters for the combined context string. Exa recommends 10,000+ characters for best results.
+  - `context` (boolean | object, optional)
+  - `context.maxCharacters` (number, optional) — Maximum characters for the combined context string. Exa recommends 10,000+ characters for best results.
+  - `moderation` (boolean, optional) — Enable content moderation (may reduce recall).
+
+### Exa Company Search
+
+`exa_company_search`
+
+Exa company search input.
+
+  - `query` (string, **required**)
+  - `additionalQueries` (string[], optional) — Additional queries (used with type="deep" to expand coverage).
+  - `type` ("auto" | "fast" | "deep" | "neural" | "instant", optional)
+  - `numResults` (number, optional) — Number of results to return (max 100).
+  - `includeDomains` (string[], optional)
+  - `excludeDomains` (string[], optional) — Exclude results from these domains.
+  - `userLocation` (string, optional) — Two-letter ISO country code, e.g. "US".
+  - `contents.text` (boolean | object, optional) — Text extraction settings.
+  - `contents.text.maxCharacters` (number, optional) — Maximum characters for full page text (use to cap response size).
+  - `contents.text.includeHtmlTags` (boolean, optional) — Include HTML tags in the returned text.
+  - `contents.text.verbosity` ("compact" | "standard" | "full", optional) — Controls verbosity of extracted text.
+  - `contents.text.includeSections` (("header" | "navigation" | "banner" | "body" | "sidebar" | "footer" | "metadata")[], optional) — Only include content from these sections.
+  - `contents.text.excludeSections` (("header" | "navigation" | "banner" | "body" | "sidebar" | "footer" | "metadata")[], optional) — Exclude content from these sections.
+  - `contents.highlights` (boolean | object, optional) — Highlight settings.
+  - `contents.highlights.numSentences` (number, optional) — Number of sentences per highlight snippet.
+  - `contents.highlights.highlightsPerUrl` (number, optional) — Number of highlight snippets per URL.
+  - `contents.highlights.query` (string, optional) — Custom query to guide highlight selection.
+  - `contents.highlights.maxCharacters` (number, optional) — Maximum characters returned for highlights.
+  - `contents.summary.query` (string, optional) — Custom query for the summary.
+  - `contents.summary.schema` (record, optional) — JSON Schema for structured summary output (validated).
+  - `contents.livecrawl` ("never" | "fallback" | "preferred" | "always", optional) — Live crawl behavior (deprecated in Exa docs; prefer maxAgeHours).
+  - `contents.livecrawlTimeout` (number, optional) — Live crawl timeout in milliseconds.
+  - `contents.maxAgeHours` (number, optional) — Max age (hours) for cached content before live crawl.
+  - `contents.subpages` (number, optional) — Number of subpages to crawl from each result.
+  - `contents.subpageTarget` (string | string[], optional) — Subpage keyword(s) to target.
+  - `contents.extras.links` (number, optional) — Number of links to return per result.
+  - `contents.extras.imageLinks` (number, optional) — Number of image links to return per result.
+  - `contents.context` (boolean | object, optional) — Combined context settings. Returns a single context string from all results.
+  - `contents.context.maxCharacters` (number, optional) — Maximum characters for the combined context string. Exa recommends 10,000+ characters for best results.
+  - `context` (boolean | object, optional)
+  - `context.maxCharacters` (number, optional) — Maximum characters for the combined context string. Exa recommends 10,000+ characters for best results.
+  - `moderation` (boolean, optional) — Enable content moderation (may reduce recall).
+
+### Exa People Search
+
+`exa_people_search`
+
+Exa people search input.
+
+  - `query` (string, **required**)
+  - `company_name` (string, optional) — Target company name. When provided, appended to the query for better relevance (e.g. "CTO at Acme Corp"). Also included in the response meta for downstream validation.
+  - `additionalQueries` (string[], optional) — Additional queries (used with type="deep" to expand coverage).
+  - `type` ("auto" | "fast" | "deep" | "neural" | "instant", optional)
+  - `numResults` (number, optional) — Number of results to return (max 100).
+  - `includeDomains` (string[], optional)
+  - `excludeDomains` (string[], optional) — Exclude results from these domains.
+  - `userLocation` (string, optional) — Two-letter ISO country code, e.g. "US".
+  - `contents.text` (boolean | object, optional) — Text extraction settings.
+  - `contents.text.maxCharacters` (number, optional) — Maximum characters for full page text (use to cap response size).
+  - `contents.text.includeHtmlTags` (boolean, optional) — Include HTML tags in the returned text.
+  - `contents.text.verbosity` ("compact" | "standard" | "full", optional) — Controls verbosity of extracted text.
+  - `contents.text.includeSections` (("header" | "navigation" | "banner" | "body" | "sidebar" | "footer" | "metadata")[], optional) — Only include content from these sections.
+  - `contents.text.excludeSections` (("header" | "navigation" | "banner" | "body" | "sidebar" | "footer" | "metadata")[], optional) — Exclude content from these sections.
+  - `contents.highlights` (boolean | object, optional) — Highlight settings.
+  - `contents.highlights.numSentences` (number, optional) — Number of sentences per highlight snippet.
+  - `contents.highlights.highlightsPerUrl` (number, optional) — Number of highlight snippets per URL.
+  - `contents.highlights.query` (string, optional) — Custom query to guide highlight selection.
+  - `contents.highlights.maxCharacters` (number, optional) — Maximum characters returned for highlights.
+  - `contents.summary.query` (string, optional) — Custom query for the summary.
+  - `contents.summary.schema` (record, optional) — JSON Schema for structured summary output (validated).
+  - `contents.livecrawl` ("never" | "fallback" | "preferred" | "always", optional) — Live crawl behavior (deprecated in Exa docs; prefer maxAgeHours).
+  - `contents.livecrawlTimeout` (number, optional) — Live crawl timeout in milliseconds.
+  - `contents.maxAgeHours` (number, optional) — Max age (hours) for cached content before live crawl.
+  - `contents.subpages` (number, optional) — Number of subpages to crawl from each result.
+  - `contents.subpageTarget` (string | string[], optional) — Subpage keyword(s) to target.
+  - `contents.extras.links` (number, optional) — Number of links to return per result.
+  - `contents.extras.imageLinks` (number, optional) — Number of image links to return per result.
+  - `contents.context` (boolean | object, optional) — Combined context settings. Returns a single context string from all results.
+  - `contents.context.maxCharacters` (number, optional) — Maximum characters for the combined context string. Exa recommends 10,000+ characters for best results.
+  - `context` (boolean | object, optional)
+  - `context.maxCharacters` (number, optional) — Maximum characters for the combined context string. Exa recommends 10,000+ characters for best results.
+  - `moderation` (boolean, optional) — Enable content moderation (may reduce recall).
+
+### Exa Answer
+
+`exa_answer`
+
+Exa answer input.
+
+  - `query` (string, **required**) — Question to answer using web results.
+  - `stream` (boolean, optional) — Stream tokens as they are generated.
+  - `text` (boolean, optional) — Include full source text in citations.
+  - `outputSchema` (any, optional) — JSON Schema to return a structured answer. Supports arbitrary user-defined schema shape.
+
+### Exa Research
+
+`exa_research`
+
+Exa research input.
+
+  - `instructions` (string, **required**)
+  - `model` ("exa-research-fast" | "exa-research" | "exa-research-pro", optional)
+  - `outputSchema` (any, optional)
+
+### Hunter People Find
+
+`hunter_people_find`
+
+Enrich one person by email or LinkedIn profile.
+
+  - `email` (string, optional) — Work email for person enrichment lookup.
+  - `linkedin_handle` (string, optional) — LinkedIn profile handle used by Hunter enrichment.
+
+### Hunter Companies Find
+
+`hunter_companies_find`
+
+Enrich one company profile by domain.
+
+  - `domain` (string, **required**) — Company domain to enrich.
+
+### Hunter Combined Find
+
+`hunter_combined_find`
+
+Fetch person and company enrichment in one response envelope.
+
+  - `email` (string, optional) — Email for combined person+company enrichment.
+  - `linkedin_handle` (string, optional) — LinkedIn profile handle used by Hunter enrichment.
+  - `domain` (string, optional) — Company domain when person identity is incomplete.
+
+### Hunter Discover
+
+`hunter_discover`
+
+Discover companies matching ICP criteria. This call is free in Hunter.
+
+  - `query` (string, optional) — Natural-language company search query. Prefer this for broad ICP discovery.
+  - `organization.domain` (string[], optional)
+  - `organization.name` (string[], optional)
+  - `similar_to.domain` (string, optional)
+  - `similar_to.name` (string, optional)
+  - `headquarters_location.include` (array, optional)
+  - `headquarters_location.include[].continent` ("Europe" | "Asia" | "North America" | "Africa" | "Antarctica" | "South America" | "Oceania", optional) — Continent name (for example Europe, North America).
+  - `headquarters_location.include[].business_region` ("AMER" | "EMEA" | "APAC" | "LATAM", optional) — Business region (AMER, EMEA, APAC, LATAM).
+  - `headquarters_location.include[].country` (string, optional) — ISO 3166-1 alpha-2 country code (for example US).
+  - `headquarters_location.include[].state` (string, optional) — US state code (for example CA). Requires country=US.
+  - `headquarters_location.include[].city` (string, optional) — City name (for example San Francisco).
+  - `headquarters_location.exclude` (array, optional)
+  - `headquarters_location.exclude[].continent` ("Europe" | "Asia" | "North America" | "Africa" | "Antarctica" | "South America" | "Oceania", optional) — Continent name (for example Europe, North America).
+  - `headquarters_location.exclude[].business_region` ("AMER" | "EMEA" | "APAC" | "LATAM", optional) — Business region (AMER, EMEA, APAC, LATAM).
+  - `headquarters_location.exclude[].country` (string, optional) — ISO 3166-1 alpha-2 country code (for example US).
+  - `headquarters_location.exclude[].state` (string, optional) — US state code (for example CA). Requires country=US.
+  - `headquarters_location.exclude[].city` (string, optional) — City name (for example San Francisco).
+  - `industry.include` (string[], optional)
+  - `industry.exclude` (string[], optional)
+  - `headcount` (("1-10" | "11-50" | "51-200" | "201-500" | "501-1000" | "1001-5000" | "5001-10000" | "10001+")[], optional) — Accepted values include 1-10, 11-50, 51-200, 201-500, 501-1000, 1001-5000, 5001-10000, 10001+.
+  - `company_type.include` (("educational" | "educational institution" | "government agency" | "non profit" | "partnership" | "privately held" | "public company" | "self employed" | "self owned" | "sole proprietorship")[], optional)
+  - `company_type.exclude` (("educational" | "educational institution" | "government agency" | "non profit" | "partnership" | "privately held" | "public company" | "self employed" | "self owned" | "sole proprietorship")[], optional)
+  - `keywords.include` (string[], optional)
+  - `keywords.exclude` (string[], optional)
+  - `keywords.match` ("all" | "any", optional)
+  - `technology.include` (string[], optional)
+  - `technology.exclude` (string[], optional)
+  - `technology.match` ("all" | "any", optional)
+  - `limit` (number, optional) — Max domains returned (default 100). Changing this requires a Hunter Premium plan.
+  - `offset` (number, optional) — Number of domains to skip for pagination. Non-zero offsets require a Hunter Premium plan.
+
+### Hunter Domain Search
+
+`hunter_domain_search`
+
+Find email addresses for a specific company domain with confidence and sources.
+
+  - `domain` (string, **required**) — Company domain to search (for example stripe.com).
+  - `company` (string, optional) — Company name hint to improve matching.
+  - `limit` (number, optional) — Max emails returned.
+  - `offset` (number, optional) — Pagination offset.
+  - `type` ("personal" | "generic", optional) — Return only personal emails or only role-based/generic emails.
+  - `job_titles` (string[], optional) — Filter by job title labels.
+  - `seniority` (("junior" | "senior" | "executive")[], optional) — Filter by seniority labels.
+  - `department` (("executive" | "it" | "finance" | "management" | "sales" | "legal" | "support" | "hr" | "marketing" | "communication" | "education" | "design" | "health" | "operations")[], optional) — Filter by department labels.
+  - `required_field` (("full_name" | "position" | "phone_number")[], optional) — Require specific returned fields.
+
+### Hunter Email Finder
+
+`hunter_email_finder`
+
+Find the most likely work email from name + domain.
+
+  - `domain` (string, **required**) — Company domain (for example reddit.com).
+  - `first_name` (string, **required**) — First name of the contact.
+  - `last_name` (string, **required**) — Last name of the contact.
+  - `full_name` (string, optional) — Optional full name alias for first + last.
+  - `company` (string, optional) — Company name hint when multiple domains exist.
+  - `max_duration` (number, optional) — Lookup timeout in seconds.
+
+### LeadMagic Role Finder
+
+`leadmagic_role_finder`
+
+Find people by job title at a company.
+
+  - `company_domain` (string, optional) — Company domain (e.g. acme.com).
+  - `company_name` (string, optional) — Company name.
+  - `job_title` (string, **required**) — Target job title (e.g. VP Sales).
+
+### LeadMagic Company Search
+
+`leadmagic_company_search`
+
+Search for companies by attributes.
+
+  - `company_domain` (string, optional) — Company domain to match.
+  - `company_name` (string, optional) — Company name to match.
+  - `profile_url` (string, optional) — LinkedIn/company profile URL.
+  - `domain` (string, optional) — Legacy alias for company_domain.
+  - `name` (string, optional) — Legacy alias for company_name.
+
+### LeadMagic Profile Search
+
+`leadmagic_profile_search`
+
+Fetch a detailed professional profile by LinkedIn URL.
+
+  - `profile_url` (string, **required**) — LinkedIn profile URL.
+
+### LeadMagic Competitors Search
+
+`leadmagic_competitors_search`
+
+Find competitors for a company.
+
+  - `company_domain` (string, **required**) — Company domain to analyze.
+
+### LeadMagic B2B Ads Search
+
+`leadmagic_b2b_ads_search`
+
+Find B2B ads by company domain.
+
+  - `company_domain` (string, optional) — Company domain to analyze.
+  - `company_name` (string, optional) — Company name to analyze.
+  - `domain` (string, optional) — Legacy alias for company_domain.
+
+### Adyntel Facebook Ad Search
+
+`adyntel_facebook_ad_search`
+
+Meta keyword ad search across the ad library for advertiser and creative discovery.
+
+  - `keyword` (string, **required**) — Keyword to search in Meta ad library.
+  - `country_code` (string, optional) — Optional country filter code.
+
+### Google Search
+
+`google_search`
+
+Run a Google Custom Search JSON API query. Best for broad B2B recall (contact, company, and domain discovery) before enrichment.
+
+  - `query` (string, **required**) — Search query string. B2B patterns: contact LinkedIn (`site:linkedin.com/in "First Last" "Company"`), company LinkedIn (`site:linkedin.com/company "Company"`), email/domain validation (`"First Last" "company.com"`).
+  - `cx` (string, optional) — Custom Search Engine ID. Defaults to GOOGLE_SEARCH_ENGINE_ID.
+  - `num` (number, optional) — Results per page (1-10).
+  - `start` (number, optional) — 1-indexed start result position.
+  - `gl` (string, optional) — Country code (e.g. us).
+  - `lr` (string, optional) — Language restrict (e.g. lang_en).
+  - `dateRestrict` (string, optional) — Date restriction (e.g. d7, w2, m6).
+  - `siteSearch` (string, optional) — Restrict results to a domain.
+  - `siteSearchFilter` ("i" | "e", optional) — Include (i) or exclude (e) siteSearch domain.
+  - `safe` ("off" | "active", optional) — SafeSearch mode.
+
+### Parallel Search
+
+`parallel_search`
+
+Parallel search input. Requires objective or search_queries.
+
+  - `mode` ("one-shot" | "agentic", optional)
+  - `objective` (string, optional) — Required unless search_queries is provided.
+  - `search_queries` (string[], optional) — Required unless objective is provided.
+  - `max_results` (number, optional)
+  - `excerpts.max_chars_per_result` (number, optional)
+  - `excerpts.max_chars_total` (number, optional)
+  - `source_policy.include_domains` (string[], optional)
+  - `source_policy.exclude_domains` (string[], optional)
+  - `source_policy.after_date` (string, optional)
+  - `fetch_policy.max_age_seconds` (number, optional)
+  - `fetch_policy.timeout_seconds` (number, optional)
+  - `fetch_policy.disable_cache_fallback` (boolean, optional)
+  - `betas` (string | string[], optional)
+

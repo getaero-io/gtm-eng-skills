@@ -1,6 +1,6 @@
 ---
 name: gtm-meta-skill
-description: "Use this skill for GTM prospecting, enrichment, qualification, and outbound workflows, especially when users mention Deepline, CSV processing, lead/account/contact research, waterfall enrichment, email or LinkedIn lookup, personalization, scoring, or campaign activation. Route CSV-heavy and provider-driven requests through this skill, then rely on linked sub-docs and provider playbooks for execution details. Available providers: adyntel, apify, apollo, cloudflare, crustdata, deepline_native, dropleads, exa, firecrawl, forager, google_search, heyreach, hunter, icypeas, instantly, leadmagic, lemlist, parallel, peopledatalabs, prospeo, smartlead, zerobounce."
+description: "Use this skill for GTM prospecting, enrichment, qualification, and outbound workflows, especially when users mention Deepline, CSV processing, lead/account/contact research, waterfall enrichment, email or LinkedIn lookup, personalization, scoring, or campaign activation. Route CSV-heavy and provider-driven requests through this skill, then rely on linked sub-docs and provider playbooks for execution details. Available providers: adyntel, ai_ark, apify, apollo, cloudflare, crustdata, deepline_native, dropleads, exa, firecrawl, forager, google_search, heyreach, hunter, icypeas, instantly, leadmagic, lemlist, parallel, peopledatalabs, prospeo, smartlead, zerobounce."
 ---
 
 # GTM Meta Skill
@@ -11,33 +11,13 @@ Use this skill for prospecting, account research, contact enrichment, verificati
 
 - Route GTM decisions, safety gates, and provider/quality defaults before execution.
 - Keep long command chains and tooling nuance in sub-docs; provider-specific implementation detail in `provider-playbooks/*.md`.
-- Provide clear entry points for both paid and non-paid workflows, including `--rows 0:1` pilots.
+- Provide clear entry points for both paid and non-paid workflows, including `--rows 0:1` one-row pilots.
 
 ## Process/goal
 
 Customer is generally trying to go from "I have an ICP" to "Here's a list of prospects with email/linkedin and very personalized content or signals". They may be anywhere in this process, but guide them along.
 
 **Discovery order: companies first, then people.** When the task requires finding contacts at companies matching criteria (portfolio, ICP, hiring signal), discover the company set first, then find people at each company. Do not start with broad people-search queries.
-
-### When ICP context matters (and when it doesn't)
-
-ICP context is required for:
-- Prospecting from scratch / choosing who to target
-- Persona selection and qualification
-- Custom signal discovery and personalized messaging (`call_ai` columns)
-- LinkedIn lookup when you don't have enough identifying info (title, company, geo) — ICP persona titles become your search filter
-
-
-For these: if they have an ICP.md somewhere in this repository (context/), read it; else guide them to create one or just give you base context of who they are (e.g. getting the customers domain is super high value, you can scrape their site and understand them).
-
-ICP is NOT required for mechanical tasks — do not ask for it, do not raise it as an objection:
-- Enriching an existing CSV with a specific field (email, phone, LinkedIn when identifiers are strong)
-- Validating email addresses
-- Scraping profiles from known URLs
-- Running a waterfall on a known column
-- Any task where the user already picked their targets and is asking for a specific enrichment type
-
-**Heuristic**: if the user hands you a CSV and asks for a concrete field, just execute. ICP becomes required when the agent has to *choose who to target*, *craft what to say*, or *disambiguate a weak lookup*.
 
 ### Documentation hierarchy
 
@@ -92,7 +72,7 @@ If none match, grep for more specific keywords: `Grep pattern="<keyword>" path="
 - When the user hands you a CSV, run `deepline csv show --csv <path> --summary` first to understand its shape (row count, columns, sample values) before deciding how to process it.
 - **NEVER read a large CSV into context with the Read tool.** Reading CSV rows into the conversation window exhausts context and produces zero output. This is the single most common failure mode.
 - Use `deepline enrich` for any row-by-row processing (enrichment, rewriting, research, scoring).
-- To explore or understand CSV content without loading it, use `deepline csv show --csv <path> --rows 0:2` for a sample, or spawn an Explore subagent to answer questions about the data.
+- To explore or understand CSV content without loading it, use `deepline csv show --csv <path> --rows 0:2` for a two-row sample, or spawn an Explore subagent to answer questions about the data.
 
 ### Tools
 
@@ -142,6 +122,10 @@ GTM time windows, thresholds, and interpretation rules are defined in the Defini
 - [adyntel playbook](provider-playbooks/adyntel.md)
   Summary: Use channel-native ad endpoints first, then synthesize cross-channel insights. Keep domains normalized and remember Adyntel bills per request except free polling endpoints.
   Last reviewed: 2026-02-27
+
+- [ai_ark playbook](provider-playbooks/ai_ark.md)
+  Summary: Use company and people search for prospecting, reverse lookup for identity resolution, mobile phone finder only for strong matches, and async export or email-finder flows when you need verified emails.
+  Last reviewed: 2026-03-16
 
 - [apify playbook](provider-playbooks/apify.md)
   Summary: Prefer sync run (`apify_run_actor_sync`) for actor execution. Use async run plus polling only when you need non-blocking execution. Reach for Apify before call_ai/WebSearch when the source is already known and a source-specific actor exists.
@@ -257,7 +241,7 @@ See [enriching-and-researching.md](enriching-and-researching.md) for `deepline c
 
 ### 4.1 Required run order
 
-1. Pilot on a narrow scope (example `--rows 0:1`).
+1. Pilot on a narrow scope (example `--rows 0:1` for one row).
 2. Request explicit approval.
 3. Run full scope only after approval.
 
@@ -292,7 +276,7 @@ Include all of:
 1. Provider(s)
 2. Pilot summary and observed behavior
 3. Intent-level assumptions (3–5 one-line bullets)
-4. CSV preview from a real `deepline enrich --rows 0:1` pilot
+4. CSV preview from a real `deepline enrich --rows 0:1` one-row pilot
 5. Credits estimate / range
 6. Full-run scope size
 7. Max spend cap
@@ -330,7 +314,7 @@ Approve full run?
 
 ### 4.4 Mandatory checkpoint
 
-- Must run a real pilot on the exact CSV for full run (`--rows 0:1`).
+- Must run a real pilot on the exact CSV for full run (`--rows 0:1`, end exclusive).
 - Must include ASCII preview verbatim in approval.
 - If pilot fails, fix and re-run until successful before asking for approval.
 

@@ -256,7 +256,7 @@ Answer these **before writing scripts** based on what Phase 1 revealed. Only ans
 
 **`clay_fetch_records.sh`** — Fetches Clay records via `run_javascript` + `fetch()`.
 - `schema` mode: `GET /v3/tables/{id}` metadata
-- `pilot` mode: `--rows 0:3`
+- `pilot` mode: `--rows 0:3` (rows 0-2)
 - `full` mode: all rows
 
 **`claygent_replicate.sh`** — Replicates AI + enrichment columns via `deepline enrich`.
@@ -470,7 +470,7 @@ This matches Clay's own accuracy characteristics — Clay uses the same ZeroBoun
 2. **Phase 2 pre-flight**: Complete checklist — especially email strategy verification
 3. **Confirm**: Get user approval on assumptions
 4. **Phase 2**: Generate `clay_fetch_records.sh` + `claygent_replicate.sh`
-5. **Pilot gate**: Run `--rows 0:0` for any paid tools; show preview
+5. **Pilot gate**: Run `--rows 0:1` for any paid tools; show preview
 6. **Full run**: After approval
 7. **Phase 3**: `python3 compare.py ground_truth.csv enriched.csv` — confirm all thresholds pass
 
@@ -479,10 +479,10 @@ This matches Clay's own accuracy characteristics — Clay uses the same ZeroBoun
 ## Pilot Gate (before paid tools)
 
 `run_javascript` and `call_ai` are free — no gate needed.
-For `exa_search`, `leadmagic_*`, `hunter_*`, and other paid tools: run rows 0:0 first.
+For `exa_search`, `leadmagic_*`, `hunter_*`, and other paid tools: run rows 0:1 first.
 
 ```bash
 ./claygent_replicate.sh           # pilot: row 0 only
-./claygent_replicate.sh 0:3       # rows 0–3
+./claygent_replicate.sh 0:3       # rows 0-2
 ./claygent_replicate.sh full      # all rows
 ```
