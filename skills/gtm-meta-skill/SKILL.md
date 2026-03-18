@@ -351,6 +351,15 @@ Critical: keep [writing-outreach.md](writing-outreach.md) workflow context activ
 
 ### Apify actor flow (short canonical policy)
 
+### Operational troubleshooting: rate limits and CLI health
+
+- Use `deepline enrich` for heavy row-by-row work whenever possible. It has built-in rate-limit handling (adaptive retries/backoff) for standard upstream limits. If you are building a homegrown script, assume it does not include the same automatic protection unless you explicitly implement it.
+- If enrichment or CLI behavior is unstable, rerun the installer to ensure the latest CLI/client wiring is in place:
+
+```bash
+curl -s "https://code.deepline.com/api/v2/cli/install" | bash
+```
+
 **Sites requiring auth:** Don't use Apify. Tell the user to use Claude in Chrome or guide them through Inspect Element to get a curl command with headers (user is non-technical).
 
 1. If user provides actor ID/name/URL: use it directly.
