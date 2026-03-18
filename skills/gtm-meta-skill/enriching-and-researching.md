@@ -185,14 +185,25 @@ Why this play:
 - This is the canonical company-to-persona play.
 - Use it for both role-targeted and seniority-targeted contact discovery.
 - The right default for prompts like "find GTM engineers at these companies".
-- `roles` should be broad search phrases plus a few strong title variants that providers can match, for example `security`, `identity`, `fraud`, `ciso`, `head of security`, `vp security`.
-- `seniority` is still a first-class input and should be used to constrain level, for example `VP`, `C-Level`, `SVP`, `EVP`, `Head`, `Director`.
+- Prefer exact title tokens in `roles` when the user intent is specific, for example `CEO`, `Founder`, `CTO`, `CMO`, `VP Marketing`, `Head of Security`, `Director of Engineering`, `RevOps`.
+- Use broader functional roles only when the user intent is genuinely broad, for example `marketing`, `security`, `finance`, `product`, `engineering`, `sales`, `growth`. Broad roles are useful, but they are noisier and often return adjacent titles.
+- A good default is 1-3 exact titles, or a broad function plus a strong level hint if exact titles are not known.
+- `seniority` is a first-class input, but it is only a level hint. Use portable values like `C-Level`, `Founder`, `VP`, `Head`, `Director`, `Manager`, `Senior`, `Entry`, `Intern`. Do not send raw provider enums like `c_level` unless you are bypassing the play and calling a provider directly.
+- Do not assume the play will invent hidden row-level provider fields for you. For interpolated CSV runs, `roles` and `seniority` pass through exactly as provided.
 
 Provider behavior to remember:
-- `dropleads` and `hunter` work best off domain-first inputs.
-- `apollo` seniority enums differ from Dropleads-style seniority labels.
-- `icypeas` benefits from exact titles more than broad category terms.
-- `crustdata` is a structured fallback, not a reason to jump to `call_ai`.
+- `dropleads` is strongest when `roles` contains exact title tokens.
+- `apollo` is useful for exact title search, but do not depend on it as the only source for founder/exec startup cases.
+- `icypeas` is a strong fallback for exact profile-style role searches, especially founders and startup operators.
+- `prospeo` and `crustdata` are structured fallbacks, not reasons to jump to `call_ai`.
+- If the user asks for a very specific persona and you only have a broad function, refine the role phrasing first before adding more providers.
+
+Practical input patterns:
+- Exact exec intent: `CEO`, `Founder`, `Co-Founder`, `CTO`, `CFO`, `CMO`, `CISO`
+- Exact management intent: `VP Marketing`, `Head of Security`, `Director of Engineering`, `Revenue Operations`
+- Broad functional intent: `marketing`, `finance`, `security`, `product`, `engineering`, `sales`, `growth`
+- Good broad + level combos: `engineering + VP`, `security + Head`, `finance + Director`
+- Avoid relying on level-only phrasing like `C-Level` without a role.
 
 Operational rule:
 - If you only have `company_name`, resolve the domain first, then run persona lookup.
