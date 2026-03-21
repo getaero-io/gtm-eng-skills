@@ -1,6 +1,6 @@
 ---
 name: gtm-meta-skill
-description: "Use this skill for GTM prospecting, enrichment, qualification, and outbound workflows, especially when users mention Deepline, CSV processing, lead/account/contact research, waterfall enrichment, email or LinkedIn lookup, personalization, scoring, or campaign activation. Route CSV-heavy and provider-driven requests through this skill, then rely on linked sub-docs and provider playbooks for execution details. Available providers: adyntel, ai_ark, apify, apollo, cloudflare, crustdata, deepline_native, dropleads, exa, firecrawl, forager, google_search, heyreach, hunter, icypeas, instantly, leadmagic, lemlist, parallel, peopledatalabs, prospeo, smartlead, zerobounce."
+description: "Use this skill for GTM prospecting, enrichment, qualification, and outbound workflows, especially when users mention Deepline, CSV processing, lead/account/contact research, waterfall enrichment, email or LinkedIn lookup, personalization, scoring, or campaign activation. Route CSV-heavy and provider-driven requests through this skill, then rely on linked sub-docs and provider playbooks for execution details. Available providers: adyntel, ai_ark, apify, apollo, attio, cloudflare, crustdata, deepline_native, dropleads, exa, firecrawl, forager, google_search, heyreach, hubspot, hunter, icypeas, instantly, leadmagic, lemlist, parallel, peopledatalabs, prospeo, smartlead, snowflake, zerobounce."
 ---
 
 # GTM Meta Skill
@@ -134,6 +134,10 @@ GTM time windows, thresholds, and interpretation rules are defined in the Defini
 - [apollo playbook](provider-playbooks/apollo.md)
   Summary: Cheap but mediocre quality people/company search with include_similar_titles=true unless strict mode is explicitly requested.
   Last reviewed: 2026-02-11
+
+- [attio playbook](provider-playbooks/attio.md)
+  Summary: Use assert_record for upserts, query_records for filtered reads, and list entries for pipeline management. All API calls are free (seat-based billing).
+  Last reviewed: 2026-03-02
 
 - [cloudflare playbook](provider-playbooks/cloudflare.md)
   Summary: Use cloudflare_crawl to crawl websites and extract content as markdown, HTML, or JSON. Returns partial results on timeout — check timedOut field. Browser rendering is enabled by default.

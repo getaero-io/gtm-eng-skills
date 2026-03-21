@@ -87,18 +87,17 @@ Play tool: `person_linkedin_only_to_email_waterfall`
 Why this play:
 - Use when contacts came from a people search (e.g. dropleads_search_people) and have LinkedIn URLs but no company domains.
 - Do NOT resolve domains first — this play handles it without domain.
-- `dropleads_single_person_enrichment` resolves email from LinkedIn + name alone and hits on the first step in most cases.
+- `dropleads_single_person_enrichment` resolves email from LinkedIn very well here, and less is more: the play sends only `linkedin_url` to Dropleads on the first step, then keeps `first_name` and `last_name` for downstream fallback providers.
 
 Play details:
 - Required inputs are `linkedin_url`, `first_name`, `last_name`.
-- `company_name` is optional and used as a hint.
 - Current provider order is `dropleads_single_person_enrichment -> deepline_native_enrich_contact -> crustdata_person_enrichment -> peopledatalabs_enrich_contact`.
 
 Example:
 
 ```bash
 deepline enrich --input contacts.csv --output contacts_with_emails.csv --rows 0:1 \
-  --with '{"alias":"email","tool":"person_linkedin_only_to_email_waterfall","payload":{"linkedin_url":"{{linkedin_url}}","first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company_name}}"}}'
+  --with '{"alias":"email","tool":"person_linkedin_only_to_email_waterfall","payload":{"linkedin_url":"{{linkedin_url}}","first_name":"{{first_name}}","last_name":"{{last_name}}"}}'
 ```
 
 ### LinkedIn URL -> work email

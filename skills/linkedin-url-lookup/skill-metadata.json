@@ -1,0 +1,12 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "LinkedIn URL Lookup",
+      "tags": [
+        "recipe"
+      ],
+      "providers": []
+    }
+  }
+}
