@@ -1,0 +1,31 @@
+# GTM Engineering Skills for Claude Code
+
+> 10 AI agent skills for go-to-market workflows — lead enrichment, waterfall email finding, signal discovery, TAM building, and outbound automation. Built on Deepline.
+
+## Skills
+
+- [waterfall-enrichment](https://github.com/getaero-io/gtm-eng-skills/blob/main/skills/waterfall-enrichment/SKILL.md): Run multiple enrichment providers in sequence (Dropleads, Hunter, LeadMagic) — stop at first valid result to maximize coverage and minimize cost.
+- [contact-to-email](https://github.com/getaero-io/gtm-eng-skills/blob/main/skills/contact-to-email/SKILL.md): Find and verify work email addresses from name+company, LinkedIn URL, or name+domain.
+- [build-tam](https://github.com/getaero-io/gtm-eng-skills/blob/main/skills/build-tam/SKILL.md): Build Total Addressable Market lists from ICP filters using Apollo, PDL, and Crustdata.
+- [get-leads-at-company](https://github.com/getaero-io/gtm-eng-skills/blob/main/skills/get-leads-at-company/SKILL.md): Find GTM contacts at a company, pick the best ICP match, and draft personalized outreach.
+- [niche-signal-discovery](https://github.com/getaero-io/gtm-eng-skills/blob/main/skills/niche-signal-discovery/SKILL.md): Discover buying signals that differentiate closed-won vs closed-lost deals for ICP analysis and account scoring.
+- [job-change-detector](https://github.com/getaero-io/gtm-eng-skills/blob/main/skills/job-change-detector/SKILL.md): Detect HubSpot contacts who changed jobs, find new work emails, update CRM, add to campaigns.
+- [linkedin-url-lookup](https://github.com/getaero-io/gtm-eng-skills/blob/main/skills/linkedin-url-lookup/SKILL.md): Resolve LinkedIn profile URLs from name+company with identity validation to avoid false positives.
+- [portfolio-prospecting](https://github.com/getaero-io/gtm-eng-skills/blob/main/skills/portfolio-prospecting/SKILL.md): Find companies backed by a specific investor or accelerator, then find contacts and build outbound.
+- [clay-to-deepline](https://github.com/getaero-io/gtm-eng-skills/blob/main/skills/clay-to-deepline/SKILL.md): Convert Clay table configurations to local Deepline enrichment scripts.
+- [deepline-feedback](https://github.com/getaero-io/gtm-eng-skills/blob/main/skills/deepline-feedback/SKILL.md): Send feedback or bug reports to the Deepline team with session context.
+
+## Installation
+
+```bash
+npx skills add getaero-io/gtm-eng-skills --all
+npm install -g @deepline/cli
+deepline auth login
+```
+
+## Documentation
+
+- [Deepline CLI Docs](https://code.deepline.com/docs)
+- [Deepline AI-Readable Docs](https://docs.code.deepline.com/docs/llms.txt)
+- [GitHub Repository](https://github.com/getaero-io/gtm-eng-skills)
+- [Contributing Guide](https://github.com/getaero-io/gtm-eng-skills/blob/main/CONTRIBUTING.md)
