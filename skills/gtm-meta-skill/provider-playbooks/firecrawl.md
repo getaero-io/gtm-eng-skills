@@ -12,7 +12,6 @@
 
 ## Budget awareness
 
-- Run `firecrawl_check_credits` before large operations (crawl, batch scrape, extract) to confirm remaining balance.
 - Credit costs vary by action — scrape is 1 credit, search is 1 credit per result, crawl is 2 credits per page.
 - `crawl_params_preview` is free and shows estimated credit usage before committing.
 

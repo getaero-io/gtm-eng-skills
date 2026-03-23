@@ -59,7 +59,7 @@ Anti-patterns:
 - reconstructing a known directory with repeated search queries
 - firing all providers in parallel before routing
 - guessing filter names or enum values
-- using `call_ai` here for search.
+- using `deeplineagent` as the default discovery path here.
 - continuing row-level logic / enrichment/research here after a seed list exists
 
 ## Scenario table
@@ -271,7 +271,7 @@ deepline tools execute dropleads_search_people --payload '{"filters":{"jobTitles
 
 ### Tiny-startup fallback
 
-exa_people_search returns keyword-matched LinkedIn profiles, not verified employees. For startups <50 people, expect freelancers and consultants matching across multiple companies. Check each result's title for the correct company name before using it; if >30% are unaffiliated, switch to `call_ai` with `WebSearch`.
+exa_people_search returns keyword-matched LinkedIn profiles, not verified employees. For startups <50 people, expect freelancers and consultants matching across multiple companies. Check each result's title for the correct company name before using it; if >30% are unaffiliated, switch to `deeplineagent` as a tool-backed fallback.
 
 **Disambiguate common company names.** If the company name is a common word (e.g. "Ergo", "Bloom", "Newton"), add disambiguating context to the query — accelerator batch (`YC W25`), domain (`joinergo.com`), or product description. Without this, Exa returns people from unrelated companies with the same name.
 
@@ -438,7 +438,7 @@ Do the tool search once near the top, inspect the shortlisted tools, then pick t
 | Tool | Best for | Server-side filters | Cost | Gotchas |
 |---|---|---|---|---|
 | `curl` / `parallel_extract` / `WebFetch` | Data at known URLs: VC portfolios, accelerator directories, job boards, team pages, conference speaker lists | URL + optional CSS/objective | free (`curl`) or ~1 cr (`parallel_extract`) | Use `curl` for static HTML, `parallel_extract` for JS-rendered pages. A single fetch returns the complete dataset — search tools return fragments requiring 10+ calls to piece together. |
-| `crustdata_companydb_search` | Company lists with ICP constraints (funding, headcount, geography, industry) | funding stage, headcount range, hq_country, crunchbase_categories, linkedin_industries, employee growth, investor | ~1 cr/search | `hq_country` = ISO 3-letter codes (`USA` not `United States`) — silent empty on wrong format. Use `crunchbase_categories` for niche verticals (Fraud Detection, Identity Management), not `linkedin_industries` (too broad). Response includes headcount + funding — don't re-enrich with `call_ai`. `employee_metrics.growth_6m_percent` is a free hiring proxy. |
+| `crustdata_companydb_search` | Company lists with ICP constraints (funding, headcount, geography, industry) | funding stage, headcount range, hq_country, crunchbase_categories, linkedin_industries, employee growth, investor | ~1 cr/search | `hq_country` = ISO 3-letter codes (`USA` not `United States`) — silent empty on wrong format. Use `crunchbase_categories` for niche verticals (Fraud Detection, Identity Management), not `linkedin_industries` (too broad). Response includes headcount + funding — don't re-enrich with `deeplineagent` for data already present. `employee_metrics.growth_6m_percent` is a free hiring proxy. |
 | `crustdata_companydb_autocomplete` | Get canonical filter values before searching | — | free | Always run before `companydb_search` for fields like `crunchbase_categories`, `linkedin_industries`, `last_funding_round_type`. Requires non-empty `query` (≥1 char). |
 | `crustdata_job_listings` | Hiring signals at known companies | company domains | ~0.4 cr/result | Batch domains in one call. Spotty coverage on <200 emp companies — only ~25% have listings. No server-side title filter — filter client-side. |
 | `crustdata_people_search` | LinkedIn-oriented person discovery | company domain, title keywords | ~1 cr | — |
@@ -455,9 +455,9 @@ Do the tool search once near the top, inspect the shortlisted tools, then pick t
 | `hunter_email_finder` | Email finding in waterfall | domain, first/last name | ~0.3 cr | Poor coverage for <50 emp companies. |
 | `peopledatalabs_company_search` | SQL-based company search | SQL (industry, size, funding, location) | expensive | Last resort. Exhaust others first. |
 | `crustdata_person_enrichment` | LinkedIn profile enrichment | LinkedIn URL | ~1 cr | — |
-| `apify_run_actor_sync` | LinkedIn scraping (profiles, company employees) | actor-specific | varies | Structured data, faster than `call_ai` + WebSearch. |
+| `apify_run_actor_sync` | LinkedIn scraping (profiles, company employees) | actor-specific | varies | Structured data, faster than `deeplineagent` for source-specific scraping. |
 | `adyntel_facebook_ad_search` | Meta keyword-based ad search | keyword | ~1 cr | Additional channel coverage. |
-| WebSearch/WebFetch | General web research, quick lookups | query string | free | Great for discovery and list building. |
+| `deeplineagent` | Tool-backed fallback research and ambiguity resolution | prompt + row context | varies | Use only after direct discovery paths fail or when you need guided synthesis over web findings. Ask for structured output with `jsonSchema`. |
 
 ## Subagent orchestration
 
@@ -486,7 +486,7 @@ Pick the right tool based on what you have and what you need:
 |---|---|---|---|---|---|
 | `exa_people_search` | 0.1 cr/result | company name + role keyword | Structured entities: name, title, LinkedIn, work history | Any company size, especially small startups | Finds *associated* people, not guaranteed exact role match |
 | `dropleads_search_people` | free | company domain or keyword filters | Name, title, email (sometimes), company | Mid/large companies (>50 employees) | Near-zero coverage for tiny startups (<50 people) |
-| `call_ai` + WebSearch | free (LLM cost only) | company name/domain | Unstructured — needs json_mode for parsing | Fallback when providers return 0 | Slow (~10s/row), prone to timeouts |
+| `deeplineagent` | varies | company name/domain | Structured if you pass `jsonSchema` | Fallback when providers return 0 | Slower than direct providers; use only after the normal search path is exhausted |
 | `apollo_people_search_paid` | 1 cr/result | domain, title keywords | Name, title, email, LinkedIn | Large companies with good Apollo coverage | Expensive, poor for small startups |
 
 **Default: `exa_people_search` via `deepline enrich`.** Returns structured person entities (name, title, LinkedIn, work history) — no parsing needed. Works across company sizes.
@@ -496,7 +496,7 @@ deepline enrich --input seed.csv --in-place --rows 0:1 \
   --with '{"alias":"contact","tool":"exa_people_search","payload":{"query":"{{role}} at {{Company}}","numResults":3}}'
 ```
 
-**Fallback: `dropleads_search_people`** when you need structured filters (seniority, geography, headcount) and companies are >50 employees. Then `call_ai` + WebSearch as last resort.
+**Fallback: `dropleads_search_people`** when you need structured filters (seniority, geography, headcount) and companies are >50 employees. Then `deeplineagent` as the last resort.
 
 ## Sample calls by provider
 
@@ -547,7 +547,7 @@ Dropleads note: keep title filters broad (`jobTitles`) and allow seniority to do
 - `employee_metrics.latest_count` is valid for `sorts` but NOT as a `filter_type` -- use `employee_count_range` (string enum like `"51-200"`, `"201-500"`) for headcount filters.
 - **`hq_country` uses ISO 3-letter codes**: `USA`, `GBR`, `IND`, `DEU`, etc. — NOT full country names. Passing `"United States"` returns 0 results with no error (silent failure).
 - **For niche verticals** (fraud, identity, compliance, fintech sub-segments), prefer `crunchbase_categories` over `linkedin_industries`. LinkedIn industries are broad buckets (`"Financial Services"`); crunchbase categories map to specific business functions (`"Fraud Detection"`, `"Identity Management"`). Always autocomplete both to compare specificity.
-- **Search responses include firmographic data** — headcount (`employee_metrics.latest_count`), funding (`last_funding_round_type`), HQ (`hq_country`), categories, and employee growth (`employee_metrics.growth_6m_percent`). Extract these fields directly into your seed CSV. Do not re-enrich with `call_ai` for data already in the response.
+- **Search responses include firmographic data** — headcount (`employee_metrics.latest_count`), funding (`last_funding_round_type`), HQ (`hq_country`), categories, and employee growth (`employee_metrics.growth_6m_percent`). Extract these fields directly into your seed CSV. Do not re-enrich with `deeplineagent` for data already in the response.
 - **`employee_metrics.growth_6m_percent`** is a free hiring proxy already in every search response. Positive 6-month growth suggests active hiring. Use this before spending credits on `crustdata_job_listings`, especially for smaller companies where job listing coverage is thin.
 
 **Operators**: `(.)` = fuzzy contains (default), `[.]` = substring, `=`, `!=`, `in`, `not_in`, `>`, `<`, `=>`, `=<`.
@@ -690,4 +690,3 @@ deepline enrich --input tam.csv --in-place --rows 0:1 \
 ```
 
 Then score using signals from job listings (hiring relevant roles), tech stack (integration readiness), and website content (pain language, compliance maturity).
-

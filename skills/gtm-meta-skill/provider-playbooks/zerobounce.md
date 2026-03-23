@@ -6,5 +6,4 @@
 - Use `zerobounce_email_finder` (guessformat) to discover the most likely email pattern for a domain. Provide `first_name` and `last_name` for a personalized guess; omit them to get only the domain format pattern.
 - Use `zerobounce_domain_search` to enumerate known email formats for a domain before constructing candidate addresses.
 - Use `zerobounce_activity_data` to check recent engagement before re-engaging cold contacts. An `active_in_days` over 365 suggests the address may be abandoned.
-- Use `zerobounce_credits` before large batch runs to verify sufficient balance. The 2,000 free monthly validations reset on your billing cycle.
 - When the `did_you_mean` field is non-empty, consider prompting the user or auto-correcting before sending.

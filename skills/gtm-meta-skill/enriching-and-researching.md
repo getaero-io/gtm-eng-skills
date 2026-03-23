@@ -22,24 +22,25 @@ Run deepline enrich in the foreground so you don't waste tokens while it complet
 | Email -> person/company context | You have an inbound or work email and need person + company details | `Email -> person/company context` | Good for hydrating context from a single strong identifier |
 | First + last + domain -> work email | Company name is missing but the domain is known | `First + last + domain -> work email` | Canonical cost-aware path for weaker but still structured identifiers |
 | Company -> persona lookup | You have an account and need candidate contacts by role or seniority | `Company -> persona lookup` | Canonical play for company-to-persona lookup |
-| Company name only -> resolve domain first | You need to recover homepage/domain before downstream enrichment | `Company name only -> resolve domain first` | Domain lookup is mechanical and should not start with `call_ai` |
+| Company name only -> resolve domain first | You need to recover homepage/domain before downstream enrichment | `Company name only -> resolve domain first` | Domain lookup is mechanical and should not start with `deeplineagent` |
 | Validate a recovered email | An email lookup has already run | `Notes` | Validation belongs after recovery or coalescing, not before |
 | Manual email waterfall | You need custom provider order or play customization | `Manual email waterfall` | Lets you control ordering and spend |
 | Find a LinkedIn URL for a known person | You have name, domain, and role context | `Notes` | Cheap deterministic lookup when the query is specific |
 | Pull rich LinkedIn or work-history data | The URL is already known and you need structured profile data | `Notes` | Structured output beats ad hoc web synthesis |
 | Find a mobile phone number | A verified person identity already exists | `Notes` | Best later in the pipeline after identity is strong |
-| Mechanical company enrichment | You need direct structured account data | `Notes` | Cheaper and cleaner, often more accurate than `call_ai` for firmographics |
+| Mechanical company enrichment | You need direct structured account data | `Notes` | Cheaper and cleaner, often more accurate than `deeplineagent` for firmographics |
 | Coalesce competing provider outputs | Multiple columns target the same field | `Notes` | Deterministic canonicalization after parallel providers |
-| Per-row factual account research | You need custom research or synthesis that provider fields do not cover | `Custom enrichment with call_ai` | Use only after plays/providers do not cover the job |
-| Research pass before writing | You need company or person research to support later copy | `Custom enrichment with call_ai` | Research belongs here and should feed a later writing step |
-| Generate copy after research | The research column already exists and you now need messaging, first lines, scoring copy, or sequence text | `writing-outreach.md` | Copywriting should route to the outreach doc, not stay here |
+| Per-row factual account research | You need custom research or synthesis that provider fields do not cover | `Custom enrichment with run_javascript and deeplineagent` | Use `deeplineagent` for AI work and `run_javascript` for deterministic transforms |
+| Research pass before writing | You need company or person research to support later copy | `Custom enrichment with run_javascript and deeplineagent` | Research belongs here and should feed a later writing step |
+| Generate copy after research | The research column already exists and you now need messaging, first lines, scoring copy, or sequence text | `writing-outreach.md` | Copywriting should route to the outreach doc, usually with `deeplineagent` once the research column exists |
 
 ## Notes
 
 - Plays are the default surface for common enrichment jobs.
 - Direct provider tools are preferred for mechanical fields when no play exists.
-- `call_ai` is for research, synthesis, and custom signals, not for simple deterministic fields a provider already returns.
-- Domain lookup / homepage recovery is mechanical. Use `exa_search` with rich context or `google_search_google_search`, not `call_ai`.
+- `run_javascript` is for deterministic transforms, normalization, coalescing, templating, and cheap row-level glue logic.
+- `deeplineagent` is the default AI path for research, synthesis, custom signals, and classification when JS is not enough.
+- Domain lookup / homepage recovery is mechanical. Use `exa_search` with rich context or `google_search_google_search`, not `deeplineagent`.
 - Persona lookup means "find candidate contacts at a company for a target role or seniority." Treat that as a dedicated play, not as generic research.
 - Validate after recovery or coalescing, not during each waterfall step.
 - For contact-to-email work, route by the strongest identifiers you already have: name + company + domain -> `Name + company -> work email`, LinkedIn URL + name (no domain) -> `LinkedIn URL only -> work email`, LinkedIn URL + name + domain -> `LinkedIn URL -> work email`, name + domain -> `First + last + domain -> work email`.
@@ -62,7 +63,7 @@ Play tool: `name_and_company_to_email_waterfall`
 Why this play:
 - Best default when you already know both the person and the account.
 - Keeps the job deterministic and avoids unnecessary research tooling.
-- Should be the first move before manual waterfalls or `call_ai`.
+- Should be the first move before manual waterfalls or `deeplineagent`.
 
 Play details:
 - Required inputs are `first_name`, `last_name`, `company_name`, and `domain`.
@@ -194,7 +195,7 @@ Provider behavior to remember:
 - `dropleads` is strongest when `roles` contains exact title tokens.
 - `apollo` is useful for exact title search, but do not depend on it as the only source for founder/exec startup cases.
 - `icypeas` is a strong fallback for exact profile-style role searches, especially founders and startup operators.
-- `prospeo` and `crustdata` are structured fallbacks, not reasons to jump to `call_ai`.
+- `prospeo` and `crustdata` are structured fallbacks, not reasons to jump to `deeplineagent`.
 - If the user asks for a very specific persona and you only have a broad function, refine the role phrasing first before adding more providers.
 
 Practical input patterns:
@@ -206,8 +207,8 @@ Practical input patterns:
 
 Operational rule:
 - If you only have `company_name`, resolve the domain first, then run persona lookup.
-- Do not use `call_ai` as the first pass for persona lookup.
-- Use `call_ai` only as a fallback research pass when the play and direct providers miss.
+- Do not use `deeplineagent` as the first pass for persona lookup.
+- Use `deeplineagent` only as a fallback research pass when the play and direct providers miss.
 - If provider results are weak or sparse, first re-check the available people/company search tools with category searches, then use Apify if you need a broader employee list.
 
 Category searches:
@@ -251,12 +252,12 @@ Default tools: `exa_search` or `google_search_google_search`
 Why this play:
 - Domain lookup is mechanical.
 - It should happen before persona lookup, email recovery, or company enrichment.
-- `call_ai` is the wrong default here because this is a search-and-resolve task, not a synthesis task.
+- `deeplineagent` is the wrong default here because this is a search-and-resolve task, not a synthesis task.
 
 Routing rule:
 1. Resolve domain/homepage with `exa_search` or `google_search_google_search`.
 2. Run the downstream play using the recovered domain.
-3. Only use `call_ai` if provider/search outputs still do not cover the factual need.
+3. Only use `deeplineagent` if provider/search outputs still do not cover the factual need and you need tool-backed reasoning to resolve the ambiguity.
 
 Example:
 
@@ -276,7 +277,7 @@ Default surface: `--with-waterfall` plus direct providers
 Why this play:
 - Use only when no native play fits or when you need to deliberately customize provider order.
 - Keeps mechanical enrichment mechanical.
-- This is still preferable to starting with `call_ai` for deterministic fields.
+- This is still preferable to starting with `deeplineagent` for deterministic fields.
 
 Key waterfall rules:
 - Always pilot first with `--rows 0:1`, then scale after the shape looks right.
@@ -311,7 +312,7 @@ python3 ~/.claude/skills/gtm-meta-skill/scripts/validate-emails.py enriched.csv 
 
 Flag and investigate mismatched rows — these are often from a previous employer or a wrong-person match. If >20% of rows mismatch, the contact-finding step likely needs re-running with better company disambiguation.
 
-## Custom enrichment with call_ai
+## Custom enrichment with run_javascript and deeplineagent
 
 Use this section for:
 - open-ended factual research
@@ -323,9 +324,15 @@ Use this section for:
 
 Default rule:
 - use direct providers or plays for mechanical fields
-- use `call_ai` when you need research, synthesis, or custom logic
+- use `run_javascript` when the job is deterministic row logic: formatting, normalization, coalescing, templating, parsing, or simple conditional transforms
+- use `deeplineagent` when the row needs AI help for classification, extraction, scoring, structured generation, browsing, or multi-step synthesis
 - split research and generation into separate passes when both are needed
 - keep research here; route actual copywriting to `writing-outreach.md`
+
+### Tiny disambiguation
+
+- Pick `run_javascript` for deterministic logic and cheap row transforms.
+- Pick `deeplineagent` when JS is not enough and you need AI help, whether that's research or reasoning over the row.
 
 ### Prompt library
 
@@ -357,27 +364,34 @@ If the prompt key contains quotes or awkward punctuation, first list keys with `
 
 1. Check whether a play or direct provider already covers the field.
 2. Search `prompts.json` for a close starting point.
-3. Run a research pass first if the task requires web lookup or synthesis.
+3. Run a `deeplineagent` research pass first if the task requires web lookup or synthesis.
 4. If the next step is copy, sequence writing, scoring copy, or messaging, switch to `writing-outreach.md` and use the research column there.
-5. Keep outputs structured with `json_mode` when the column is meant to feed later steps.
+5. Keep outputs structured with `jsonSchema` when the column is meant to feed later steps.
 
 Practical rule:
 - use `jq -r 'keys[]'` to browse prompt names
 - use `grep -nE ...` to hunt by keyword
 - use `jq -r '."KEY NAME"'` to pull the exact prompt text
 
-### Example: inline custom research column
+### Example: inline custom research column with `deeplineagent`
 
 ```bash
 deepline enrich --input accounts.csv --in-place --rows 0:1 \
-  --with '{"alias":"account_research","tool":"call_ai","payload":{"prompt":"Research {{company_name}} ({{domain}}). Return JSON with what_they_build, who_they_sell_to, recent_news.","agent":"claude","model":"haiku","allowed_tools":"WebSearch","json_mode":{"type":"object","properties":{"what_they_build":{"type":"string"},"who_they_sell_to":{"type":"string"},"recent_news":{"type":"string"}},"required":["what_they_build","who_they_sell_to"]}}}'
+  --with '{"alias":"account_research","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Research {{company_name}} ({{domain}}). Return JSON with what_they_build and who_they_sell_to. Keep it brief and use Deepline-managed tools only if needed.","jsonSchema":{"type":"object","properties":{"what_they_build":{"type":"string"},"who_they_sell_to":{"type":"string"}},"required":["what_they_build","who_they_sell_to"],"additionalProperties":false}}}'
 ```
 
 ### Example: research pass before writing
 
 ```bash
 deepline enrich --input leads.csv --output leads_researched.csv --rows 0:1 \
-  --with '{"alias":"company_research","tool":"call_ai","payload":{"prompt":"Research {{company_name}}. Return JSON with key pain points and recent news.","agent":"claude","model":"haiku","allowed_tools":"WebSearch","json_mode":{"type":"object","properties":{"pain_points":{"type":"string"},"recent_news":{"type":"string"}}}}}'
+  --with '{"alias":"company_research","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Research {{company_name}} ({{domain}}). Return JSON with key pain_points for a buyer considering data enrichment, scoring, or GTM workflow tooling. Keep it brief and use Deepline-managed tools only if needed.","jsonSchema":{"type":"object","properties":{"pain_points":{"type":"string"}},"required":["pain_points"],"additionalProperties":false}}}'
+```
+
+### Example: classify an existing research column with `deeplineagent`
+
+```bash
+deepline enrich --input leads_researched.csv --in-place --rows 0:1 \
+  --with '{"alias":"account_tier","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Using only the provided context, classify {{company_name}} into one of: high_fit, medium_fit, low_fit. Context: {{company_research}}","jsonSchema":{"type":"object","properties":{"tier":{"type":"string","enum":["high_fit","medium_fit","low_fit"]},"reason":{"type":"string"}},"required":["tier","reason"],"additionalProperties":false}}}'
 ```
 
 ### Example: adapt a saved prompt from prompts.json
@@ -392,7 +406,7 @@ Then adapt it into a row-level enrich call for research or custom-signal work:
 
 ```bash
 deepline enrich --input contacts.csv --in-place --rows 0:1 \
-  --with '{"alias":"candidate_facts","tool":"call_ai","payload":{"prompt":"Using the style of the saved prompt \"5 interesting facts about a candidate\", find five short, source-backed facts about {{full_name}} at {{company_name}}. Return JSON {facts: string[]}","agent":"claude","model":"haiku","allowed_tools":"WebSearch","json_mode":{"type":"object","properties":{"facts":{"type":"array","items":{"type":"string"}}},"required":["facts"]}}}'
+  --with '{"alias":"candidate_facts","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Using the style of the saved prompt \"5 interesting facts about a candidate\", find five short, source-backed facts about {{full_name}} at {{company_name}}. Use Deepline-managed tools if needed. Return JSON {facts: string[]}.","jsonSchema":{"type":"object","properties":{"facts":{"type":"array","items":{"type":"string"}}},"required":["facts"],"additionalProperties":false}}}'
 ```
 
 For actual email copy, personalized first lines, sequence writing, or scoring language, stop here and route to `writing-outreach.md` with the research columns you just created.

@@ -113,18 +113,18 @@ Each key is a category name, each value is a list of keyword strings.
 
 ### Generation Pattern
 
-**1. Product category keywords** — Web search: "{target product category} keywords terminology"
+**1. Product category keywords** — `deeplineagent` prompt: "Research the terminology and keywords buyers and vendors use for {target product category}."
 
 Example for creative ops:
 ```bash
-WebSearch: "creative operations terminology DAM asset management keywords"
+deeplineagent: "Research creative operations terminology, DAM phrases, and asset management keywords."
 ```
 
-**2. Buyer pain point keywords** — Web search: "{buyer persona} challenges problems pain points"
+**2. Buyer pain point keywords** — `deeplineagent` prompt: "Research the challenges, problems, and pain points for {buyer persona}."
 
 Example for creative teams:
 ```bash
-WebSearch: "creative teams marketing teams challenges problems workflow"
+deeplineagent: "Research the workflow challenges and pain points for creative teams and marketing teams."
 ```
 
 **3. Anti-fit keywords** — From Step 0.5 competitor discovery
@@ -223,12 +223,12 @@ Each key is a tool category, each value is a list of tool names to search for. *
 
 ### Generation Pattern
 
-**1. Tech stack discovery** — From Step 0.5 web search: "{buyer persona} common tools tech stack"
+**1. Tech stack discovery** — From Step 0.5 `deeplineagent` research: "What tools are common in the {buyer persona} software stack?"
 
 Example for creative teams:
 ```bash
-WebSearch: "creative teams marketing teams software tools tech stack"
-WebSearch: "creative operations teams figma adobe integrations"
+deeplineagent: "Research the common software tools and tech stack for creative teams and marketing teams."
+deeplineagent: "Research the tools, integrations, and workflows common to creative operations teams using Figma or Adobe."
 ```
 
 **2. Category organization** — Group tools by function (design, marketing, project mgmt, etc.)
@@ -296,12 +296,12 @@ Each key is a role category, each value is a list of substrings to match against
 
 ### Generation Pattern
 
-**1. Job role discovery** — From Step 0.5 web search: "{buyer persona} job titles roles"
+**1. Job role discovery** — From Step 0.5 `deeplineagent` research: "What job titles, roles, and responsibilities are common for {buyer persona}?"
 
 Example for creative teams:
 ```bash
-WebSearch: "creative operations job titles creative director content manager"
-WebSearch: "companies hiring creative operations brand manager"
+deeplineagent: "Research creative operations job titles, including creative director and content manager variants."
+deeplineagent: "Research companies hiring for creative operations or brand manager roles and extract common title variants."
 ```
 
 **2. Category organization** — Group by seniority and function (leadership, IC roles, ops roles)

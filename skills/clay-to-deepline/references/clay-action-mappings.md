@@ -9,7 +9,7 @@ Every Clay action maps to a specific Deepline CLI tool or native play. Use actua
 **For every Clay action, the selection order is:**
 1. **Native play first** — check if a native Deepline play covers the action (they're stable, multi-provider, and cost-optimized). Current native plays: `person_linkedin_to_email_waterfall`, `name_and_company_to_email_waterfall`, `cost_aware_first_name_and_domain_to_email_waterfall`, `company_to_contact_by_role_waterfall`, `person_enrichment_from_email_waterfall`.
 2. **Search for a dedicated tool** — `deepline tools search "<intent>"` before hardcoding any individual provider tool. New tools are added regularly. Examples: `deepline tools search "qualify person ICP"`, `deepline tools search "octave"`, `deepline tools search "email verify"`, `deepline tools search "add leads campaign"`.
-3. **Verify the tool exists** — `deepline tools get <tool_id>`. If it errors, the tool doesn't exist yet — use the `call_ai` fallback from this doc.
+3. **Verify the tool exists** — `deepline tools get <tool_id>`. If it errors, the tool doesn't exist yet — use the `deeplineagent` fallback from this doc.
 4. **Use the mapping below as a fallback** — when no native play or dedicated tool exists.
 
 ```bash
@@ -18,7 +18,7 @@ deepline tools search "<action intent>"     # find current options
 deepline tools get <candidate_tool_id>      # verify it exists + see payload schema
 ```
 
-**Why this matters:** Deepline may add a native `octave_qualify_person`, `instantly_send_email`, or other integration at any time. Searching first means your script gets the better tool automatically — instead of being locked into a `call_ai` approximation.
+**Why this matters:** Deepline may add a native `octave_qualify_person`, `instantly_send_email`, or other integration at any time. Searching first means your script gets the better tool automatically — instead of being locked into a `deeplineagent` approximation.
 
 ---
 
@@ -26,10 +26,10 @@ deepline tools get <candidate_tool_id>      # verify it exists + see payload sch
 
 | Clay model | Deepline `--with` params | Notes |
 |---|---|---|
-| `gpt-4.1`, `claude` (clay-argon) | `"model":"sonnet","agent":"claude"` | Complex reasoning, json_mode |
-| `gpt-4.1-mini` | `"model":"haiku","agent":"auto"` | Clay's mid-tier model for claygent+web columns |
-| `gpt-4o-mini`, `gpt-5-mini` | `"model":"haiku","agent":"auto"` | Fast classify/generate |
-| `gpt-5-nano` | `"model":"haiku","agent":"auto"` | Cheapest tier |
+| `gpt-4.1`, `claude` (clay-argon) | `"model":"anthropic/claude-sonnet-4.6"` | Complex reasoning, larger structured outputs |
+| `gpt-4.1-mini` | `"model":"openai/gpt-5.4-mini"` | Clay's mid-tier model for claygent-style columns |
+| `gpt-4o-mini`, `gpt-5-mini` | `"model":"openai/gpt-5.4-mini"` | Fast classify/generate |
+| `gpt-5-nano` | `"model":"openai/gpt-5.4-mini"` | Cheapest tier approximation |
 
 ---
 
@@ -41,8 +41,8 @@ deepline tools get <candidate_tool_id>      # verify it exists + see payload sch
 | `enrich-person-with-mixrank-v2` | `leadmagic_profile_search` → `crustdata_person_enrichment` waterfall | See Person Enrichment section |
 | `lookup-company-in-other-table` | `run_javascript` (local CSV join) | Export company table to CSV first |
 | `lookup-multiple-rows-in-other-table` | `run_javascript` (local CSV join) | Same pattern |
-| `chat-gpt-schema-mapper` | `call_ai` haiku, no json_mode | Single-value classification |
-| `normalize-company-name` | `call_ai` haiku or `run_javascript` | JS preferred for pure string ops |
+| `chat-gpt-schema-mapper` | `deeplineagent`; use `jsonSchema` when you need structured extraction | Single-value classification |
+| `normalize-company-name` | `deeplineagent` or `run_javascript` | JS preferred for pure string ops |
 | `generate-email-permutations` | `run_javascript` | Pure compute, no provider |
 | `validate-email` (all instances) | `leadmagic_email_validation` (one final gate) | Skip per-step validation; validate once after waterfall |
 | `wiza-find-email` | `dropleads_email_finder` (waterfall step 1) | Part of native play |
@@ -52,12 +52,12 @@ deepline tools get <candidate_tool_id>      # verify it exists + see payload sch
 | `enrich-person` (PDL) | `peopledatalabs_enrich_contact` (waterfall step) | Covered by native play |
 | `dropcontact-enrich-person` | `dropleads_email_finder` (waterfall step) | Covered by native play |
 | **Entire email waterfall group** | `person_linkedin_to_email_waterfall` | One play replaces all 6 finders |
-| `use-ai` (no web, simple) | `call_ai` haiku | Match model tier |
-| `use-ai` (no web, json_mode) | `call_ai` sonnet + `json_mode` schema | |
-| `use-ai` (claygent + web) | Pass 1: `call_ai` haiku + `"allowed_tools":"WebSearch"` → Pass 2: `call_ai` sonnet | Always 2 passes, never combine |
-| `octave-qualify-person` | `call_ai` sonnet, ICP scoring prompt, `json_mode` | See Octave section |
-| `octave-enrich-person` | `call_ai` sonnet + `"allowed_tools":"WebSearch"` | |
-| `octave-run-sequence-runner` | Pass 1: `call_ai` haiku (signals) → Pass 2: `call_ai` sonnet (email) | Always 2 passes |
+| `use-ai` (no web, simple) | `deeplineagent` | Match model tier |
+| `use-ai` (no web, structured) | `deeplineagent` + `jsonSchema` | |
+| `use-ai` (claygent + web) | Pass 1: `exa_search` → Pass 2: `deeplineagent` | Always split research and synthesis |
+| `octave-qualify-person` | `deeplineagent`, ICP scoring prompt, `jsonSchema` | See Octave section |
+| `octave-enrich-person` | `exa_search` + `deeplineagent` | |
+| `octave-run-sequence-runner` | Pass 1: `deeplineagent` (signals) → Pass 2: `deeplineagent` (email) | Always 2 passes |
 | `social-posts-get-post-activity-posts-and-shares` | `apify_run_actor_sync` with `apimaestro/linkedin-profile-scraper` | Run-as-button in Clay — omit unless user needs posts |
 | `score-your-data` (unconfigured) | `run_javascript` keyword scoring | See Scoring section |
 | `add-lead-to-campaign` (Smartlead) | `smartlead_add_leads_to_campaign` | |
@@ -281,7 +281,7 @@ enriched = json.loads(result.stdout).get("result", {}).get("company", {})
 ### `normalize-company-name`
 For LLM-quality normalization:
 ```bash
---with '{"alias":"normalized_company","tool":"call_ai","payload":{"prompt":"Normalize this company name: {{company_raw}}. Strip legal suffixes (Inc, LLC, Corp, Ltd, Holdings, Group). Return title case. Return ONLY the name, nothing else.","model":"haiku","agent":"auto"}}'
+--with '{"alias":"normalized_company","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Normalize this company name: {{company_raw}}. Strip legal suffixes (Inc, LLC, Corp, Ltd, Holdings, Group). Return title case. Return ONLY the name, nothing else."}}'
 ```
 
 For pure string normalization (cheaper):
@@ -297,10 +297,10 @@ return name.replace(/\b(Inc\.?|LLC\.?|Corp\.?|Ltd\.?|Limited|Co\.?|Group|Holding
 
 ### `chat-gpt-schema-mapper`
 ```bash
---with '{"alias":"job_function","tool":"call_ai","payload":{"prompt":"Classify this job title into a function label. Rules: all lowercase except BizOps/RevOps/GTM Ops, <4 words, describe the vertical. Return ONLY the label.\n\nJob title: {{job_title}}","model":"haiku","agent":"auto"}}'
+--with '{"alias":"job_function","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Classify this job title into a function label. Rules: all lowercase except BizOps/RevOps/GTM Ops, <4 words, describe the vertical. Return ONLY the label.\n\nJob title: {{job_title}}"}}'
 ```
 
-No `json_mode` needed for single-value string output.
+No `jsonSchema` needed for a single-value string output.
 
 ---
 
@@ -308,14 +308,14 @@ No `json_mode` needed for single-value string output.
 
 ### `use-ai` (useCase: `use-ai`, no web tools)
 ```bash
-# haiku (gpt-4o-mini / gpt-5-mini equivalent)
---with '{"alias":"data_warehouse_formatted","tool":"call_ai","payload":{"prompt":"<exact Clay prompt with {{field}} refs translated>","model":"haiku","agent":"auto"}}'
+# fast reasoning / generation
+--with '{"alias":"data_warehouse_formatted","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"<exact Clay prompt with {{field}} refs translated>"}}'
 
-# sonnet + json_mode (gpt-4.1 with answerSchemaType equivalent)
---with '{"alias":"strategic_summary","tool":"call_ai","payload":{"prompt":"<prompt>","model":"sonnet","agent":"claude","json_mode":{"type":"object","properties":{"response":{"type":"string"},"top_5_initiatives":{"type":"string"},"top_3_sales_initiatives":{"type":"string"}}}}}'
+# larger structured output
+--with '{"alias":"strategic_summary","tool":"deeplineagent","payload":{"model":"anthropic/claude-sonnet-4.6","prompt":"<prompt>","jsonSchema":{"type":"object","properties":{"response":{"type":"string"},"top_5_initiatives":{"type":"string"},"top_3_sales_initiatives":{"type":"string"}},"required":["response"],"additionalProperties":false}}}'
 ```
 
-Reference json_mode output in downstream passes as `{{col_name.extracted_json}}`, not `{{col_name.field}}`.
+Reference structured output fields in downstream passes as `{{col_name.field}}`. If you need deeper nesting, flatten it first.
 
 ---
 
@@ -323,11 +323,11 @@ Reference json_mode output in downstream passes as `{{col_name.extracted_json}}`
 
 ### `use-ai` (useCase: `claygent` or web browsing enabled)
 
-**Always two passes.** Never combine research + generation in one `call_ai` — causes timeouts (~40% failure rate on web+generation combined).
+**Always two passes.** Never combine broad research + generation in one model step — it is harder to debug and less stable than a split search/synthesis flow.
 
 **Pass 1 — Research:**
 ```bash
---with '{"alias":"company_research","tool":"call_ai","payload":{"prompt":"Research {{company_domain}} ({{company_name}}). Find: top strategic initiatives, recent news, GTM signals. Return JSON: {summary, initiatives, recent_news, sources}","model":"haiku","agent":"claude","allowed_tools":"WebSearch","json_mode":{"type":"object","properties":{"summary":{"type":"string"},"initiatives":{"type":"string"},"recent_news":{"type":"string"},"sources":{"type":"string"}}}}}'
+--with '{"alias":"company_research","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Use the research context to summarize {{company_domain}} ({{company_name}}). Return JSON with summary, initiatives, and sources.","jsonSchema":{"type":"object","properties":{"summary":{"type":"string"},"initiatives":{"type":"string"},"sources":{"type":"string"}},"required":["summary","initiatives"],"additionalProperties":false}}}'
 ```
 
 **Alternative research via exa_search** (deterministic, auditable):
@@ -338,14 +338,14 @@ Reference json_mode output in downstream passes as `{{col_name.extracted_json}}`
 **Pass 2 — Generation (separate `deepline enrich --in-place` call):**
 ```bash
 deepline enrich --input enriched.csv --in-place --rows 0:1 \
-  --with '{"alias":"strategic_initiatives","tool":"call_ai","payload":{"prompt":"<Clay prompt translated>\n\nResearch context:\n{{company_research}}","model":"sonnet","agent":"claude","json_mode":{"type":"object","properties":{"top_5_initiatives":{"type":"string"},"top_3_sales_initiatives":{"type":"string"},"top_3_go_to_market_initiatives":{"type":"string"},"new_products":{"type":"string"},"hypothesis_of_potential_challenges":{"type":"string"}}}}}'
+  --with '{"alias":"strategic_initiatives","tool":"deeplineagent","payload":{"model":"anthropic/claude-sonnet-4.6","prompt":"<Clay prompt translated>\n\nResearch context:\n{{company_research}}","jsonSchema":{"type":"object","properties":{"top_5_initiatives":{"type":"string"},"top_3_sales_initiatives":{"type":"string"},"top_3_go_to_market_initiatives":{"type":"string"},"new_products":{"type":"string"},"hypothesis_of_potential_challenges":{"type":"string"}},"required":["top_5_initiatives"],"additionalProperties":false}}}'
 ```
 
 ---
 
 ## Octave Actions (proprietary — search for native equivalent first)
 
-Octave `ca_*` agents are proprietary Clay integrations. Before defaulting to `call_ai`, check whether Deepline has added a native equivalent:
+Octave `ca_*` agents are proprietary Clay integrations. Before defaulting to `deeplineagent`, check whether Deepline has added a native equivalent:
 
 ```bash
 deepline tools search "qualify person ICP"
@@ -353,16 +353,16 @@ deepline tools search "octave"
 deepline tools search "sequence runner email"
 ```
 
-If a native tool exists (e.g. `octave_qualify_person`, `octave_sequence_runner`), use it directly — it will be faster and more accurate than the `call_ai` approximations below. The patterns below are **fallbacks for when no native tool is available**.
+If a native tool exists (e.g. `octave_qualify_person`, `octave_sequence_runner`), use it directly — it will be faster and more accurate than the `deeplineagent` fallbacks below. The patterns below are **fallbacks for when no native tool is available**.
 
 ### `octave-qualify-person`
 ```bash
---with '{"alias":"qualify_person","tool":"call_ai","payload":{"prompt":"Score this prospect against our ICP (0-10 total). ICP: [paste ICP criteria]. Prospect — Title: {{title}}, Company: {{company_name}}, Domain: {{company_domain}}, LinkedIn: {{linkedin_url}}, Initiatives: {{strategic_initiatives}}.\n\nScoring dimensions: persona fit (0-4) + seniority (0-2) + hiring signals (0-2) + strategic fit (0-2).\nTier: A=8-10, B=5-7, C=0-4. Qualified if score>=6.\nReturn JSON.","model":"sonnet","agent":"claude","json_mode":{"type":"object","properties":{"score":{"type":"number"},"tier":{"type":"string","enum":["A","B","C"]},"qualified":{"type":"boolean"},"rationale":{"type":"string"},"disqualifiers":{"type":"array","items":{"type":"string"}}}}}}'
+--with '{"alias":"qualify_person","tool":"deeplineagent","payload":{"model":"anthropic/claude-sonnet-4.6","prompt":"Score this prospect against our ICP (0-10 total). ICP: [paste ICP criteria]. Prospect — Title: {{title}}, Company: {{company_name}}, Domain: {{company_domain}}, LinkedIn: {{linkedin_url}}, Initiatives: {{strategic_initiatives}}.\n\nScoring dimensions: persona fit (0-4) + seniority (0-2) + hiring signals (0-2) + strategic fit (0-2).\nTier: A=8-10, B=5-7, C=0-4. Qualified if score>=6.\nReturn JSON.","jsonSchema":{"type":"object","properties":{"score":{"type":"number"},"tier":{"type":"string","enum":["A","B","C"]},"qualified":{"type":"boolean"},"rationale":{"type":"string"},"disqualifiers":{"type":"array","items":{"type":"string"}}},"required":["score","tier","qualified","rationale"],"additionalProperties":false}}}'
 ```
 
 ### `octave-enrich-person`
 ```bash
---with '{"alias":"person_enriched","tool":"call_ai","payload":{"prompt":"Research this person using public sources. Name: {{first_name}} {{last_name}}, Title: {{title}}, Company: {{company_name}}, LinkedIn: {{linkedin_url}}. Return JSON with background, career_summary, notable_achievements.","model":"sonnet","agent":"claude","allowed_tools":"WebSearch","json_mode":{"type":"object","properties":{"background":{"type":"string"},"career_summary":{"type":"string"},"notable_achievements":{"type":"string"}}}}}'
+--with '{"alias":"person_enriched","tool":"deeplineagent","payload":{"model":"anthropic/claude-sonnet-4.6","prompt":"Research this person using public sources. Name: {{first_name}} {{last_name}}, Title: {{title}}, Company: {{company_name}}, LinkedIn: {{linkedin_url}}. Return JSON with background, career_summary, and notable_achievements.","jsonSchema":{"type":"object","properties":{"background":{"type":"string"},"career_summary":{"type":"string"},"notable_achievements":{"type":"string"}},"required":["background","career_summary"],"additionalProperties":false}}}'
 ```
 
 ### `octave-run-sequence-runner` (email generation)
@@ -370,12 +370,12 @@ Two passes:
 
 **Pass 1 — Gather signals (separate enrich call):**
 ```bash
---with '{"alias":"sequence_signals","tool":"call_ai","payload":{"prompt":"Summarize outbound signals for {{first_name}} ({{title}} at {{company_name}}). Use context: {{qualify_person}} / {{strategic_initiatives}} / {{tension_mapping}}. Return key talking points and pain hypotheses.","model":"haiku","agent":"claude"}}'
+--with '{"alias":"sequence_signals","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Summarize outbound signals for {{first_name}} ({{title}} at {{company_name}}). Use context: {{qualify_person}} / {{strategic_initiatives}} / {{tension_mapping}}. Return key talking points and pain hypotheses."}}'
 ```
 
 **Pass 2 — Write email:**
 ```bash
---with '{"alias":"email_sequence","tool":"call_ai","payload":{"prompt":"Write a cold email (subject + body, body <70 words). Recipient: {{first_name}}, {{title}}, {{company_name}}. Signals: {{sequence_signals}}. Tone: casual, direct. No buzzwords.","model":"sonnet","agent":"claude","json_mode":{"type":"object","properties":{"subject":{"type":"string"},"body":{"type":"string"}}}}}'
+--with '{"alias":"email_sequence","tool":"deeplineagent","payload":{"model":"anthropic/claude-sonnet-4.6","prompt":"Write a cold email (subject + body, body <70 words). Recipient: {{first_name}}, {{title}}, {{company_name}}. Signals: {{sequence_signals}}. Tone: casual, direct. No buzzwords.","jsonSchema":{"type":"object","properties":{"subject":{"type":"string"},"body":{"type":"string"}},"required":["subject","body"],"additionalProperties":false}}}'
 ```
 
 ---
@@ -497,8 +497,8 @@ Clay uses `{{f_0sy80p3xxx}}` field IDs in prompts and formula cells. Steps to tr
 |---|---|
 | `run_javascript` returning a scalar | `{{alias}}` |
 | `run_javascript` returning an object | `{{alias.field_name}}` |
-| `call_ai` without json_mode | `{{alias}}` (raw string) |
-| `call_ai` with json_mode | `{{alias.extracted_json}}` (never `{{alias.field_name}}` directly) |
+| `deeplineagent` without `jsonSchema` | `{{alias}}` (raw string) |
+| `deeplineagent` with `jsonSchema` | `{{alias.field_name}}` for flat fields |
 | Flattened Clay field | `{{fields.snake_name}}` |
 
 **2-level max:** `{{alias.field}}` works; `{{alias.field.nested}}` fails — flatten the nested object first with a `run_javascript` pass.

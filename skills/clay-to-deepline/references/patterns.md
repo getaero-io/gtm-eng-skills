@@ -132,24 +132,24 @@ Use Python subprocess to build `--with` payloads containing JS code. Never hand-
 
 **Do this**:
 - `{{column_name}}` — direct column reference
-- `{{col.extracted_json}}` — json_mode output (2 levels max)
+- `{{col.field_name}}` — structured `deeplineagent` output (2 levels max)
 - For 3+ levels: add a `run_javascript` flatten pass first
 
 **Not this**:
 - `{{row.fields.company_name}}` — `row.` prefix → "column 'row' not found"
-- `{{strategic_initiatives.extracted_json.top5}}` — 3 levels → silently empty
+- `{{strategic_initiatives.top5.value}}` — 3 levels → silently empty
 
-**Why**: `call_ai` with `json_mode` outputs `{output, extracted_json}` — the fields you want are one level deeper than the column name. 3+ level nesting isn't supported; flatten first.
+**Why**: `deeplineagent` with `jsonSchema` stores the object directly in the cell, so one-level field access works. 3+ level nesting still needs a flatten pass.
 
 ---
 
-## call_ai Usage
+## deeplineagent Usage
 
-**Do this**: One `call_ai` invocation per column, structured JSON output, all fields in one schema. Use `call_ai` haiku for classification/extraction, sonnet for generation/research.
+**Do this**: One `deeplineagent` invocation per column, structured JSON output, all fields in one schema. Use `openai/gpt-5.4-mini` for quick classification/extraction and a larger model like `anthropic/claude-sonnet-4.6` when the prompt genuinely needs more reasoning.
 
-**Not this**: Multiple `call_ai` calls where one json_mode call would return all fields at once. Use `call_ai` with `allowed_tools: "WebSearch"` for research.
+**Not this**: Multiple `deeplineagent` calls where one `jsonSchema` call would return all fields at once. Avoid burying broad research inside a single model call when `exa_search` + synthesis would be clearer.
 
-**Why**: WebSearch via `call_ai` hits 180s timeout. Use `exa_search` as a separate prior pass instead. Multiple `call_ai` calls for fields from the same data multiply cost unnecessarily.
+**Why**: Splitting search from synthesis is more debuggable and usually more stable. Multiple model calls for fields from the same data multiply cost and complexity unnecessarily.
 
 ---
 
@@ -164,20 +164,20 @@ Use Python subprocess to build `--with` payloads containing JS code. Never hand-
 
 ---
 
-## call_ai Blocked in Direct Execute
+## deeplineagent Direct Execute
 
-**Do this**: Use `deepline enrich --with 'col=call_ai:{...}'` for all `call_ai` passes — each row runs in a separate subprocess session.
+**Do this**: Use `deepline enrich --with 'col=deeplineagent:{...}'` for row-by-row execution, or `deepline tools execute deeplineagent` for one-off prompt validation.
 
-**Not this**: Run `deepline tools execute call_ai` directly from Claude CLI.
+**Not this**: Assume a direct one-off success means the full row-by-row pipeline no longer needs staged execution or dependency ordering.
 
-**Why**: Claude CLI blocks sub-calls in the same session: "Claude CLI does not support sub-calls in the same session." This is expected behavior, not a bug.
+**Why**: `deepline enrich` is still the right surface for repeatable column execution, dependency handling, and interpolation across rows.
 
 ---
 
 ## Unknown Clay Actions
 
-**Do this**: Run `deepline tools search "<what the action does>"` before writing any placeholder or `call_ai` approximation. Deepline adds tools continuously — searching first gets you the right tool automatically.
+**Do this**: Run `deepline tools search "<what the action does>"` before writing any placeholder or `deeplineagent` approximation. Deepline adds tools continuously — searching first gets you the right tool automatically.
 
-**Not this**: Hardcode a `call_ai` approximation for a Clay action that might have a dedicated Deepline tool.
+**Not this**: Hardcode a `deeplineagent` approximation for a Clay action that might have a dedicated Deepline tool.
 
-**Why**: A `call_ai` approximation for `validate-email` costs ~0.5¢/row; `leadmagic_email_validation` costs ~0.002¢/row — 250× cheaper, more accurate.
+**Why**: A dedicated enrichment tool is usually cheaper, faster, and more accurate than approximating the job with a general AI step.

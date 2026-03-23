@@ -13,7 +13,7 @@ Every major VC and accelerator publishes their portfolio online. **Do NOT waste 
 
 ## What NOT to do
 
-Tested and failed: Apollo investor filtering (irrelevant results), people-first then verify investor (~7-9% hit rate, wastes 60-80% of turns), Crustdata `crunchbase_investors` (inconsistent), `call_ai` per-row investor verification (~5-10s/row, unacceptable at scale) 
+Tested and failed: Apollo investor filtering (irrelevant results), people-first then verify investor (~7-9% hit rate, wastes 60-80% of turns), Crustdata `crunchbase_investors` (inconsistent), `deeplineagent` per-row investor verification (~5-10s/row, unacceptable at scale)
 
 ## Proven approach
 
@@ -41,7 +41,7 @@ Use guidance in [enriching-and-researching.md](../enriching-and-researching.md) 
 
 Use guidance in [enriching-and-researching.md](../enriching-and-researching.md) for this
 
-**Step 5: Generate personalized email copy** using `call_ai` with `json_mode` for subject/body. Pilot on rows 0:2, then run full batch.
+**Step 5: Generate personalized email copy** with `deeplineagent` and `jsonSchema`. If the row still needs fresh web lookup, do that in the same `deeplineagent` step or in a separate research pass first. Pilot on rows `0:2`, then run the full batch.
 
 Use guidance in [writing-outreach.md](../writing-outreach.md)
 
@@ -50,6 +50,6 @@ Use guidance in [writing-outreach.md](../writing-outreach.md)
 | Pitfall | What happens | Fix |
 |---------|-------------|-----|
 | Trying to discover portfolio companies via Deepline tools | Wastes 60-80% of turn budget on company discovery | Fetch the public portfolio page directly |
-| `json_mode: true` in call_ai | `RuntimeError: json_mode expected object\|string, got boolean` | Pass a JSON schema object: `{"type":"object","properties":{...},"required":[...]}` |
+| Using old `json_mode` fields from retired local AI docs | New AI tools ignore that contract and structured output drifts or fails | Pass a `jsonSchema` object to `deeplineagent` |
 | Searching with strict titles at small startups | 0 results — person hasn't been hired yet | Remove title filter, get broader roles, pick best match |
 | Using Hunter as primary email finder for <50 person companies | 0/25 fill rate | Use LeadMagic first — better small-company coverage |

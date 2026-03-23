@@ -122,50 +122,116 @@ Example `icp.md` starter:
 }
 ```
 
-## Personalization: `run_javascript` vs `call_ai`
+## Personalization: `run_javascript` vs `deeplineagent`
 
-When you already have contact + company context in CSV columns, use `run_javascript` for email generation — it's instant, deterministic, and zero LLM cost. Only use `call_ai` when you need per-row web research or complex reasoning.
+When you already have contact + company context in CSV columns, use `run_javascript` for email generation when a deterministic template is enough. Use `deeplineagent` when you want AI help with reasoning, scoring, copy quality, or research.
 
-**Critical: avoid mail-merge output.** If every email has the same structure with only `{{first_name}}` and `{{company_name}}` swapped, it's a template — not personalized outreach. Each email must reference something specific to the company (product, use case, industry, recent news). Use `company_description`, `one_liner`, or other enrichment columns in your JS template or `call_ai` prompt so each email is substantively different.
+**Critical: avoid mail-merge output.** If every email has the same structure with only `{{first_name}}` and `{{company_name}}` swapped, it's a template — not personalized outreach. Each email must reference something specific to the company (product, use case, industry, recent news). Use `company_description`, `one_liner`, `company_research`, or other enrichment columns in your JS template or `deeplineagent` prompt so each email is substantively different.
 
 ```bash
-# Fast path: template personalization via run_javascript (instant, free)
+# Fast path: template personalization via run_javascript
 deepline enrich --input enriched.csv --in-place \
   --with '{"alias":"outbound_email","tool":"run_javascript","payload":{"code":"@${OUTPUT_DIR}/template_email.js"}}'
 
-# Slow path: call_ai when you need per-row research (adds ~60s, LLM cost)
+# AI path: deeplineagent when the row already has the research
 deepline enrich --input enriched.csv --in-place \
-  --with '{"alias":"outbound_email","tool":"call_ai","payload":{"prompt":"Research {{company_domain}} and write a personalized email to {{first_name}}...","tools":["WebSearch"]}}'
+  --with '{"alias":"outbound_email","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Write a concise personalized cold email to {{first_name}} at {{company_name}} using this context: {{company_research}}. Return JSON with subject and email.","jsonSchema":{"type":"object","properties":{"subject":{"type":"string"},"email":{"type":"string"}},"required":["subject","email"],"additionalProperties":false}}}'
+
+# Research-first path: deeplineagent when the row still needs fresh research
+deepline enrich --input enriched.csv --in-place \
+  --with '{"alias":"research_backed_email","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Research {{company_domain}} and write a personalized cold email to {{first_name}}. Use Deepline-managed tools if needed. Return JSON with subject and email.","jsonSchema":{"type":"object","properties":{"subject":{"type":"string"},"email":{"type":"string"}},"required":["subject","email"],"additionalProperties":false}}}'
 ```
 
 ## Recommended Workflow
 
 ```bash
-deepline tools get read_file
-deepline tools get call_ai_claude_code
-deepline tools execute read_file --payload '{"path":"./icp.md"}
+deepline tools get deeplineagent
 
-QUAL_PROMPT=$(jq -Rs '{prompt: ("You are a B2B qualification analyst. Return strict JSON only with this shape: {data:{score:number,score_label:string,fit_band:string,rationale:string,qualification:{answers:[{question:string,answer:\"Yes\"|\"No\"|\"Unknown\",confidence:\"HIGH\"|\"MEDIUM\"|\"LOW\",rationale:string}],summary:{positives:[string],risks:[string],next_checks:[string]}}}}. Use high recall defaults unless explicitly asked for strict matching. Inputs:\nICP file payload: " + . + "\nProspect payload: {{prospect_payload}}"), model:"haiku", agent:"claude", json_mode:true}' ./icp_context.json)
+ICP_CONTEXT=$(cat ./context/icp.md)
+PRODUCT_CONTEXT=$(cat ./context/product_context.md)
 
-SEQ_PROMPT=$(jq -Rs '{prompt: ("You are a B2B email strategist. Return strict JSON only with this shape: {data:{emails:[{step:number,subject:string,coreValueProp:string,email:string}],sequence_rationale:string}}. Write 4 concise emails tied to qualification rationale and explicit pains. Inputs:\nICP file payload: " + . + "\nQualification payload: {{qualification_output}}\nProspect payload: {{prospect_payload}}"), model:"haiku", agent:"claude", json_mode:true}' ./icp_context.json)
+QUAL_WITH=$(jq -nc --arg icp "$ICP_CONTEXT" '{
+  alias: "qualification_output",
+  tool: "deeplineagent",
+  payload: {
+    model: "openai/gpt-5.4-mini",
+    prompt: ("You are a B2B qualification analyst. Use only the provided evidence. Inputs:\nICP context:\n" + $icp + "\nProspect payload:\n{{prospect_payload}}"),
+    jsonSchema: {
+      type: "object",
+      properties: {
+        data: {
+          type: "object",
+          properties: {
+            score: { type: "number" },
+            score_label: { type: "string" },
+            fit_band: { type: "string" },
+            rationale: { type: "string" }
+          },
+          required: ["score", "score_label", "fit_band", "rationale"],
+          additionalProperties: false
+        }
+      },
+      required: ["data"],
+      additionalProperties: false
+    }
+  }
+}')
+
+SEQ_WITH=$(jq -nc --arg product "$PRODUCT_CONTEXT" '{
+  alias: "email_sequence_output",
+  tool: "deeplineagent",
+  payload: {
+    model: "openai/gpt-5.4-mini",
+    prompt: ("You are a B2B email strategist. Write 4 concise emails tied to the qualification output and product context.\nProduct context:\n" + $product + "\nQualification payload:\n{{qualification_output}}\nProspect payload:\n{{prospect_payload}}"),
+    jsonSchema: {
+      type: "object",
+      properties: {
+        data: {
+          type: "object",
+          properties: {
+            emails: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  step: { type: "number" },
+                  subject: { type: "string" },
+                  coreValueProp: { type: "string" },
+                  email: { type: "string" }
+                },
+                required: ["step", "subject", "coreValueProp", "email"],
+                additionalProperties: false
+              }
+            },
+            sequence_rationale: { type: "string" }
+          },
+          required: ["emails", "sequence_rationale"],
+          additionalProperties: false
+        }
+      },
+      required: ["data"],
+      additionalProperties: false
+    }
+  }
+}')
 
 printf "prospect_payload\n{\"person\":{\"firstName\":\"Rachael\",\"lastName\":\"Foster\",\"title\":\"Vice President AMER Field Marketing, Public Sector, Services, & Community\"},\"company\":{\"name\":\"Cloudera\",\"domain\":\"cloudera.com\"}}\n" > ./qualification_email_seed.csv
 
 deepline enrich --input ./qualification_email_seed.csv --output ./qualification_email_seed_enriched.csv \
-  --with '{"alias":"qualification_output","tool":"call_ai_claude_code","payload":{"prompt":"${QUAL_PROMPT}"}}' \
-  --with '{"alias":"email_sequence_output","tool":"call_ai_claude_code","payload":{"prompt":"${SEQ_PROMPT}"}}' \
+  --with "$QUAL_WITH" \
+  --with "$SEQ_WITH"
 ```
 
 ## Prompt Templates (Copy/Paste)
 
-Use these as `call_ai_claude_code` payload templates inside `--with` columns. **Haiku is the default when model is omitted.**
+Use these as `prompt` values inside `deeplineagent` payloads. Pair each prompt with a `jsonSchema` that matches the output contracts above. Recommended starting model: `openai/gpt-5.4-mini`.
 
 ### 1) Score + Fit Label Template
 
 ```json
 {
   "prompt": "You are a B2B scoring analyst.\nReturn strict JSON only:\n{\"data\":{\"score\":0,\"score_label\":\"\",\"fit_band\":\"\",\"scoring\":{\"weights\":[{\"factor\":\"\",\"weight\":0,\"evidence\":\"\",\"impact\":\"positive|negative|neutral\"}],\"confidence\":\"HIGH|MEDIUM|LOW\"},\"rationale\":\"\"}}\nRules:\n- score is integer 0-10\n- score_label format: \"Strong fit: X/10\" or \"Possible fit: X/10\" or \"Weak fit: X/10\"\n- fit_band one of: STRONG_FIT, POSSIBLE_FIT, WEAK_FIT\n- use evidence from provided context only; do not invent facts\n- default to higher recall unless strict matching is explicitly requested\nInputs:\nICP context: {{icp_context}}\nProspect payload: {{prospect_payload}}",
-  "model": "haiku"
+  "model": "openai/gpt-5.4-mini"
 }
 ```
 
@@ -174,7 +240,7 @@ Use these as `call_ai_claude_code` payload templates inside `--with` columns. **
 ```json
 {
   "prompt": "You are an ICP qualification analyst.\nReturn strict JSON only:\n{\"data\":{\"qualification\":{\"answers\":[{\"question\":\"\",\"answer\":\"Yes|No|Unknown\",\"confidence\":\"HIGH|MEDIUM|LOW\",\"rationale\":\"\"}],\"summary\":{\"positives\":[\"\"],\"risks\":[\"\"],\"next_checks\":[\"\"]}},\"rationale\":\"\"}}\nRules:\n- keep answers short and explicit\n- each rationale must reference concrete evidence from context\n- mark Unknown when evidence is missing\n- avoid strict/exact matching unless explicitly asked\nInputs:\nICP questions: {{qualification_questions}}\nICP context: {{icp_context}}\nProspect payload: {{prospect_payload}}",
-  "model": "haiku"
+  "model": "openai/gpt-5.4-mini"
 }
 ```
 
@@ -183,7 +249,7 @@ Use these as `call_ai_claude_code` payload templates inside `--with` columns. **
 ```json
 {
   "prompt": "You are a B2B email strategist.\nReturn strict JSON only:\n{\"data\":{\"emails\":[{\"step\":1,\"subject\":\"\",\"coreValueProp\":\"\",\"email\":\"\"}],\"sequence_rationale\":\"\"}}\nRules:\n- exactly 4 emails with step 1..4\n- each email must map to a pain or risk from qualification summary\n- concise style, no fluff, no markdown\n- personalization must reference role/company context from prospect payload\n- avoid claims not supported by inputs\nInputs:\nProduct context: {{product_context}}\nQualification output: {{qualification_output}}\nProspect payload: {{prospect_payload}}",
-  "model": "haiku"
+  "model": "openai/gpt-5.4-mini"
 }
 ```
 
@@ -192,7 +258,7 @@ Use these as `call_ai_claude_code` payload templates inside `--with` columns. **
 ```json
 {
   "prompt": "You are a B2B subject line writer.\nReturn strict JSON only:\n{\"data\":{\"subjects\":[{\"variant\":\"\",\"angle\":\"pain|outcome|proof|curiosity\",\"why_it_matches\":\"\"}]}}\nRules:\n- create 8 variants max 7 words each\n- no clickbait, no ALL CAPS, no exclamation marks\n- tie each variant to qualification rationale\nInputs:\nQualification output: {{qualification_output}}\nProspect payload: {{prospect_payload}}",
-  "model": "haiku"
+  "model": "openai/gpt-5.4-mini"
 }
 ```
 
@@ -201,7 +267,7 @@ Use these as `call_ai_claude_code` payload templates inside `--with` columns. **
 ```json
 {
   "prompt": "You are a cold email QA editor.\nReturn strict JSON only:\n{\"data\":{\"issues\":[{\"step\":1,\"severity\":\"HIGH|MEDIUM|LOW\",\"issue\":\"\",\"fix\":\"\"}],\"revised_emails\":[{\"step\":1,\"subject\":\"\",\"coreValueProp\":\"\",\"email\":\"\"}]}}\nRules:\n- flag vague claims, unsupported assertions, and weak personalization\n- keep original structure and tighten only where needed\nInputs:\nQualification output: {{qualification_output}}\nEmail sequence output: {{email_sequence_output}}\nProspect payload: {{prospect_payload}}",
-  "model": "haiku"
+  "model": "openai/gpt-5.4-mini"
 }
 ```
 

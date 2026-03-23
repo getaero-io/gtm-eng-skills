@@ -243,28 +243,28 @@ enrich "\$FLATTEN"
 
 # ─── PASSES 2..N: generated from the actual Clay table schema ─────────────────
 # The passes below are EXAMPLES only. The migration skill generates passes specific
-# to your table — column aliases, prompts, tools, and json_mode schemas all come
+# to your table — column aliases, prompts, tools, and jsonSchema objects all come
 # from the Clay schema fetch + bulk-fetch-records cell values (Phase 1).
 #
 # DO NOT copy these examples for a different table. Run Phase 1 on your table first.
 #
-# ── Example: call_ai haiku — simple classify (no web, single-value output) ────
-# echo "Pass N: <alias> (call_ai haiku)"
+# ── Example: deeplineagent — simple classify (no web, single-value output) ────
+# echo "Pass N: <alias> (deeplineagent)"
 # PASS_N=$(python3 -c "
 # import json
 # # Prompt comes from the recovered Clay formula cell value (Phase 1 §1.5)
 # # or approximated if no HAR available. Replace {{fields.xxx}} with your actual aliases.
 # prompt = '<PASTE RECOVERED CLAY PROMPT HERE — from Phase 1 HAR extraction>'
-# print('<alias>=call_ai:' + json.dumps({'prompt': prompt, 'model': 'haiku', 'agent': 'auto'}))
+# print('<alias>=deeplineagent:' + json.dumps({'prompt': prompt, 'model': 'openai/gpt-5.4-mini'}))
 # ")
 # enrich "\$PASS_N"
 #
-# ── Example: call_ai sonnet with json_mode — structured output ─────────────────
-# echo "Pass N: <alias> (call_ai sonnet, json_mode)"
+# ── Example: deeplineagent with jsonSchema — structured output ─────────────────
+# echo "Pass N: <alias> (deeplineagent, jsonSchema)"
 # PASS_N=$(python3 -c "
 # import json
 # prompt = '<PASTE RECOVERED CLAY PROMPT HERE>'
-# # json_mode schema mirrors the fields the original Clay column output contained.
+# # jsonSchema mirrors the fields the original Clay column output contained.
 # # Inspect bulk-fetch-records cell values to determine the actual output shape.
 # schema = {
 #     'type': 'object',
@@ -272,12 +272,13 @@ enrich "\$FLATTEN"
 #         # Add fields matching what the original Clay column produced:
 #         '<field_name>': {'type': '<string|number|boolean|array>'},
 #     },
-#     'required': ['<required_field>']
+#     'required': ['<required_field>'],
+#     'additionalProperties': False
 # }
-# print('<alias>=call_ai:' + json.dumps({'prompt': prompt, 'model': 'sonnet', 'agent': 'claude', 'json_mode': schema}))
+# print('<alias>=deeplineagent:' + json.dumps({'prompt': prompt, 'model': 'anthropic/claude-sonnet-4.6', 'jsonSchema': schema}))
 # ")
 # enrich "\$PASS_N"
-# # Downstream ref: {{<alias>.extracted_json}}, NOT {{<alias>.<field_name>}}
+# # Downstream ref: {{<alias>.<field_name>}}
 #
 # ── Example: exa_search — web research (paid — pilot gate required) ───────────
 # echo "Pass N: <alias> (exa_search)"
@@ -303,7 +304,7 @@ echo "Playground: http://127.0.0.1:4174"
 
 - `enrich()` wraps `deepline enrich --in-place` with row scoping — always build `--with` args via `json.dumps()`, never hand-write JSON in bash
 - `enrich_force()` forces recompute of a single column — use for reruns without reprocessing the full pipeline
-- Downstream `json_mode` columns: reference via `.extracted_json` (e.g. `{{strategic_initiatives.extracted_json}}`), not `.field_name` directly
+- Downstream structured-output columns: reference flat fields directly (e.g. `{{strategic_initiatives.top_5_initiatives}}`)
 
 ### Usage
 

@@ -35,7 +35,7 @@ Stage 7:  Export
 deepline enrich --input seed.csv --output work.csv \
   --with "perm_fln=run_javascript:{...}" \
   --with "work_email_primary=cost_aware_first_name_and_domain_to_email_waterfall:{...}" \
-  --with "job_function=call_ai:{...}"
+  --with "job_function=deeplineagent:{...}"
 
 # Stage 2: Execute ONLY the run_javascript column first
 deepline csv --execute_cells --csv work.csv --rows 0:N --cols 7:7   # perm_fln col index
@@ -169,7 +169,7 @@ fi
 
 | Stage cost | Row count still missing | Use conditional? |
 |---|---|---|
-| Free (`run_javascript`, `call_ai`) | Any | No — run all rows, it's free |
+| Local (`run_javascript`) | Any | No — run all rows |
 | Cheap paid (`leadmagic_email_validation`) | < 20% | Maybe — marginal savings |
 | Expensive paid (provider waterfalls) | < 50% | Yes — meaningful savings |
 
