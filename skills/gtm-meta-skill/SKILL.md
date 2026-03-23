@@ -87,6 +87,51 @@ deepline tools search --categories company_search --search_terms "structured fil
 deepline tools search --categories people_search --search_terms "title filters,linkedin"
 ```
 
+## 2.5) Session UI plan — MANDATORY for every task
+
+**Always** publish your execution plan to the Session UI before running any commands. This is not optional — users monitor progress in real time via the Session UI. Without it, the UI shows nothing and users have no visibility.
+
+```bash
+# Post your plan (accepts JSON array of step labels)
+deepline session plan --steps '["Inspect CSV and understand shape","Search for email finder tools","Run pilot on rows 0:1","Get approval for full run","Execute full enrichment","Post-run validation and delivery"]'
+
+# As you complete each step, update its status (0-indexed)
+deepline session plan --update 0 --status completed
+deepline session plan --update 1 --status running
+deepline session plan --update 1 --status completed
+deepline session plan --update 2 --status running
+# On error:
+deepline session plan --update 2 --status error
+```
+
+Valid step statuses: `pending`, `running`, `completed`, `error`, `skipped`.
+
+### Live status updates within a step
+
+As you work through a running step, send status updates to show what you're currently doing. This is for emergent work the plan couldn't predict upfront (parsing responses, falling back to alternative providers, extracting data, etc.).
+
+```bash
+# While a step is running, send status updates (attaches to the currently-running step)
+deepline session status --message "Extracting company domains from Apollo response"
+deepline session status --message "LeadMagic returned no results — falling back to ZeroBounce"
+deepline session status --message "Validating 23 catch-all emails"
+
+# Optionally target a specific step by index
+deepline session status --message "Retrying with different params" --step-index 2
+```
+
+Each new status message marks the previous one as done and appears as the active sub-step. These are lightweight — use them freely whenever you're doing something the user would want to see.
+
+Rules:
+- Post the plan **before** running any enrichment/tool commands. This is step zero of every task.
+- Update steps as you go — mark `running` when starting, `completed` or `error` when done.
+- Send `session status` messages during step execution to show what you're currently working on.
+- Keep step labels short and descriptive (what, not how).
+- If your plan changes mid-execution, re-post with `--steps` to replace the old plan.
+- When writing output CSVs outside of `deepline enrich`, register them: `deepline session output --csv <path> --label "Label"`.
+
+### Tool search categories
+
 Use category filters when tool type matters more than provider breadth. Common categories:
 - `company_search`: account/company discovery tools
 - `people_search`: people/contact discovery tools
@@ -241,7 +286,7 @@ GTM time windows, thresholds, and interpretation rules are defined in the Defini
 - Even for company → ICP person flows, enrich works: search and filter as part of the process, with providers like Apify to guide.
 - Even when you don't have a CSV, create one and use deepline enrich.
 - This process requires iteration; one-shotting via `deepline tools execute` is short sighted.
-- If a command created CSV outside enrich, run `deepline csv --render-as-playground start --csv <csv_path> --open`.
+- If a command created CSV outside enrich, register it with the Session UI so a table card appears: `deepline session output --csv <csv_path> --label "My Results"`. This is the lightweight alternative to `deepline enrich` for surfacing output in the Session UI.
 - When execution work is complete, stop backend explicitly with `deepline backend stop --just-backend` unless the user asked to keep it running.
 - In chat, send the file path + playground status, not pasted CSV rows, unless explicitly requested.
 - Preserve lineage columns (especially `_metadata`) end-to-end. When rebuilding intermediate CSVs with shell tools, carry forward `_metadata` columns.
@@ -337,6 +382,10 @@ Approve full run?
 - Must run a real pilot on the exact CSV for full run (`--rows 0:1`, end exclusive).
 - Must include ASCII preview verbatim in approval.
 - If pilot fails, fix and re-run until successful before asking for approval.
+- Before using AskUserQuestion for the approval gate, notify the Session UI so the user knows to check the terminal:
+  ```bash
+  deepline session alert --message "Approval needed: run enrichment on N rows (~X credits)"
+  ```
 
 ### 4.5 Billing commands
 
