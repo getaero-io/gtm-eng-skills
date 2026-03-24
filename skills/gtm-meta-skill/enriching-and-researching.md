@@ -40,7 +40,7 @@ Run deepline enrich in the foreground so you don't waste tokens while it complet
 - Direct provider tools are preferred for mechanical fields when no play exists.
 - `run_javascript` is for deterministic transforms, normalization, coalescing, templating, and cheap row-level glue logic.
 - `deeplineagent` is the default AI path for research, synthesis, custom signals, and classification when JS is not enough.
-- Domain lookup / homepage recovery is mechanical. Use `exa_search` with rich context or `google_search_google_search`, not `deeplineagent`.
+- Domain lookup / homepage recovery is mechanical. Use `exa_search` with rich context or `serper_google_search`, not `deeplineagent`.
 - Persona lookup means "find candidate contacts at a company for a target role or seniority." Treat that as a dedicated play, not as generic research.
 - Validate after recovery or coalescing, not during each waterfall step.
 - For contact-to-email work, route by the strongest identifiers you already have: name + company + domain -> `Name + company -> work email`, LinkedIn URL + name (no domain) -> `LinkedIn URL only -> work email`, LinkedIn URL + name + domain -> `LinkedIn URL -> work email`, name + domain -> `First + last + domain -> work email`.
@@ -247,7 +247,7 @@ Problem category: domain lookup / homepage recovery.
 Input profile: `company_name` plus any contextual hints you already have.  
 Output target: canonical `domain` or homepage for downstream plays.
 
-Default tools: `exa_search` or `google_search_google_search`
+Default tools: `exa_search` or `serper_google_search`
 
 Why this play:
 - Domain lookup is mechanical.
@@ -255,7 +255,7 @@ Why this play:
 - `deeplineagent` is the wrong default here because this is a search-and-resolve task, not a synthesis task.
 
 Routing rule:
-1. Resolve domain/homepage with `exa_search` or `google_search_google_search`.
+1. Resolve domain/homepage with `exa_search` or `serper_google_search`.
 2. Run the downstream play using the recovered domain.
 3. Only use `deeplineagent` if provider/search outputs still do not cover the factual need and you need tool-backed reasoning to resolve the ambiguity.
 
@@ -263,7 +263,7 @@ Example:
 
 ```bash
 deepline enrich --input accounts.csv --output accounts_with_domains.csv --rows 0:1 \
-  --with '{"alias":"homepage_search","tool":"google_search_google_search","payload":{"query":"\"{{company_name}}\" official site","num":5}}'
+  --with '{"alias":"homepage_search","tool":"serper_google_search","payload":{"query":"\"{{company_name}}\" official site","num":5}}'
 ```
 
 ### Manual email waterfall

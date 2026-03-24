@@ -330,13 +330,13 @@ Recommended course of action:
 ### Company LinkedIn URL lookup
 
 ```bash
-deepline tools execute google_search_google_search --payload '{"query":"\"{{Company}}\" site:linkedin.com/company","num":3}'
+deepline tools execute serper_google_search --payload '{"query":"\"{{Company}}\" site:linkedin.com/company","num":3}'
 ```
 
 ### Person LinkedIn URL lookup
 
 ```bash
-deepline tools execute google_search_google_search --payload '{"query":"\"Jane Smith\" \"Acme\" \"sales ops\" site:linkedin.com/in","num":5}'
+deepline tools execute serper_google_search --payload '{"query":"\"Jane Smith\" \"Acme\" \"sales ops\" site:linkedin.com/in","num":5}'
 ```
 
 ## Convergence rules
@@ -447,7 +447,7 @@ Do the tool search once near the top, inspect the shortlisted tools, then pick t
 | `exa_research` | Deep multi-source synthesis | outputSchema, multi-query | ~10 cr | Slow. Use for research, not list building. |
 | `dropleads_search_people` | People discovery + segmentation with structured filters | job titles, seniority, headcount, geography, keywords | free | Near-zero coverage for <50 emp startups. `keywords` must be split: `["GTM","Engineer"]` not `["GTM Engineer"]`. |
 | `dropleads_get_lead_count` | Sizing before full pull | same as search_people | free | — |
-| `google_search_google_search` | URL discovery, `site:` scoped searches | query string | free | Keyword soup without `site:` = noisy. Use `site:` + quoted phrases for precision. |
+| `serper_google_search` | URL discovery, `site:` scoped searches | query string | low-cost | Defaults `gl=us` and `hl=en`. Keyword soup without `site:` = noisy. Use `site:` + quoted phrases for precision. |
 | `parallel_search` | Broad discovery when you don't know which domains hold the data | objective string | ~1 cr | Lower precision than domain-scoped search. |
 | `parallel_extract` | URL-bound extraction, JS-rendered pages | URLs + objective | ~1 cr | Slow. Good for portfolio pages, job boards. |
 | `apollo_people_search` | People fallback when dropleads returns 0 | title, domain, location | ~0.2 cr | Mixed quality. Fallback only. |
@@ -500,7 +500,7 @@ deepline enrich --input seed.csv --in-place --rows 0:1 \
 
 ## Sample calls by provider
 
-### Google Search
+### Serper Google Search
 
 **Query structuring:**
 - `site:` scoping to an authoritative domain is the highest-signal pattern -- use it whenever you know where the data lives.
@@ -513,10 +513,10 @@ deepline enrich --input seed.csv --in-place --rows 0:1 \
 
 ```bash
 # YC job listings for a specific role
-deepline tools execute google_search_google_search --payload '{"query":"site:ycombinator.com \"GTM engineer\" \"Series B\"","num":10}'
+deepline tools execute serper_google_search --payload '{"query":"site:ycombinator.com \"GTM engineer\" \"Series B\"","num":10}'
 
 # Company LinkedIn URL discovery
-deepline tools execute google_search_google_search --payload '{"query":"\"{{Company}}\" site:linkedin.com/company","num":3}'
+deepline tools execute serper_google_search --payload '{"query":"\"{{Company}}\" site:linkedin.com/company","num":3}'
 ```
 
 ### Dropleads (people search)
