@@ -64,6 +64,7 @@ When a recipe matches: **follow it step-by-step as your execution plan.** Recipe
 | `enriching-and-researching.md` | Finding contacts/people at known companies via the persona lookup play |
 | `enriching-and-researching.md` | Contact-to-email routing and native email recovery plays |
 | `actor-contracts.md` | Apify actor selection, known actor IDs, input schemas |
+| `competitive-social-listening.md` | Find who engages with competitors' LinkedIn posts — reactions, comments, senior buyer filtering, engagement dashboard |
 
 If none match, grep for more specific keywords: `Grep pattern="<keyword>" path="<directory containing this SKILL.md>/recipes/" glob="*.md" output_mode="files_with_matches"`
 
