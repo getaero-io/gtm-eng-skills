@@ -173,6 +173,32 @@ deepline enrich --input leads.csv --output leads_with_emails.csv --rows 0:1 \
   --with '{"alias":"email_from_name_domain","tool":"cost_aware_first_name_and_domain_to_email_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
 ```
 
+### Contact identity -> phone
+
+Problem category: contact-to-phone recovery.  
+Input profile: `first_name`, `last_name`, `domain`, with optional `email` and `linkedin_url`.  
+Output target: one best phone number for the contact.
+
+Play tool: `contact_to_phone_waterfall`
+
+Why this play:
+- Use it when you already know the person identity and want the highest-signal phone lookup order.
+- Starts with a Forager exact-person search by name + company domain, then escalates to Deepline Native phone enrichment, then LeadMagic mobile lookup.
+- Final fallback is `deepline_native_enrich_contact` with `include_phones: true` for one last native pass when the dedicated phone steps miss.
+
+Play details:
+- Required inputs are `first_name`, `last_name`, and `domain`.
+- `email` and `linkedin_url` are optional hints.
+- Current provider order is `forager_person_role_search -> deepline_native_enrich_phone -> leadmagic_mobile_finder -> deepline_native_enrich_contact`.
+- LeadMagic runs in two gated forms inside the play: LinkedIn-based when `linkedin_url` exists, and email-based when `email` exists.
+
+Example:
+
+```bash
+deepline enrich --input contacts.csv --output contacts_with_phones.csv --rows 0:1 \
+  --with '{"alias":"phone_from_contact","tool":"contact_to_phone_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}","email":"{{email}}","linkedin_url":"{{linkedin_url}}"}}'
+```
+
 ### Company -> persona lookup
 
 Problem category: account-to-contact persona lookup.  

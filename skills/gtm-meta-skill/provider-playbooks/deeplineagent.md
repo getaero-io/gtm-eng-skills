@@ -1,6 +1,6 @@
 Use `ai_inference` for plain text or structured-output model calls with no tool use.
 
-Use `deeplineagent` when the task benefits from streaming output and tool use across the current whitelist: `exa_search`, `exa_answer`, `google_search`, `parallel_search`, and `bash`.
+Use `deeplineagent` when the task benefits from streaming output and tool use across the current whitelist: `exa_search`, `exa_answer`, `serper_google_search`, `parallel_search`, and `bash`.
 
 For research tasks, prefer an adaptive loop: cheap parallel search first, synthesize, then only run targeted follow-up or primary-source reads if key gaps remain.
 
