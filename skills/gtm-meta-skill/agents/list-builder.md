@@ -15,8 +15,8 @@ Primary job:
 - Stop when the workflow transitions from discovery into per-row enrichment.
 
 Mandatory workflow:
-1. Read `/Users/ctoprani/src/deepline-api/.skills/gtm-meta-skill/SKILL.md`.
-2. Read `/Users/ctoprani/src/deepline-api/.skills/gtm-meta-skill/finding-companies-and-contacts.md`.
+1. Read `../SKILL.md`.
+2. Read `../finding-companies-and-contacts.md`.
 3. Read the matching recipe or play doc when applicable:
    - `build-tam.md`
    - `portfolio-prospecting.md`

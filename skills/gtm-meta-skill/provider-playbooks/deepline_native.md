@@ -44,7 +44,8 @@
 ### enrich_contact
 
 - Best input: `linkedin` URL + `domain`.
-- Falls back gracefully to name+domain if LinkedIn is unavailable.
+- Raw tool accepts exactly one identity strategy: `email`, `linkedin`, `full_name + domain`, or `first_name + last_name + domain`.
+- Name-only input is not valid. If you know the account domain, prefer `first_name + last_name + domain` over LinkedIn because it anchors the result to that company.
 - Do not use for bulk enrichment — run one identity at a time.
 
 ### job_change
@@ -61,10 +62,18 @@
 
 - **Not the default people search — dropleads is.** Use as a fallback when dropleads fails or returns no results.
 - Free and synchronous. Returns LinkedIn URLs only — email and phone are always redacted.
+- Treat it as a company-scoped LinkedIn candidate finder, not a clean org-chart API. It is good at surfacing plausible current people at a company, but broad title queries can still return adjacent or support roles.
 - Follow up with `enrich_contact` to get email/phone for returned LinkedIn URLs.
 - Supports pagination: `page_number` and `page_size` (default 10, max 250 per page).
-- Valid `seniorities` values (confirmed by live API): Director, Manager, Entry, Senior, Partner.
+- Always include `domain` when you can. That is the strongest company anchor and produced the best live results.
+- Prefer `title_filters` as `{name, filter}` objects. Use `title_lists` for exact title matching. Legacy string arrays are normalized into a single `title_lists` entry, but raw object form is clearer and more reliable.
+- Best live pattern: function-specific leadership queries such as `VP Sales OR Head of Sales OR Director of Sales` or `VP Engineering OR Head of Engineering OR Director of Engineering`.
+- Risky pattern: broad executive/founder searches such as `CEO OR Founder OR Co-Founder`, which can return noisy founder-adjacent or regional-entity matches.
+- Live API `seniorities` support is narrower than our higher-level plays. Confirmed safe values: `Director`, `Manager`, `Entry`, `Senior`, `Partner`.
+- Legacy `seniority`/portable values are normalized on the raw tool path where possible. Unsupported values such as `C-Level` are dropped rather than forwarded upstream.
+- Keep `page_size` small for targeted lookups, usually `1-3`.
 - Results are at `output.persons` — an array of person objects with `linkedin_url`.
+- Inspect the returned `title` and current experience before trusting rank 1. Good queries return strong candidates; weak queries often return either `0 results` or obvious near-misses.
 
 ### enrich_company
 
@@ -98,6 +107,8 @@
 deepline tools get deepline_native_job_change
 deepline tools execute deepline_native_job_change --payload '{"company_domain":"stripe.com","professional_email":"jane@stripe.com"}'
 deepline tools execute deepline_native_search_contact --payload '{"domain":"stripe.com","title_filters":[{"name":"eng","filter":"VP Engineering OR Head of Engineering"}],"page_size":5}'
+deepline tools execute deepline_native_search_contact --payload '{"domain":"hubspot.com","title_filters":[{"name":"sales-leadership","filter":"VP Sales OR Head of Sales OR Director of Sales"}],"page_size":3}'
+deepline tools execute deepline_native_search_contact --payload '{"domain":"openai.com","title_filters":[{"name":"eng-leadership","filter":"VP Engineering OR Head of Engineering OR Director of Engineering"}],"page_size":3}'
 deepline tools execute deepline_native_enrich_company --payload '{"domain":"stripe.com"}'
 ```
 
@@ -111,6 +122,8 @@ deepline enrich --input contacts.csv --output contacts.csv.out.csv \
 ## Anti-Patterns to Avoid
 
 - Do not default to `search_contact` for people search — use dropleads first.
+- Do not assume portable play-style seniorities like `C-Level` are valid on the raw `search_contact` tool.
+- Do not use broad founder/CEO filters when you really want a functional leader at a company; they can produce noisy candidate sets.
 - Do not use `email`/`linkedin`/`domain` field names for `job_change` — use the correct API names (`professional_email`, `contact_linkedin`, `company_domain`).
 - Do not use `search_contact` expecting email or phone — those are always redacted.
 - Do not loop finder endpoints more than 20 times — jobs that don't complete in ~5 minutes have failed.

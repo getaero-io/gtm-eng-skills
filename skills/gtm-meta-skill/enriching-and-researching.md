@@ -336,7 +336,7 @@ Default rule:
 
 ### Prompt library
 
-Before writing a fresh prompt, inspect [`prompts.json`](/Users/ctoprani/src/deepline-api/.skills/gtm-meta-skill/prompts.json).
+Before writing a fresh prompt, inspect [`prompts.json`](prompts.json).
 
 List the top-level keys first. This is the cleanest way to see what prompts already exist:
 
