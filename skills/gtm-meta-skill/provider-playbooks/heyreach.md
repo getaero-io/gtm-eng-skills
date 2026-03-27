@@ -9,5 +9,5 @@ deepline tools execute heyreach_list_campaigns --payload '{}'
 ```
 
 ```bash
-deepline tools execute heyreach_add_to_campaign --payload '{"campaign_id":"{{campaign_id}}","contacts":[{"first_name":"Ada","last_name":"Lovelace","email":"ada@example.com"}]}'
+deepline tools execute heyreach_add_to_campaign --payload '{"campaign_id":"{{campaign_id}}","contacts":[{"linkedin_url":"https://www.linkedin.com/in/example","first_name":"Ada","last_name":"Lovelace","email":"ada@example.com"}]}'
 ```

@@ -33,6 +33,8 @@ Run deepline enrich in the foreground so you don't waste tokens while it complet
 | Per-row factual account research | You need custom research or synthesis that provider fields do not cover | `Custom enrichment with run_javascript and deeplineagent` | Use `deeplineagent` for AI work and `run_javascript` for deterministic transforms |
 | Research pass before writing | You need company or person research to support later copy | `Custom enrichment with run_javascript and deeplineagent` | Research belongs here and should feed a later writing step |
 | Generate copy after research | The research column already exists and you now need messaging, first lines, scoring copy, or sequence text | `writing-outreach.md` | Copywriting should route to the outreach doc, usually with `deeplineagent` once the research column exists |
+| LinkedIn post URL -> list of engagers | You have a LinkedIn post URL and want all reactors/commenters | `linkedin_post_to_engagers` | Scrape all reactors/commenters from a LinkedIn post. Returns structured engager list. |
+| List of people with name + position -> ICP qualification | You have person rows with name and headline and need tier classification | `engagers_to_icp_qualification` | Classify leads against ICP using headline/position via deeplineagent |
 
 ## Notes
 
@@ -265,6 +267,28 @@ Apify example:
 
 ```bash
 deepline tools execute apify_run_actor_sync --payload '{"actorId":"apimaestro/linkedin-company-employees-scraper-no-cookies","input":{"identifier":"{{company_linkedin_url}}","max_employees":100},"timeoutMs":180000}'
+```
+
+### LinkedIn post URL -> list of engagers
+
+Play tool: `linkedin_post_to_engagers`
+
+Scrapes reactors/commenters from a LinkedIn post. No actor discovery or pagination needed. Can be called via `deepline tools execute` (single post) or `deepline enrich` (batch).
+Do NOT use if you need comments only (use `unseenuser/linkedin-post-comment-reaction-extractor-no-cookies`) or full profiles (add a separate scraping step after).
+
+```bash
+deepline tools execute linkedin_post_to_engagers --payload '{"post_url":"https://www.linkedin.com/posts/...","max_items":1000}'
+```
+
+### List of people with name + position -> ICP qualification
+
+Play tool: `engagers_to_icp_qualification`
+
+Classifies a person against an ICP using name + position/headline. Returns `{icp_tier, icp_reason}`. Do NOT use if qualification needs company size, funding, or web research — use a custom `deeplineagent` prompt instead.
+
+```bash
+deepline enrich --input engagers.csv --output qualified.csv --rows 0:5 \
+  --with '{"alias":"icp","tool":"engagers_to_icp_qualification","payload":{"first_name":"{{FIRST_NAME}}","last_name":"{{LAST_NAME}}","position":"{{POSITION}}","icp_description":"Tier 1: VP/Head of Engineering, CTO at B2B SaaS. Tier 2: Senior engineers. Tier 3: everyone else."}}'
 ```
 
 ### Company name only -> resolve domain first
