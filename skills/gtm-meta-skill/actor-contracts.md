@@ -20,6 +20,7 @@ tsx scripts/generate-apify-actor-contracts.ts
 - `harvestapi/linkedin-company-employees` (`linkedin_company_employees_scraping`)
 - `s-r/free-linkedin-company-finder---linkedin-address-from-any-site` (`linkedin_company_url_from_domain`)
 - `radeance/similarweb-scraper` (`website_traffic_intelligence`)
+- `harvestapi/linkedin-post-reactions` (`linkedin_post_reactions_scraping`)
 
 ## dev_fusion/linkedin-profile-scraper
 
@@ -428,3 +429,85 @@ tsx scripts/generate-apify-actor-contracts.ts
 - Each row is a Similarweb website analytics snapshot for one input URL.
 - Core fields include global/country/category ranks, visits, traffic sources, and engagement metrics.
 - In-depth mode may include company demographics, competitor sets, keyword/referral/social breakdowns, and historical rank series.
+
+## harvestapi/linkedin-post-reactions
+
+- Use case: `linkedin_post_reactions_scraping`
+- Pricing model: `PAY_PER_EVENT`
+- Last validated: `2026-03-26`
+- Recommended mode: `sync`
+- Input schema source: `typed_actor_contract`
+- Sync timeout ms: `300000`
+
+### Expected Input Fields
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `posts` | `string[]` | yes | LinkedIn post URLs to scrape reactions from. |
+| `maxItems` | `number` | no | Maximum number of reactor profiles to return. |
+| `profileScraperMode` | `short|full` | no | Profile extraction depth. "short" is fast and cheap (name/position/URL only). |
+
+### Minimal Payload
+
+```json
+{
+  "posts": [
+    "https://www.linkedin.com/posts/example-post-activity-1234567890"
+  ]
+}
+```
+
+### Typical Payload
+
+```json
+{
+  "posts": [
+    "https://www.linkedin.com/posts/example-post-activity-1234567890"
+  ],
+  "maxItems": 1000,
+  "profileScraperMode": "short"
+}
+```
+
+### Input JSON Schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "posts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "LinkedIn post URL."
+      },
+      "minItems": 1
+    },
+    "maxItems": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Maximum reactor profiles to return."
+    },
+    "profileScraperMode": {
+      "type": "string",
+      "enum": [
+        "short",
+        "full"
+      ],
+      "description": "Profile depth mode."
+    }
+  },
+  "required": [
+    "posts"
+  ],
+  "additionalProperties": true
+}
+```
+
+### Output Notes
+
+- Each row is a reactor/commenter with their profile summary.
+- actor.name contains full name, actor.position contains headline/title.
+- actor.linkedinUrl is the reactor profile URL (may use ACoAAA opaque URN format).
+- reactionType indicates the engagement type (LIKE, PRAISE, etc.).
+- With profileScraperMode "short", expect ~30s for 800-1000 reactors.
