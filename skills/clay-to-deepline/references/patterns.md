@@ -132,14 +132,14 @@ Use Python subprocess to build `--with` payloads containing JS code. Never hand-
 
 **Do this**:
 - `{{column_name}}` — direct column reference
-- `{{col.field_name}}` — structured `deeplineagent` output (2 levels max)
-- For 3+ levels: add a `run_javascript` flatten pass first
+- `{{col.field_name}}` — only when the stored cell root actually contains `field_name`
+- For wrapped AI results or 3+ levels: add a `run_javascript` flatten pass first
 
 **Not this**:
 - `{{row.fields.company_name}}` — `row.` prefix → "column 'row' not found"
 - `{{strategic_initiatives.top5.value}}` — 3 levels → silently empty
 
-**Why**: `deeplineagent` with `jsonSchema` stores the object directly in the cell, so one-level field access works. 3+ level nesting still needs a flatten pass.
+**Why**: template interpolation is based on column aliases like `{{company_name}}`, not the `row` object. Inside `run_javascript`, use `row["company_name"]` or `row.company_name`. For `deeplineagent` structured columns in `deepline enrich`, flatten the field you need into a new column instead of assuming `{{col.field_name}}` will resolve cleanly.
 
 ---
 

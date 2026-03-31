@@ -20,6 +20,10 @@
 
 ## Key Behaviors
 
+- Rate budget split: `search_contact` uses the dedicated search key/budget (`60 RPM`).
+- Rate budget split: `prospector`, `enrich_contact`, `enrich_phone`, `enrich_company`, `job_change`, and related finder calls use the enrichment key/budget (`200 RPM`).
+- When planning `deepline enrich` waterfalls, do not treat `search_contact` and the enrichment-style Waterfall actions as one shared bucket.
+
 ### Launcher operations (prospector, enrich_contact, enrich_phone, enrich_company)
 
 - These are async but the executor waits for completion and returns the final payload.
@@ -61,6 +65,7 @@
 ### search_contact
 
 - **Not the default people search — dropleads is.** Use as a fallback when dropleads fails or returns no results.
+- Uses the dedicated Waterfall search key/budget (`60 RPM`), separate from the higher-throughput enrichment key.
 - Free and synchronous. Returns LinkedIn URLs only — email and phone are always redacted.
 - Treat it as a company-scoped LinkedIn candidate finder, not a clean org-chart API. It is good at surfacing plausible current people at a company, but broad title queries can still return adjacent or support roles.
 - Follow up with `enrich_contact` to get email/phone for returned LinkedIn URLs.

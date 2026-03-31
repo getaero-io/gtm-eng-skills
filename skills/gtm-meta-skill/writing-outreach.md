@@ -142,6 +142,11 @@ deepline enrich --input enriched.csv --in-place \
   --with '{"alias":"research_backed_email","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Research {{company_domain}} and write a personalized cold email to {{first_name}}. Use Deepline-managed tools if needed. Return JSON with subject and email.","jsonSchema":{"type":"object","properties":{"subject":{"type":"string"},"email":{"type":"string"}},"required":["subject","email"],"additionalProperties":false}}}'
 ```
 
+Notes:
+- `{{company_research}}` is the safe form for AI prompts when the prior column came from `deeplineagent`.
+- If you need a single field from prior research for deterministic template logic, extract it into its own scalar column with `run_javascript` first, then reference that scalar column in later steps.
+- Inside `run_javascript`, use `row["company_research"]` or `row.company_research`. Do not use `{{row.company_research}}`; `row` is only available inside the JS code.
+
 ## Recommended Workflow
 
 ```bash

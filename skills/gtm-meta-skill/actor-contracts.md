@@ -18,6 +18,7 @@ tsx scripts/generate-apify-actor-contracts.ts
 - `dev_fusion/linkedin-profile-scraper` (`linkedin_profile_scraping`)
 - `apimaestro/linkedin-profile-detail` (`linkedin_profile_scraping`)
 - `harvestapi/linkedin-company-employees` (`linkedin_company_employees_scraping`)
+- `harvestapi/linkedin-profile-posts` (`linkedin_profile_posts_scraping`)
 - `s-r/free-linkedin-company-finder---linkedin-address-from-any-site` (`linkedin_company_url_from_domain`)
 - `radeance/similarweb-scraper` (`website_traffic_intelligence`)
 - `harvestapi/linkedin-post-reactions` (`linkedin_post_reactions_scraping`)
@@ -255,6 +256,114 @@ tsx scripts/generate-apify-actor-contracts.ts
 - Each row is a company employee profile.
 - Typical fields include name, title, profile URL, company and location.
 - Full mode adds expanded profile details; email mode may include contact candidates.
+
+## harvestapi/linkedin-profile-posts
+
+- Use case: `linkedin_profile_posts_scraping`
+- Pricing model: `PRICE_PER_DATASET_ITEM`
+- Last validated: `2026-03-30`
+- Recommended mode: `sync`
+- Input schema source: `typed_actor_contract`
+- Sync timeout ms: `300000`
+
+### Expected Input Fields
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `targetUrls` | `string[]` | yes | List of LinkedIn profile, company, or post URLs whose posts should be scraped. |
+| `maxPosts` | `number` | no | Maximum number of posts to scrape per target URL. Use 0 to request all posts. |
+| `scrapeReactions` | `boolean` | no | Enable scraping reactions for each post. |
+| `maxReactions` | `number` | no | Maximum number of reactions to scrape per post. Use 0 to request all reactions. |
+| `scrapeComments` | `boolean` | no | Enable scraping comments for each post. |
+| `maxComments` | `number` | no | Maximum number of comments to scrape per post. Use 0 to request all comments. |
+| `includeQuotePosts` | `boolean` | no | Include quote posts (shared posts with added commentary). |
+| `includeReposts` | `boolean` | no | Include reposts (shared posts without added commentary). |
+
+### Minimal Payload
+
+```json
+{
+  "targetUrls": [
+    "https://www.linkedin.com/in/satyanadella/"
+  ]
+}
+```
+
+### Typical Payload
+
+```json
+{
+  "targetUrls": [
+    "https://www.linkedin.com/in/jai-toor/"
+  ],
+  "maxPosts": 10,
+  "scrapeReactions": true,
+  "maxReactions": 50,
+  "scrapeComments": true,
+  "maxComments": 20,
+  "includeQuotePosts": true,
+  "includeReposts": true
+}
+```
+
+### Input JSON Schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "targetUrls": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "LinkedIn profile, company, or post URL to scrape posts from."
+      },
+      "minItems": 1
+    },
+    "maxPosts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Maximum number of posts to scrape per target URL. If set to 0, scrape all posts."
+    },
+    "scrapeReactions": {
+      "type": "boolean",
+      "description": "Enable scraping reactions to posts."
+    },
+    "maxReactions": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Maximum number of reactions to scrape per post. If set to 0, scrape all reactions."
+    },
+    "scrapeComments": {
+      "type": "boolean",
+      "description": "Enable scraping comments on posts."
+    },
+    "maxComments": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Maximum number of comments to scrape per post. If set to 0, scrape all comments."
+    },
+    "includeQuotePosts": {
+      "type": "boolean",
+      "description": "Toggle whether quote posts are included."
+    },
+    "includeReposts": {
+      "type": "boolean",
+      "description": "Toggle whether reposts are included."
+    }
+  },
+  "required": [
+    "targetUrls"
+  ],
+  "additionalProperties": false
+}
+```
+
+### Output Notes
+
+- Each dataset row is a LinkedIn post or a nested reaction/comment expansion, depending on options.
+- Comments and reactions may also be emitted as separate dataset rows when those toggles are enabled.
+- The actor expects camelCase field names that match the Apify actor input exactly.
 
 ## s-r/free-linkedin-company-finder---linkedin-address-from-any-site
 

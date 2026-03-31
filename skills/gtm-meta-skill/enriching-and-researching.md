@@ -221,6 +221,7 @@ Why this play:
 
 Provider behavior to remember:
 - `dropleads` is strongest when `roles` contains exact title tokens.
+- `deepline_native` translates portable roles into provider-safe boolean title-filter expressions. This is most useful when `roles` contains specific leadership intent like `CEO`, `Founder`, `CTO`, `VP Marketing`, `Head of Security`, or `Director of Engineering`.
 - `apollo` is useful for exact title search, but do not depend on it as the only source for founder/exec startup cases.
 - `icypeas` is a strong fallback for exact profile-style role searches, especially founders and startup operators.
 - `prospeo` and `crustdata` are structured fallbacks, not reasons to jump to `deeplineagent`.
@@ -442,6 +443,28 @@ deepline enrich --input leads.csv --output leads_researched.csv --rows 0:1 \
 ```bash
 deepline enrich --input leads_researched.csv --in-place --rows 0:1 \
   --with '{"alias":"account_tier","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Using only the provided context, classify {{company_name}} into one of: high_fit, medium_fit, low_fit. Context: {{company_research}}","jsonSchema":{"type":"object","properties":{"tier":{"type":"string","enum":["high_fit","medium_fit","low_fit"]},"reason":{"type":"string"}},"required":["tier","reason"],"additionalProperties":false}}}'
+```
+
+### Structured output and interpolation realities
+
+- `deepline tools execute deeplineagent --json` returns the full execute envelope, not just the bare schema object. The structured object lives at `result.result.object` and plain text lives at `result.result.text`.
+- In `deepline enrich`, `{{company_research}}` is the safest way to pass a prior `deeplineagent` column into another AI prompt.
+- Do not assume `{{company_research.pain_points}}` works for `deeplineagent` structured-output columns in `deepline enrich`. Those cells currently carry an AI result wrapper, so downstream field access is not as clean as a plain flat JSON cell.
+- If you need deterministic field-level reuse, add a `run_javascript` flatten pass that emits a new scalar column, then interpolate that scalar column in later steps.
+- `row` exists only inside `run_javascript` code. Use `{{company_research}}` in payload templates, and use `row["company_research"]` inside `payload.code`.
+
+### Example: flatten a structured research field before reuse
+
+```bash
+deepline enrich --input leads_researched.csv --in-place --rows 0:1 \
+  --with '{"alias":"company_pain_points","tool":"run_javascript","payload":{"code":"const research = row[\"company_research\"]; const extracted = research?.output || research?.extracted_json || research?.result?.object || research; return extracted?.pain_points || null;"}}'
+```
+
+Then use the flattened scalar in later prompts:
+
+```bash
+deepline enrich --input leads_researched.csv --in-place --rows 0:1 \
+  --with '{"alias":"account_tier","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Using only the provided context, classify {{company_name}} into one of: high_fit, medium_fit, low_fit. Pain points: {{company_pain_points}}","jsonSchema":{"type":"object","properties":{"tier":{"type":"string","enum":["high_fit","medium_fit","low_fit"]},"reason":{"type":"string"}},"required":["tier","reason"],"additionalProperties":false}}}'
 ```
 
 ### Example: adapt a saved prompt from prompts.json
