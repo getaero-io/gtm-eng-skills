@@ -111,7 +111,6 @@ Valid step statuses: `pending`, `running`, `completed`, `error`, `skipped`.
 
 As you work through a running step, send status updates to show what you're currently doing. This is for emergent work the plan couldn't predict upfront (parsing responses, falling back to alternative providers, extracting data, etc.).
 
-
 ```bash
 # While a step is running, send status updates (attaches to the currently-running step)
 deepline session status --message "Extracting company domains from Apollo response"
