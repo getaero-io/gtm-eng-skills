@@ -18,6 +18,7 @@ Paste this prompt:
 
 ```bash
 curl -fsSL "https://code.deepline.com/api/v2/cli/install" | bash
+```
 
 Then tell Claude what you need:
 
