@@ -12,7 +12,7 @@
 
 Paste this prompt:
 
-`Install the Deepline CLI and skills using https://code.deepline.com/agent-install.txt`
+```Install the Deepline CLI and skills using https://code.deepline.com/agent-install.txt```
 
 ### From the command line
 
