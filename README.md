@@ -8,14 +8,16 @@
 
 ## Quick Start
 
-```bash
-# Install all skills (recommended)
-npx skills add getaero-io/gtm-eng-skills --all
+### From Claude Code / Codex
 
-# Install the Deepline CLI
-npm install -g @deepline/cli
-deepline auth login
-```
+Paste this prompt:
+
+Install the Deepline CLI and skills using https://code.deepline.com/agent-install.txt
+
+### From the command line
+
+```bash
+curl -fsSL "https://code.deepline.com/api/v2/cli/install" | bash
 
 Then tell Claude what you need:
 
