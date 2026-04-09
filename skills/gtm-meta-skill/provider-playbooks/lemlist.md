@@ -77,7 +77,7 @@ Deepline wraps all provider payloads in a standard result envelope: `{ data, met
 - `lemlist_get_campaign_stats` → `result.data` contains `{ sent, opened, clicked, replied, bounced }`.
 - `lemlist_get_campaign_sequences` → `result.data` is keyed by sequence ID, each with a `steps` array.
 - `lemlist_export_campaign_leads` → `result.data` is an array of lead objects with `email`, `firstName`, `lastName`, `state`.
-- `lemlist_add_to_campaign` → `result.data` contains `{ succeeded, failed }` counts plus per-contact details.
+- `lemlist_add_to_campaign` → `result.data` contains `{ pushed, failed, errors }`.
 - `lemlist_create_campaign` / `lemlist_update_campaign` → `result.data` includes `web_url` for UI review.
 
 ## Key Notes
@@ -92,5 +92,5 @@ Deepline wraps all provider payloads in a standard result envelope: `{ data, met
 
 - **Delay unit:** Always days. Passing `172800` thinking "seconds" will result in a `> 1500 days` API error.
 - **Inbox operations require user/mailbox IDs:** `send_email` needs `send_user_id`, `send_user_email`, and `send_user_mailbox_id`. List inbox first to discover these values.
-- **Campaign must be paused to add sequences:** Add steps before starting the campaign. If already running, pause first.
-- **Lead deduplication:** Lemlist deduplicates by email within a campaign. Re-adding an existing email is a no-op, not an error.
+- **Sequence writes:** Prefer adding/updating sequence steps while campaigns are still draft/paused to avoid campaign-state edge cases.
+- **Lead deduplication:** Validation rejects duplicate emails and duplicate `linkedin_url` values within the same batch. Across batches, Lemlist can reject duplicates (for example 409 conflicts), which surface in `result.data.errors`.

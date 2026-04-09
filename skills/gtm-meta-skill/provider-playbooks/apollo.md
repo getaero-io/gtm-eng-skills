@@ -20,19 +20,19 @@ Response-shape contract (critical):
 - Deepline wraps provider payloads in a standard result envelope: `{ data, meta }`.
 - Therefore:
   - In `deepline tools execute ... `, read people at `result.data.people`.
-  - In `deepline enrich` row expressions, read people at `<column>.data.people`.
-  - Do not assume `data.people` exists inside Apollo's native payload itself.
+  - In `deepline enrich` row expressions, read people at `<column>.result.data.people`.
+  - Do not insert an extra wrapper layer when reading Apollo's native top-level `people` list.
 
 Company search shape gotcha (critical):
 
 - Apollo company search is canonical at `organizations` (not `accounts`).
-- In Deepline output, prefer `result.data.organizations` (or `<column>.data.organizations` in enrich columns).
-- Compatibility fallback: if `organizations` is empty or absent, read `data.accounts`.
+- In Deepline output, prefer `result.data.organizations` (or `<column>.result.data.organizations` in enrich columns).
+- Compatibility fallback: if `organizations` is empty or absent, read `result.data.accounts`.
 - Recommended extractor pattern:
 
 ```javascript
 const q = (row["Company"] || "").trim().toLowerCase();
-const d = row["apollo_company"]?.data || {};
+const d = row["apollo_company"]?.result?.data || {};
 const orgs =
   d.organizations && d.organizations.length > 0
     ? d.organizations

@@ -25,10 +25,16 @@
       "tags": ["qualification", "email", "outreach"],
       "providers": []
     },
-    "actor-contracts.md": {
-      "kind": "guide",
-      "title": "Actor Contracts",
-      "tags": ["apify", "actors"],
+    "agents/execution-plan-creator.md": {
+      "kind": "agent",
+      "title": "Execution Plan Creator",
+      "tags": ["agent", "planning"],
+      "providers": []
+    },
+    "agents/list-builder.md": {
+      "kind": "agent",
+      "title": "List Builder",
+      "tags": ["agent", "prospecting"],
       "providers": []
     }
   },

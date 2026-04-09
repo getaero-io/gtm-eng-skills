@@ -260,13 +260,13 @@ Recommended course of action:
 ### Mid/large company people search
 
 ```bash
-deepline tools execute dropleads_search_people --payload '{"filters":{"companyDomains":["stripe.com"],"jobTitles":["Growth","Sales","Revenue"],"seniority":["VP","Director","C-Level"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":5}}'
+deepline tools execute dropleads_search_people --payload '{"filters":{"companyDomains":["stripe.com"],"jobTitles":["Growth","Sales","Revenue"],"seniority":["VP","Director"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":5}}'
 ```
 
 ### Count-first people search
 
 ```bash
-deepline tools execute dropleads_search_people --payload '{"filters":{"jobTitles":["Marketing"],"seniority":["VP","Director","C-Level"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":1}}'
+deepline tools execute dropleads_search_people --payload '{"filters":{"jobTitles":["Marketing"],"seniority":["VP","Director"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":1}}'
 ```
 
 ### Tiny-startup fallback
@@ -291,7 +291,7 @@ Never use exact job titles as the primary filter. Use broad functional keywords 
 
 | Bad | Better |
 |---|---|
-| exact titles like `Head of Growth`, `VP RevOps`, `GTM Engineer` only | `jobTitles:["Growth"]` + `seniority:["C-Level","VP","Director"]` |
+| exact titles like `Head of Growth`, `VP RevOps`, `GTM Engineer` only | `jobTitles:["Growth"]` + `seniority:["VP","Director"]` |
 
 For small companies, switch to `exa_people_search` sooner.
 
@@ -330,7 +330,7 @@ Recommended course of action:
 ### Company LinkedIn URL lookup
 
 ```bash
-deepline tools execute serper_google_search --payload '{"query":"\"{{Company}}\" site:linkedin.com/company","num":3}'
+deepline tools execute serper_google_search --payload '{"query":"\"OpenAI\" site:linkedin.com/company","num":3}'
 ```
 
 ### Person LinkedIn URL lookup
@@ -417,7 +417,8 @@ Known actors:
 - `radeance/similarweb-scraper`
 
 See:
-- [`actor-contracts.md`](/recipes/actor-contracts.md)
+- deepline tools get apify_run_actor_sync
+- e.g. deepline tools get apify_run_actor_sync --actor dev_fusion/linkedin-profile-scraper
 
 Generic Apify call shape:
 
@@ -472,7 +473,7 @@ When the `deepline-list-builder` subagent is available, use it to fan out search
 **Never use exact job titles for people search filters.** Titles are too nuanced and vary wildly across companies (especially startups). Instead use broad keyword + seniority:
 
 - **Bad:** `person_titles: ["Head of Growth", "VP RevOps", "GTM Engineer"]` -- misses "Director of Growth Marketing", "Revenue Operations Lead", etc.
-- **Good:** `jobTitles: ["Growth"]` + `seniority: ["C-Level", "VP", "Director"]` -- catches all growth-related senior roles via fuzzy matching
+- **Good:** `jobTitles: ["Growth"]` + `seniority: ["VP", "Director"]` -- catches all growth-related senior roles via fuzzy matching
 
 The pattern: use 1-2 broad keywords for the *function* (Growth, Sales, Revenue, Security, Fraud, Identity, RevOps, Marketing) and let seniority filters handle the level. This works across dropleads and crustdata.
 
@@ -516,7 +517,7 @@ deepline enrich --input seed.csv --in-place --rows 0:1 \
 deepline tools execute serper_google_search --payload '{"query":"site:ycombinator.com \"GTM engineer\" \"Series B\"","num":10}'
 
 # Company LinkedIn URL discovery
-deepline tools execute serper_google_search --payload '{"query":"\"{{Company}}\" site:linkedin.com/company","num":3}'
+deepline tools execute serper_google_search --payload '{"query":"\"OpenAI\" site:linkedin.com/company","num":3}'
 ```
 
 ### Dropleads (people search)
@@ -525,7 +526,7 @@ Default to `dropleads_search_people` for people discovery when you need structur
 
 ```bash
 deepline enrich --input leads.csv --in-place --rows 0:1 \
-  --with '{"alias":"people_search","tool":"dropleads_search_people","payload":{"filters":{"jobTitles":["Sales","Growth"],"seniority":["VP","Director","C-Level"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":5}}}'
+  --with '{"alias":"people_search","tool":"dropleads_search_people","payload":{"filters":{"jobTitles":["Sales","Growth"],"seniority":["VP","Director"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":5}}}'
 ```
 
 Dropleads note: keep title filters broad (`jobTitles`) and allow seniority to do the heavy lifting.
@@ -536,7 +537,7 @@ Dropleads note: keep title filters broad (`jobTitles`) and allow seniority to do
 - `jobTitlesExactMatch`: no observable effect -- ignore it.
 - `companyNames`: fuzzy -- prefer `companyDomains` for precision.
 - `departments`/`seniority`: enum-only (see schema).
-- Use `limit:1` first to check `data.pagination.total`, then pull full pages. Don't iterate exploratory queries.
+- Use `limit:1` first to check `result.data.pagination.total`, then pull full pages. Don't iterate exploratory queries.
 
 ### CrustData (company + person search, autocomplete)
 

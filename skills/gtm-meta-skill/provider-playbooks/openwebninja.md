@@ -1,0 +1,1 @@
+Use `openwebninja_jsearch_*` for Google for Jobs data, `openwebninja_glassdoor_*` for employer/review/salary data, and `openwebninja_localbusiness_*` for Google Maps business data. Prefer the narrowest endpoint that matches the task, and pass official ids from search endpoints into detail endpoints when possible.

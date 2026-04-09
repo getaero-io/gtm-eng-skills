@@ -1,0 +1,10 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Deepline Quickstart Demo",
+      "tags": ["quickstart", "demo", "prospecting"],
+      "providers": ["dropleads", "apollo"]
+    }
+  }
+}

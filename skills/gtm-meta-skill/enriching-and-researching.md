@@ -17,7 +17,8 @@ Run deepline enrich in the foreground so you don't waste tokens while it complet
 | Scenario | Use when | Default play/tool | Why |
 |---|---|---|---|
 | Name + company -> work email | You have strong person + account identifiers | `Name + company -> work email` | Stable default for deterministic email recovery |
-| LinkedIn URL + name, no domain | You have a LinkedIn URL and name but no company domain (e.g. from a people search result) | `LinkedIn URL only -> work email` | waterfall from specific providers who just need these params; no domain resolution step needed |
+| Name + company only (no domain, or Sales Navigator export) | You have name + company_name but no domain — including Sales Navigator exports where linkedin_url is in `/sales/lead/` format (those URLs are unusable by all providers) | `name_company_to_email_waterfall` | Apollo + PDL, no domain needed. 82% hit rate. For ~100%, resolve domain first then use `name_and_company_to_email_waterfall`. |
+| LinkedIn URL + name, no domain | You have a **standard `/in/`** LinkedIn URL and name but no company domain (e.g. from a people search result) | `LinkedIn URL only -> work email` | waterfall from specific providers who just need these params; no domain resolution step needed |
 | LinkedIn URL -> work email | The LinkedIn profile and domain are both known | `LinkedIn URL -> work email` | Better use of a strong profile identifier when domain is available |
 | Email -> person/company context | You have an inbound or work email and need person + company details | `Email -> person/company context` | Good for hydrating context from a single strong identifier |
 | First + last + domain -> work email | Company name is missing but the domain is known | `First + last + domain -> work email` | Canonical cost-aware path for weaker but still structured identifiers |
@@ -45,8 +46,9 @@ Run deepline enrich in the foreground so you don't waste tokens while it complet
 - Domain lookup / homepage recovery is mechanical. Use `exa_search` with rich context or `serper_google_search`, not `deeplineagent`.
 - Persona lookup means "find candidate contacts at a company for a target role or seniority." Treat that as a dedicated play, not as generic research.
 - Validate after recovery or coalescing, not during each waterfall step.
-- For contact-to-email work, route by the strongest identifiers you already have: name + company + domain -> `Name + company -> work email`, LinkedIn URL + name (no domain) -> `LinkedIn URL only -> work email`, LinkedIn URL + name + domain -> `LinkedIn URL -> work email`, name + domain -> `First + last + domain -> work email`.
-- If you got contacts from a people search (e.g. dropleads_search_people) and they have LinkedIn URLs but no domains, do NOT try to resolve domains first — use `person_linkedin_only_to_email_waterfall` directly.
+- For contact-to-email work, route by the strongest identifiers you already have: name + company + domain -> `Name + company -> work email`, name + company only (no domain) OR Sales Navigator contacts -> `name_company_to_email_waterfall`, standard `/in/` LinkedIn URL + name (no domain) -> `LinkedIn URL only -> work email`, LinkedIn URL + name + domain -> `LinkedIn URL -> work email`, name + domain -> `First + last + domain -> work email`.
+- **Sales Navigator exports**: `linkedin_url` values in `/sales/lead/` format are rejected by every provider (dropleads, crustdata, deepline_native, PDL). Do not pass them to any email waterfall. Use `name_company_to_email_waterfall` instead.
+- If you got contacts from a people search (e.g. dropleads_search_people) and they have **standard `/in/`** LinkedIn URLs but no domains, do NOT try to resolve domains first — use `person_linkedin_only_to_email_waterfall` directly. This rule does NOT apply to Sales Navigator `/sales/lead/` URLs.
 - Validation interpretation: `valid` is deliverable, `catch_all` is usable but riskier, `invalid` should be dropped, and `unknown` is unresolved.
 - Phone recovery usually comes later in the pipeline than email or LinkedIn recovery.
 - Prefer inline code for short `run_javascript` transforms. Only move code into files when the logic is long, reused, or too awkward to keep inline.
@@ -79,6 +81,29 @@ deepline enrich --input leads.csv --output leads_with_emails.csv --rows 0:1 \
   --with '{"alias":"email_from_name_company","tool":"name_and_company_to_email_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company_name}}","domain":"{{domain}}"}}'
 ```
 
+### Name + company only -> work email
+
+Play tool: `name_company_to_email_waterfall`
+Required inputs: `first_name`, `last_name`, `company_name`. No domain needed. SN `/sales/lead/` URLs are ignored.
+
+```bash
+deepline enrich --input contacts.csv --output contacts_with_emails.csv --rows 0:1 \
+  --with '{"alias":"email","tool":"name_company_to_email_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company_name}}"}}'
+```
+
+For higher coverage, resolve domain first (2 passes) then use `name_and_company_to_email_waterfall`:
+
+```bash
+deepline enrich --input contacts.csv --output out.csv \
+  --with '{"alias":"exa_raw","tool":"exa_search","payload":{"query":"{{company_name}} official website","numResults":1}}'
+deepline enrich --input out.csv --in-place \
+  --with '{"alias":"domain","tool":"run_javascript","payload":{"code":"const r=row.exa_raw;const url=((((r&&r.result&&r.result.data&&r.result.data.results)||[])[0])||{}).url||\"\";const m=url.match(/^https?:\\/\\/(www\\.)?([^\\/]+)/);return row.company_domain||(m?m[2]:null)||null;"}}'
+deepline enrich --input out.csv --in-place \
+  --with '{"alias":"email","tool":"name_and_company_to_email_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company_name}}","domain":"{{domain}}"}}'
+```
+
+Note: exa `extract_js` does not work inline — always use a separate `run_javascript` step to extract the domain from `row.exa_raw.result.data.results[0].url`.
+
 ### LinkedIn URL only -> work email
 
 Problem category: LinkedIn-seeded email recovery with no domain.
@@ -88,8 +113,9 @@ Output target: one best work email resolved from LinkedIn URL and name alone.
 Play tool: `person_linkedin_only_to_email_waterfall`
 
 Why this play:
-- Use when contacts came from a people search (e.g. dropleads_search_people) and have LinkedIn URLs but no company domains.
+- Use when contacts came from a people search (e.g. dropleads_search_people) and have **standard `/in/`** LinkedIn URLs but no company domains.
 - Do NOT resolve domains first — this play handles it without domain.
+- **Do NOT use for Sales Navigator `/sales/lead/` URLs** — those are rejected by all providers. Use `name_company_to_email_waterfall` instead.
 - `dropleads_single_person_enrichment` resolves email from LinkedIn very well here, and less is more: the play sends only `linkedin_url` to Dropleads on the first step, then keeps `first_name` and `last_name` for downstream fallback providers.
 
 Play details:
@@ -185,14 +211,16 @@ Play tool: `contact_to_phone_waterfall`
 
 Why this play:
 - Use it when you already know the person identity and want the highest-signal phone lookup order.
-- Starts with a Forager exact-person search by name + company domain, then escalates to Deepline Native phone enrichment, then LeadMagic mobile lookup.
-- Final fallback is `deepline_native_enrich_contact` with `include_phones: true` for one last native pass when the dedicated phone steps miss.
+- Cost-optimized: starts with the cheapest providers and escalates to expensive ones only as fallbacks.
+- All providers charge only on successful hit (post_deduct), so total cost scales with coverage, not attempts.
+- Estimated cost per found phone: $1-2. Follow up with `ipqs_phone_validate` (0.07/call) to verify line type, DNC status, and fraud score before outbound.
 
 Play details:
 - Required inputs are `first_name`, `last_name`, and `domain`.
-- `email` and `linkedin_url` are optional hints.
-- Current provider order is `forager_person_role_search -> deepline_native_enrich_phone -> leadmagic_mobile_finder -> deepline_native_enrich_contact`.
+- `email` and `linkedin_url` are optional hints that unlock additional provider paths.
+- Current provider order is `forager_person_reverse_lookup (0.32) -> ai_ark_mobile_phone_finder (0.70) -> leadmagic_mobile_finder (1.68) -> deepline_native_enrich_phone (4.90)`.
 - LeadMagic runs in two gated forms inside the play: LinkedIn-based when `linkedin_url` exists, and email-based when `email` exists.
+- For async multi-provider waterfalls (BetterContact, FullEnrich) that aggregate 20+ sources internally, use them as manual enrichment steps outside the play when the native waterfall misses.
 
 Example:
 
@@ -267,7 +295,7 @@ deepline enrich --input accounts.csv --output accounts_with_contacts.csv --rows 
 Apify example:
 
 ```bash
-deepline tools execute apify_run_actor_sync --payload '{"actorId":"apimaestro/linkedin-company-employees-scraper-no-cookies","input":{"identifier":"{{company_linkedin_url}}","max_employees":100},"timeoutMs":180000}'
+deepline tools execute apify_run_actor_sync --payload '{"actorId":"apimaestro/linkedin-company-employees-scraper-no-cookies","input":{"identifier":"https://www.linkedin.com/company/openai/","max_employees":100},"timeoutMs":180000}'
 ```
 
 ### LinkedIn post URL -> list of engagers

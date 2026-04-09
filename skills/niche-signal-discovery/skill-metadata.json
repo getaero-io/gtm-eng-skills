@@ -23,6 +23,42 @@
       "title": "Signal Interpretation",
       "tags": ["signals"],
       "providers": []
+    },
+    "references/dedupe.md": {
+      "kind": "guide",
+      "title": "Dedupe Against Existing List",
+      "tags": ["prospecting", "dedupe"],
+      "providers": []
+    },
+    "references/quality-gate.md": {
+      "kind": "guide",
+      "title": "Quality Gate",
+      "tags": ["enrichment", "qa"],
+      "providers": []
+    },
+    "references/pitfalls.md": {
+      "kind": "guide",
+      "title": "Common Pitfalls",
+      "tags": ["signals", "troubleshooting"],
+      "providers": []
+    },
+    "references/proven-signals.md": {
+      "kind": "guide",
+      "title": "Proven Signal Patterns",
+      "tags": ["signals", "scoring"],
+      "providers": []
+    },
+    "references/step-7-prospects.md": {
+      "kind": "guide",
+      "title": "Step 7 — Top 10 Prospects",
+      "tags": ["prospecting", "contacts"],
+      "providers": []
+    },
+    "references/scoring-pitfalls.md": {
+      "kind": "guide",
+      "title": "Scoring Pitfalls — Confirmation-Biased Fields",
+      "tags": ["signals", "scoring"],
+      "providers": []
     }
   }
 }
