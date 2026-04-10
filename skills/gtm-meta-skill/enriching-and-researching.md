@@ -7,35 +7,36 @@ This doc does **not** cover list building, source discovery, or TAM/provider sco
 ## Core rule
 
 If a play exists, use it first. Use manual provider chains only when:
+
 - no play exists
 - you need to customize provider order or extractor behavior
 - you are testing a niche provider patha
-Run deepline enrich in the foreground so you don't waste tokens while it completes. 
+  Run deepline enrich in the foreground so you don't waste tokens while it completes.
 
 ## Scenario table
 
-| Scenario | Use when | Default play/tool | Why |
-|---|---|---|---|
-| Name + company -> work email | You have strong person + account identifiers | `Name + company -> work email` | Stable default for deterministic email recovery |
-| Name + company only (no domain, or Sales Navigator export) | You have name + company_name but no domain — including Sales Navigator exports where linkedin_url is in `/sales/lead/` format (those URLs are unusable by all providers) | `name_company_to_email_waterfall` | Apollo + PDL, no domain needed. 82% hit rate. For ~100%, resolve domain first then use `name_and_company_to_email_waterfall`. |
-| LinkedIn URL + name, no domain | You have a **standard `/in/`** LinkedIn URL and name but no company domain (e.g. from a people search result) | `LinkedIn URL only -> work email` | waterfall from specific providers who just need these params; no domain resolution step needed |
-| LinkedIn URL -> work email | The LinkedIn profile and domain are both known | `LinkedIn URL -> work email` | Better use of a strong profile identifier when domain is available |
-| Email -> person/company context | You have an inbound or work email and need person + company details | `Email -> person/company context` | Good for hydrating context from a single strong identifier |
-| First + last + domain -> work email | Company name is missing but the domain is known | `First + last + domain -> work email` | Canonical cost-aware path for weaker but still structured identifiers |
-| Company -> persona lookup | You have an account and need candidate contacts by role or seniority | `Company -> persona lookup` | Canonical play for company-to-persona lookup |
-| Company name only -> resolve domain first | You need to recover homepage/domain before downstream enrichment | `Company name only -> resolve domain first` | Domain lookup is mechanical and should not start with `deeplineagent` |
-| Validate a recovered email | An email lookup has already run | `Notes` | Validation belongs after recovery or coalescing, not before |
-| Manual email waterfall | You need custom provider order or play customization | `Manual email waterfall` | Lets you control ordering and spend |
-| Find a LinkedIn URL for a known person | You have name, domain, and role context | `Notes` | Cheap deterministic lookup when the query is specific |
-| Pull rich LinkedIn or work-history data | The URL is already known and you need structured profile data | `Notes` | Structured output beats ad hoc web synthesis |
-| Find a mobile phone number | A verified person identity already exists | `Notes` | Best later in the pipeline after identity is strong |
-| Mechanical company enrichment | You need direct structured account data | `Notes` | Cheaper and cleaner, often more accurate than `deeplineagent` for firmographics |
-| Coalesce competing provider outputs | Multiple columns target the same field | `Notes` | Deterministic canonicalization after parallel providers |
-| Per-row factual account research | You need custom research or synthesis that provider fields do not cover | `Custom enrichment with run_javascript and deeplineagent` | Use `deeplineagent` for AI work and `run_javascript` for deterministic transforms |
-| Research pass before writing | You need company or person research to support later copy | `Custom enrichment with run_javascript and deeplineagent` | Research belongs here and should feed a later writing step |
-| Generate copy after research | The research column already exists and you now need messaging, first lines, scoring copy, or sequence text | `writing-outreach.md` | Copywriting should route to the outreach doc, usually with `deeplineagent` once the research column exists |
-| LinkedIn post URL -> list of engagers | You have a LinkedIn post URL and want all reactors/commenters | `linkedin_post_to_engagers` | Scrape all reactors/commenters from a LinkedIn post. Returns structured engager list. |
-| List of people with name + position -> ICP qualification | You have person rows with name and headline and need tier classification | `engagers_to_icp_qualification` | Classify leads against ICP using headline/position via deeplineagent |
+| Scenario                                                   | Use when                                                                                                                                                                 | Default play/tool                                         | Why                                                                                                                           |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Name + company -> work email                               | You have strong person + account identifiers                                                                                                                             | `Name + company -> work email`                            | Stable default for deterministic email recovery                                                                               |
+| Name + company only (no domain, or Sales Navigator export) | You have name + company_name but no domain — including Sales Navigator exports where linkedin_url is in `/sales/lead/` format (those URLs are unusable by all providers) | `name_company_to_email_waterfall`                         | Apollo + PDL, no domain needed. 82% hit rate. For ~100%, resolve domain first then use `name_and_company_to_email_waterfall`. |
+| LinkedIn URL + name, no domain                             | You have a **standard `/in/`** LinkedIn URL and name but no company domain (e.g. from a people search result)                                                            | `LinkedIn URL only -> work email`                         | waterfall from specific providers who just need these params; no domain resolution step needed                                |
+| LinkedIn URL -> work email                                 | The LinkedIn profile and domain are both known                                                                                                                           | `LinkedIn URL -> work email`                              | Better use of a strong profile identifier when domain is available                                                            |
+| Email -> person/company context                            | You have an inbound or work email and need person + company details                                                                                                      | `Email -> person/company context`                         | Good for hydrating context from a single strong identifier                                                                    |
+| First + last + domain -> work email                        | Company name is missing but the domain is known                                                                                                                          | `First + last + domain -> work email`                     | Canonical cost-aware path for weaker but still structured identifiers                                                         |
+| Company -> persona lookup                                  | You have an account and need candidate contacts by role or seniority                                                                                                     | `Company -> persona lookup`                               | Canonical play for company-to-persona lookup                                                                                  |
+| Company name only -> resolve domain first                  | You need to recover homepage/domain before downstream enrichment                                                                                                         | `Company name only -> resolve domain first`               | Domain lookup is mechanical and should not start with `deeplineagent`                                                         |
+| Validate a recovered email                                 | An email lookup has already run                                                                                                                                          | `Notes`                                                   | Validation belongs after recovery or coalescing, not before                                                                   |
+| Manual email waterfall                                     | You need custom provider order or play customization                                                                                                                     | `Manual email waterfall`                                  | Lets you control ordering and spend                                                                                           |
+| Find a LinkedIn URL for a known person                     | You have name, domain, and role context                                                                                                                                  | `Notes`                                                   | Cheap deterministic lookup when the query is specific                                                                         |
+| Pull rich LinkedIn or work-history data                    | The URL is already known and you need structured profile data                                                                                                            | `Notes`                                                   | Structured output beats ad hoc web synthesis                                                                                  |
+| Find a mobile phone number                                 | A verified person identity already exists                                                                                                                                | `Notes`                                                   | Best later in the pipeline after identity is strong                                                                           |
+| Mechanical company enrichment                              | You need direct structured account data                                                                                                                                  | `Notes`                                                   | Cheaper and cleaner, often more accurate than `deeplineagent` for firmographics                                               |
+| Coalesce competing provider outputs                        | Multiple columns target the same field                                                                                                                                   | `Notes`                                                   | Deterministic canonicalization after parallel providers                                                                       |
+| Per-row factual account research                           | You need custom research or synthesis that provider fields do not cover                                                                                                  | `Custom enrichment with run_javascript and deeplineagent` | Use `deeplineagent` for AI work and `run_javascript` for deterministic transforms                                             |
+| Research pass before writing                               | You need company or person research to support later copy                                                                                                                | `Custom enrichment with run_javascript and deeplineagent` | Research belongs here and should feed a later writing step                                                                    |
+| Generate copy after research                               | The research column already exists and you now need messaging, first lines, scoring copy, or sequence text                                                               | `writing-outreach.md`                                     | Copywriting should route to the outreach doc, usually with `deeplineagent` once the research column exists                    |
+| LinkedIn post URL -> list of engagers                      | You have a LinkedIn post URL and want all reactors/commenters                                                                                                            | `linkedin_post_to_engagers`                               | Scrape all reactors/commenters from a LinkedIn post. Returns structured engager list.                                         |
+| List of people with name + position -> ICP qualification   | You have person rows with name and headline and need tier classification                                                                                                 | `engagers_to_icp_qualification`                           | Classify leads against ICP using headline/position via deeplineagent                                                          |
 
 ## Notes
 
@@ -65,11 +66,13 @@ Output target: one best work email.
 Play tool: `name_and_company_to_email_waterfall`
 
 Why this play:
+
 - Best default when you already know both the person and the account.
 - Keeps the job deterministic and avoids unnecessary research tooling.
 - Should be the first move before manual waterfalls or `deeplineagent`.
 
 Play details:
+
 - Required inputs are `first_name`, `last_name`, `company_name`, and `domain`.
 - `linkedin_url` is optional, but it improves fallback depth because some later steps only run when LinkedIn is present.
 - Current provider order is `dropleads_email_finder -> hunter_email_finder -> leadmagic_email_finder -> deepline_native_enrich_contact -> crustdata_person_enrichment -> peopledatalabs_enrich_contact`.
@@ -97,12 +100,12 @@ For higher coverage, resolve domain first (2 passes) then use `name_and_company_
 deepline enrich --input contacts.csv --output out.csv \
   --with '{"alias":"exa_raw","tool":"exa_search","payload":{"query":"{{company_name}} official website","numResults":1}}'
 deepline enrich --input out.csv --in-place \
-  --with '{"alias":"domain","tool":"run_javascript","payload":{"code":"const r=row.exa_raw;const url=((((r&&r.result&&r.result.data&&r.result.data.results)||[])[0])||{}).url||\"\";const m=url.match(/^https?:\\/\\/(www\\.)?([^\\/]+)/);return row.company_domain||(m?m[2]:null)||null;"}}'
+  --with '{"alias":"domain","tool":"run_javascript","payload":{"code":"const cell=row.exa_raw;const raw=(cell&&typeof cell===\"object\"&&\"result\" in cell)?cell.result:cell;const results=Array.isArray(raw?.results)?raw.results:[];const url=(results[0]&&results[0].url)||\"\";const m=url.match(/^https?:\\/\\/(www\\.)?([^\\/]+)/);return row.company_domain||(m?m[2]:null)||null;"}}'
 deepline enrich --input out.csv --in-place \
   --with '{"alias":"email","tool":"name_and_company_to_email_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company_name}}","domain":"{{domain}}"}}'
 ```
 
-Note: exa `extract_js` does not work inline — always use a separate `run_javascript` step to extract the domain from `row.exa_raw.result.data.results[0].url`.
+Note: exa `extract_js` does not work inline here, so use a separate `run_javascript` step to extract the domain from the stored cell. In row JS, treat the saved cell as `{ result, matched_result? }`: unwrap `cell.result` first, then inspect the provider payload from there instead of reading top-level provider fields directly.
 
 ### LinkedIn URL only -> work email
 
@@ -113,12 +116,14 @@ Output target: one best work email resolved from LinkedIn URL and name alone.
 Play tool: `person_linkedin_only_to_email_waterfall`
 
 Why this play:
+
 - Use when contacts came from a people search (e.g. dropleads_search_people) and have **standard `/in/`** LinkedIn URLs but no company domains.
 - Do NOT resolve domains first — this play handles it without domain.
 - **Do NOT use for Sales Navigator `/sales/lead/` URLs** — those are rejected by all providers. Use `name_company_to_email_waterfall` instead.
 - `dropleads_single_person_enrichment` resolves email from LinkedIn very well here, and less is more: the play sends only `linkedin_url` to Dropleads on the first step, then keeps `first_name` and `last_name` for downstream fallback providers.
 
 Play details:
+
 - Required inputs are `linkedin_url`, `first_name`, `last_name`.
 - Current provider order is `dropleads_single_person_enrichment -> deepline_native_enrich_contact -> crustdata_person_enrichment -> peopledatalabs_enrich_contact`.
 
@@ -138,11 +143,13 @@ Output target: one best work email resolved from a strong profile identifier.
 Play tool: `person_linkedin_to_email_waterfall`
 
 Why this play:
+
 - Use when you have a LinkedIn URL and already know the company domain.
 - Adds domain-dependent providers (dropleads_email_finder, hunter, leadmagic) before the LinkedIn-native fallbacks.
 - If you do not have the domain, use `person_linkedin_only_to_email_waterfall` instead.
 
 Play details:
+
 - Required inputs are `linkedin_url`, `first_name`, `last_name`, and `domain`.
 - `company_name` is optional.
 - Current provider order is `dropleads_email_finder -> hunter_email_finder -> leadmagic_email_finder -> deepline_native_enrich_contact -> crustdata_person_enrichment -> peopledatalabs_enrich_contact`.
@@ -163,6 +170,7 @@ Output target: hydrated person and company context.
 Play tool: `person_enrichment_from_email_waterfall`
 
 Why this play:
+
 - Email is a strong identifier; use it directly.
 - Good for backfilling person/company fields after email recovery.
 - This is hydration, not research.
@@ -183,11 +191,13 @@ Output target: one best work email with cost-aware deterministic checks first.
 Play tool: `cost_aware_first_name_and_domain_to_email_waterfall`
 
 Why this play:
+
 - Use when company name is missing but the domain is known.
 - Starts with cheaper structured recovery paths before broader enrichment.
 - Better fit than ad hoc provider chains for the default case.
 
 Play details:
+
 - Required inputs are only `first_name`, `last_name`, and `domain`.
 - The play starts with three validated patterns: `first.last@domain`, `firstlast@domain`, and `first_last@domain`.
 - Those pattern steps only yield a result when validation returns `valid`; they do not treat `catch_all` as a hit inside the play.
@@ -210,12 +220,14 @@ Output target: one best phone number for the contact.
 Play tool: `contact_to_phone_waterfall`
 
 Why this play:
+
 - Use it when you already know the person identity and want the highest-signal phone lookup order.
 - Cost-optimized: starts with the cheapest providers and escalates to expensive ones only as fallbacks.
 - All providers charge only on successful hit (post_deduct), so total cost scales with coverage, not attempts.
 - Estimated cost per found phone: $1-2. Follow up with `ipqs_phone_validate` (0.07/call) to verify line type, DNC status, and fraud score before outbound.
 
 Play details:
+
 - Required inputs are `first_name`, `last_name`, and `domain`.
 - `email` and `linkedin_url` are optional hints that unlock additional provider paths.
 - Current provider order is `forager_person_reverse_lookup (0.32) -> ai_ark_mobile_phone_finder (0.70) -> leadmagic_mobile_finder (1.68) -> deepline_native_enrich_phone (4.90)`.
@@ -238,6 +250,7 @@ Output target: candidate contacts for the requested persona.
 Play tool: `company_to_contact_by_role_waterfall`
 
 Why this play:
+
 - This is the canonical company-to-persona play.
 - Use it for both role-targeted and seniority-targeted contact discovery.
 - The right default for prompts like "find GTM engineers at these companies".
@@ -248,6 +261,7 @@ Why this play:
 - Do not assume the play will invent hidden row-level provider fields for you. For interpolated CSV runs, `roles` and `seniority` pass through exactly as provided.
 
 Provider behavior to remember:
+
 - `dropleads` is strongest when `roles` contains exact title tokens.
 - `deepline_native` translates portable roles into provider-safe boolean title-filter expressions. This is most useful when `roles` contains specific leadership intent like `CEO`, `Founder`, `CTO`, `VP Marketing`, `Head of Security`, or `Director of Engineering`.
 - `apollo` is useful for exact title search, but do not depend on it as the only source for founder/exec startup cases.
@@ -256,6 +270,7 @@ Provider behavior to remember:
 - If the user asks for a very specific persona and you only have a broad function, refine the role phrasing first before adding more providers.
 
 Practical input patterns:
+
 - Exact exec intent: `CEO`, `Founder`, `Co-Founder`, `CTO`, `CFO`, `CMO`, `CISO`
 - Exact management intent: `VP Marketing`, `Head of Security`, `Director of Engineering`, `Revenue Operations`
 - Broad functional intent: `marketing`, `finance`, `security`, `product`, `engineering`, `sales`, `growth`
@@ -263,12 +278,14 @@ Practical input patterns:
 - Avoid relying on level-only phrasing like `C-Level` without a role.
 
 Operational rule:
+
 - If you only have `company_name`, resolve the domain first, then run persona lookup.
 - Do not use `deeplineagent` as the first pass for persona lookup.
 - Use `deeplineagent` only as a fallback research pass when the play and direct providers miss.
 - If provider results are weak or sparse, first re-check the available people/company search tools with category searches, then use Apify if you need a broader employee list.
 
 Category searches:
+
 - Use `people_search` when you need better title- and LinkedIn-oriented contact search options.
 - Use `company_search` when you need stronger company identity resolution or company-level inputs before the people search.
 
@@ -280,6 +297,7 @@ deepline tools search --categories company_search --search_terms "structured fil
 ```
 
 Apify fallback:
+
 - Prefer an Apify company-employees actor when the default provider mix is not finding enough good contacts.
 - This is especially useful when structured people-search providers have thin coverage for a startup or an unusual title.
 - Pull the employee list first, then filter for the target persona rather than trying to force more provider retries.
@@ -329,11 +347,13 @@ Output target: canonical `domain` or homepage for downstream plays.
 Default tools: `exa_search` or `serper_google_search`
 
 Why this play:
+
 - Domain lookup is mechanical.
 - It should happen before persona lookup, email recovery, or company enrichment.
 - `deeplineagent` is the wrong default here because this is a search-and-resolve task, not a synthesis task.
 
 Routing rule:
+
 1. Resolve domain/homepage with `exa_search` or `serper_google_search`.
 2. Run the downstream play using the recovered domain.
 3. Only use `deeplineagent` if provider/search outputs still do not cover the factual need and you need tool-backed reasoning to resolve the ambiguity.
@@ -354,13 +374,15 @@ Output target: same as the native play, but with explicit provider control.
 Default surface: `--with-waterfall` plus direct providers
 
 Why this play:
+
 - Use only when no native play fits or when you need to deliberately customize provider order.
 - Keeps mechanical enrichment mechanical.
 - This is still preferable to starting with `deeplineagent` for deterministic fields.
 
 Key waterfall rules:
+
 - Always pilot first with `--rows 0:1`, then scale after the shape looks right.
-- Every waterfall step needs its own `extract_js`. Before writing it: run `deepline tools get <tool>` to see the response shape, then confirm the path from `result.data`. Use `@path/to/file.js` for multi-line or regex-heavy JS — inline JS in `--with` JSON breaks on escapes.
+- Every waterfall step needs its own `extract_js`. Before writing it: run `deepline tools get <tool>` to see the response shape, then confirm the path from the normalized wrapper. `extract_js` receives `{ result: <tool output> }`, so author paths against `result.*` and only drill into `result.data.*` when that provider's payload actually nests under `data`. Use `@path/to/file.js` for multi-line or regex-heavy JS — inline JS in `--with` JSON breaks on escapes.
 - Close each waterfall with `--end-waterfall` before starting another one.
 - Do not run email waterfalls without minimum match data: name + company, name + domain, or a strong LinkedIn-seeded identity.
 - If you need different validation behavior, remember the native cost-aware play only accepts pattern hits when the validator says `valid`.
@@ -377,7 +399,7 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
   --with '{"alias":"email_validation","tool":"leadmagic_email_validation","payload":{"email":"{{email}}"}}'
 ```
 
-If extract_js returns raw objects instead of scalars, you can store the raw response and use `run_javascript` in a second pass to parse it — useful when you need to inspect the shape before writing extraction logic.
+If `extract_js` returns raw objects instead of scalars, you can store the raw response and use `run_javascript` in a second pass to parse it. When debugging, remember the extractor input is wrapped as `{ result: ... }`, while persisted enrich cells usually contain both `result` and `matched_result`.
 
 ## Post-enrichment validation
 
@@ -394,6 +416,7 @@ Flag and investigate mismatched rows — these are often from a previous employe
 ## Custom enrichment with run_javascript and deeplineagent
 
 Use this section for:
+
 - open-ended factual research
 - Claygent alternative
 - custom signals
@@ -402,11 +425,52 @@ Use this section for:
 - prompt-driven enrichment patterns that are not covered by a direct provider field
 
 Default rule:
+
 - use direct providers or plays for mechanical fields
 - use `run_javascript` when the job is deterministic row logic: formatting, normalization, coalescing, templating, parsing, or simple conditional transforms
 - use `deeplineagent` when the row needs AI help for classification, extraction, scoring, structured generation, browsing, or multi-step synthesis
 - split research and generation into separate passes when both are needed
 - keep research here; route actual copywriting to `writing-outreach.md`
+
+### Handmade step shape quick reference
+
+Use this when you are hand-authoring `deepline enrich` steps instead of relying on a native play.
+
+- `run_javascript` payload schema: `{"alias":"x","tool":"run_javascript","payload":{"code":"..."}}`
+- Inside `run_javascript`, the current row is available as `row`. Read prior columns with `row["column_name"]` or `row.column_name`.
+- `run_javascript` returns whatever your JS returns. For example:
+  - scalar: `return "acme.com"`
+  - object: `return { domain: "acme.com", source: "exa" }`
+  - list: `return [{ email: "ada@example.com" }]`
+- Provider step with extractor schema: `{"alias":"x","tool":"some_provider","payload":{...},"extract_js":"(output_data) => ..."}`
+- `extract_js` input shape is always wrapped: `output_data = { result: <raw tool output> }`
+- So inside `extract_js`, author against `output_data.result.*`, not the raw payload root.
+- Use `extract("tool_id", output_data, "field")` and `extractList("tool_id", output_data, { keys: [...] })` when possible instead of manually drilling paths.
+- Persisted enrich cell shape is different from extractor input.
+- For provider-backed enrich columns, the saved cell usually contains the raw provider payload under `result`.
+- `matched_result` is the normalized extracted value when Deepline materializes one, for example from result getters or waterfall extraction. It is not the runtime input to `extract_js`; it is a saved post-extraction convenience field.
+- That means:
+  - in `extract_js`, read `output_data.result`
+  - in later `run_javascript` passes over saved CSV rows, read `row["some_column"].result`
+  - if the saved cell also has `matched_result`, prefer it as the normalized value you already extracted
+  - only drill into provider-specific nesting like `.result.data.*` after unwrapping `result`, and only when that provider's raw payload truly has a `data` envelope
+
+Minimal examples:
+
+```bash
+deepline enrich --input in.csv --output out.csv \
+  --with '{"alias":"domain","tool":"run_javascript","payload":{"code":"return row.company_name ? row.company_name.toLowerCase().replace(/\\s+/g, \"\") + \".com\" : null;"}}'
+```
+
+```bash
+deepline enrich --input in.csv --output out.csv \
+  --with '{"alias":"email_raw","tool":"hunter_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"},"extract_js":"(output_data) => extract(\"hunter_email_finder\", output_data, \"email\")"}'
+```
+
+```bash
+deepline enrich --input out.csv --in-place \
+  --with '{"alias":"email_domain","tool":"run_javascript","payload":{"code":"const cell=row.email_raw;const raw=(cell&&typeof cell===\"object\"&&\"result\" in cell)?cell.result:cell;const email=cell?.matched_result||raw?.email||raw?.data?.email||null;return email?email.split(\"@\")[1]:null;"}}'
+```
 
 ### Tiny disambiguation
 
@@ -448,6 +512,7 @@ If the prompt key contains quotes or awkward punctuation, first list keys with `
 5. Keep outputs structured with `jsonSchema` when the column is meant to feed later steps.
 
 Practical rule:
+
 - use `jq -r 'keys[]'` to browse prompt names
 - use `grep -nE ...` to hunt by keyword
 - use `jq -r '."KEY NAME"'` to pull the exact prompt text
@@ -515,6 +580,7 @@ For actual email copy, personalized first lines, sequence writing, or scoring la
 ## Custom provider and tool search
 
 Use `deepline tools search` when:
+
 - no play exists
 - you need a niche provider or signal
 - you want to extend a waterfall
@@ -557,6 +623,7 @@ Use `$WORKDIR` for JS files, logs, and outputs. Prefer relative paths.
 ## Exit back to discovery
 
 If you realize the task is actually:
+
 - "find the companies first"
 - "find the candidate contacts first"
 - "where does this data source live?"
