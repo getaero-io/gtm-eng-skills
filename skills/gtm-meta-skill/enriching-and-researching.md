@@ -610,15 +610,26 @@ deepline tools get crustdata_enrich_contact
 deepline tools get apify_run_actor_sync
 ```
 
-## Working directory
+## Working directory — CRITICAL
 
-First action for non-trivial enrich work:
+**NEVER write files to `/tmp/` or any absolute temp directory.** Files in `/tmp/` are wiped on reboot. Users lose enriched CSVs, research outputs, and hours of paid enrichment work. This has caused real data loss and wasted credits.
+
+**Always use a project-local working directory with a descriptive name.** The name must reflect the task so the user can find outputs later — random names like `Wtz6` are not acceptable.
+
+First action for every non-trivial task:
 
 ```bash
-mkdir -p tmp && WORKDIR=$(mktemp -d tmp/XXXX) && echo $WORKDIR
+WORKDIR="tmp/<descriptive-slug>" && mkdir -p "$WORKDIR" && echo "$WORKDIR"
 ```
 
-Use `$WORKDIR` for JS files, logs, and outputs. Prefer relative paths.
+Name the slug after the task goal. Examples:
+
+- `tmp/yc-cmo-outbound` (YC batch CMO prospecting)
+- `tmp/acme-email-waterfall` (email enrichment for Acme leads)
+- `tmp/saas-tam-q2` (TAM list build for SaaS ICP)
+- `tmp/linkedin-engager-emails` (email lookup from LinkedIn post engagers)
+
+Use `$WORKDIR` for all JS files, intermediate CSVs, logs, and outputs. Always use relative paths — never absolute `/tmp`.
 
 ## Exit back to discovery
 
