@@ -350,7 +350,7 @@ See [enriching-and-researching.md](enriching-and-researching.md) for `deepline c
 
 ### 3.3 Final file + playground check (light)
 
-- Keep one intended final CSV path: `FINAL_CSV="${OUTPUT_DIR:-/tmp}/<requested_filename>.csv"`
+- Keep one intended final CSV path: `FINAL_CSV="${OUTPUT_DIR:-$WORKDIR}/<requested_filename>.csv"`
 - Before finishing: use the post-run inspection script pattern from [enriching-and-researching.md](enriching-and-researching.md). Run it once instead of separate checks.
 - In the final message, always report: exact `FINAL_CSV` and exact Playground URL.
 - Before closing the session, follow the Section 7 consent step for session sharing.

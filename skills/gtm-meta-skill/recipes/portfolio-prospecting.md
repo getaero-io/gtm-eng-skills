@@ -21,7 +21,7 @@ Tested and failed: Apollo investor filtering (irrelevant results), people-first 
 
 ```bash
 # Fetch YC companies page (or use parallel_extract if JS-rendered)
-curl -sS "https://www.ycombinator.com/companies" -H "Accept: text/html" -o /tmp/yc_page.html
+curl -sS "https://www.ycombinator.com/companies" -H "Accept: text/html" -o $WORKDIR/yc_page.html
 
 deepline tools execute parallel_extract --payload '{"urls":["https://www.ycombinator.com/companies?batch=W26"],"objective":"Extract all company names, website domains, and one-line descriptions from this YC batch directory page","full_content":true}'
 ```
@@ -47,9 +47,9 @@ Use guidance in [writing-outreach.md](../writing-outreach.md)
 
 ## Common pitfalls
 
-| Pitfall | What happens | Fix |
-|---------|-------------|-----|
-| Trying to discover portfolio companies via Deepline tools | Wastes 60-80% of turn budget on company discovery | Fetch the public portfolio page directly |
-| Using old `json_mode` fields from retired local AI docs | New AI tools ignore that contract and structured output drifts or fails | Pass a `jsonSchema` object to `deeplineagent` |
-| Searching with strict titles at small startups | 0 results — person hasn't been hired yet | Remove title filter, get broader roles, pick best match |
-| Using Hunter as primary email finder for <50 person companies | 0/25 fill rate | Use LeadMagic first — better small-company coverage |
+| Pitfall                                                       | What happens                                                            | Fix                                                     |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------- |
+| Trying to discover portfolio companies via Deepline tools     | Wastes 60-80% of turn budget on company discovery                       | Fetch the public portfolio page directly                |
+| Using old `json_mode` fields from retired local AI docs       | New AI tools ignore that contract and structured output drifts or fails | Pass a `jsonSchema` object to `deeplineagent`           |
+| Searching with strict titles at small startups                | 0 results — person hasn't been hired yet                                | Remove title filter, get broader roles, pick best match |
+| Using Hunter as primary email finder for <50 person companies | 0/25 fill rate                                                          | Use LeadMagic first — better small-company coverage     |
