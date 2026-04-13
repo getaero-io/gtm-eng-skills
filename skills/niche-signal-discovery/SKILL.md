@@ -22,7 +22,7 @@ Discover differential signals between Closed Won and Closed Lost accounts by ext
 - ❌ No external Python packages (no pip install needed)
 - ❌ No OpenAI/Anthropic API keys (deterministic analysis, no LLM calls)
 
-**Credits:** Enrichment consumes Deepline credits (~6 credits/company for exa + crustdata). Always get user approval before running paid enrichment.
+**Credits:** Enrichment consumes Deepline credits (~0.47 credits/company for serper + firecrawl + crustdata). Always get user approval before running paid enrichment.
 
 ## Deepline-First Principle
 
@@ -192,46 +192,68 @@ See `references/keyword-catalog.md` for multi-vertical examples (creative ops, A
 
 ## Step 2: Deepline Enrichment
 
-**CRITICAL: Never scrape just the homepage.** Use `exa_search` with `contents.text` to discover AND scrape ~8 pages per domain in a single API call.
+**CRITICAL: Never scrape just the homepage.** Use Serper to discover relevant pages across the domain, then Firecrawl to extract content from each.
 
-**Generate exa query dynamically based on target's product category:**
+**Two-step enrichment: Serper discovers pages, Firecrawl scrapes them.**
+
+**Step 2a: Discover pages with Serper**
+
+Generate a search query dynamically based on target's product category:
 
 ```bash
 # Generic query (works for most B2B SaaS selling to marketing/sales/product teams)
-QUERY="company product features integrations customers security pricing careers about case-studies"
+QUERY="site:{{domain}} product OR features OR integrations OR customers OR security OR pricing OR careers OR about"
 
 # For tools selling to back-office teams (finance, HR, legal):
-# Buyers don't publish pain on marketing pages — add compliance/audit pages where signals live
-QUERY="company product features integrations customers security pricing careers compliance audit regulatory about"
+QUERY="site:{{domain}} product OR features OR integrations OR customers OR compliance OR audit OR careers OR pricing OR about"
 
 # For developer tools:
-# Add documentation/API pages — these reveal infrastructure maturity and integration readiness
-QUERY="company product features documentation api changelog github integrations security pricing careers about"
+QUERY="site:{{domain}} product OR features OR documentation OR api OR changelog OR integrations OR careers OR pricing"
 
 # For creative/marketing tools:
-QUERY="company product features portfolio use cases creative workflow customers integrations security pricing careers about"
+QUERY="site:{{domain}} product OR features OR portfolio OR use cases OR workflow OR customers OR integrations OR careers"
 
 # For sales tools:
-QUERY="company product features playbooks outbound pipeline customers integrations security pricing careers about"
+QUERY="site:{{domain}} product OR features OR playbooks OR outbound OR pipeline OR customers OR integrations OR careers"
 ```
-
-**Example:**
 
 ```bash
 deepline enrich \
   --input output/{{company}}-icp-input.csv \
-  --output output/{{company}}-enriched.csv \
-  --with '{"alias":"website","tool":"exa_search","payload":{"query":"{{exa-query-from-above}}","numResults":8,"type":"auto","includeDomains":["{{domain}}"],"contents":{"text":{"maxCharacters":3000,"verbosity":"compact","includeSections":["body"]}}}}' \
-  --with '{"alias":"jobs","tool":"crustdata_job_listings","payload":{"companyDomains":"{{domain}}","limit":50}}' \
- 
+  --output output/{{company}}-discovered.csv \
+  --with 'pages=serper_google_search:{"query":"{{serper-query-from-above}}"}' --json
 ```
 
-**Why exa_search with contents (not parallel_extract)?**
-- Discovers pages AND returns content in one call — no separate page discovery step
-- ~8 pages per domain, ~3K chars each = ~24K chars per company
-- Cost: ~5 credits/company (exa) + ~1 credit (crustdata jobs) = ~6 credits/company
+**Step 2b: Scrape discovered pages with Firecrawl**
 
-Get user credit approval before running. Example: "60 companies x 6 credits = ~360 credits."
+From the Serper results, extract the top 5 URLs per company. Then scrape each with Firecrawl:
+
+```bash
+deepline enrich \
+  --input output/{{company}}-discovered.csv \
+  --output output/{{company}}-enriched.csv \
+  --with 'content=firecrawl_scrape:{"url":"{{page_url}}"}' --json
+```
+
+For batch scraping multiple URLs per company, iterate over the discovered URLs.
+
+**Step 2c: Job listings with Crustdata**
+
+```bash
+deepline enrich \
+  --input output/{{company}}-enriched.csv \
+  --output output/{{company}}-enriched.csv \
+  --with 'jobs=crustdata_job_listings:{"companyDomains":["{{domain}}"]}' --json
+```
+
+**Why Serper + Firecrawl (not exa_search)?**
+- Serper is 0.02 credits per search (vs exa_search at 0.07 per result with contents)
+- Firecrawl is 0.01 credits per page scraped
+- ~5 pages per domain at 0.01 each = 0.05 credits for content
+- Total: 0.02 + 0.05 + 0.40 = ~0.47 credits/company (vs ~6 credits with exa)
+- 12x cheaper for the same data quality
+
+Get user credit approval before running. Example: "60 companies x 0.47 credits = ~28 credits."
 
 ## Step 3: Quality Gate
 
@@ -425,11 +447,12 @@ data.listings[].url — listing URL
 
 ## Credit Estimation
 
-| Step | Credits per row | Total (60 companies) |
-|------|----------------|---------------------|
-| exa_search with contents | ~5 | ~300 |
-| crustdata_job_listings | ~1 | ~60 |
-| **Total** | **~6** | **~360** |
+| Step | Tool | Credits per row | Total (60 companies) |
+|------|------|----------------|---------------------|
+| Page discovery | serper_google_search | 0.02 | 1.20 |
+| Content scraping (~5 pages) | firecrawl_scrape | 0.05 | 3.00 |
+| Job listings | crustdata_job_listings | 0.40 | 24.00 |
+| **Total** | | **~0.47** | **~28** |
 
 Always get user approval before running paid enrichment steps.
 
