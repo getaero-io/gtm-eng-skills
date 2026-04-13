@@ -1,11 +1,21 @@
 Use Apollo as the default high-recall people/company prospector.
 
+Company vs CRM split:
+
+- `apollo_company_search` maps to Apollo Organization Search (`mixed_companies/search`).
+- Use `apollo_company_search` when you want Apollo's broad company database, including companies that are not in your team's CRM yet.
+- `crm_search_for_accounts` maps to Apollo CRM Account Search (`accounts/search`).
+- Use `crm_search_for_accounts` only when you specifically want accounts your team already added to Apollo CRM.
+- If the task is "find companies," "resolve a company," or "search non-CRM companies," use `apollo_company_search`.
+- If the task is "search my Apollo accounts" or depends on CRM stages/ownership/workflow state, use `crm_search_for_accounts`.
+
 People search split:
 
 - `apollo_search_people` maps to Apollo `mixed_people/api_search` (preview, no Apollo credits, obfuscated names/contact gaps).
 - `apollo_people_search_paid` maps to Apollo `mixed_people/search` (paid, billed per request in Deepline).
 - `apollo_search_people_with_match` runs free preview search and then paid enrichment for discovered IDs, returning enriched `people` rows directly.
 - Use `apollo_search_people` first for cheap discovery and shortlist building; switch to `apollo_people_search_paid` when you need paid Apollo search coverage/filters.
+- `q_keywords` is useful for broad text discovery, but it is not the only way to search non-CRM companies or people. If you already know the company, prefer `q_organization_domains_list` or `organization_ids`.
 
 - Keep `include_similar_titles=true` unless the user explicitly asks for strict title matching.
 - For broad discovery, start with `person_seniorities` + `q_keywords` and only tighten after you inspect totals.
@@ -13,6 +23,14 @@ People search split:
 - Use `apollo_company_search` to resolve account identity first; when running company-targeted `apollo_people_search`, pass `q_organization_domains_list` or `organization_ids` (avoid name-only keyword targeting).
 - Use low `per_page` for pilot checks, then scale once payload shape and match quality are confirmed.
 - For changed-company email recovery specifically, do not force Apollo first; prefer the scenario default order from the GTM meta skill.
+
+Company-search planning guardrails:
+
+- Start with a pilot query: `per_page=1..3`, plus either `q_organization_name` or exact domains, before broad pagination.
+- Treat `organization_num_employees_ranges` as contract-sensitive. Use the exact format shown by `deepline tools get apollo_company_search`, and update stale local examples when the live contract changes.
+- For broad discovery, `q_organization_keyword_tags` is often a better first-pass search constraint than structural-only filters.
+- Inspect `result.data.organizations` first. If that array is empty, then check `result.data.accounts` as a compatibility fallback.
+- Do not trust `pagination.total_entries` alone when planning a large pull. Verify that retrieved rows, returned shape, and deduped output all look sane on a pilot before fanning out.
 
 Response-shape contract (critical):
 

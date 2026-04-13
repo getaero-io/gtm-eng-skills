@@ -482,8 +482,9 @@ Approve full run?
 ### 4.5 Billing commands
 
 ```bash
-deepline billing balance
-deepline billing limit
+deepline billing balance  # Show current credit balance
+deepline billing usage    # Show recent billing activity and grouped recent usage
+deepline billing limit    # Show the current monthly billing cap
 ```
 
 When credits at zero, link to https://code.deepline.com/dashboard/billing to top up.

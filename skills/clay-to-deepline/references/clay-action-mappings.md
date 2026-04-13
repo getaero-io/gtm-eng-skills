@@ -238,7 +238,7 @@ import json, subprocess, csv
 payload = {
     "organization_locations": ["Los Angeles", "San Diego", "Orange County", "Irvine"],  # example: SouthernCal
     "q_organization_keyword_tags": ["software", "technology", "saas"],                   # industry focus
-    "organization_num_employees_ranges": ["51,200", "201,500", "501,1000"],              # size range
+    "organization_num_employees_ranges": ["51-200", "201-500", "501-1000"],              # size range
     # "currently_using_any_of_technology_uids": ["snowflake", "bigquery"],              # tech stack (optional)
     "per_page": 100,
     "page": 1,   # increment for more pages
