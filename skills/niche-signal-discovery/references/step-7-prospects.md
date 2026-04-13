@@ -4,10 +4,10 @@ A signal report without a companion prospect list is incomplete. The signals tel
 
 ## What's required vs. what's optional
 
-| Output | Status | Why |
-|---|---|---|
-| **10 net-new companies** with descriptions, signal scores, matched signals, cited evidence | **REQUIRED** — every run | A signal report without target companies forces the user to do their own prospecting pass, which is the expensive thing they wanted to skip. |
-| **Contacts + corporate emails** at those companies | **OPTIONAL** — credit-aware | Contact discovery uses additional Deepline credits for the email waterfall. Always offer it; only run it if the user approves the credit spend. Default to `--no-contacts` if the user hasn't said. |
+| Output                                                                                     | Status                      | Why                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------ | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **10 net-new companies** with descriptions, signal scores, matched signals, cited evidence | **REQUIRED** — every run    | A signal report without target companies forces the user to do their own prospecting pass, which is the expensive thing they wanted to skip.                                                        |
+| **Contacts + corporate emails** at those companies                                         | **OPTIONAL** — credit-aware | Contact discovery uses additional Deepline credits for the email waterfall. Always offer it; only run it if the user approves the credit spend. Default to `--no-contacts` if the user hasn't said. |
 
 When contacts are skipped, the prospect cards still need to ship — they just include "(contacts not enriched — re-run with `--contacts` to add)" in place of the contact bullets.
 
@@ -58,12 +58,14 @@ python3 scripts/find_contacts.py \
 **This fallback is not optional.** On the run that motivated adding it, Phase 1 returned 0 contacts on all 10 top-scoring prospects (all <200-employee industrial companies). Phase 2 found 15 real contacts at 6 of those same 10 in the same run. If you skip Phase 2 because Phase 1 "worked" (ran without error and returned 0 rows), you ship an empty list with no explanation.
 
 **Two Exa guardrails matter:**
+
 - **Title parse**: Exa results follow `Name | Role at Company`. Regex the name out of the leading capitalized tokens; treat the rest as the title. Fall back to de-slugging the LinkedIn URL when the title doesn't parse cleanly.
 - **Company-match filter**: Require the company name (or its first ~8 characters) to appear somewhere in the result title or text. Exa neural will sometimes return profiles at COMPETING companies — e.g., searching for "plasma process engineer at Plasma Processes" returned a real plasma process engineer working at Hypertherm. Discard any result where the company name doesn't match.
 
-**Phase 3 — `person_linkedin_only_to_email_waterfall` for email resolution.** For every named contact with a LinkedIn URL, run this waterfall (dropleads + deepline_native + crustdata + PDL). Returns one primary email per contact.
+**Phase 3 — `name_and_domain_to_email_waterfall` for email resolution.** For every named contact with a LinkedIn URL, resolve the company domain, then run this waterfall with both `domain` and `linkedin_url`. Returns one primary email per contact.
 
 **Domain-match validation is mandatory.** Always check that the returned email's apex domain matches the company's apex domain before publishing. Providers return stale addresses often enough that this is the difference between a usable list and an embarrassing one. On one real run:
+
 - A contact at X-Bow Systems came back with `@orbitalatk.com` (his previous employer, acquired into Northrop Grumman years earlier)
 - Another came back with `@governors-america.com` (a completely unrelated company)
 - A third came back with a personal `@googlemail.com`
@@ -77,22 +79,24 @@ Render each prospect as a card (heading + description + signals + evidence + con
 ```markdown
 ### [company name] — score [N] [category badge]
 
-*1-sentence description of the company.*
+_1-sentence description of the company._
 
 Domain: `apex.com`
 
 Matched signals: `signal1`, `signal2`, `signal3`, `signal4`
 
 **Cited evidence:**
+
 - [📄 website] [page title]: "...exact quote around keyword..."
   https://apex.com/source-page
 - [💼 job] [job title]: "...exact quote from listing..."
   https://linkedin.com/jobs/view/...
 
 **Contacts:** (only if --contacts was on)
-- **Full Name** — Role  ·  ✉ `email@apex.com`
+
+- **Full Name** — Role · ✉ `email@apex.com`
   https://linkedin.com/in/profile
-- **Other Name** — Role  ·  (email not found)
+- **Other Name** — Role · (email not found)
   https://linkedin.com/in/profile
 ```
 

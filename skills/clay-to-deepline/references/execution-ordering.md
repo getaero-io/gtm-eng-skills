@@ -23,7 +23,7 @@ Stage 7:  Export
 ### Why this order?
 
 - `run_javascript` executes locally (no API calls, immediate)
-- Validation columns need the permutation *value* already computed to interpolate `{{perm_fln}}`
+- Validation columns need the permutation _value_ already computed to interpolate `{{perm_fln}}`
 - If you try to execute validation before permutation, `{{perm_fln}}` resolves to empty string → validation runs on empty email → worthless result
 
 ---
@@ -34,7 +34,7 @@ Stage 7:  Export
 # Stage 1: Declare schema (perms + providers + job_function)
 deepline enrich --input seed.csv --output work.csv \
   --with "perm_fln=run_javascript:{...}" \
-  --with "work_email_primary=cost_aware_first_name_and_domain_to_email_waterfall:{...}" \
+  --with "work_email_primary=name_and_domain_to_email_waterfall:{...}" \
   --with "job_function=deeplineagent:{...}"
 
 # Stage 2: Execute ONLY the run_javascript column first
@@ -62,14 +62,14 @@ deepline csv --execute_cells --csv work.csv --rows 0:N --cols 12:12
 
 Column indices are assigned in declaration order, 0-indexed:
 
-| Index range | Source |
-|---|---|
-| 0 … (seed cols - 1) | Seed CSV columns |
-| seed_count | First `--with` column in Stage 1 |
-| seed_count + 1 | Second `--with` column in Stage 1 |
-| … | … |
-| last_declared + 1 | First `--in-place` column (Stage 3) |
-| last_declared + 2 | First `--in-place` column (Stage 5) |
+| Index range         | Source                              |
+| ------------------- | ----------------------------------- |
+| 0 … (seed cols - 1) | Seed CSV columns                    |
+| seed_count          | First `--with` column in Stage 1    |
+| seed_count + 1      | Second `--with` column in Stage 1   |
+| …                   | …                                   |
+| last_declared + 1   | First `--in-place` column (Stage 3) |
+| last_declared + 2   | First `--in-place` column (Stage 5) |
 
 Track indices explicitly in comments. The polling/wait loop in Stage 4 should watch all Stage 3+ columns, not Stage 2 columns (those are already done).
 
@@ -77,7 +77,7 @@ Track indices explicitly in comments. The polling/wait loop in Stage 4 should wa
 
 ## Waiting Strategy
 
-The `deepline csv --execute_cells` call *queues* jobs asynchronously. Poll for completion:
+The `deepline csv --execute_cells` call _queues_ jobs asynchronously. Poll for completion:
 
 ```bash
 MAX_WAIT=900
@@ -114,6 +114,7 @@ Running every column on every row wastes credits when a cheaper stage already fo
 **Filter must happen BEFORE any `--in-place` adds the fallback columns.** If you filter after `--in-place`, the subset CSV already contains the fallback columns (empty), and enriching it again with the same column names creates duplicates or index mismatches.
 
 **Correct order:**
+
 ```
 1. filter_missing → MISSING_CSV   (has only cols added so far)
 2. deepline enrich --in-place     (adds schema cols to work.csv)
@@ -123,6 +124,7 @@ Running every column on every row wastes credits when a cheaper stage already fo
 ```
 
 **Wrong order (causes bugs):**
+
 ```
 1. deepline enrich --in-place     (adds schema cols to work.csv + valid_fln/fallback)
 2. filter_missing → MISSING_CSV   (MISSING_CSV now has valid_fln/fallback cols!)
@@ -143,7 +145,7 @@ filter_missing work.csv work_email_primary missing_email.csv
 # 3. Add fallback schema to work.csv (empty; populated by merge_back later)
 deepline enrich --input work.csv --in-place \
   --with "valid_fln=leadmagic_email_validation:{...}" \
-  --with "work_email_fallback=person_linkedin_to_email_waterfall:{...}"
+  --with "work_email_fallback=name_and_domain_to_email_waterfall:{...}"
 # work.csv now has cols 10=valid_fln, 11=work_email_fallback (empty for all rows)
 
 # 4. Only proceed with fallback if there are missing rows
@@ -153,7 +155,7 @@ if [ -s missing_email.csv ]; then
   # missing_email.csv has cols 0-9 — enrich adds valid_fln=10, work_email_fallback=11
   deepline enrich --input missing_email.csv --output missing_work.csv \
     --with "valid_fln=leadmagic_email_validation:{...}" \
-    --with "work_email_fallback=person_linkedin_to_email_waterfall:{...}"
+    --with "work_email_fallback=name_and_domain_to_email_waterfall:{...}"
 
   deepline csv --execute_cells --csv missing_work.csv --rows "0:$MISSING_LAST" --cols 10:10
   deepline csv --execute_cells --csv missing_work.csv --rows "0:$MISSING_LAST" --cols 11:11
@@ -167,13 +169,13 @@ fi
 
 ### When to Use
 
-| Stage cost | Row count still missing | Use conditional? |
-|---|---|---|
-| Local (`run_javascript`) | Any | No — run all rows |
-| Cheap paid (`leadmagic_email_validation`) | < 20% | Maybe — marginal savings |
-| Expensive paid (provider waterfalls) | < 50% | Yes — meaningful savings |
+| Stage cost                                | Row count still missing | Use conditional?         |
+| ----------------------------------------- | ----------------------- | ------------------------ |
+| Local (`run_javascript`)                  | Any                     | No — run all rows        |
+| Cheap paid (`leadmagic_email_validation`) | < 20%                   | Maybe — marginal savings |
+| Expensive paid (provider waterfalls)      | < 50%                   | Yes — meaningful savings |
 
-**Rule of thumb:** `cost_aware_first_name_and_domain_to_email_waterfall` typically finds ~85%+ of emails. Running `person_linkedin_to_email_waterfall` (fallback) on only the remaining 15% cuts fallback costs by ~5-6×.
+**Rule of thumb:** `name_and_domain_to_email_waterfall` should be your supported primary play once you have a company domain. If LinkedIn URLs are available, pass `linkedin_url` into the same play on the remaining misses as a fallback hint.
 
 ### Deepline `--rows` Limitation
 
@@ -183,11 +185,11 @@ fi
 
 ## Common Failure Modes
 
-| Symptom | Cause | Fix |
-|---|---|---|
-| Validation returns results for empty string | `perm_fln` not executed before `valid_fln` was declared + executed | Execute `perm_fln` first (Stage 2), then add and execute `valid_fln` |
-| Merge column returns null for all rows | One of the merge inputs wasn't executed before merge ran | Check that Stage 4 fully completed before Stage 5 |
-| `{{col}}` interpolates to empty in prompt | Column declared but not executed | Run `--execute_cells` on that column, or move it to an earlier stage |
-| Column index wrong in `--cols N:N` | New `--in-place` column shifted indices | Re-count from seed CSV length + declaration order |
-| Fallback CSV has duplicate columns / wrong data | `filter_missing` called AFTER `--in-place` added fallback cols | Filter BEFORE adding schema cols. See "Filter BEFORE Adding Schema Columns" above |
-| `merge_back` doesn't populate values | Target CSV missing the column names in `fieldnames` | Add columns via `--in-place` to work.csv before merging, even if empty |
+| Symptom                                         | Cause                                                              | Fix                                                                               |
+| ----------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| Validation returns results for empty string     | `perm_fln` not executed before `valid_fln` was declared + executed | Execute `perm_fln` first (Stage 2), then add and execute `valid_fln`              |
+| Merge column returns null for all rows          | One of the merge inputs wasn't executed before merge ran           | Check that Stage 4 fully completed before Stage 5                                 |
+| `{{col}}` interpolates to empty in prompt       | Column declared but not executed                                   | Run `--execute_cells` on that column, or move it to an earlier stage              |
+| Column index wrong in `--cols N:N`              | New `--in-place` column shifted indices                            | Re-count from seed CSV length + declaration order                                 |
+| Fallback CSV has duplicate columns / wrong data | `filter_missing` called AFTER `--in-place` added fallback cols     | Filter BEFORE adding schema cols. See "Filter BEFORE Adding Schema Columns" above |
+| `merge_back` doesn't populate values            | Target CSV missing the column names in `fieldnames`                | Add columns via `--in-place` to work.csv before merging, even if empty            |

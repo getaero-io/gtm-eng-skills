@@ -1,7 +1,7 @@
 ---
 name: niche-signal-discovery
 disable-model-invocation: true
-description: "Discover niche first-party signals that differentiate Closed Won vs Closed Lost accounts for ICP analysis. Use when the user provides won/lost customer domain lists and wants differential signals (website content, job listings, tech stack, maturity markers) to build account scoring models and prospecting criteria. Triggers: ICP analysis, niche signals, won vs lost analysis, differential signals, signal discovery, ICP signal report, account scoring signals, lead scoring, first-party signals, buyer signals. Before reading this file, first read gtm-meta-skill to understand the Deepline CLI tool and how to use it. Then read this file for guidance on the task."
+description: 'Discover niche first-party signals that differentiate Closed Won vs Closed Lost accounts for ICP analysis. Use when the user provides won/lost customer domain lists and wants differential signals (website content, job listings, tech stack, maturity markers) to build account scoring models and prospecting criteria. Triggers: ICP analysis, niche signals, won vs lost analysis, differential signals, signal discovery, ICP signal report, account scoring signals, lead scoring, first-party signals, buyer signals. Before reading this file, first read gtm-meta-skill to understand the Deepline CLI tool and how to use it. Then read this file for guidance on the task.'
 ---
 
 # Niche Signal Discovery
@@ -58,7 +58,7 @@ Highest → lowest confidence:
 
 ## What NOT to use for scoring
 
-CRM fields populated by AE activity — catalyst note count, OCR-derived counts (`number_of_champions_c`, `number_of_decision_makers_c`), MEDDPICC picklists, any "did the AE do X on this opp" field — correlate with win-rate as **engagement artifacts, not causal signals**. They get filled in *after* the AE decides an opp is worth working. **Never use them as scoring inputs.** On one real run, catalyst notes showed "109x lift" — almost made the TL;DR before we caught the direction of causality.
+CRM fields populated by AE activity — catalyst note count, OCR-derived counts (`number_of_champions_c`, `number_of_decision_makers_c`), MEDDPICC picklists, any "did the AE do X on this opp" field — correlate with win-rate as **engagement artifacts, not causal signals**. They get filled in _after_ the AE decides an opp is worth working. **Never use them as scoring inputs.** On one real run, catalyst notes showed "109x lift" — almost made the TL;DR before we caught the direction of causality.
 
 Rule of thumb: every scoring input must be observable BEFORE the AE touches the account. Read `references/scoring-pitfalls.md` for the full list and the "safer alternative read" for loss-reason data.
 
@@ -167,6 +167,7 @@ deepline playground output/{{company}}-enriched.csv
 ```
 
 **Red flags:**
+
 - Keyword in <10% of enriched companies → too niche, broaden
 - Keyword in >90% → too generic, refine
 - Product-category keywords appear frequently in Won → wrong product category, those companies are competitors not buyers
@@ -201,6 +202,7 @@ The script computes substring-match presence, Laplace-smoothed lift, source brea
 ## Step 6: Signal interpretation
 
 **Read `references/signal-interpretation.md`** before writing interpretation columns. Key rules:
+
 - Website content mentioning what the target sells = competitor signal (not buyer)
 - Job listings = highest-intent buyer signal
 - Same keyword means different things on product page vs careers page vs blog
@@ -222,9 +224,10 @@ python3 scripts/find_contacts.py --input prospects_actionable.csv --output top10
 ```
 
 When `--contacts` is on, the orchestrator runs a 3-phase chain via Deepline:
+
 1. `company_to_contact_by_role_waterfall` (free, mature companies)
 2. **`exa_search_people` fallback for any company Phase 1 missed** — mandatory. On the run that motivated this, Phase 1 returned 0 contacts on all 10 top prospects (small/non-US industrial); Exa found 15 real contacts at 6 of those 10 in the same pass.
-3. `person_linkedin_only_to_email_waterfall` with **apex-domain validation** — providers return stale addresses (`@orbitalatk.com` for someone now at X-Bow, personal Gmails, wrong-company false positives). Mismatched apex → publish "(email not found)", keep the raw value in `raw_email` for auditing.
+3. `name_and_domain_to_email_waterfall` with `linkedin_url` supplied and **apex-domain validation** — providers return stale addresses (`@orbitalatk.com` for someone now at X-Bow, personal Gmails, wrong-company false positives). Mismatched apex → publish "(email not found)", keep the raw value in `raw_email` for auditing.
 
 **Read `references/step-7-prospects.md`** for the required vs. optional output fields, the prospect-card skeleton, the Phase 2 Exa guardrails (title parsing + company-match filter), and the "10 is a ceiling, not a floor" guidance.
 

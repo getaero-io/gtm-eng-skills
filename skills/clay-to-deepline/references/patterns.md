@@ -23,11 +23,11 @@ grep -o '"value":"You are[^"]*"' har_response.json
 
 **Do this**: Check actual cell values across 3+ rows for every column before counting AI passes.
 
-| Value | Meaning |
-|---|---|
-| `NO_CELL` | Never ran — build from scratch |
-| `"Status Code: 200"` | Webhook/HTTP action, NOT AI |
-| `""` (empty) | Disabled or unfired |
+| Value                  | Meaning                           |
+| ---------------------- | --------------------------------- |
+| `NO_CELL`              | Never ran — build from scratch    |
+| `"Status Code: 200"`   | Webhook/HTTP action, NOT AI       |
+| `""` (empty)           | Disabled or unfired               |
 | Varied generation text | Actual AI output — replicate this |
 
 **Not this**: Assume every column with an AI-sounding name is an AI pass.
@@ -38,16 +38,16 @@ grep -o '"value":"You are[^"]*"' har_response.json
 
 ## Email Match Rate
 
-**Do this**: Use `cost_aware_first_name_and_domain_to_email_waterfall` as the primary email tool. Add manual `perm_fln` (run_javascript) + `leadmagic_email_validation` for the 19% fln pattern. Use `person_linkedin_to_email_waterfall` as a LinkedIn-based fallback only.
+**Do this**: Use `name_and_domain_to_email_waterfall` as the primary supported email play once you have a domain. Add manual `perm_fln` (run_javascript) + `leadmagic_email_validation` for the 19% fln pattern. If LinkedIn URLs are present, pass `linkedin_url` into the same play on fallback passes.
 
-| Format | Example | % of Clay emails |
-|---|---|---|
-| `fn.ln@domain` | rachael.foster@zoominfo.com | 63% |
-| `fln@domain` | rfoster@zoominfo.com | 19% |
-| `fn@domain` | rachael@zoominfo.com | 3% |
-| Provider waterfall only | — | ~12% |
+| Format                  | Example                     | % of Clay emails |
+| ----------------------- | --------------------------- | ---------------- |
+| `fn.ln@domain`          | rachael.foster@zoominfo.com | 63%              |
+| `fln@domain`            | rfoster@zoominfo.com        | 19%              |
+| `fn@domain`             | rachael@zoominfo.com        | 3%               |
+| Provider waterfall only | —                           | ~12%             |
 
-**Not this**: Use `person_linkedin_to_email_waterfall` as the primary step, or use individual provider tools as primary.
+**Not this**: Depend on a removed LinkedIn-only play name, or use individual provider tools as primary.
 
 **Why**: Clay's ~99% match rate comes from permutation+validation. Individual providers cover only the ~12% that permutation misses.
 
@@ -56,9 +56,20 @@ grep -o '"value":"You are[^"]*"' har_response.json
 ## Email Validation — Accept All Three Valid Statuses
 
 **Do this**:
+
 ```js
-const result = (data.result || data.status || data.email_status || '').toLowerCase();
-return result === 'valid' || result === 'valid_catch_all' || result === 'catch-all' || result === 'catch_all';
+const result = (
+  data.result ||
+  data.status ||
+  data.email_status ||
+  ''
+).toLowerCase();
+return (
+  result === 'valid' ||
+  result === 'valid_catch_all' ||
+  result === 'catch-all' ||
+  result === 'catch_all'
+);
 ```
 
 **Not this**: Check only for `valid` or only for `valid` + `catch_all`, omitting `valid_catch_all`.
@@ -70,6 +81,7 @@ return result === 'valid' || result === 'valid_catch_all' || result === 'catch-a
 ## Cookie Security
 
 **Do this**:
+
 ```js
 // In run_javascript code:
 'cookie': process.env.CLAY_COOKIE
@@ -77,6 +89,7 @@ return result === 'valid' || result === 'valid_catch_all' || result === 'catch-a
 // In .env.deepline (single quotes — prevents $o7 GA cookie expansion):
 CLAY_COOKIE='claysession=abc; _ga_X=GS2.1.$o7.1....'
 ```
+
 Add `.env.deepline` and `output/` to `.gitignore` in every generated script block.
 
 **Not this**: Embed cookie literal in JS code string, or store with double quotes in `.env.deepline`.
@@ -111,12 +124,13 @@ GET /v3/tables/{TABLE_ID}/views/{VIEW_ID}/records/ids   # NOT /records/ids (404)
 ## run_javascript Code
 
 **Do this**:
+
 ```js
 // Async: wrap in IIFE
 return (async () => {
   const resp = await fetch(url);
   return await resp.json();
-})()
+})();
 
 // Strings: concatenation, not template literals
 const url = 'https://api.clay.com/v3/tables/' + TABLE_ID;
@@ -131,11 +145,13 @@ Use Python subprocess to build `--with` payloads containing JS code. Never hand-
 ## Deepline Interpolation
 
 **Do this**:
+
 - `{{column_name}}` — direct column reference
 - `{{col.field_name}}` — only when the stored cell root actually contains `field_name`
 - For wrapped AI results or 3+ levels: add a `run_javascript` flatten pass first
 
 **Not this**:
+
 - `{{row.fields.company_name}}` — `row.` prefix → "column 'row' not found"
 - `{{strategic_initiatives.top5.value}}` — 3 levels → silently empty
 
@@ -156,6 +172,7 @@ Use Python subprocess to build `--with` payloads containing JS code. Never hand-
 ## Deepline Enrich Flags
 
 **Do this**:
+
 - First pass: `deepline enrich --input seed.csv --output work.csv --with ...`
 - Subsequent passes: `deepline enrich --in-place work.csv --with ...`
 - Rerun one column: `deepline enrich --in-place work.csv --with-force col_name --with ...`

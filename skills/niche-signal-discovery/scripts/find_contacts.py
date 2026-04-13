@@ -21,7 +21,7 @@ two phases:
            pull named contacts.
 
   Phase 3: For every named contact we have a LinkedIn URL for (from either
-           phase), run person_linkedin_only_to_email_waterfall to resolve a
+           phase), run name_and_domain_to_email_waterfall to resolve a
            corporate email. Validate the result against the company's apex
            domain — providers sometimes return stale emails from a previous
            employer (e.g. nick.romonoski@orbitalatk.com when Nick is now at
@@ -324,7 +324,7 @@ def phase2_exa_people(
 def phase3_emails(contacts: list[dict], out_csv: str) -> list[dict]:
     """Resolve emails for every contact with a LinkedIn URL.
 
-    Uses person_linkedin_only_to_email_waterfall, which chains dropleads +
+    Uses name_and_domain_to_email_waterfall, which chains pattern validation +
     deepline_native + crustdata + PDL. Then validates the returned email
     against the company's apex domain — providers occasionally return a
     stale email from a previous employer, and domain-mismatch is an
@@ -372,7 +372,7 @@ def phase3_emails(contacts: list[dict], out_csv: str) -> list[dict]:
 
     spec = json.dumps({
         "alias": "em",
-        "tool": "person_linkedin_only_to_email_waterfall",
+        "tool": "name_and_domain_to_email_waterfall",
         "payload": {
             "linkedin_url": "{{linkedin_url}}",
             "first_name": "{{first_name}}",
