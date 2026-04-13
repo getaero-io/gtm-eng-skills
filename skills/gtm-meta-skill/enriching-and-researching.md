@@ -619,15 +619,15 @@ deepline tools get apify_run_actor_sync
 First action for every non-trivial task:
 
 ```bash
-WORKDIR="tmp/<descriptive-slug>" && mkdir -p "$WORKDIR" && echo "$WORKDIR"
+WORKDIR="deepline/data/<descriptive-slug>" && mkdir -p "$WORKDIR" && echo "$WORKDIR"
 ```
 
 Name the slug after the task goal. Examples:
 
-- `tmp/yc-cmo-outbound` (YC batch CMO prospecting)
-- `tmp/acme-email-waterfall` (email enrichment for Acme leads)
-- `tmp/saas-tam-q2` (TAM list build for SaaS ICP)
-- `tmp/linkedin-engager-emails` (email lookup from LinkedIn post engagers)
+- `deepline/data/yc-cmo-outbound` (YC batch CMO prospecting)
+- `deepline/data/acme-email-waterfall` (email enrichment for Acme leads)
+- `deepline/data/saas-tam-q2` (TAM list build for SaaS ICP)
+- `deepline/data/linkedin-engager-emails` (email lookup from LinkedIn post engagers)
 
 Use `$WORKDIR` for all JS files, intermediate CSVs, logs, and outputs. Always use relative paths — never absolute `/tmp`.
 
