@@ -28,14 +28,14 @@ Follow this order. Stop when you get a validated match.
 Start with Dropleads — free people search that returns LinkedIn URLs directly.
 
 ```bash
-deepline tools execute dropleads_search_people --payload '{"filters":{"name":"Jane Smith","jobTitles":["Sales"],"seniority":["VP","Director"]},"pagination":{"page":1,"limit":5}}'
+deepline tools execute dropleads_search_people --payload '{"filters":{"keywords":["Jane","Smith"],"jobTitles":["Sales"],"seniority":["VP","Director"]},"pagination":{"page":1,"limit":5}}'
 ```
 
 For batch:
 
 ```bash
 deepline enrich --csv contacts.csv --rows 0:1 --in-place \
-  --with '{"alias":"li_url","tool":"dropleads_search_people","payload":{"filters":{"name":"{{first_name}} {{last_name}}","jobTitles":["{{title}}"]},"pagination":{"page":1,"limit":1}}}'
+  --with '{"alias":"li_url","tool":"dropleads_search_people","payload":{"filters":{"keywords":["{{first_name}}","{{last_name}}"],"jobTitles":["{{title}}"]},"pagination":{"page":1,"limit":1}}}'
 ```
 
 ### Step 2: Serper Google search + Apify validation
@@ -106,7 +106,7 @@ deepline enrich --csv contacts.csv --rows 0:1 --in-place \
 Email + LinkedIn finder from name and company.
 
 ```bash
-deepline tools execute prospeo_email_finder --payload '{"first_name":"Jane","last_name":"Smith","company_name":"Acme Corp"}'
+deepline tools execute prospeo_enrich_person --payload '{"first_name":"Jane","last_name":"Smith","company_name":"Acme Corp"}'
 ```
 
 Prospeo returns LinkedIn URLs alongside email when available.
