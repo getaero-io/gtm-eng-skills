@@ -222,10 +222,6 @@ GTM time windows, thresholds, and interpretation rules are defined in the Defini
   Summary: Use cloudflare_crawl to crawl websites and extract content as markdown, HTML, or JSON. Returns partial results on timeout — check timedOut field. Browser rendering is enabled by default.
   Last reviewed: 2026-03-11
 
-- [contactout playbook](provider-playbooks/contactout.md)
-  Summary: Use for LinkedIn → email/phone enrichment. Run contactout_check_email_status first (free) to confirm data exists before spending credits on enrich.
-  Last reviewed: 2026-03-25
-
 - [crustdata playbook](provider-playbooks/crustdata.md)
   Summary: Start with free autocomplete and default to fuzzy contains operators `(.)` for higher recall. Use ISO-3 country codes, prefer crunchbase_categories over linkedin_industries for niche verticals, and use employee_count_range for filtering instead of employee_metrics.latest_count.
   Last reviewed: 2026-02-11
@@ -233,10 +229,6 @@ GTM time windows, thresholds, and interpretation rules are defined in the Defini
 - [dataforseo playbook](provider-playbooks/dataforseo.md)
   Summary: Use DataForSEO for native SEO and content-analysis endpoints. Most tools are generated directly from the docs catalog, so prefer regeneration over hand edits.
   Last reviewed: 2026-04-08
-
-- [datagma playbook](provider-playbooks/datagma.md)
-  Summary: Use for real-time person enrichment with phone + job-change signals. Pass linkedin URL as the primary identifier for best results; fall back to email or fullName+domain.
-  Last reviewed: 2026-03-31
 
 - [deepline_native playbook](provider-playbooks/deepline_native.md)
   Summary: Launcher actions wait for completion and return final payloads with job_id; search_contact uses the search budget while enrichment-style actions use the higher enrichment budget.
@@ -321,10 +313,6 @@ GTM time windows, thresholds, and interpretation rules are defined in the Defini
 - [prospeo playbook](provider-playbooks/prospeo.md)
   Summary: Use enrich-person for individual contacts, search-person for prospecting with 30+ filters, and search-company for account-level lists.
   Last reviewed: 2026-02-28
-
-- [rocketreach playbook](provider-playbooks/rocketreach.md)
-  Summary: Use for email + phone lookup by LinkedIn URL or name+company. Falls after dropleads in waterfall. "premium" lookup_type unlocks more phone numbers.
-  Last reviewed: 2026-03-25
 
 - [salesforce playbook](provider-playbooks/salesforce.md)
   Summary: Use field inspection before custom writes, object-specific create/update/delete tools for standard CRM records, and list tools for incremental reads with pagination handoff.
