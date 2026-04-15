@@ -56,11 +56,10 @@ deepline tools execute lemlist_send_linkedin_message --payload '{"send_user_id":
 
 ### Unsubscribes
 ```bash
-deepline tools execute lemlist_list_unsubscribed_variables --payload '{"limit":50}' 
-deepline tools execute lemlist_unsubscribe_variable --payload '{"value":"bounce@example.com"}' 
-deepline tools execute lemlist_resubscribe_variable --payload '{"value":"bounce@example.com"}' 
-deepline tools execute lemlist_export_unsubscribed_variables --payload '{}' 
-deepline tools execute lemlist_get_unsubscribe_by_email --payload '{"email":"bounce@example.com"}' 
+deepline tools execute lemlist_get_unsubscribes --payload '{"limit":50}' 
+deepline tools execute lemlist_add_unsubscribe --payload '{"email":"bounce@example.com"}' 
+deepline tools execute lemlist_delete_unsubscribe --payload '{"email":"bounce@example.com"}' 
+deepline tools execute lemlist_export_unsubscribes --payload '{}' 
 ```
 
 ### Webhooks

@@ -109,12 +109,7 @@ def parse_job_listings(cell_value):
     # Handle various response shapes
     raw_listings = []
     if isinstance(data, dict):
-        # {"data": {"listings": [...]}} (legacy exa-like)
         raw_listings = data.get("data", {}).get("listings", []) if isinstance(data.get("data"), dict) else []
-        # {"result": {"listings": [...]}} (Deepline/Crustdata)
-        if not raw_listings and isinstance(data.get("result"), dict):
-            raw_listings = data["result"].get("listings", [])
-        # {"listings": [...]} (flat)
         if not raw_listings:
             raw_listings = data.get("listings", [])
     elif isinstance(data, list):
