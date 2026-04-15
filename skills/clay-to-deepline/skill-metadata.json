@@ -2,38 +2,10 @@
   "documents": {
     "SKILL.md": {
       "kind": "entrypoint",
-      "title": "Clay to Deepline Migration Skill",
-      "tags": ["clay", "deepline", "migration"],
-      "providers": []
-    },
-    "references/clay-action-mappings.md": {
-      "kind": "guide",
-      "title": "Clay Action Mappings",
-      "tags": ["clay", "deepline", "tools"],
-      "providers": []
-    },
-    "references/execution-ordering.md": {
-      "kind": "guide",
-      "title": "Execution Ordering and Conditional Patterns",
-      "tags": ["deepline", "ordering", "conditional"],
-      "providers": []
-    },
-    "references/patterns.md": {
-      "kind": "guide",
-      "title": "Prescriptive Patterns and Antipatterns",
-      "tags": ["debugging", "errors", "patterns"],
-      "providers": []
-    },
-    "references/binary-search-optimizer.md": {
-      "kind": "guide",
-      "title": "Binary Search Optimizer (Claygent Web Research Pattern)",
-      "tags": ["claygent", "exa", "research", "ai"],
-      "providers": []
-    },
-    "references/script-templates.md": {
-      "kind": "guide",
-      "title": "Script Templates",
-      "tags": ["scripts", "bash", "deepline"],
+      "title": "Clay → Deepline Migration",
+      "tags": [
+        "recipe"
+      ],
       "providers": []
     }
   }

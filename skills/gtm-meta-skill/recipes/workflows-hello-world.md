@@ -11,6 +11,8 @@ Create a real Deepline cloud workflow with `deepline workflows apply`, trigger i
 
 **State-first rule:** when the user references an existing campaign, workflow, search, or destination system, inspect that live state first. Reuse existing ids, filters, and payload shape before you ask for new ICP criteria. Only ask for targeting inputs if no search definition exists anywhere you can inspect.
 
+**Full reference:** For schema details, spec templates, waterfall blocks, execution modes, and the full deploy/verify/iterate loop, see [cloud-workflow-builder.md](../references/cloud-workflow-builder.md). This recipe is the quick-start; that doc is the complete reference.
+
 ## When to use
 
 - "Show me how to create a cloud workflow that runs every day"
