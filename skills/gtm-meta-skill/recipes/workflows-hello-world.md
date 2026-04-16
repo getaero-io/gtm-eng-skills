@@ -11,6 +11,8 @@ Create a real Deepline cloud workflow with `deepline workflows apply`, trigger i
 
 **State-first rule:** when the user references an existing campaign, workflow, search, or destination system, inspect that live state first. Reuse existing ids, filters, and payload shape before you ask for new ICP criteria. Only ask for targeting inputs if no search definition exists anywhere you can inspect.
 
+**Full reference:** For schema details, spec templates, waterfall blocks, execution modes, and the full deploy/verify/iterate loop, see [cloud-workflow-builder.md](../references/cloud-workflow-builder.md). This recipe is the quick-start; that doc is the complete reference.
+
 ## When to use
 
 - "Show me how to create a cloud workflow that runs every day"
@@ -22,6 +24,7 @@ Create a real Deepline cloud workflow with `deepline workflows apply`, trigger i
 | Anti-pattern | What happens | Why it fails |
 |-------------|-------------|-------------|
 | Start with a big provider-heavy workflow | You debug triggers, providers, auth, and output shape all at once | First prove the cloud trigger surface with tiny `run_javascript` steps |
+| Push large CSV parsing, XLSX handling, or dependency-heavy JS through default cloud `run_javascript` | The QuickJS cloud runtime hits tight memory/time limits and fails on heavier ETL | For complex cloud workflow compute, set `payload.runInSandbox = true` so `run_javascript` executes in the Daytona sandbox runtime instead |
 | Put `row.input.*`, `{{first_name}}`, or CSV fields into a cron workflow | `workflows apply` fails or the run has no useful input | Scheduled workflows must be self-contained because nothing calls them with external row data |
 | Omit `trigger_tool` or `trigger_id` on a webhook workflow | Validation rejects the workflow | Webhook triggers require a concrete tool and trigger id binding |
 | Treat webhook payload fields as top-level in JS | Your code reads empty values | Workflow calls/webhooks deliver user payload under `row.input` |

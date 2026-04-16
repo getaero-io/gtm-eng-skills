@@ -21,12 +21,121 @@ AI Ark provides company search, people search, reverse lookup, mobile phone find
 | Email Finder | ~0.5 | per email found |
 | Polling / Statistics / Results | 0 | free |
 
+## Filter Structure (CRITICAL)
+
+AI Ark uses a strict nested filter structure. **Do NOT flatten or simplify these structures.**
+
+### Text filters (contactLocation, title, name, education, keyword)
+
+Text filters require `{ mode, content }` inside `include`/`exclude`:
+
+```json
+{
+  "contact": {
+    "contactLocation": {
+      "any": {
+        "include": {
+          "mode": "FUZZY",
+          "content": ["San Francisco", "New York"]
+        }
+      }
+    },
+    "title": {
+      "any": {
+        "include": {
+          "mode": "FUZZY",
+          "content": ["VP", "Director", "Head of"]
+        }
+      }
+    }
+  }
+}
+```
+
+### String filters (seniority, department, function, skills)
+
+String filters use arrays directly in `include`/`exclude`:
+
+```json
+{
+  "contact": {
+    "seniority": {
+      "any": {
+        "include": ["vp", "director", "c_suite"]
+      }
+    },
+    "department": {
+      "any": {
+        "include": ["sales", "marketing"]
+      }
+    }
+  }
+}
+```
+
+### Complete People Search example
+
+```json
+{
+  "page": 0,
+  "size": 25,
+  "account": {
+    "domain": {
+      "any": {
+        "include": ["acme.com", "example.com"]
+      }
+    }
+  },
+  "contact": {
+    "title": {
+      "any": {
+        "include": {
+          "mode": "FUZZY",
+          "content": ["VP of Sales", "Head of Sales"]
+        }
+      }
+    },
+    "seniority": {
+      "any": {
+        "include": ["vp", "director"]
+      }
+    },
+    "contactLocation": {
+      "any": {
+        "include": {
+          "mode": "FUZZY",
+          "content": ["San Francisco"]
+        }
+      }
+    }
+  }
+}
+```
+
+### Field type reference
+
+**Contact text filters** (use `{ mode: "FUZZY", content: [...] }`):
+`name`, `contactLocation`, `currentCompany`, `pastCompany`, `education`, `title`, `keyword`
+
+**Contact string filters** (use `["value1", "value2"]`):
+`socialProfile`, `contactLanguage`, `seniority`, `department`, `function`, `skills`, `certifications`
+
+**Account text filters**: `url`, `name`, `productAndServices`, `technologies`
+
+**Account string filters**: `domain`, `linkedin`, `socialMediaLink`, `phoneNumber`, `location`, `technology`, `naics`
+
+### Common mistakes to avoid
+
+- ❌ `contact.location` → ✅ `contact.contactLocation`
+- ❌ `{ include: ["value"] }` for text filters → ✅ `{ include: { mode: "FUZZY", content: ["value"] } }`
+- ❌ `{ include: { mode: "FUZZY", content: ["value"] } }` for string filters → ✅ `{ include: ["value"] }`
+
 ## Recommended Workflow
 
 ### Prospecting
 
 1. **Company Search** (`ai_ark_company_search`) to build account lists. Use `account` filters for firmographics, funding, technology, geography, and optional `lookalikeDomains`.
-2. **People Search** (`ai_ark_people_search`) to find contacts. Use nested `account` and `contact` filters exactly as documented by AI Ark.
+2. **People Search** (`ai_ark_people_search`) to find contacts. Use nested `account` and `contact` filters exactly as shown in the examples above.
 
 ### Email Finding (two paths)
 

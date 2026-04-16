@@ -23,6 +23,27 @@ Search-to-enrichment handoff rules:
 - move per-column work into `deepline enrich --with ...`
 - keep lineage in-sheet with `_metadata`
 
+## Company search providers (ROI order)
+
+Escalate only when you need a filter the current step lacks.
+1. **`free_simple_company_search`** — SQL over industry, location, employee_count, year_founded, domain, company_name. Up to 100k rows. FREE.
+2. **`dropleads_search_people`** — adds revenue, funding range, technologies + people filters. Use `dropleads_get_lead_count` to size first. FREE.
+3. **`apollo_company_search`** — adds hiring signals (job titles, locations, num roles), funding dates, tech UIDs.
+4. **`crustdata_companydb_search`** — adds investors, funding stage, fuzzy `(.)` operator. Use `crustdata_companydb_autocomplete` (free) first.
+
+**When DB providers return 0** (pre-revenue startups, niche verticals, non-US): `exa_company_search` (AI/concept search — finds companies by what they do, not structured fields); `parallel_extract` (scrapes known source URLs like VC portfolios, accelerator directories, conference lists); `serper_google_maps_search` for local/SMB brick-and-mortar; `serper_google_search` for `site:` scoped URL discovery on specific directories.
+
+## People search providers (ROI order)
+
+1. **`wiza_search_prospects`** — 30 masked results, no contact data. Good for sizing. FREE.
+2. **`apollo_search_people`** — obfuscated names. Pair with `apollo_people_match` to unmask. FREE.
+3. **`dropleads_search_people`** — workhorse: title, seniority, dept, geo, tech, revenue. Near-zero coverage <50 emp. FREE.
+4. **`crustdata_persondb_search`** — cheapest bulk paid. Use `crustdata_persondb_autocomplete` (free) first.
+5. **`lusha_search_contacts`** — dept, seniority, industry, title, tech filters.
+6. **`ai_ark_people_search`** — title, seniority, skills, location, company attributes.
+
+**Alts:** `exa_people_search` (tiny startups); `contactout_search_people`; `icypeas_find_people` (700M+ DB); `rocketreach_search_people` (30+ filters).
+
 ## Tool discovery
 
 Use `deepline tools search` once near the top when the scenario is clear but the exact tool family is not.
@@ -665,29 +686,9 @@ deepline tools execute dropleads_search_people \
 
 ```bash
 deepline tools execute dropleads_search_people \
-  --payload '{
-    "filters": {
-      "jobTitles": ["VP Sales", "CRO", "Head of Revenue Operations"],
-      "employeeRanges": ["51-200", "201-500", "501-1000"],
-      "keywords": ["technology"],
-      "personalCountries": {"include": ["United States"]}
-    },
-    "pagination": {"page": 1, "limit": 100}
-  }'
+  --payload '{"filters":{"jobTitles":["VP Sales","CRO"],"employeeRanges":["51-200","201-500"],"keywords":["technology"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":100}}'
 ```
 
 ### Signal prioritization
 
-Don't outreach to the full sourced list. Prioritize with real signals first. Use the `niche-signal-discovery` skill if you have won/lost data to build a scoring model. Otherwise, enrich with first-party signals:
-
-```bash
-# Job listings (hiring = budget + pain)
-deepline enrich --input tam.csv --in-place --rows 0:1 \
-  --with '{"alias":"jobs","tool":"crustdata_job_listings","payload":{"companyDomains":"{{Domain}}","limit":20}}'
-
-# Website content (multi-page discovery)
-deepline enrich --input tam.csv --in-place --rows 0:1 \
-  --with '{"alias":"website","tool":"exa_search","payload":{"query":"company product features integrations pricing careers about","numResults":5,"type":"auto","includeDomains":["{{Domain}}"],"contents":{"text":{"maxCharacters":2000,"verbosity":"compact","includeSections":["body"]}}}}'
-```
-
-Then score using signals from job listings (hiring relevant roles), tech stack (integration readiness), and website content (pain language, compliance maturity).
+Don't outreach the full list. Use `niche-signal-discovery` skill if you have won/lost data. Otherwise enrich with `crustdata_job_listings` (hiring), `exa_search` w/ `includeDomains`+`contents` (website/pain language), then score.
