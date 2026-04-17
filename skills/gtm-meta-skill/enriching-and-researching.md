@@ -335,6 +335,14 @@ python3 ~/.claude/skills/gtm-meta-skill/scripts/validate-emails.py enriched.csv 
 
 Flag and investigate mismatched rows — these are often from a previous employer or a wrong-person match. If >20% of rows mismatch, the contact-finding step likely needs re-running with better company disambiguation.
 
+```bash
+# LinkedIn name validation — catches wrong-person matches from search-based lookup
+python3 ~/.claude/skills/gtm-meta-skill/scripts/validate-linkedin-names.py enriched.csv \
+    --source-first first_name --source-last last_name --profile-name-col profile_name
+```
+
+Null out LinkedIn URLs where names don't match. 26% false positive rate without this gate (tested on 253-person dataset). Eval: `python3 scripts/validate-linkedin-names.py --fixtures scripts/fixtures_name_validation.json`
+
 ## Custom enrichment with run_javascript and deeplineagent
 
 Use this section for:
