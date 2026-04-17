@@ -17,12 +17,9 @@ If a play exists, use it first. Use manual provider chains only when:
 
 | Scenario                                                   | Use when                                                                                                                                                                 | Default play/tool                                                   | Why                                                                                                                                             |
 | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Name + company -> work email                               | You have strong person + account identifiers                                                                                                                             | `Name + company -> work email`                                      | Stable default for deterministic email recovery                                                                                                 |
-| Name + company only (no domain, or Sales Navigator export) | You have name + company_name but no domain — including Sales Navigator exports where linkedin_url is in `/sales/lead/` format (those URLs are unusable by all providers) | Resolve domain first, then use `name_and_domain_to_email_waterfall` | Sales Navigator `/sales/lead/` URLs are unusable by providers. Resolve the company domain first, then run the supported domain-based waterfall. |
-| LinkedIn URL + name, no domain                             | You have a **standard `/in/`** LinkedIn URL and name but no company domain (e.g. from a people search result)                                                            | `LinkedIn URL only -> work email`                                   | person-LinkedIn-first path; no domain resolution step needed                                                                                    |
-| LinkedIn URL -> work email                                 | The LinkedIn profile is known, and domain may or may not also be known                                                                                                   | `LinkedIn URL -> work email`                                        | same play, with extra deterministic coverage when `domain` is available                                                                         |
-| Email -> person/company context                            | You have an inbound or work email and need person + company details                                                                                                      | `Email -> person/company context`                                   | Good for hydrating context from a single strong identifier                                                                                      |
-| First + last + domain -> work email                        | Company name is missing but the domain is known                                                                                                                          | `First + last + domain -> work email`                               | Canonical cost-aware path for weaker but still structured identifiers                                                                           |
+| Name + domain -> work email | You have name + domain (or can resolve domain from company_name / Sales Nav URL first) | `Name + domain -> work email` | Canonical deterministic path. Handles both direct and domain-first-then-waterfall cases. |
+| LinkedIn URL -> work email | Standard `/in/` LinkedIn URL + name. `domain` optional; include if known for extra coverage. | `LinkedIn URL -> work email` | Works with or without domain. Do NOT use for SN `/sales/lead/` URLs — resolve domain first and use the name+domain play. |
+| Email -> person/company context | You have an inbound or work email and need person + company details | `Email -> person/company context` | Good for hydrating context from a single strong identifier. |
 | Company -> persona lookup                                  | You have an account and need candidate contacts by role or seniority                                                                                                     | `Company -> persona lookup`                                         | Canonical play for company-to-persona lookup                                                                                                    |
 | Company name only -> resolve domain first                  | You need to recover homepage/domain before downstream enrichment                                                                                                         | `Company name only -> resolve domain first`                         | Domain lookup is mechanical and should not start with `deeplineagent`                                                                           |
 | Validate a recovered email                                 | An email lookup has already run                                                                                                                                          | `Notes`                                                             | Validation belongs after recovery or coalescing, not before                                                                                     |
@@ -59,43 +56,30 @@ If a play exists, use it first. Use manual provider chains only when:
 
 ## Plays
 
-### Name + company -> work email
-
-Problem category: contact email recovery from person + account identifiers.  
-Input profile: `first_name`, `last_name`, `domain`.  
-Output target: one best work email.
+### Name + domain -> work email
 
 Play tool: `name_and_domain_to_email_waterfall`
 
-Why this play:
+**Required payload:** `first_name`, `last_name`, `domain`. `company_name` is not part of the payload.
 
-- Best default when you already know both the person and the account.
-- Keeps the job deterministic and avoids unnecessary research tooling.
-- Should be the first move before manual waterfalls or `deeplineagent`.
+**Routing by what you have:**
 
-Play details:
+| You have | Action |
+|---|---|
+| name + domain | Use the play directly |
+| name + company_name (no domain) or SN `/sales/lead/` URLs | Resolve domain first (below), then use the play |
+| standard `/in/` LinkedIn URL + name | Skip this play — use `LinkedIn URL -> work email` |
 
-- Required inputs are `first_name`, `last_name`, and `domain`.
-- The play handles deterministic checks and fallback providers internally. Treat the play as the source of truth for exact step order.
+**Play internals.** Runs 8 validated patterns first: `first.last@domain`, `firstlast@domain`, `first_last@domain`, `first-last@domain`, `firstinitiallast@domain`, `firstlastinitial@domain`, `first@domain`, `last@domain`. Pattern hits only count when validator returns `valid` (not `catch_all`). Falls through to `dropleads_email_finder -> hunter_email_finder -> leadmagic_email_finder -> crustdata_persondb_search -> peopledatalabs_enrich_contact`. `catch_all` is operationally usable for outreach but not counted as an automatic waterfall win inside the play.
 
-Example:
+**Example:**
 
 ```bash
 deepline enrich --input leads.csv --output leads_with_emails.csv --rows 0:1 \
-  --with '{"alias":"email_from_name_company","tool":"name_and_domain_to_email_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
-```
-
-### Name + company only -> work email
-
-Play tool: `name_and_domain_to_email_waterfall`
-Required inputs: `first_name`, `last_name`, `company_name`. No domain needed. SN `/sales/lead/` URLs are ignored.
-
-```bash
-deepline enrich --input contacts.csv --output contacts_with_emails.csv --rows 0:1 \
   --with '{"alias":"email","tool":"name_and_domain_to_email_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
 ```
 
-For higher coverage, resolve domain first (2 passes) then use `name_and_domain_to_email_waterfall`:
+**Domain-first resolution** — when you only have `company_name` or a SN `/sales/lead/` URL, resolve domain, then run the play (3 passes):
 
 ```bash
 deepline enrich --input contacts.csv --output out.csv \
@@ -106,60 +90,24 @@ deepline enrich --input out.csv --in-place \
   --with '{"alias":"email","tool":"name_and_domain_to_email_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
 ```
 
-Note: exa `extract_js` does not work inline here, so use a separate `run_javascript` step to extract the domain from the stored cell. In row JS, treat the saved cell as `{ result, matched_result? }`: unwrap `cell.result` first, then inspect the provider payload from there instead of reading top-level provider fields directly.
-
-### LinkedIn URL only -> work email
-
-Problem category: LinkedIn-seeded email recovery with no domain.
-Input profile: `linkedin_url`, `first_name`, `last_name`.
-Output target: one best work email resolved from LinkedIn URL and name alone.
-
-Play tool: `person_linkedin_to_email_waterfall`
-
-Why this play:
-
-- Use when contacts came from a people search (e.g. dropleads_search_people) and have **standard `/in/`** LinkedIn URLs but no company domains.
-- Do NOT resolve domains first just to satisfy the play — this path works off the person LinkedIn URL directly.
-- **Do NOT use for Sales Navigator `/sales/lead/` URLs** — those are rejected by providers. Resolve the company domain first, then use `name_and_domain_to_email_waterfall`.
-- If `domain` is already available, include it. The play uses it to unlock extra deterministic finder steps before LinkedIn-native fallbacks.
-
-Play details:
-
-- Required inputs are `linkedin_url`, `first_name`, `last_name`.
-- Optional input: `domain`. Include it when you have it, skip it when you do not.
-
-Example:
-
-```bash
-deepline enrich --input contacts.csv --output contacts_with_emails.csv --rows 0:1 \
-  --with '{"alias":"email","tool":"person_linkedin_to_email_waterfall","payload":{"linkedin_url":"{{linkedin_url}}","first_name":"{{first_name}}","last_name":"{{last_name}}"}}'
-```
+Exa `extract_js` doesn't work inline here, so `run_javascript` extracts the domain from the saved cell — unwrap `cell.result` first (the cell shape is `{ result, matched_result? }`).
 
 ### LinkedIn URL -> work email
 
-Problem category: LinkedIn-seeded email recovery from a strong profile identifier.
-Input profile: `linkedin_url`, `first_name`, `last_name`, optional `domain`.
-Output target: one best work email resolved from a strong profile identifier.
-
 Play tool: `person_linkedin_to_email_waterfall`
 
-Why this play:
+**Required payload:** `linkedin_url`, `first_name`, `last_name`.
+**Optional:** `domain` — include when available to unlock extra deterministic finder steps before LinkedIn-native fallbacks.
 
-- Use when you have a standard person LinkedIn URL.
-- If `domain` is known, include it to unlock extra deterministic finder steps before the LinkedIn-native fallbacks.
-- If `domain` is not known, you can still run the play directly.
+Use when contacts have a **standard `/in/`** LinkedIn URL (e.g. from `dropleads_search_people`). Domain is optional — the play works off the LinkedIn URL directly.
 
-Play details:
+**Do NOT use for Sales Navigator `/sales/lead/` URLs** — providers reject them. Resolve the company domain first, then use the name+domain play above.
 
-- Required inputs are `linkedin_url`, `first_name`, `last_name`.
-- `company_name` is optional.
-- `domain` is optional and improves coverage when available.
-
-Example:
+**Example:**
 
 ```bash
 deepline enrich --input contacts.csv --output contacts_with_emails.csv --rows 0:1 \
-  --with '{"alias":"email_from_linkedin","tool":"person_linkedin_to_email_waterfall","payload":{"linkedin_url":"{{linkedin_url}}","first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
+  --with '{"alias":"email","tool":"person_linkedin_to_email_waterfall","payload":{"linkedin_url":"{{linkedin_url}}","first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
 ```
 
 ### Email -> person/company context
@@ -181,35 +129,6 @@ Example:
 ```bash
 deepline enrich --input inbound.csv --output inbound_enriched.csv --rows 0:1 \
   --with '{"alias":"person_context","tool":"deepline_native_enrich_contact","payload":{"email":"{{email}}"}}'
-```
-
-### First + last + domain -> work email
-
-Problem category: pattern-first email recovery.  
-Input profile: `first_name`, `last_name`, `domain`.  
-Output target: one best work email with deterministic checks first.
-
-Play tool: `name_and_domain_to_email_waterfall`
-
-Why this play:
-
-- This is now the default native email waterfall when the domain is known.
-- Use it even when company name is missing; company name is no longer part of the required payload.
-- Better fit than ad hoc provider chains for the default case.
-
-Play details:
-
-- Required inputs are only `first_name`, `last_name`, and `domain`.
-- The play starts with eight validated patterns: `first.last@domain`, `firstlast@domain`, `first_last@domain`, `first-last@domain`, `firstinitiallast@domain`, `firstlastinitial@domain`, `first@domain`, and `last@domain`.
-- Those pattern steps only yield a result when validation returns `valid`; they do not treat `catch_all` as a hit inside the play.
-- `catch_all` can still be operationally usable for outreach, but this native play does not count it as an automatic waterfall win.
-- After pattern validation, the play falls through to `dropleads_email_finder -> hunter_email_finder -> leadmagic_email_finder -> crustdata_persondb_search -> peopledatalabs_enrich_contact`.
-
-Example:
-
-```bash
-deepline enrich --input leads.csv --output leads_with_emails.csv --rows 0:1 \
-  --with '{"alias":"email_from_name_domain","tool":"name_and_domain_to_email_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
 ```
 
 ### Contact identity -> phone
@@ -388,6 +307,7 @@ Key waterfall rules:
 - Close each waterfall with `--end-waterfall` before starting another one.
 - Do not run email waterfalls without minimum match data: name + company, name + domain, or a strong LinkedIn-seeded identity.
 - If you need different validation behavior, remember the native cost-aware play only accepts pattern hits when the validator says `valid`.
+- Gating: `--with` accepts exactly these keys: `alias`, `tool`, `payload`, `extract_js`, `run_if_js`. Use `run_if_js` (a JS expression returning a boolean) to skip a step on rows that don't meet a condition — e.g. only validate rows where an email was actually found. Any other key (like `condition`) will be rejected at compile time.
 
 Example:
 
@@ -398,7 +318,7 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
   --with '{"alias":"hunter","tool":"hunter_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"},"extract_js":"(output_data) => extract(\"hunter_email_finder\", output_data, \"email\")"}' \
   --with '{"alias":"leadmagic","tool":"leadmagic_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"},"extract_js":"(output_data) => extract(\"leadmagic_email_finder\", output_data, \"email\")"}' \
   --end-waterfall \
-  --with '{"alias":"email_validation","tool":"leadmagic_email_validation","payload":{"email":"{{email}}"}}'
+  --with '{"alias":"email_validation","tool":"leadmagic_email_validation","payload":{"email":"{{email}}"},"run_if_js":"return Boolean(row.email)"}'
 ```
 
 If `extract_js` returns raw objects instead of scalars, you can store the raw response and use `run_javascript` in a second pass to parse it. When debugging, remember the extractor input is wrapped as `{ result: ... }`, while persisted enrich cells usually contain both `result` and `matched_result`.
@@ -579,59 +499,13 @@ deepline enrich --input contacts.csv --in-place --rows 0:1 \
 
 For actual email copy, personalized first lines, sequence writing, or scoring language, stop here and route to `writing-outreach.md` with the research columns you just created.
 
-## Custom provider and tool search
+## Working directory (guardrail)
 
-Use `deepline tools search` when:
-
-- no play exists
-- you need a niche provider or signal
-- you want to extend a waterfall
-- you want to compare one or two provider options before spending credits
-
-Common searches:
-
-```bash
-deepline tools search email
-deepline tools search phone
-deepline tools search linkedin
-deepline tools search validation
-deepline tools search company enrichment
-deepline tools search contact enrichment
-deepline tools search investor
-deepline tools search funding
-deepline tools search news
-deepline tools search tech stack
-deepline tools search job change
-```
-
-Then inspect the shortlisted tools:
-
-```bash
-deepline tools get leadmagic_email_validation
-deepline tools get crustdata_enrich_contact
-deepline tools get apify_run_actor_sync
-```
-
-## Working directory — CRITICAL
-
-**NEVER write files to `/tmp/` or any absolute temp directory.** Files in `/tmp/` are wiped on reboot. Users lose enriched CSVs, research outputs, and hours of paid enrichment work. This has caused real data loss and wasted credits.
-
-**Always use a project-local working directory with a descriptive name.** The name must reflect the task so the user can find outputs later — random names like `Wtz6` are not acceptable.
-
-First action for every non-trivial task:
+**NEVER write to `/tmp/` or any absolute temp directory** — files in `/tmp/` are wiped on reboot and users have lost paid enrichment outputs. Set up a project-local WORKDIR with a task-descriptive slug (e.g. `deepline/data/acme-email-waterfall`) as step zero. See SKILL.md §3.2 for the full rule.
 
 ```bash
 WORKDIR="deepline/data/<descriptive-slug>" && mkdir -p "$WORKDIR" && echo "$WORKDIR"
 ```
-
-Name the slug after the task goal. Examples:
-
-- `deepline/data/yc-cmo-outbound` (YC batch CMO prospecting)
-- `deepline/data/acme-email-waterfall` (email enrichment for Acme leads)
-- `deepline/data/saas-tam-q2` (TAM list build for SaaS ICP)
-- `deepline/data/linkedin-engager-emails` (email lookup from LinkedIn post engagers)
-
-Use `$WORKDIR` for all JS files, intermediate CSVs, logs, and outputs. Always use relative paths — never absolute `/tmp`.
 
 ## Exit back to discovery
 

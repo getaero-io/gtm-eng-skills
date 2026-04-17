@@ -85,75 +85,39 @@ Anti-patterns:
 
 ## Scenario table
 
-| Scenario | Read Section | Why |
-|---|---|---|
-| Need to size an audience or validate whether a market is worth pulling | `Search audiences` | Read this when the real question is reachability, volume, or whether a search path can support the target list size. |
-| Need to find companies that match a crisp ICP or match various filters | `Structured company search` | Read this when the work is filter-driven and you need the right structured-company path instead of broad web discovery. |
-| Need to pull companies from a known portfolio, directory, or public list | `Known-source extraction` | Read this when the source page is already known and direct extraction should beat rebuilding the list through search. |
-| Need contacts for a CSV or an existing company list | `Handoff to enrichment` | Read this when the task is already row-based. This doc should stop and send the work to `enriching-and-researching.md`. |
-| Need contacts for a few companies named in the prompt | `People search at known companies` | Read this when discovery still needs to turn a handful of named companies into a candidate contact list before handing off to enrichment. |
-| Need to find companies hiring for a role or function | `Hiring-qualified search` | Read this when hiring is the qualification signal and you need the best discovery path before enrichment starts. |
-| Need to recover a LinkedIn URL or company page | `URL recovery` | Read this when the identity is known but the URL is missing and precision matters more than recall. |
-| Need to scrape a known public page or directory | `Online scraping and public web extraction` | Read this when the answer is likely sitting on a public page and extraction should come before search. |
-| Need investor-backed or registry-backed companies | `Investor, portfolio, and registry search` | Read this when official portfolio pages or registries are the strongest source of truth. |
-| Need a particular source such as LinkedIn, Crunchbase, Reddit, Twitter/X or others | `Custom sources with Apify` | Read this when the source itself is part of the task and you need the custom-source pattern rather than generic search. |
-| Need a niche or custom search path | `Custom tool and provider discovery` | Read this when the default routes do not fit and you need to discover one or two realistic alternatives. |
+| Scenario | Read Section |
+|---|---|
+| Sizing an audience or validating market volume | `Search audiences` |
+| Companies matching a crisp ICP (funding, headcount, geo, vertical) | `Structured company search` |
+| Pulling from a known URL — portfolio, directory, registry, LinkedIn/Reddit/X, conference, filing | `Known-source extraction` |
+| Contacts for a CSV or existing company list (row-based) | Stop — route to `enriching-and-researching.md` |
+| Contacts for a few companies named in the prompt | `People search at known companies` |
+| Companies hiring for a role or function | `Hiring-qualified search` |
+| LinkedIn URL or company page recovery | `URL recovery` |
+| Niche path the default routes don't cover | `Tool discovery` (top of doc) |
 
 ## Search audiences
 
-Use this section when the user asks:
-- "how many people can we reach?"
-- "how big is this audience?"
-- "is this market big enough to go after?"
-- "can this provider support the volume we need?"
-- "pull 100k leads" and you need to validate whether the audience is actually there
+Use when sizing reachability, volume, or market fit — "how many people can we reach?", "is this market big enough?", "pull 100k leads".
 
-Recommended course of action:
-1. Start with the audience you actually care about: people, companies, jobs, or a rough domain-level signal.
-2. Prefer a dedicated count endpoint when one exists.
-3. Otherwise run the likely retrieval path with `limit:1`, `per_page:1`, or `size:1`.
-4. Read totals from the inline output (counts render directly, rows auto-extract to CSV with preview).
-5. If the first path is weak, switch to a closer retrieval path or a better-matched count path.
-6. Only pull full pages after the audience shape and size look right.
+**Count-first invariant:** prefer a dedicated count endpoint. Otherwise run the likely retrieval path with `limit:1` / `per_page:1` / `size:1` and read totals from the response. Only pull full pages after shape + size look right.
 
-### Trying to size a people audience
+### Sizing a people audience
 
-Use this when the user wants reachable contacts, not just companies.
-
-Start here:
-- dedicated people-count endpoints
-- otherwise the likely people retrieval path with a tiny page size
-
-Good first paths:
-- Dropleads count or `dropleads_search_people` with `limit:1`
-- Apollo first-page people search
-- Forager person-role totals
-- Icypeas people counts
-- Prospeo person search with `page:1`
-- PDL person search with `size:1`
+Default to Dropleads first (strongest free first pass, LinkedIn-rich). Fall back to Apollo/Forager/Icypeas/Prospeo/PDL.
 
 ```bash
 deepline tools execute dropleads_get_lead_count --payload '{"filters":{"jobTitles":["CEO"],"industries":["Technology"]}}'
 deepline tools execute dropleads_search_people --payload '{"filters":{"jobTitles":["VP Sales"],"industries":["Technology"]},"pagination":{"page":1,"limit":1}}'
 deepline tools execute apollo_search_people --payload '{"page":1,"per_page":1}'
-deepline tools execute apollo_people_search_paid --payload '{"q_keywords":"sales","per_page":1,"page":1}'
 deepline tools execute forager_person_role_search_totals --payload '{"role_title":"\"Software Engineer\""}'
 deepline tools execute icypeas_count_people --payload '{"query":{"currentJobTitle":{"include":["CTO"]}}}'
-deepline tools execute prospeo_search_person --payload '{"person_job_title":{"include":["VP Sales"]},"page":1}'
 deepline tools execute peopledatalabs_person_search --payload '{"query":{"bool":{"must":[{"term":{"location_country":"United States"}},{"term":{"job_title_role":"marketing"}}]}},"size":1}'
 ```
 
-Default to Dropleads first for people-audience sizing. It is usually the strongest free first pass here and gives you LinkedIn-rich retrieval if you continue.
+### Sizing a company audience (ICP)
 
-If that path is weak, switch to a retrieval path that matches the real search more closely.
-
-When you move from sizing to actually pulling rows, rerun the chosen retrieval path in normal output mode.
-
-### Company-audience paths
-
-Use this when the user wants to know how many accounts match the ICP.
-
-Start with a structured company path at `limit:1`, then move to dedicated totals only if they fit better.
+Structured company path at `limit:1`, or dedicated totals.
 
 ```bash
 deepline tools execute crustdata_companydb_search --payload '{"filters":[{"filter_type":"crunchbase_categories","type":"in","value":["Identity Management","Fraud Detection"]},{"filter_type":"hq_country","type":"=","value":"USA"},{"filter_type":"employee_count_range","type":"in","value":["51-200","201-500"]},{"filter_type":"last_funding_round_type","type":"in","value":["Series A","Series B"]}],"limit":1}'
@@ -161,55 +125,22 @@ deepline tools execute forager_organization_search_totals --payload '{"industrie
 deepline tools execute prospeo_search_company --payload '{"company":{"names":{"include":["Intercom"]},"websites":{"include":["intercom.com"]}},"page":1}'
 ```
 
-When the sizing path looks right, rerun the chosen pull path in normal output mode.
+### Sizing hiring demand
 
-### Trying to size hiring demand
-
-Use this when the user really means:
-- how many companies are hiring for this role?
-- how large is the job market?
-
-Start here:
-- job totals if the job market itself is the thing being sized
-- hiring evidence on known companies if you already have the company set
+Use when the question is "how many companies are hiring this role?" (job-market size). For hiring evidence on a known company set, use `crustdata_job_listings` in the Hiring-qualified section below.
 
 ```bash
 deepline tools execute forager_job_search_totals --payload '{"title":"\"Sales Engineer\""}'
 deepline tools execute hunter_discover --payload '{"query":"B2B SaaS companies","limit":1}'
 ```
 
-### Trying to get a rough domain-level signal
+### Rough domain-level signal
 
-Use this when the user wants a quick directional answer about a company or domain, not a true people-audience estimate.
-
-Start here:
-- domain-level count endpoints
+Quick directional answer about a single company — not a persona-level audience estimate. Domain email volume ≠ reachable persona count.
 
 ```bash
 deepline tools execute hunter_email_count --payload '{"domain":"stripe.com"}'
 ```
-
-Watch out for:
-- domain email volume is not the same as reachable persona-level audience size
-- use this for rough planning, not as the final answer for a people-search question
-
-### Trying to validate whether a retrieval path fits
-
-Use this when you care more about whether the retrieval path is viable than about the count itself.
-
-Start here:
-- run the likely retrieval path with `limit:1`
-- inspect the response shape and any returned total metadata
-
-Representative command:
-
-```bash
-deepline tools execute crustdata_people_search --payload '{"companyDomain":"notion.so","titleKeywords":["VP","Head"],"limit":1}'
-```
-
-Watch out for:
-- some tools are good retrieval paths but weak sizing sources
-- CrustData people retrieval is useful for fit testing, not as your source of truth for audience size
 
 ## Structured company search
 
@@ -251,21 +182,30 @@ Structured company search is the wrong choice when:
 - the target is too fuzzy/conceptual for structured filters
 - you need semantic discovery first, not a precise market pull
 
-## Known-source extraction
+## Known-source extraction (web, portfolios, Apify)
 
-Use this section when the user points to a VC portfolio, accelerator batch, conference site, partner directory, or similar public page.
+Use when the value lives on a public page you can fetch directly — VC portfolios, accelerator batches, conference sites, partner directories, SEC/EDGAR, registries, team pages, Reddit threads, LinkedIn/X profiles. Extractive, not discovery.
 
-Recommended course of action:
-1. Fetch/extract the source directly.
-2. Use search only if the source itself is unknown.
-3. Prefer `parallel_extract` when the page is JS-rendered.
-4. Prefer official pages over reconstructed lists whenever you can.
+Rule: if you have the URL, scrape it directly. Use search only to find the URL when the source itself is unknown. Prefer official pages over reconstructed lists. For investor-backed targeting ("companies backed by a16z", "YC W26"), official portfolio pages beat structured search.
 
-### Direct extraction from a known URL
+Source-type routing:
+- **Static HTML pages, registries, official filings** → `curl` or `WebFetch` (free).
+- **JS-rendered portfolios, directories, job boards** → `parallel_extract` (~1 cr).
+- **Source-specific platforms (LinkedIn, Reddit, X, Similarweb)** → Apify actors. See [`portfolio-prospecting.md`](recipes/portfolio-prospecting.md) for investor/accelerator flow.
+
+Direct extraction example:
 
 ```bash
 deepline tools execute parallel_extract --payload '{"urls":["https://www.ycombinator.com/companies?batch=W26"],"objective":"Extract all company names, domains, and one-line descriptions from this page","full_content":true}'
 ```
+
+Apify for source-specific scraping. Known actors: `dev_fusion/linkedin-profile-scraper`, `apimaestro/linkedin-profile-detail`, `harvestapi/linkedin-company-employees`, `radeance/similarweb-scraper`. Discover more with `deepline tools get apify_run_actor_sync` or `deepline tools execute apify_list_store_actors --payload '{"search":"...","limit":20}'`.
+
+```bash
+deepline tools execute apify_run_actor_sync --payload '{"actorId":"apimaestro/linkedin-profile-detail","input":{"profileUrl":"https://www.linkedin.com/in/someone/"},"timeoutMs":300000}'
+```
+
+For LinkedIn URL recovery itself (not scraping after you have the URL), use `URL recovery` below.
 
 ## People search at known companies
 
@@ -308,13 +248,14 @@ Use `company_name` to pass the target company as structured input — it appends
 
 ## Role-based contact search
 
-Never use exact job titles as the primary filter. Use broad functional keywords plus seniority instead.
+**Never use exact job titles for people search filters.** Titles vary wildly across companies (especially startups) — exact-match filters miss adjacent real titles.
 
-| Bad | Better |
-|---|---|
-| exact titles like `Head of Growth`, `VP RevOps`, `GTM Engineer` only | `jobTitles:["Growth"]` + `seniority:["VP","Director"]` |
+- **Bad:** `jobTitles: ["Head of Growth", "VP RevOps", "GTM Engineer"]` — misses "Director of Growth Marketing", "Revenue Operations Lead", etc.
+- **Good:** `jobTitles: ["Growth"]` + `seniority: ["VP", "Director"]` — catches all growth-related senior roles via fuzzy matching.
 
-For small companies, switch to `exa_people_search` sooner.
+Pattern: 1–2 broad function keywords (Growth, Sales, Revenue, Security, Fraud, Identity, RevOps, Marketing) + seniority for level. Works across Dropleads and CrustData.
+
+For <500-employee companies, narrow title filters often return 0; use broad keyword + seniority. Dropleads has near-zero coverage for <50-emp startups — switch to `exa_people_search` (see Tiny-startup fallback above).
 
 ## Hiring-qualified search
 
@@ -368,93 +309,6 @@ deepline tools execute serper_google_search --payload '{"query":"\"Jane Smith\" 
 | Stop at good enough | If you have about 80% of the target after filtering, ship it |
 | Extract from search responses | Use provider-returned firmographics directly instead of re-enriching them |
 
-## Online scraping and public web extraction
-
-Use this section when:
-- the value is on a public page you can fetch directly
-- the user gives you a website, directory, conference page, Reddit thread, or social page
-- the task is extractive, not broad discovery
-
-Recommended course of action:
-1. If the page is known, scrape or extract it directly.
-2. Use semantic search only to find candidate pages when the source itself is unknown.
-3. Prefer direct extraction for official pages, registries, portfolios, and structured public lists.
-
-Good fits:
-- public company directories
-- investor portfolio pages
-- conference speaker pages
-- careers pages
-- Reddit threads or public discussion pages
-- social profile pages when you already know the profile URL
-- registry pages
-- public company filings or official records
-
-Direct extraction example:
-
-```bash
-deepline tools execute parallel_extract --payload '{"urls":["https://www.ycombinator.com/companies?batch=W26"],"objective":"Extract all company names, domains, and one-line descriptions from this page","full_content":true}'
-```
-
-## Investor, portfolio, and registry search
-
-Use this section when:
-- the user wants investor-backed companies
-- the user mentions YC, a16z, Sequoia, Greylock, Benchmark, or another investor/accelerator
-- the strongest source is an official portfolio page or public registry
-
-Recommended course of action:
-1. Start with the official portfolio or registry source if you know it.
-2. Use search only to find the official source when you do not have it yet.
-3. Prefer direct extraction from the official page over reconstructing the list from search results.
-4. If the portfolio page is weak or incomplete, supplement with structured company search afterward.
-
-Good source types:
-- investor portfolio pages ([`portfolio-prospecting.md`](/recipes/portfolio-prospecting.md))
-- accelerator batch directories
-- SEC / EDGAR pages
-- government or jurisdictional company registries
-- official firm websites listing portfolio companies
-
-If the user cares about “investor-backed” as a filter rather than a named portfolio, use the tool-discovery pattern near the top with company-search terms like `investors,funding`.
-
-## Custom sources with Apify
-
-Use this section when the user wants a particular source or platform, for example:
-- LinkedIn
-- Reddit
-- Twitter / X
-- Similarweb
-- a source-specific website or public page
-
-Recommended course of action:
-1. If you already know the page or profile URL, use the source-specific Apify actor directly.
-2. Use apify search to find the right actor
-
-Known actors:
-- `dev_fusion/linkedin-profile-scraper`
-- `apimaestro/linkedin-profile-detail`
-- `harvestapi/linkedin-company-employees`
-- `radeance/similarweb-scraper`
-
-See:
-- deepline tools get apify_run_actor_sync
-- e.g. deepline tools get apify_run_actor_sync --actor dev_fusion/linkedin-profile-scraper
-
-Generic Apify call shape:
-
-```bash
-deepline tools execute apify_run_actor_sync --payload '{"actorId":"apimaestro/linkedin-profile-detail","input":{"profileUrl":"https://www.linkedin.com/in/someone/"},"timeoutMs":300000}'
-```
-
-For LinkedIn URL recovery, stay in `URL recovery`. For source-specific scraping after you already know the source, use Apify here.
-
-## Custom tool and provider discovery
-
-Use this section when the default path does not fit and you need one or two realistic alternatives.
-
-Do the tool search once near the top, inspect the shortlisted tools, then pick the closest match.
-
 ## Provider reference
 
 | Tool | Best for | Server-side filters | Cost | Gotchas |
@@ -488,17 +342,6 @@ When the `deepline-list-builder` subagent is available, use it to fan out search
 **When to use:** Large multi-provider searches where you genuinely want to compare results across 3+ sources. Spawn one subagent per provider in a single tool call.
 
 **When NOT to use:** Single-provider lookups, enrichment tasks (use `deepline enrich`), or when provider selection routing above points to one clear primary provider.
-
-## Role-based contact search (critical)
-
-**Never use exact job titles for people search filters.** Titles are too nuanced and vary wildly across companies (especially startups). Instead use broad keyword + seniority:
-
-- **Bad:** `person_titles: ["Head of Growth", "VP RevOps", "GTM Engineer"]` -- misses "Director of Growth Marketing", "Revenue Operations Lead", etc.
-- **Good:** `jobTitles: ["Growth"]` + `seniority: ["VP", "Director"]` -- catches all growth-related senior roles via fuzzy matching
-
-The pattern: use 1-2 broad keywords for the *function* (Growth, Sales, Revenue, Security, Fraud, Identity, RevOps, Marketing) and let seniority filters handle the level. This works across dropleads and crustdata.
-
-For small companies (<500 employees), people search often returns 0 with narrow title filters. Use broad keyword + seniority filters. Dropleads is free for people discovery but has near-zero coverage for tiny startups (<50 people). For small startups, use `exa_people_search` instead (see next section).
 
 ## Finding contacts at known companies
 
