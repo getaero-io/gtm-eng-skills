@@ -62,6 +62,14 @@ Without Deepline, you'd need to:
 | [`linkedin-url-lookup`](skills/linkedin-url-lookup/SKILL.md) | Resolve LinkedIn profile URLs from name+company with nickname handling and Apify verification |
 | [`clay-to-deepline`](skills/clay-to-deepline/SKILL.md) | Migrate Clay table configurations to local Deepline enrichment scripts — schema analysis, dependency graph, and script generation |
 
+### Recipes (not auto-invoked)
+
+These are reference playbooks you can ask for explicitly. They don't trigger automatically.
+
+| Recipe | What it does |
+|---|---|
+| [`account-orgchart`](skills/account-orgchart/SKILL.md) | Build an interactive HTML org chart - map reporting structures, identify decision makers, highlight warm intro paths |
+
 ---
 
 ## Prerequisites

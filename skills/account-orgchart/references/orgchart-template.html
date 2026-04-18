@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{COMPANY}} - Account Map</title>
+    <style>
+        /* Design tokens - use these exactly */
+        :root {
+            --bg: #0a0a0a;
+            --surface: #141414;
+            --surface-2: #1c1c1c;
+            --border: #262626;
+            --text: #e5e5e5;
+            --text-muted: #a3a3a3;
+            --text-dim: #737373;
+            --accent: #3b82f6;
+            --warm: #f59e0b;
+            --warm-glow: rgba(245, 158, 11, 0.15);
+            --success: #22c55e;
+            --warning: #eab308;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 24px;
+            line-height: 1.5;
+        }
+
+        /* Warm intro banner - REQUIRED when user has a connection */
+        .warm-banner {
+            background: var(--warm-glow);
+            border: 1px solid var(--warm);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .warm-banner-name { font-weight: 600; color: var(--warm); }
+        .warm-banner-action {
+            background: var(--warm);
+            color: #000;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+        }
+
+        /* Stats bar - MUST be clickable, MUST show percentages */
+        .stat {
+            background: var(--surface);
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            cursor: pointer; /* clickable! */
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+        .stat:hover { border-color: var(--text-dim); }
+        .stat-value { font-size: 18px; font-weight: 600; }
+        .stat-pct { font-size: 12px; color: var(--text-dim); } /* show percentage */
+
+        /* Seniority - ONLY 4 LEVELS */
+        .seniority-exec { background: #a78bfa; color: #000; }
+        .seniority-director { background: #60a5fa; color: #000; }
+        .seniority-manager { background: #34d399; color: #000; }
+        .seniority-ic { background: #525252; color: #fff; }
+
+        /* Priority score - high/med/low */
+        .priority-high { background: var(--success); color: #000; }
+        .priority-med { background: var(--warning); color: #000; }
+        .priority-low { background: var(--text-dim); color: #fff; }
+
+        /* Warm path highlight */
+        .person-row.warm-path { background: var(--warm-glow); }
+        .warm-badge {
+            background: var(--warm);
+            color: #000;
+            font-size: 9px;
+            font-weight: 600;
+            padding: 2px 5px;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        /* Empty state - MUST have clear action */
+        .empty-state { padding: 48px 24px; text-align: center; }
+        .empty-state-action {
+            margin-top: 16px;
+            background: var(--accent);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Accessibility - visible focus */
+        :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    </style>
+</head>
+<body>
+    <!-- 1. Header -->
+    <div class="header">
+        <h1>{{COMPANY}} Organization</h1>
+        <p class="subtitle">{{CONTACT_COUNT}} contacts - Account map</p>
+    </div>
+
+    <!-- 2. Warm banner (show if warm connection exists) -->
+    <div class="warm-banner">
+        <span>🤝</span>
+        <div>
+            <strong>Warm path available:</strong>
+            You're connected to <span class="warm-banner-name">{{WARM_NAME}}</span> ({{WARM_TITLE}})
+        </div>
+        <button class="warm-banner-action" onclick="filterWarmPath()">Show warm connections</button>
+    </div>
+
+    <!-- 3. Controls: search + filters -->
+    <div class="controls">
+        <input type="text" class="search-box" placeholder="Search name, title, location...">
+        <div class="filter-group">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="warm">Warm Path</button>
+            <button class="filter-btn" data-filter="exec">Executives</button>
+            <button class="filter-btn" data-filter="email">Has Email</button>
+        </div>
+    </div>
+
+    <!-- 4. Stats - clickable, with percentages -->
+    <div class="stats-bar">
+        <div class="stat" onclick="filter('all')">
+            <span class="stat-value">{{SHOWN}}</span>
+            <span class="stat-label">/ {{TOTAL}} shown</span>
+        </div>
+        <div class="stat" onclick="filter('email')">
+            <span class="stat-value">{{WITH_EMAIL}}</span>
+            <span class="stat-pct">{{EMAIL_PCT}}%</span>
+            <span class="stat-label">with email</span>
+        </div>
+        <div class="stat" onclick="filter('exec')">
+            <span class="stat-value">{{EXECS}}</span>
+            <span class="stat-pct">{{EXEC_PCT}}%</span>
+            <span class="stat-label">executives</span>
+        </div>
+    </div>
+
+    <!-- 5. Legend - only 4 levels -->
+    <div class="legend">
+        <span class="legend-item"><span class="dot" style="background:#a78bfa"></span> Executive</span>
+        <span class="legend-item"><span class="dot" style="background:#60a5fa"></span> Director</span>
+        <span class="legend-item"><span class="dot" style="background:#34d399"></span> Manager</span>
+        <span class="legend-item"><span class="dot" style="background:#525252"></span> IC</span>
+    </div>
+
+    <!-- 6. Main layout: sidebar + table -->
+    <div class="main-container">
+        <!-- Team sidebar (collapsed groups) -->
+        <div class="team-sidebar">
+            <h3>Teams</h3>
+            <div class="team-item active" data-team="all">All <span>{{TOTAL}}</span></div>
+            <!-- Generate team items dynamically -->
+        </div>
+
+        <!-- People table -->
+        <div class="people-container">
+            <div class="table-header">
+                <span>PRI</span>
+                <span>Name / Title</span>
+                <span>Team</span>
+                <span>Level</span>
+                <span>Contact</span>
+            </div>
+            <div id="peopleList">
+                <!-- Person rows rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Priority score calculation
+    function calcPriority(person) {
+        let score = 0;
+        if (['exec'].includes(person.display_seniority)) score += 40;
+        else if (['director'].includes(person.display_seniority)) score += 25;
+        else if (['manager'].includes(person.display_seniority)) score += 10;
+
+        if (person.email && !person.email.includes('not_unlocked')) score += 25;
+        if (person.phone) score += 10;
+        if (WARM_CONNECTIONS.has(person.name.toLowerCase())) score += 30;
+        return score;
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+        if (e.key === '/' && e.target.tagName !== 'INPUT') {
+            e.preventDefault();
+            document.querySelector('.search-box').focus();
+        }
+    });
+
+    // Inject PEOPLE data here as JSON array
+    const PEOPLE = [/* ... */];
+    const WARM_CONNECTIONS = new Set([/* lowercase names */]);
+    </script>
+</body>
+</html>

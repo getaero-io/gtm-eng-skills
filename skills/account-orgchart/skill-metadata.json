@@ -1,0 +1,28 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Account Org Chart Builder",
+      "tags": [
+        "recipe",
+        "account-mapping",
+        "decision-makers"
+      ],
+      "providers": [
+        "leadmagic",
+        "dropleads",
+        "apollo",
+        "apify",
+        "peopledatalabs"
+      ]
+    },
+    "references/hierarchy-rules.md": {
+      "kind": "reference",
+      "title": "Hierarchy Inference Rules"
+    },
+    "references/orgchart-template.html": {
+      "kind": "template",
+      "title": "Org Chart HTML Template"
+    }
+  }
+}
