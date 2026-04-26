@@ -368,7 +368,7 @@ Expected failure rate: ~15%.
 
 ## §6 Patterns and Antipatterns
 
-Clay-specific patterns. For general Deepline patterns (email plays, interpolation, deeplineagent, enrich flags), follow `enriching-and-researching.md` from the gtm-meta-skill.
+Clay-specific patterns. For general Deepline patterns (email plays, interpolation, deeplineagent, enrich flags), follow `enriching-and-researching.md` from the deepline-gtm.
 
 ### Prompt Recovery
 

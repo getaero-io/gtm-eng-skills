@@ -5,7 +5,7 @@ description: "Build a Total Addressable Market list by sourcing accounts and con
 
 # Provider-Led Account And Contact Sourcing
 
-This skill now follows the same documentation pattern as `gtm-meta-skill`.
+This skill now follows the same documentation pattern as `deepline-gtm`.
 
 ## Required read order
 
@@ -24,4 +24,4 @@ Use this skill for requests like:
 
 - Treat `finding-companies-and-contacts.md` as the canonical workflow.
 - Keep this file as a thin routing layer only (no duplicated playbook content).
-- On completion, follow `gtm-meta-skill` Section 7 for proactive issue feedback and session-sharing consent.
+- On completion, follow `deepline-gtm` Section 7 for proactive issue feedback and session-sharing consent.

@@ -2,7 +2,7 @@
 """Validate enriched email data against company domains.
 
 Usage:
-  python3 ~/.claude/skills/gtm-meta-skill/scripts/validate-emails.py enriched.csv \
+  python3 ~/.claude/skills/deepline-gtm/scripts/validate-emails.py enriched.csv \
       --email-col email --domain-col domain
 
 Flags rows where the email domain doesn't match the company domain.

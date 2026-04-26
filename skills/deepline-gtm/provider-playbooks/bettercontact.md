@@ -1,10 +1,10 @@
 # BetterContact Agent Guidance
 
 ## Key patterns
-- **Enrichment is async.** `bettercontact_enrich` returns an `id` immediately. Poll `bettercontact_get_result` with that id to get the enriched data. Typical completion: 30-120 seconds, can take 5-10 min for hard-to-find contacts.
+- **Enrichment waits by default.** `bettercontact_enrich` and `bettercontact_bulk_enrich` poll BetterContact and return the terminal enrichment payload on success. Use `wait_for_completion: false` only when you want the launcher response immediately.
 - **Email status hierarchy:** deliverable > catch_all_safe > catch_all_not_safe > undeliverable. Only trust deliverable and catch_all_safe for outreach.
 - **Batch up to 100 contacts** per enrichment request using `bettercontact_bulk_enrich`.
-- The POST /async response returns `{ success, id, message }` — use the `id` field as the `request_id` for polling.
+- When `wait_for_completion: false`, the launcher response returns `{ success, id, message }` — use the `id` field as the `request_id` for `bettercontact_get_result`.
 - **Rate limit:** 60 requests per minute per API key, shared across all endpoints.
 
 ## Pricing

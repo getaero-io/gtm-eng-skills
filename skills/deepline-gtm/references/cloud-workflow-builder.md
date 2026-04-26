@@ -64,7 +64,7 @@ Don't proceed until intent is clear. If the user is vague on edge cases, propose
   tool: string                    # Tool ID. Verify with `deepline tools get`.
   payload: Record<string, any>    # Tool input. Supports {{placeholder}} syntax.
   extract_js?: string             # JS to reshape output before storing.
-  run_if_js?: string              # JS condition. Step runs only if truthy.
+  # run_if_js is removed from CLI spec and should be implemented in workflow `run_javascript` steps.
 }
 ```
 
@@ -87,7 +87,7 @@ Steps execute **sequentially** by default. Each step's output is available to al
 **Placeholder resolution:**
 - `{{input.field}}` — from the workflow call input or webhook payload
 - `{{alias.result.field}}` — from a previous step's result (in payload templates)
-- `{{alias.data.field}}` — from a previous step's data (enrichment tools return data here)
+- `{{alias.result.field}}` — from a previous step's result (enrichment tools return data inside the result envelope)
 - Inside `run_javascript` code, use `row.alias.result.field` (JS object access, not template syntax)
 
 **Retry policy:** 3 attempts with exponential backoff (1s base, 30s max, jitter enabled). Rate limits can be handled as wait, fallback (in waterfalls), or fail.
@@ -179,7 +179,7 @@ One paragraph: what this workflow does, why it exists, what business outcome it 
   | Field | Type | Description |
   |-------|------|-------------|
   | is_valid | boolean | whether the input passed validation |
-- **Condition:** `run_if_js` expression, if conditional. Omit if always runs.
+- **Condition:** Add an explicit `run_javascript` gating step before conditional commands.
 - **On failure:** What happens — skip step, fail workflow, use default value.
 
 (Repeat for each step.)
@@ -283,13 +283,14 @@ First to return valid data wins. Cannot nest waterfalls inside waterfalls.
 
 ### Conditional steps
 
-Use `run_if_js` to gate a step on a previous result:
+Use `run_javascript` to gate a step on a previous result:
 ```json
 {
-  "alias": "send_notification",
+  "alias": "qualified_gate",
   "tool": "run_javascript",
-  "payload": { "code": "..." },
-  "run_if_js": "row.score?.result?.routing_decision === 'qualified'"
+  "payload": {
+    "code": "return { should_notify: row.score?.result?.routing_decision === 'qualified' };"
+  }
 }
 ```
 

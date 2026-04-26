@@ -1,13 +1,13 @@
-# Fullenrich Agent Guidance
+# FullEnrich Agent Guidance
 
 ## Key patterns
-- **Enrichment is async** (45-60s average, up to 90s). Submit via `fullenrich_enrich`, poll via `fullenrich_get_result`. Typical completion: 30-90 seconds per contact.
+- **Async submit + async fetch.** `fullenrich_bulk_enrich` and `fullenrich_reverse_email` start background jobs and return an `enrichment_id`. Poll with `fullenrich_get_result` or `fullenrich_get_reverse_result` for terminal data.
 - **Use `enrich_fields`** to control what's enriched: `contact.emails` (1 credit), `contact.phones` (10 credits), `contact.personal_emails` (3 credits).
 - **LinkedIn URL** improves accuracy significantly (5-20% for emails, 10-60% for phones).
 - **Email status hierarchy:** DELIVERABLE > HIGH_PROBABILITY > CATCH_ALL > INVALID. Use `most_probable_work_email` field for the best result.
 - **Phone costs 10x email** -- use judiciously and only when explicitly needed.
 - **Search is synchronous** -- use `fullenrich_people_search` or `fullenrich_company_search` for prospecting.
-- **Reverse email** is async -- same submit/poll pattern as enrichment.
+- Use `fullenrich_get_result` / `fullenrich_get_reverse_result` after every async submit when you need terminal data.
 - **`forceResults=true`** query param on get-result returns partial results if enrichment is still running.
 
 ## When to use

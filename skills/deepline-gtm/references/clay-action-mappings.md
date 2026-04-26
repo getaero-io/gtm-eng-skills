@@ -77,7 +77,7 @@ deepline tools get <candidate_tool_id>      # verify it exists + see payload sch
 --with '{"alias":"person_profile","tool":"leadmagic_profile_search","payload":{"profile_url":"{{linkedin_url}}"}}'
 ```
 
-Key output paths: `.data.full_name`, `.data.work_experience[0].company_website`, `.data.company_website`
+Key output paths: `.result.data.full_name`, `.result.data.work_experience[0].company_website`, `.result.data.company_website`
 
 **Richer fallback** — `crustdata_person_enrichment`:
 
@@ -85,12 +85,12 @@ Key output paths: `.data.full_name`, `.data.work_experience[0].company_website`,
 --with '{"alias":"person_profile","tool":"crustdata_person_enrichment","payload":{"linkedinProfileUrl":"{{linkedin_url}}"}}'
 ```
 
-Key output paths: `.data[0].name`, `.data[0].email`, `.data[0].current_employers[0].employer_company_website_domain[0]`
+Key output paths: `.result.data[0].name`, `.result.data[0].email`, `.result.data[0].current_employers[0].employer_company_website_domain[0]`
 
 **Work history / posts** — Apify (structured, free):
 
 ```bash
-deepline tools execute apify_run_actor_sync --payload '{"actorId":"apimaestro/linkedin-profile-scraper","input":{"profileUrls":["{{linkedin_url}}"]},"timeoutMs":60000}'
+deepline tools execute apify_run_actor_sync --payload '{"actorId":"apimaestro/linkedin-profile-scraper","input":{"profileUrls":["<linkedin_url>"]},"timeoutMs":60000}'
 ```
 
 ---
@@ -161,7 +161,7 @@ Default — `leadmagic_email_validation`:
 --with '{"alias":"email_valid","tool":"leadmagic_email_validation","payload":{"email":"{{work_email}}"}}'
 ```
 
-LeadMagic returns four relevant statuses (as `.data.email_status`):
+LeadMagic returns four relevant statuses (as `.result.data.email_status`):
 
 | Status            | Meaning                                            | Bounce rate | Charge   |
 | ----------------- | -------------------------------------------------- | ----------- | -------- |
@@ -249,8 +249,8 @@ result = subprocess.run(
      "--payload", json.dumps(payload), "--json"],
     capture_output=True, text=True
 )
-data = json.loads(result.stdout)
-companies = data.get("result", {}).get("accounts", [])
+response_json = json.loads(result.stdout)
+accounts = response_json.get("result", {}).get("accounts", [])
 # Fields: name, primary_domain, linkedin_url, organization_city, organization_state,
 #         organization_country, organization_revenue_printed
 ```
@@ -437,7 +437,7 @@ Use when you need posts for a specific person's profile URL. Run-as-button in Cl
 ```bash
 deepline tools execute apify_run_actor_sync --payload '{
   "actorId": "apimaestro/linkedin-profile-scraper",
-  "input": {"profileUrls": ["{{linkedin_url}}"], "scrapePostsInfo": true},
+  "input": {"profileUrls": ["<linkedin_url>"], "scrapePostsInfo": true},
   "timeoutMs": 60000
 }'
 ```

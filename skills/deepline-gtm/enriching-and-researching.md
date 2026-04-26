@@ -144,7 +144,7 @@ Why this play:
 - Use it when you already know the person identity and want the highest-signal phone lookup order.
 - Cost-optimized: starts with the cheapest providers and escalates to expensive ones only as fallbacks.
 - All providers charge only on successful hit (post_deduct), so total cost scales with coverage, not attempts.
-- Estimated cost per found phone: $1-2. Follow up with `ipqs_phone_validate` (0.07/call) to verify line type, DNC status, and fraud score before outbound.
+- Follow up with `trestle_phone_validation` to verify line type, carrier, and activity score before outbound.
 
 Play details:
 
@@ -307,7 +307,7 @@ Key waterfall rules:
 - Close each waterfall with `--end-waterfall` before starting another one.
 - Do not run email waterfalls without minimum match data: name + company, name + domain, or a strong LinkedIn-seeded identity.
 - If you need different validation behavior, remember the native cost-aware play only accepts pattern hits when the validator says `valid`.
-- Gating: `--with` accepts exactly these keys: `alias`, `tool`, `payload`, `extract_js`, `run_if_js`. Use `run_if_js` (a JS expression returning a boolean) to skip a step on rows that don't meet a condition — e.g. only validate rows where an email was actually found. Any other key (like `condition`) will be rejected at compile time.
+- Gating: `--with` accepts exactly these keys: `alias`, `tool`, `payload`, `extract_js`. Gate conditional logic with a preceding `run_javascript` step whenever you need row-level conditions.
 
 Example:
 
@@ -318,7 +318,7 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
   --with '{"alias":"hunter","tool":"hunter_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"},"extract_js":"(output_data) => extract(\"hunter_email_finder\", output_data, \"email\")"}' \
   --with '{"alias":"leadmagic","tool":"leadmagic_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"},"extract_js":"(output_data) => extract(\"leadmagic_email_finder\", output_data, \"email\")"}' \
   --end-waterfall \
-  --with '{"alias":"email_validation","tool":"leadmagic_email_validation","payload":{"email":"{{email}}"},"run_if_js":"return Boolean(row.email)"}'
+  --with '{"alias":"email_validation","tool":"leadmagic_email_validation","payload":{"email":"{{email}}"}}'
 ```
 
 If `extract_js` returns raw objects instead of scalars, you can store the raw response and use `run_javascript` in a second pass to parse it. When debugging, remember the extractor input is wrapped as `{ result: ... }`, while persisted enrich cells usually contain both `result` and `matched_result`.
@@ -329,7 +329,7 @@ After enrichment, validate data quality before moving to the next phase. Run rea
 
 ```bash
 # Email domain vs company domain — catches previous-employer or wrong-contact emails
-python3 ~/.claude/skills/gtm-meta-skill/scripts/validate-emails.py enriched.csv \
+python3 ~/.claude/skills/deepline-gtm/scripts/validate-emails.py enriched.csv \
     --email-col email --domain-col domain
 ```
 
@@ -337,7 +337,7 @@ Flag and investigate mismatched rows — these are often from a previous employe
 
 ```bash
 # LinkedIn name validation — catches wrong-person matches from search-based lookup
-python3 ~/.claude/skills/gtm-meta-skill/scripts/validate-linkedin-names.py enriched.csv \
+python3 ~/.claude/skills/deepline-gtm/scripts/validate-linkedin-names.py enriched.csv \
     --source-first first_name --source-last last_name --profile-name-col profile_name
 ```
 
@@ -414,13 +414,13 @@ Before writing a fresh prompt, inspect [`prompts.json`](prompts.json).
 List the top-level keys first. This is the cleanest way to see what prompts already exist:
 
 ```bash
-jq -r 'keys[]' .skills/gtm-meta-skill/prompts.json
+jq -r 'keys[]' .skills/deepline-gtm/prompts.json
 ```
 
 If you want a rough keyword search across the file, use `grep`:
 
 ```bash
-grep -nE "funding|competitor|personalization|research|signal" .skills/gtm-meta-skill/prompts.json
+grep -nE "funding|competitor|personalization|research|signal" .skills/deepline-gtm/prompts.json
 ```
 
 Use `grep` for broad hunting only. It matches inside prompt bodies too, so the output is often noisy.
@@ -428,7 +428,7 @@ Use `grep` for broad hunting only. It matches inside prompt bodies too, so the o
 Print a specific prompt by key with `jq`:
 
 ```bash
-jq -r '."5 interesting facts about a candidate"' .skills/gtm-meta-skill/prompts.json
+jq -r '."5 interesting facts about a candidate"' .skills/deepline-gtm/prompts.json
 ```
 
 If the prompt key contains quotes or awkward punctuation, first list keys with `jq -r 'keys[]'`, then copy the exact key into the command above.
@@ -495,7 +495,7 @@ deepline enrich --input leads_researched.csv --in-place --rows 0:1 \
 Start by printing the prompt text:
 
 ```bash
-jq -r '."5 interesting facts about a candidate"' .skills/gtm-meta-skill/prompts.json
+jq -r '."5 interesting facts about a candidate"' .skills/deepline-gtm/prompts.json
 ```
 
 Then adapt it into a row-level enrich call for research or custom-signal work:

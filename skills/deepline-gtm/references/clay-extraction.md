@@ -5,7 +5,7 @@ description: "How to extract Clay table configs via MCP or script. Read only whe
 
 # Clay Table Extraction
 
-Use `scripts/clay-extract.py` (bundled at `.skills/gtm-meta-skill/scripts/clay-extract.py`, also at repo root `scripts/clay-extract.py`) to pull full table configs from Clay's internal API. Extracts: field definitions, action settings (prompts, models, webhook URLs), formula text, conditional run logic, and up to ~36-66 sample records.
+Use `scripts/clay-extract.py` (bundled at `.skills/deepline-gtm/scripts/clay-extract.py`, also at repo root `scripts/clay-extract.py`) to pull full table configs from Clay's internal API. Extracts: field definitions, action settings (prompts, models, webhook URLs), formula text, conditional run logic, and up to ~36-66 sample records.
 
 ## Two extraction paths
 
