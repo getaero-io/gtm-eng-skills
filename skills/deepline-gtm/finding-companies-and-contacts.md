@@ -42,7 +42,7 @@ Escalate only when you need a filter the current step lacks.
 5. **`lusha_search_contacts`** — dept, seniority, industry, title, tech filters.
 6. **`ai_ark_people_search`** — title, seniority, skills, location, company attributes.
 
-**Alts:** `exa_people_search` (tiny startups); `contactout_search_people`; `icypeas_find_people` (700M+ DB); `rocketreach_search_people` (30+ filters).
+**Alts:** `exa_people_search` (tiny startups); `contactout_enrich_person` (when you already have a LinkedIn URL); `icypeas_find_people` (700M+ DB); `rocketreach_search_people` (30+ filters).
 
 ## Tool discovery
 
@@ -327,7 +327,7 @@ deepline tools execute serper_google_search --payload '{"query":"\"Jane Smith\" 
 | `parallel_search` | Broad discovery when you don't know which domains hold the data | objective string | ~1 cr | Lower precision than domain-scoped search. |
 | `parallel_extract` | URL-bound extraction, JS-rendered pages | URLs + objective | ~1 cr | Slow. Good for portfolio pages, job boards. |
 | `apollo_people_search` | People fallback when dropleads returns 0 | title, domain, location | ~0.2 cr | Mixed quality. Fallback only. |
-| `apollo_people_search_paid` | Large company contact pull with email | domain, title keywords | 1 cr/result | Expensive. Good coverage for large cos. |
+| `apollo_search_people` | Large company contact pull | domain, title keywords | free in Apollo | Good discovery coverage for large companies; enrich separately for contact data. |
 | `hunter_email_finder` | Email finding in waterfall | domain, first/last name | ~0.3 cr | Poor coverage for <50 emp companies. |
 | `peopledatalabs_company_search` | SQL-based company search | SQL (industry, size, funding, location) | expensive | Last resort. Exhaust others first. |
 | `crustdata_person_enrichment` | LinkedIn profile enrichment | LinkedIn URL | ~1 cr | — |
@@ -352,7 +352,7 @@ Pick the right tool based on what you have and what you need:
 | `exa_people_search` | 0.1 cr/result | company name + role keyword | Structured entities: name, title, LinkedIn, work history | Any company size, especially small startups | Finds *associated* people, not guaranteed exact role match |
 | `dropleads_search_people` | free | company domain or keyword filters | Name, title, email (sometimes), company | Mid/large companies (>50 employees) | Near-zero coverage for tiny startups (<50 people) |
 | `deeplineagent` | varies | company name/domain | Structured if you pass `jsonSchema` | Fallback when providers return 0 | Slower than direct providers; use only after the normal search path is exhausted |
-| `apollo_people_search_paid` | 1 cr/result | domain, title keywords | Name, title, email, LinkedIn | Large companies with good Apollo coverage | Expensive, poor for small startups |
+| `apollo_search_people` | free in Apollo | domain, title keywords | Name, title, LinkedIn hints | Large companies with good Apollo coverage | Does not return direct email/phone contact data |
 
 **Default: `exa_people_search` via `deepline enrich`.** Returns structured person entities (name, title, LinkedIn, work history) — no parsing needed. Works across company sizes.
 
@@ -486,7 +486,7 @@ Use these when you want fast sizing before doing the full list pull.
 | Provider | Tool | Command |
 |---|---|---|
 | Apollo | `apollo_search_people` | `deepline tools execute apollo_search_people --payload '{"page":1,"per_page":1}'` |
-| Apollo | `apollo_people_search_paid` | `deepline tools execute apollo_people_search_paid --payload '{"q_keywords":"sales","per_page":1,"page":1}'` |
+| Apollo | `apollo_search_people` | `deepline tools execute apollo_search_people --payload '{"q_keywords":"sales","per_page":1,"page":1}'` |
 | Dropleads | `dropleads_get_lead_count` | `deepline tools execute dropleads_get_lead_count --payload '{"filters":{"jobTitles":["CEO"],"industries":["Technology"]}}'` |
 | Dropleads | `dropleads_search_people` | `deepline tools execute dropleads_search_people --payload '{"filters":{"jobTitles":["VP Sales"],"industries":["Technology"]},"pagination":{"page":1,"limit":1}}'` |
 | Forager | `forager_organization_search_totals` | `deepline tools execute forager_organization_search_totals --payload '{"industries":[1]}'` |

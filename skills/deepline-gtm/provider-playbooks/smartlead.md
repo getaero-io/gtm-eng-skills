@@ -3,6 +3,7 @@ Use Smartlead for outbound email campaign management. Full lifecycle from campai
 - Keep activation behind enrichment/verification gates -- only push contacts that have been validated.
 - Resolve campaign IDs from `smartlead_list_campaigns` before any write operation.
 - Push leads in batches of up to 400 and re-check campaign stats after writes.
+- Keep Smartlead traffic at or below 60 requests per 60 seconds per API key. Large pools need queueing or smaller concurrency.
 - Always configure sequences and schedule before starting a campaign.
 - Include `SMARTLEAD_API_KEY` as fallback env credential when not using org-linked auth.
 - Keep payloads provider-native. There is no shared outbound standard contract for Smartlead.
@@ -122,6 +123,7 @@ Deepline wraps all provider payloads in a standard result envelope: `{ data, met
 - **Sequence ordering:** `seq_number` values must be contiguous starting at 1 (no gaps). The first sequence step (seq_number 1) must have a subject line (either at step level or on every variant).
 - **Delay units:** `delay_in_days` is in days (0 = immediate). Do not pass hours or minutes.
 - **Lead batch limits:** Maximum 400 leads per `push_to_campaign` call. Use `lead_list` as the canonical field; Deepline still accepts `leads` as a compatibility alias. Duplicate emails within a batch are rejected. Emails are automatically lowercased for deduplication.
+- **Provider rate limit:** Smartlead currently documents 60 requests per 60 seconds per API key. Avoid high parallelism on campaign mutations unless you add queueing or backoff.
 - **Analytics date range:** `get_campaign_analytics_by_date` enforces a maximum 30-day window between `start_date` and `end_date`. Dates must be in `YYYY-MM-DD` format.
 - **Track settings normalization:** `update_campaign_settings` accepts either a single string or an array for `track_settings`. Valid values: `DONT_TRACK_EMAIL_OPEN`, `DONT_TRACK_LINK_CLICK`, `DONT_TRACK_REPLY_TO_AN_EMAIL`.
 - **Stop lead settings:** Valid values: `REPLY_TO_AN_EMAIL`, `CLICK_ON_A_LINK`, `OPEN_AN_EMAIL`.
