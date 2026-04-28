@@ -9,12 +9,15 @@
       "name": "gtm-eng-skills",
       "strict": false,
       "skills": [
-        "niche-signal-discovery",
-        "waterfall-enrichment",
-        "contact-to-email",
-        "get-leads-at-company",
+        "deepline-gtm",
+        "deepline-quickstart",
         "build-tam",
-        "linkedin-url-lookup"
+        "portfolio-prospecting",
+        "linkedin-url-lookup",
+        "niche-signal-discovery",
+        "clay-to-deepline",
+        "workflow-hello-world",
+        "deepline-feedback"
       ]
     }
   ]
