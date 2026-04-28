@@ -28,7 +28,7 @@ Create a real Deepline cloud workflow with `deepline workflows apply`, trigger i
 | Put `row.input.*`, `{{first_name}}`, or CSV fields into a cron workflow | `workflows apply` fails or the run has no useful input | Scheduled workflows must be self-contained because nothing calls them with external row data |
 | Omit `trigger_tool` or `trigger_id` on a webhook workflow | Validation rejects the workflow | Webhook triggers require a concrete tool and trigger id binding |
 | Treat webhook payload fields as top-level in JS | Your code reads empty values | Workflow calls/webhooks deliver user payload under `row.input` |
-| Read prior step output as `row.previous_alias.some_field` | Later steps see `undefined` | Local tool output is wrapped, so read `row.previous_alias.result.some_field` |
+| Read prior step output as `row.previous_alias.some_field` | Later steps see `undefined` | Local tool output is wrapped, so read `row.previous_alias.result.data.some_field` |
 | Build the parent fanout workflow before the child workflow works on its own | You cannot tell whether failures come from child logic or dispatch | First make the child workflow callable directly and verify one good run |
 | Assume `triggerWorkflow(...)` waits for child results | The parent finishes without child outputs in-line | `triggerWorkflow(...)` is async fanout; inspect child runs separately |
 | Ask the user for ICP/search criteria again after they already referenced an existing campaign or search | You lose momentum and ignore recoverable state that already exists | Inspect the current campaign, workflow, and search definition first; only ask for missing targeting inputs if nothing reusable exists |
@@ -64,7 +64,7 @@ payload = {
         "alias": "inspect",
         "tool": "run_javascript",
         "payload": {
-          "code": "const payload=(row.build_payload&&row.build_payload.result&&typeof row.build_payload.result==='object')?row.build_payload.result:{}; return { ok: payload.source === 'cron', preview: payload.message || null };"
+          "code": "const payload=(row.build_payload&&row.build_payload.result&&row.build_payload.result.data&&typeof row.build_payload.result.data==='object')?row.build_payload.result.data:{}; return { ok: payload.source === 'cron', preview: payload.message || null };"
         }
       }
     ]
@@ -106,9 +106,9 @@ deepline workflows tail --workflow-id <WORKFLOW_ID> --run-id <RUN_ID> --interval
 
 **Output:** You see the scheduled run progress and final output.
 **Checkpoint:** Confirm:
-- `build_payload.result.source = "cron"`
-- `inspect.result.ok = true`
-- `inspect.result.preview = "Scheduled workflow fired"`
+- `build_payload.result.data.source = "cron"`
+- `inspect.result.data.ok = true`
+- `inspect.result.data.preview = "Scheduled workflow fired"`
 **Fallback:** If no run appears yet, check the next scheduled time from `workflows get` and wait for that window.
 
 ### Step 4: Create a webhook cloud workflow - deliver
@@ -142,7 +142,7 @@ payload = {
         "alias": "inspect",
         "tool": "run_javascript",
         "payload": {
-          "code": "const normalized=(row.normalize_input&&row.normalize_input.result&&typeof row.normalize_input.result==='object')?row.normalize_input.result:{}; return { ok: normalized.source === 'webhook', preview: `${normalized.event}:${normalized.company}` };"
+          "code": "const normalized=(row.normalize_input&&row.normalize_input.result&&row.normalize_input.result.data&&typeof row.normalize_input.result.data==='object')?row.normalize_input.result.data:{}; return { ok: normalized.source === 'webhook', preview: `${normalized.event}:${normalized.company}` };"
         }
       }
     ]
@@ -181,9 +181,9 @@ deepline workflows tail --workflow-id <WEBHOOK_WORKFLOW_ID> --run-id <RUN_ID> --
 
 **Output:** A webhook-triggered run with the normalized payload.
 **Checkpoint:** Confirm:
-- `normalize_input.result.source = "webhook"`
-- `normalize_input.result.company = "Rippling"`
-- `inspect.result.preview = "signup:Rippling"`
+- `normalize_input.result.data.source = "webhook"`
+- `normalize_input.result.data.company = "Rippling"`
+- `inspect.result.data.preview = "signup:Rippling"`
 **Fallback:** If no run appears, fetch the workflow again and confirm you posted to the exact `webhook_url`.
 
 ### Step 6: Validate lifecycle controls for cloud triggers - inspect
