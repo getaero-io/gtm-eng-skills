@@ -1,6 +1,6 @@
 # GTM Engineering Skills for Claude Code
 
-> 10 AI agent skills that turn Claude Code into a GTM engineering workstation — lead enrichment, waterfall email finding, signal discovery, TAM building, and outbound automation. Powered by [Deepline](https://code.deepline.com).
+> AI agent skills that turn Claude Code into a GTM engineering workstation — lead enrichment, signal discovery, TAM building, and outbound automation. Powered by [Deepline](https://code.deepline.com).
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Skills-blueviolet)](https://docs.anthropic.com/en/docs/claude-code)
@@ -25,9 +25,9 @@ curl -fsSL "https://code.deepline.com/api/v2/cli/install" | bash
 Then tell Claude what you need:
 
 ```
-> "Find work emails for the 200 contacts in my leads.csv using waterfall enrichment"
 > "Build a TAM of VP Sales at 50-500 person SaaS companies in the US"
-> "Detect job changes in my HubSpot contacts and add movers to a Lemlist campaign"
+> "Find LinkedIn URLs for the contacts in my CSV with identity validation"
+> "Find companies in a16z's portfolio and get the Head of Growth at each"
 ```
 
 Claude automatically picks the right skill and runs it.
@@ -44,7 +44,7 @@ Each skill is a markdown file (`SKILL.md`) that encodes:
 - **Cost optimization patterns** (cheapest provider first, approval gates before expensive runs)
 - **Output formats** (enriched CSVs, CRM updates, campaign imports)
 
-Skills use the [Deepline CLI](https://code.deepline.com) under the hood — one command that orchestrates 28+ data providers (Apollo, Crustdata, PDL, Hunter, LeadMagic, Dropleads, Apify, and more) with cost-aware routing and waterfall fallbacks.
+Skills use the [Deepline CLI](https://code.deepline.com) under the hood — one command that orchestrates 40+ data providers (Apollo, Crustdata, PDL, Hunter, LeadMagic, Dropleads, Apify, and more) with cost-aware routing and waterfall fallbacks.
 
 ---
 
@@ -52,16 +52,17 @@ Skills use the [Deepline CLI](https://code.deepline.com) under the hood — one 
 
 | Skill | Description | Use Case |
 |---|---|---|
-| [`waterfall-enrichment`](skills/waterfall-enrichment/SKILL.md) | Run multiple providers in sequence, stop at first valid result | Email, phone, or LinkedIn enrichment at scale |
-| [`contact-to-email`](skills/contact-to-email/SKILL.md) | Find and verify work emails from name+company, LinkedIn URL, or domain | Building verified contact lists for outbound |
-| [`build-tam`](skills/build-tam/SKILL.md) | Build Total Addressable Market lists from ICP filters | Account sourcing with Apollo, PDL, Crustdata |
-| [`get-leads-at-company`](skills/get-leads-at-company/SKILL.md) | Find GTM contacts at a company, pick best ICP fit, draft outreach | Account-based prospecting |
-| [`niche-signal-discovery`](skills/niche-signal-discovery/SKILL.md) | Discover buying signals that differentiate won vs lost deals | ICP analysis, account scoring, signal-based prospecting |
-| [`job-change-detector`](skills/job-change-detector/SKILL.md) | Detect HubSpot contacts who changed jobs, find new emails, update CRM | Job change campaigns, warm re-engagement |
-| [`linkedin-url-lookup`](skills/linkedin-url-lookup/SKILL.md) | Resolve LinkedIn URLs from name+company with identity validation | LinkedIn enrichment with false-positive prevention |
-| [`portfolio-prospecting`](skills/portfolio-prospecting/SKILL.md) | Find companies backed by a specific investor or accelerator | VC portfolio prospecting, accelerator outbound |
-| [`clay-to-deepline`](skills/clay-to-deepline/SKILL.md) | Convert Clay table configs to local Deepline enrichment scripts | Migrating from Clay to code-based enrichment |
-| [`deepline-feedback`](skills/deepline-feedback/SKILL.md) | Send feedback or bugs to the Deepline team with session context | Bug reports, feature requests |
+| [`deepline-gtm`](skills/deepline-gtm/SKILL.md) | Meta-skill that routes GTM prospecting, enrichment, qualification, and outbound workflows across 40+ providers | Any CSV-heavy or provider-driven GTM task |
+| [`deepline-quickstart`](skills/deepline-quickstart/SKILL.md) | Run a quick Deepline demo recipe to show how Deepline works | First-time setup, walkthroughs |
+| [`build-tam`](skills/build-tam/SKILL.md) | Build a Total Addressable Market list by sourcing accounts and contacts from providers like Apollo, Crustdata, and PDL | Account sourcing from ICP filters |
+| [`portfolio-prospecting`](skills/portfolio-prospecting/SKILL.md) | Find companies backed by a specific investor or accelerator, then find contacts and build personalized outbound | VC portfolio prospecting, accelerator outbound |
+| [`linkedin-url-lookup`](skills/linkedin-url-lookup/SKILL.md) | Resolve LinkedIn profile URLs from name + company with strict identity validation to avoid false positives | LinkedIn enrichment with false-positive prevention |
+| [`niche-signal-discovery`](skills/niche-signal-discovery/SKILL.md) | Discover niche first-party signals that differentiate Closed Won vs Closed Lost accounts for ICP analysis | ICP analysis, account scoring, signal-based prospecting |
+| [`clay-to-deepline`](skills/clay-to-deepline/SKILL.md) | Convert a Clay table configuration into local Deepline scripts (extraction, action mapping, script generation, parity validation) | Migrating from Clay to code-based enrichment |
+| [`workflow-hello-world`](skills/workflow-hello-world/SKILL.md) | Create a cloud Deepline workflow that runs on a recurring cron schedule or via webhook | Workflow scaffolding and trigger validation |
+| [`deepline-feedback`](skills/deepline-feedback/SKILL.md) | Send feedback or bug reports to the Deepline team, including session transcript and environment info | Bug reports, feature requests |
+
+> `gtm-meta-skill` is also published as a deprecated stub that redirects to `deepline-gtm`. Use `deepline-gtm` directly.
 
 ---
 
@@ -71,17 +72,16 @@ Skills use the [Deepline CLI](https://code.deepline.com) under the hood — one 
 You: "Find emails for the contacts in accounts.csv"
        │
        ▼
-Claude Code reads your CSV, picks `waterfall-enrichment` skill
+Claude Code picks the `deepline-gtm` skill and routes to the
+right recipe + provider playbook for the task.
        │
        ▼
-Skill runs: deepline enrich accounts.csv --add-column work_email \
-            --provider dropleads hunter leadmagic --waterfall
+Skill runs the appropriate `deepline` CLI commands with the
+provider waterfall, validation rules, and cost gates encoded
+in the skill's instructions.
        │
        ▼
-Deepline tries Dropleads first → falls back to Hunter → then LeadMagic
-       │
-       ▼
-You get: accounts_enriched.csv with verified emails + provider metadata
+You get: enriched CSV with verified results + provider metadata
 ```
 
 Every enrichment opens in the Deepline Playground — a spreadsheet UI where you can inspect results, re-run failed cells, and iterate before committing to a full run.
@@ -99,7 +99,7 @@ npx skills add getaero-io/gtm-eng-skills --all
 Install specific skills only:
 
 ```bash
-npx skills add getaero-io/gtm-eng-skills --skill waterfall-enrichment contact-to-email build-tam
+npx skills add getaero-io/gtm-eng-skills --skill deepline-gtm build-tam linkedin-url-lookup
 ```
 
 Install globally (available across all projects):
@@ -138,23 +138,17 @@ Free tier includes 100 credits (~300 enrichments). [Sign up here](https://code.d
 
 ## Usage Examples
 
-### Waterfall Email Enrichment
-
-> "My leads.csv has First Name, Last Name, and Company — find their email addresses"
-
-Claude runs `waterfall-enrichment`, trying Dropleads → Hunter → LeadMagic in sequence. First valid, verified email wins. You pay once.
-
 ### Build a TAM
 
 > "Build a TAM of VP Sales and CROs at 50-500 person SaaS companies in the US"
 
-Claude runs `build-tam`, sourcing accounts from Apollo and PDL, deduplicating, and outputting a scored list with contact details.
+Claude runs `build-tam`, sourcing accounts from Apollo, Crustdata, and PDL, deduplicating, and outputting a list with contact details.
 
-### Job Change Detection
+### LinkedIn URL Lookup with Identity Validation
 
-> "Find contacts in HubSpot who changed jobs in the last 6 months and add them to a Lemlist campaign"
+> "Find LinkedIn URLs for the contacts in my CSV and verify they're the right people"
 
-Claude runs `job-change-detector`, cross-referencing CRM contacts against current employment data, finding new work emails, and importing movers into your sequencer.
+Claude runs `linkedin-url-lookup`, resolving profile URLs from name + company with strict name validation to avoid false positives.
 
 ### Signal-Based Prospecting
 
@@ -174,6 +168,18 @@ Claude runs `portfolio-prospecting`, sourcing portfolio companies, finding decis
 
 Claude runs `clay-to-deepline`, analyzing the schema, mapping Clay columns to Deepline providers, and generating a runnable script.
 
+### Cloud Workflow Setup
+
+> "Create a Deepline workflow that runs every Monday and enriches my new HubSpot contacts"
+
+Claude runs `workflow-hello-world` to scaffold the cron-triggered workflow and validate it end to end.
+
+### General GTM Tasks
+
+> "Enrich the leads in this CSV, score them against my ICP, and queue the top 50 in Lemlist"
+
+Claude invokes `deepline-gtm` (the meta-skill), which loads the relevant recipes and provider playbooks for the multi-step workflow.
+
 ---
 
 ## Why Deepline
@@ -182,7 +188,7 @@ These skills use the [Deepline CLI](https://code.deepline.com) instead of callin
 
 | Without Deepline | With Deepline |
 |---|---|
-| Manage 28+ API keys and auth methods | One CLI, one credential |
+| Manage 40+ API keys and auth methods | One CLI, one credential |
 | Build your own waterfall logic | Built-in waterfall with cost-aware routing |
 | Pay per-provider subscriptions | Pay per enrichment, provider-agnostic |
 | Handle rate limits, retries, normalization | Handled automatically |
