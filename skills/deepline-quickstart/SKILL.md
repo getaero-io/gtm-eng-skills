@@ -88,7 +88,7 @@ Show a summary table: name, company, email, LinkedIn URL. Tell the user emails w
 Tell the user, then try Apollo:
 
 ```bash
-deepline tools execute apollo_search_people --payload '{
+deepline tools execute apollo_search_people_with_match --payload '{
   "person_titles": ["CTO", "Chief Technology Officer"],
   "person_seniorities": ["c_suite"],
   "person_locations": ["New York, New York, United States"],

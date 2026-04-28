@@ -1,99 +1,93 @@
-# Datagma Workflow Guidance
+# Datagma — Agent Guidance
 
-Datagma is strongest when you need real-time enrichment rather than a static
-contact database. It is especially useful for direct mobile numbers, international
-coverage, and job-change validation.
+Datagma is a real-time B2B enrichment provider with 75+ data points per person,
+strong phone coverage, job-change detection, and international reach.
 
 ## When to use Datagma
 
-- Use `datagma_full_enrichment` when you have a strong identifier such as a
-  LinkedIn URL, a professional email, or a domain-backed full name.
-- Use `datagma_find_email` when you only need a verified work email and want a
-  narrower, cheaper workflow than full enrichment.
-- Use `datagma_search_phone_numbers` when you already have an email or social URL
-  and want direct mobile numbers.
-- Use `datagma_job_change_detection` before outreach refreshes when you need to
-  confirm whether a contact is still at the same company.
-- Use `datagma_find_people` to source up to 10 people by title inside a target company.
+- You need a phone number and other enrichers have come up empty.
+- You need real-time job-change signals (the `job_change_detected` field is native).
+- You need international coverage (APAC, EMEA) where US-centric providers fall short.
+- You have 1,000 free credits and want real data to test a waterfall.
 
-## Input strategy
+## Primary identifier priority
 
-1. LinkedIn URL or company domain
-2. Professional email
-3. Full name plus company context
-4. Company-name-only lookups only when nothing stronger is available
+1. `linkedin` URL — highest match rate, fastest resolution.
+2. `email` — good fallback when LinkedIn is unavailable.
+3. `fullName` + `domain` — lower confidence; combine with company context.
+4. `fullName` + `companyName` — lowest confidence; only use when domain is unknown.
 
-Datagma’s own docs emphasize that LinkedIn URL and domain-backed inputs are the
-most reliable. Prefer those over plain company-name searches.
+## datagma_enrich_person
 
-## Billing behavior to remember
+```bash
+deepline tools execute datagma_enrich_person \
+  --payload '{"linkedin":"https://www.linkedin.com/in/johndoe"}'
+```
 
-- Public pricing currently states `1 credit = 1 verified email`.
-- Public pricing currently states `30 credits = 1 mobile phone number`.
-- `datagma_find_people` is explicitly documented as 10 credits on success and
-  1 credit on a no-result response.
-- `datagma_full_enrichment`, `datagma_job_change_detection`, and
-  `datagma_search_phone_numbers` expose `creditBurn` in the response. Deepline
-  uses that vendor-reported value rather than guessing.
-- Catch-all email results are free on the public pricing page.
+Output shape (key fields at top level):
+- `email` / `professional_email` / `personal_email`
+- `phone` / `mobile_phone`
+- `full_name`, `title`, `seniority`, `department`
+- `location.city`, `location.country`
+- `company.name`, `company.domain`, `company.industry`, `company.size`
+- `experience[]` — full job history with is_current flag
+- `job_change_detected` — true if a recent employer change was detected
+- `confidence_score` — 0–1 confidence from Datagma
 
-## Endpoint guidance
+Target getter paths (for waterfall):
+- email:    `email`, `professional_email`, `personal_email`
+- phone:    `phone`, `mobile_phone`
+- linkedin: `linkedin`
+- name:     `full_name`
+- company:  `company.name`
 
-### `datagma_find_email`
+## datagma_find_email
 
-Use for:
-- verified work-email lookup from name + company context
+Fast email finder — cheaper (in terms of matching complexity) than full enrichment
+when you only need an email address.
 
-Best inputs:
-- `firstName` + `lastName` + `company`
-- or `fullName` + `company`
-- optionally `linkedInSlug` when you have the company LinkedIn slug
+```bash
+deepline tools execute datagma_find_email \
+  --payload '{"firstName":"John","lastName":"Doe","companyDomain":"acme.com"}'
+```
 
-### `datagma_full_enrichment`
+Always prefer `companyDomain` over `companyName` for accuracy.
 
-Use for:
-- person or company enrichment
-- firmographics plus person details in one pass
-- real-time phone/email/company expansion
+## datagma_enrich_company
 
-Best inputs:
-- `data` set to a LinkedIn URL or professional email
-- `fullName` or `firstName` + `lastName` only when paired with `data`
+Enrich firmographics for an account. Feeds into account scoring and ICP qualification.
 
-Important:
-- `phoneFull=true` should be reserved for cases where you do not already have
-  a social profile or email, matching Datagma’s docs guidance.
+```bash
+deepline tools execute datagma_enrich_company \
+  --payload '{"domain":"acme.com"}'
+```
 
-### `datagma_job_change_detection`
+Output includes: `industry`, `size`, `headcount`, `revenue`, `funding_stage`,
+`technologies`, `hq_country`.
 
-Use for:
-- validating whether a contact is still at the same company
+## Cost notes
 
-Best inputs:
-- `fullName` + `companyName`
-- add `jobTitle` when the contact name may be ambiguous
+- Person enrichment: 1 credit (~$0.04) per result.
+- Email finder: 1 credit (~$0.04) per email found.
+- Company enrichment: 1 credit (~$0.02) per result.
+- Credits are billed post-deduct (only charged when data is returned).
+- 1,000 free credits at signup — no credit card required.
 
-### `datagma_find_people`
+## Waterfall placement
 
-Use for:
-- prospecting inside one company by role title
+In a people-enrich waterfall, place Datagma:
+- After free enrichers (Apollo preview, LinkedIn scrape) but before expensive fallbacks.
+- Specifically useful as a phone-finder fallback after ContactOut or RocketReach.
+- Job-change detection makes it valuable as a "refresh trigger" — run for contacts
+  not enriched in the last 90 days to detect company changes before outreach.
 
-Best inputs:
-- `currentJobTitle`
-- plus one of `linkedinId`, `domain`, or `currentCompanies`
+## Gotchas
 
-### `datagma_search_phone_numbers`
-
-Use for:
-- direct mobile-number search from an email or profile URL
-
-Best inputs:
-- both `email` and `username` when you have them
-- Datagma explicitly recommends passing both together when possible
-
-## Internal-only endpoints
-
-Datagma also exposes reverse-email, reverse-phone, and Twitter lookup endpoints.
-They remain internal in this repo because the current public docs do not disclose
-standalone pricing for them. Do not move them to the public tool surface until
-pricing is verified against live credentials or direct vendor confirmation.
+- The full enrichment endpoint is `/api/ingress/v2/full` for both person AND company data.
+  When only domain/companyName is passed (no person identifiers), it returns company-only data.
+- Auth uses a query param (`?apikey=...`) — this is handled automatically by the provider config.
+- A 200 response with empty fields means "not found" — check for null email/name before
+  treating as enriched.
+- `job_change_detected: true` does NOT mean the person left their current company.
+  It means Datagma detected a change vs. their last known record. Always check `experience[0]`
+  for the current role.

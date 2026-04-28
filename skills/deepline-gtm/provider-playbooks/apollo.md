@@ -13,7 +13,7 @@ People search split:
 
 - `apollo_search_people` maps to Apollo `mixed_people/api_search` (preview, no Apollo credits, obfuscated names/contact gaps).
 - `apollo_people_search_paid` maps to Apollo `mixed_people/search` (paid, billed per request in Deepline).
-- Use native Apollo tools directly. The old synthetic search-plus-match helper is no longer part of the provider tool surface.
+- `apollo_search_people_with_match` runs free preview search and then paid enrichment for discovered IDs, returning enriched `people` rows directly.
 - Use `apollo_search_people` first for cheap discovery and shortlist building; switch to `apollo_people_search_paid` when you need paid Apollo search coverage/filters.
 - `q_keywords` is useful for broad text discovery, but it is not the only way to search non-CRM companies or people. If you already know the company, prefer `q_organization_domains_list` or `organization_ids`.
 
