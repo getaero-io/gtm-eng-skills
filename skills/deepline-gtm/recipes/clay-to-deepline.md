@@ -288,7 +288,7 @@ deepline tools get <candidate_tool_id>            # inspect candidate
 | `enrich-person-with-*` | `"person enrich linkedin"` | `leadmagic_profile_search` |
 | `find-email-*` | `"email finder"` | `hunter_email_finder`, `leadmagic_email_finder` |
 | `verify-email-*` | `"email verify validate"` | `leadmagic_email_validation` |
-| `company-*` | `"company enrich"` | `apollo_enrich_company` or `apollo_organization_enrich` |
+| `company-*` | `"company enrich"` | `apollo_enrich_company` |
 | `add-to-campaign-*` | `"add leads campaign"` | `instantly_add_to_campaign` |
 
 ### Summary Table
