@@ -1,0 +1,472 @@
+{
+  "name": "wf_inbound_qualification_cpg",
+  "status": "active",
+  "publish": false,
+  "specification": "## Goals\nInbound qualification for CPG / DTC brand signups. Detects retail presence by sniffing the brand's store-locator widget (Storepoint, Stockist, Closeby, Storerocket, Storemapper, Bullseye, Brandify) and calling its public JSON API directly. Classifies CPG vs non-CPG. Scores by CPG fit + revenue + title + retail presence. Routes:\n\n- create_deal: qualified, score >= 8 — full path: Slack brief with [Approve & Send] [Edit] [Skip] buttons + drafted email + LinkedIn DM\n- manual_review: 5 <= score < 8 — Slack brief with qualifying-question suggestion\n- partner_referral: sub-$500k revenue — refer to partner channel\n- non_cpg_decline: not a CPG manufacturer — polite decline draft\n- drop: junk filter blocks — silent\n\n## Trigger\nWebhook from your inbound form (Clay, HubSpot, Typeform, etc.). The webhook URL is generated when you apply this workflow. Configure your form to POST contact details to it.\n\n## Required input fields\n- email, first_name, last_name (always)\n- website (helps retail-extract; falls back to email domain)\n- annual_revenue (one of: '$500k', '$500k-$1m', '$1m-$3m', '$3m+')\n- in_retail (boolean), retailers (string, comma-separated)\n- step (1 or 2 — only step 2 enriches the company)\n- source_url (the page where the form was submitted, used for fbclid extraction)\n- phone, utm_source, utm_campaign (optional)\n\n## Placeholders to replace before deploying\n- SLACK_CHANNELS in `build_slack_msg` step → your inbound channels\n- REPLACE_ME_REP_NAME in draft_email/draft_linkedin/draft_brief prompts → your sales rep's first name\n- REPLACE_ME_BRAND_NAME in cpg_qualify system prompt → your company name\n- REPLACE_ME_BRAND_DOMAIN → your brand's domain\n- PLACEHOLDER_META_PIXEL_ID, PLACEHOLDER_META_CAPI_TOKEN, PLACEHOLDER_LINKEDIN_CAPI_TOKEN, PLACEHOLDER_LINKEDIN_CONVERSION_ID in prep_capi → your real ad account secrets (CAPI events are gated `run_if_js: return false` by default)\n\n## Pair with the slack-button-listener workflow\nConfigure your Slack app's interactivity URL to point at `slack-button-listener` so Approve/Edit/Skip buttons trigger downstream actions.\n",
+  "config": {
+    "version": 1,
+    "commands": [
+      {
+        "alias": "validate",
+        "operation": "run_javascript",
+        "payload": {
+          "code": "var i = input?.input || input || {}; var email = (i.email || '').trim().toLowerCase(); var firstName = (i.first_name || '').trim(); var lastName = (i.last_name || '').trim(); var website = (i.website || '').trim().toLowerCase(); var annualRevenue = (i.annual_revenue || '').trim(); var inRetail = String(i.in_retail || '').toLowerCase() === 'true'; var retailers = Array.isArray(i.retailers) ? i.retailers.join(', ') : (i.retailers || ''); var formStep = Number(i.step) || 1; var sourceUrl = (i.source_url || '').trim(); var phone = (i.phone || '').trim(); var domain = email.indexOf('@') >= 0 ? email.split('@')[1] : ''; if (!email || !domain) return { error: 'missing_email', skip: true }; var domainClean = website ? website.replace(/^https?:\\/\\//, '').replace(/\\/.*/, '').replace(/^www\\./, '') : domain; return { email: email, domain: domain, domain_clean: domainClean, first_name: firstName, last_name: lastName, full_name: firstName + ' ' + lastName, phone: phone, website: website, annual_revenue: annualRevenue, in_retail: inRetail, retailers: retailers, form_step: formStep, source_url: sourceUrl, utm_campaign: i.utm_campaign || '', utm_source: i.utm_source || '', utm_medium: i.utm_medium || '' };"
+        },
+        "tool": "run_javascript"
+      },
+      {
+        "alias": "junk_filter",
+        "operation": "run_javascript",
+        "payload": {
+          "code": "var v = row.validate?.result?.data || {}; var fn = v.first_name || ''; var ln = v.last_name || ''; var email = v.email || ''; var sourceUrl = v.source_url || ''; var website = v.website || ''; var ar = v.annual_revenue || ''; var inRetail = v.in_retail; var junkNames = ['test','asdf','aaa','xxx','fake','none','n/a','unknown','first','last','name','customer','user','demo','sample']; var junkLocalParts = ['test','fake','asdf','info','admin','noreply','no-reply','support','hello','contact','sales','webmaster']; var junkTlds = ['.ru','.cn','.tk','.xyz']; var careerPaths = ['/careers','/jobs','/hiring','/work-with-us','/join-us','/openings','/vacancies']; var personalDomains = ['gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com','aol.com']; var isJunk = false; var reasons = []; if (!fn || fn.length === 1 || /\\d/.test(fn) || junkNames.indexOf(fn.toLowerCase()) >= 0) { isJunk = true; reasons.push('bad_first_name'); } if (!ln || ln.length === 1 || /\\d/.test(ln) || junkNames.indexOf(ln.toLowerCase()) >= 0) { isJunk = true; reasons.push('bad_last_name'); } if (fn.toLowerCase() === ln.toLowerCase()) { isJunk = true; reasons.push('first_equals_last'); } if (!email || email.indexOf('@') < 0 || email.indexOf('.') < 0 || /\\s/.test(email) || (email.match(/@/g) || []).length > 1) { isJunk = true; reasons.push('bad_email_format'); } var localPart = email.split('@')[0] || ''; var emailDomain = email.split('@')[1] || ''; if (junkLocalParts.indexOf(localPart.toLowerCase()) >= 0) { isJunk = true; reasons.push('junk_local_part'); } if (junkTlds.some(function(t) { return email.toLowerCase().endsWith(t); })) { isJunk = true; reasons.push('junk_tld'); } if (careerPaths.some(function(p) { return sourceUrl.toLowerCase().indexOf(p) >= 0; })) { isJunk = true; reasons.push('careers_page'); } var isPersonalEmail = personalDomains.indexOf(emailDomain.toLowerCase()) >= 0; if (!website && isPersonalEmail) { isJunk = true; reasons.push('personal_email_no_website'); } if (fn.toLowerCase() === ln.toLowerCase() && fn.toLowerCase() === localPart.toLowerCase()) { isJunk = true; reasons.push('all_same'); } if (!ar && !inRetail && !website) { isJunk = true; reasons.push('empty_vitals'); } return { is_junk: isJunk, personal_email: isPersonalEmail, reasons: reasons };"
+        },
+        "tool": "run_javascript"
+      },
+      {
+        "alias": "validate_email",
+        "operation": "leadmagic_email_validation",
+        "payload": {
+          "email": "{{validate.result.data.email}}"
+        },
+        "tool": "leadmagic_email_validation"
+      },
+      {
+        "alias": "enrich_company",
+        "operation": "enrich_company",
+        "payload": {
+          "domain": "{{validate.result.data.domain_clean}}"
+        },
+        "run_if_js": "return row.validate?.result?.data?.form_step === 2;",
+        "tool": "deepline_native_enrich_company"
+      },
+      {
+        "alias": "retail_extract",
+        "operation": "firecrawl_extract",
+        "payload": {
+          "urls": [
+            "https://{{validate.result.data.domain_clean}}",
+            "https://{{validate.result.data.domain_clean}}/store-locations",
+            "https://{{validate.result.data.domain_clean}}/store-locator",
+            "https://{{validate.result.data.domain_clean}}/retailers",
+            "https://{{validate.result.data.domain_clean}}/wholesale"
+          ],
+          "ignoreInvalidURLs": true,
+          "prompt": "You are a CPG retail-distribution analyst. From this brand's website (homepage + retail/wholesale pages), pick the SINGLE BEST retail_tier and list every retailer the site confirms.\n\nTIER DECISION TREE (pick the FIRST that matches, in order):\n1. national_retail — site confirms placement at any of: Walmart (in-store), Target, Kroger, Whole Foods, Costco, CVS, Walgreens, Sephora, Ulta, Sprouts, Publix, HEB, Albertsons, Safeway, Wegmans, Trader Joe's.\n2. regional_retail — 1+ named regional chain placement (Buehler's, Erewhon, Martin's, Strack & Van Til, Pete's, etc.) without any national chain.\n3. specialty_retail — 5+ independent/specialty stores listed (e.g., individual Ace Hardware franchises, indie groceries, gift shops).\n4. mixed_dtc_retail — brand sells DTC AND has 1-4 named retailers, OR sells DTC + Amazon/Walmart.com online marketplaces.\n5. wholesale_only — brand actively recruits wholesale buyers (wholesale page with form, 'become a stockist', Faire/RangeMe storefront link) but no specific retail partners named.\n6. dtc_only — brand sells via own website only. No wholesale page, no store locator, no retailer mentions.\n\nOnly use 'unclear' when ALL pages return empty/error. If you can read the homepage at all, you can pick a tier.\n\nNAMED_RETAILERS RULES:\n1. Include every retailer the site explicitly lists as carrying the brand: chain names, indie store names, marketplace storefronts.\n2. Include 'Faire' or 'RangeMe' if the site links to a brand storefront on those wholesale platforms.\n3. Include 'Amazon' if the site links to the brand's Amazon storefront. Include 'Walmart' if sold on Walmart.com.\n4. EXCLUDE press logos (CNN, NYT, Bloomberg, WSJ, Oprah, Forbes) — those are media mentions, not retailers.\n5. EXCLUDE generic terms like 'partner', 'collaborator', 'distributor' without specific store names.\n\nFor specialty_retail brands, list every individual store you can extract from the store locator page (don't summarize as 'multiple Ace Hardware'; list them individually).\n\nRETURN: retail_tier, named_retailers, wholesale_pitch (bool), store_locator_present (bool), amazon_present (bool), evidence_quotes (up to 4 verbatim quotes), confidence (0..1), retail_score (0-4 per tier: national=4, regional=3, specialty 5+=3, mixed_dtc=2, wholesale_only=3, dtc_only=0, unclear=0).",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "retail_tier": {
+                "type": "string",
+                "enum": [
+                  "national_retail",
+                  "regional_retail",
+                  "specialty_retail",
+                  "mixed_dtc_retail",
+                  "dtc_only",
+                  "wholesale_only",
+                  "unclear"
+                ]
+              },
+              "named_retailers": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "amazon_present": {
+                "type": "boolean"
+              },
+              "wholesale_pitch": {
+                "type": "boolean"
+              },
+              "store_locator_present": {
+                "type": "boolean"
+              },
+              "evidence_quotes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "confidence": {
+                "type": "number"
+              },
+              "retail_score": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "retail_tier",
+              "named_retailers",
+              "amazon_present",
+              "wholesale_pitch",
+              "store_locator_present",
+              "evidence_quotes",
+              "confidence",
+              "retail_score"
+            ]
+          }
+        },
+        "run_if_js": "return Boolean(row.validate?.result?.data?.domain_clean);",
+        "tool": "firecrawl_extract"
+      },
+      {
+        "alias": "scrape_website",
+        "operation": "firecrawl_scrape",
+        "payload": {
+          "url": "https://{{validate.result.data.domain_clean}}",
+          "formats": [
+            {
+              "type": "markdown"
+            }
+          ],
+          "onlyMainContent": false,
+          "timeout": 25000
+        },
+        "run_if_js": "return Boolean(row.validate?.result?.data?.domain_clean);",
+        "tool": "firecrawl_scrape"
+      },
+      {
+        "alias": "pick_locator_url",
+        "operation": "run_javascript",
+        "payload": {
+          "code": "var sw = row.scrape_website && row.scrape_website.result && row.scrape_website.result.data;var md = (sw && sw.markdown) || '';if (typeof md !== 'string') md = String(md || '');var v0 = row.validate && row.validate.result && row.validate.result.data;var domain = (v0 && v0.domain_clean) || '';var candidates = [];var linkRe = /\\[([^\\]]{0,100})\\]\\((https?:\\/\\/[^)\\s]+|\\/[^)\\s]+)\\)/g;var m;while ((m = linkRe.exec(md)) !== null) {  var text = (m[1] || '').toLowerCase();  var url = m[2];  var urlLow = url.toLowerCase();  var pathPart = urlLow.split('?')[0].split('#')[0];  if (url.indexOf('http') === 0 && url.indexOf(domain) < 0) continue;  var pathOk = /\\/(store-?locator|store-?location|location|locations|stockist|where-?to-?buy|find-?us|find-?store|store-?finder|retailer|retailers|wholesale|stores)(\\/?$|\\?|#|\\/)/i.test(pathPart);  var textOk = /(store|locat|stockist|where to buy|find us|retail|carry|wholesale|find a)/i.test(text);  if (pathOk || textOk) {    var fullUrl = url.indexOf('http') === 0 ? url : ('https://' + domain + url);    candidates.push({url: fullUrl, text: text, path_match: pathOk, text_match: textOk});  }}function score(c) { var s = 0; if (c.path_match) s += 10; if (c.text_match) s += 5; var u = c.url.toLowerCase(); if (/locat/.test(u)) s += 4; if (/where/.test(u) || /find/.test(u)) s += 3; if (/wholesale/.test(u)) s += 1; if (/stockist/.test(u)) s += 4; return s; }candidates.sort(function(a, b) { return score(b) - score(a); });var picked = (candidates.length > 0 && candidates[0].url) ? candidates[0].url : ('https://' + domain + '/pages/store-locator');return { picked_url: picked, candidate_count: candidates.length, candidates: candidates.slice(0, 5) };"
+        },
+        "run_if_js": "return Boolean(row.scrape_website?.result?.data?.markdown);",
+        "tool": "run_javascript"
+      },
+      {
+        "alias": "scrape_locator_html",
+        "operation": "firecrawl_scrape",
+        "payload": {
+          "url": "{{pick_locator_url.result.data.picked_url}}",
+          "formats": [
+            {
+              "type": "rawHtml"
+            }
+          ],
+          "onlyMainContent": false,
+          "waitFor": 5000,
+          "actions": [
+            {
+              "type": "wait",
+              "milliseconds": 3000
+            },
+            {
+              "type": "scroll",
+              "direction": "down"
+            },
+            {
+              "type": "wait",
+              "milliseconds": 2000
+            }
+          ]
+        },
+        "run_if_js": "return Boolean(row.pick_locator_url?.result?.data?.picked_url);",
+        "tool": "firecrawl_scrape"
+      },
+      {
+        "alias": "detect_locator",
+        "operation": "run_javascript",
+        "payload": {
+          "code": "var html = row.scrape_locator_html?.result?.data?.rawHtml || row.scrape_locator_html?.result?.data?.html || '';if (typeof html !== 'string') html = String(html || '');var endpoint = ''; var library = 'none'; var apiKey = ''; var responseFormat = '';var m;if ((m = html.match(/StorepointWidget\\(\\s*['\\\"]([a-z0-9]+)['\\\"]/i)) || (m = html.match(/api\\d+\\.storepoint\\.co\\/v2\\/([a-z0-9]+)/i)) || (m = html.match(/data-map-id=['\\\"]([a-z0-9]+)['\\\"]/i))) {  library = 'storepoint'; apiKey = m[1]; endpoint = 'https://api26.storepoint.co/v2/' + apiKey + '/locations'; responseFormat = 'storepoint';}else if ((m = html.match(/data-stockist-widget-tag=['\\\"]?(map_[a-z0-9]+)['\\\"]?/i))) {  library = 'stockist'; apiKey = m[1]; endpoint = 'https://stockist.co/api/v1/' + apiKey + '/locations/overview.js'; responseFormat = 'stockist_overview';}else if ((m = html.match(/stockist\\.co\\/api\\/v1\\/(u\\d+)\\/locations/i)) || (m = html.match(/data-stockist-tag-key=['\\\"]([a-zA-Z0-9_-]+)['\\\"]/i)) || (m = html.match(/Stockist\\(\\s*['\\\"]([a-zA-Z0-9_-]+)['\\\"]/i))) {  library = 'stockist'; apiKey = m[1]; endpoint = 'https://stockist.co/api/v1/' + apiKey + '/locations/all'; responseFormat = 'stockist_legacy';}else if ((m = html.match(/api\\.storerocket\\.io\\/api\\/user\\/([a-zA-Z0-9_-]+)\\/locations/i)) || (m = html.match(/storerocket-id=['\\\"]([a-zA-Z0-9_-]+)['\\\"]/i)) || (m = html.match(/data-storerocket-id=['\\\"]([a-zA-Z0-9_-]+)['\\\"]/i))) {  library = 'storerocket'; apiKey = m[1]; endpoint = 'https://api.storerocket.io/api/user/' + apiKey + '/locations'; responseFormat = 'storerocket';}else if ((m = html.match(/storemapper\\.com\\/widgets\\/cluster\\/(\\d+)/i)) || (m = html.match(/data-storemapper-id=['\\\"]?(\\d+)['\\\"]?/i))) {  library = 'storemapper'; apiKey = m[1]; endpoint = 'https://www.storemapper.com/widgets/cluster/' + apiKey + '.json'; responseFormat = 'storemapper';}else if ((m = html.match(/bullseyelocations.*?ClientId=(\\d+)/i)) || (m = html.match(/data-bullseye-clientid=['\\\"]?(\\d+)/i)) || (m = html.match(/clientid['\\\"]?\\s*[:=]\\s*['\\\"]?(\\d+)['\\\"]?[\\s,].{0,200}bullseye/is))) {  library = 'bullseye'; apiKey = m[1]; endpoint = 'https://ws.bullseyelocations.com/RestSearch.svc/DoSearch?ClientId=' + apiKey + '&Distance=2000&PageSize=500&FullAddress=10001&Format=json'; responseFormat = 'bullseye';}else if ((m = html.match(/aem-api\\.brandify\\.com[^?]*\\?clientkey=([a-zA-Z0-9_-]+)/i)) || (m = html.match(/cdn\\.brandify\\.com\\/[a-z]+\\/([a-zA-Z0-9_-]+)/i))) {  library = 'brandify'; apiKey = m[1]; endpoint = 'https://aem-api.brandify.com/store-locator/store?clientkey=' + apiKey + '&radius=2000&type=geo&radiusuom=mile&getclosest=true&address=10001'; responseFormat = 'brandify';}else if ((m = html.match(/closeby\\.co\\/embed\\/([a-f0-9]{32})/i)) || (m = html.match(/[\"&']mapKey[\"&']\\s*[:=]\\s*[\"&']([a-f0-9]{32})[\"&']/i)) || (m = html.match(/data-closeby-(?:map-)?key=['\\\"]([a-f0-9]{32})['\\\"]/i))) {  library = 'closeby'; apiKey = m[1]; endpoint = 'https://www.closeby.co/embed/' + apiKey + '/locations.json'; responseFormat = 'closeby';}else if (html.indexOf('locally.com') >= 0 || html.indexOf('locally-search-widget') >= 0) { library = 'locally'; }else if (html.indexOf('storeflow.app') >= 0) { library = 'storeflow'; }else if (html.indexOf('westock.io') >= 0) { library = 'westock'; }else if (html.indexOf('woosmap') >= 0) { library = 'woosmap'; }return { library: library, api_key: apiKey, endpoint: endpoint, response_format: responseFormat, html_length: html.length };"
+        },
+        "run_if_js": "return Boolean(row.scrape_locator_html?.result?.data);",
+        "tool": "run_javascript"
+      },
+      {
+        "alias": "fetch_locator_data",
+        "operation": "generic_http_request",
+        "payload": {
+          "url": "{{detect_locator.result.data.endpoint}}",
+          "method": "GET",
+          "timeout_ms": 30000
+        },
+        "run_if_js": "return Boolean(row.detect_locator?.result?.data?.endpoint);",
+        "tool": "generic_http_request"
+      },
+      {
+        "alias": "cpg_qualify",
+        "operation": "ai_inference",
+        "payload": {
+          "model": "anthropic/claude-sonnet-4.6",
+          "system": "You qualify inbound leads for REPLACE_ME_BRAND_NAME, a growth-capital financing company that funds consumer-product brands scaling through retail and e-commerce. Your job: decide if this company MANUFACTURES or PRODUCES physical consumer goods (CPG). Reject pure retailers, distributors, agencies, B2B industrial, food-service, and medical-only distribution.",
+          "prompt": "Company name: {{validate.result.data.full_name}}'s company\nDomain: {{validate.result.data.domain_clean}}\nWebsite snippet (truncated):\n{{scrape_website.result.data.markdown}}\n\nQUALIFY (CPG_Company=true): Brands that MANUFACTURE physical products in food & beverage, personal care & beauty, household, health & wellness, apparel, footwear, pet, baby, stationery, or supplements.\nDO NOT QUALIFY (CPG_Company=false): Retailers reselling other brands, distributors, brokers, agencies, B2B industrial, food-service operators, medical-only distribution, services businesses.\n\nReturn:\n- CPG_Company (boolean)\n- Category (specific subcategory of what they make, or \"Not a product manufacturer\")\n- Reasoning (1-2 sentences citing evidence from the website snippet)\n- Company_Overview (1-2 sentence neutral description suitable for a CRM)\n- Funding_Hooks (array of up to 3 short bullets describing what kind of capital need this brand likely has — invoice factoring, PO financing, ad spend, working capital — given their stage and the website signals).",
+          "jsonSchema": "{\"type\":\"object\",\"properties\":{\"CPG_Company\":{\"type\":\"boolean\"},\"Category\":{\"type\":\"string\"},\"Reasoning\":{\"type\":\"string\"},\"Company_Overview\":{\"type\":\"string\"},\"Funding_Hooks\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"maxItems\":3}},\"required\":[\"CPG_Company\",\"Category\",\"Reasoning\",\"Company_Overview\",\"Funding_Hooks\"],\"additionalProperties\":false}"
+        },
+        "tool": "ai_inference"
+      },
+      {
+        "commands": [
+          {
+            "alias": "enrich_contact__hunter_person",
+            "extract_js": "(output_data)=>(()=>{const fullName=extract(\"hunter_people_find\", output_data, \"full_name\");const email=extract(\"hunter_people_find\", output_data, \"email\");const linkedin=extract(\"hunter_people_find\", output_data, \"linkedin\");const company=extract(\"hunter_people_find\", output_data, \"company\");return fullName||email||linkedin||company?{full_name:fullName,email,linkedin,company,source:\"hunter_people_find\"}:null;})()",
+            "operation": "hunter_people_find",
+            "payload": {
+              "email": "{{validate.data.email}}"
+            },
+            "tool": "hunter_people_find"
+          },
+          {
+            "alias": "enrich_contact__crust_contact",
+            "extract_js": "(output_data)=>(()=>{const fullName=extract(\"crustdata_enrich_contact\", output_data, \"full_name\");const email=extract(\"crustdata_enrich_contact\", output_data, \"email\");const linkedin=extract(\"crustdata_enrich_contact\", output_data, \"linkedin\");const company=extract(\"crustdata_enrich_contact\", output_data, \"company\");return fullName||email||linkedin||company?{full_name:fullName,email,linkedin,company,source:\"crustdata_enrich_contact\"}:null;})()",
+            "operation": "crustdata_enrich_contact",
+            "payload": {
+              "email": "{{validate.data.email}}"
+            },
+            "tool": "crustdata_enrich_contact"
+          },
+          {
+            "alias": "enrich_contact__prospeo_enrich_person",
+            "extract_js": "(output_data)=>(()=>{const fullName=extract(\"prospeo_enrich_person\", output_data, \"full_name\");const email=extract(\"prospeo_enrich_person\", output_data, \"email\");const linkedin=extract(\"prospeo_enrich_person\", output_data, \"linkedin\");const company=extract(\"prospeo_enrich_person\", output_data, \"company\");return fullName||email||linkedin||company?{full_name:fullName,email,linkedin,company,source:\"prospeo_enrich_person\"}:null;})()",
+            "operation": "prospeo_enrich_person",
+            "payload": {
+              "email": "{{validate.data.email}}"
+            },
+            "tool": "prospeo_enrich_person"
+          },
+          {
+            "alias": "enrich_contact__apollo_match",
+            "extract_js": "(output_data)=>(()=>{const fullName=extract(\"apollo_people_match\", output_data, \"full_name\");const email=extract(\"apollo_people_match\", output_data, \"email\");const linkedin=extract(\"apollo_people_match\", output_data, \"linkedin\");const company=extract(\"apollo_people_match\", output_data, \"company\");return fullName||email||linkedin||company?{full_name:fullName,email,linkedin,company,source:\"apollo_people_match\"}:null;})()",
+            "operation": "apollo_people_match",
+            "payload": {
+              "email": "{{validate.data.email}}"
+            },
+            "tool": "apollo_people_match"
+          },
+          {
+            "alias": "enrich_contact__native_contact",
+            "extract_js": "(output_data)=>(()=>{const fullName=extract(\"deepline_native_enrich_contact\", output_data, \"full_name\");const email=extract(\"deepline_native_enrich_contact\", output_data, \"email\");const linkedin=extract(\"deepline_native_enrich_contact\", output_data, \"linkedin\");const company=extract(\"deepline_native_enrich_contact\", output_data, \"company\");return fullName||email||linkedin||company?{full_name:fullName,email,linkedin,company,source:\"deepline_native_enrich_contact\"}:null;})()",
+            "operation": "enrich_contact",
+            "payload": {
+              "email": "{{validate.data.email}}"
+            },
+            "tool": "deepline_native_enrich_contact"
+          }
+        ],
+        "with_waterfall": "enrich_contact"
+      },
+      {
+        "alias": "score",
+        "operation": "run_javascript",
+        "payload": {
+          "code": "var v = row.validate?.result?.data || {};var junk = row.junk_filter?.result?.data || {};var cpqObj = row.cpg_qualify?.result?.extracted_json || row.cpg_qualify?.result?.result?.object || {};if (typeof cpqObj === 'string') { try { cpqObj = JSON.parse(cpqObj); } catch(e) { cpqObj = {}; } }var rcObj = row.retail_extract?.result?.data?.data || row.retail_extract?.result?.extracted_json || {};if (typeof rcObj === 'string') { try { rcObj = JSON.parse(rcObj); } catch(e) { rcObj = {}; } }var loc = row.detect_locator?.result?.data || {};var locData = row.fetch_locator_data?.result?.data || {};var locLibrary = loc.library || 'none';var locFormat = loc.response_format || '';var locResults = [];var locCount = 0;if (locFormat === 'storepoint') { locResults = (locData.results && locData.results.locations) || []; locCount = locResults.length; }else if (locFormat === 'stockist_overview') {  var ids = (locData && locData.i) || [];  locCount = Array.isArray(ids) ? ids.length : 0;  locResults = [];}else if (locFormat === 'stockist_legacy') { locResults = Array.isArray(locData) ? locData : []; locCount = locResults.length; }else if (locFormat === 'storerocket') { locResults = (locData.results && locData.results.locations) || []; locCount = locResults.length; }else if (locFormat === 'storemapper') { locResults = locData.stores || locData.locations || []; locCount = locResults.length; }else if (locFormat === 'bullseye') { locResults = locData.ResultList || locData.Results || locData.locations || []; locCount = locResults.length; }else if (locFormat === 'brandify') { locResults = (locData.response && locData.response.collection) || []; locCount = locResults.length; }else if (locFormat === 'closeby') { locResults = locData.locations || []; locCount = (typeof locData.results_count === 'number' ? locData.results_count : locResults.length); }else { locResults = (locData.results && locData.results.locations) || locData.locations || (Array.isArray(locData) ? locData : []) || []; locCount = Array.isArray(locResults) ? locResults.length : 0; }var locStateCounts = {};var locNames = [];for (var i = 0; i < Math.min((locResults || []).length, 200); i++) {  var L = locResults[i] || {};  var nm = L.name || L.Name || L.LocationName || L.location_name || '';  if (nm) locNames.push(nm);  var addr = L.streetaddress || L.address || L.address_line_1 || L.AddressLine1 || L.location_address || '';  var stField = L.state || L.State || L.region || '';  if (stField && typeof stField === 'string') { locStateCounts[stField] = (locStateCounts[stField] || 0) + 1; }  else if (typeof addr === 'string') { var stMatch = addr.match(/,\\s*([A-Za-z]{2,20})(?:\\s+\\d|,)/); if (stMatch) { var st = stMatch[1]; locStateCounts[st] = (locStateCounts[st] || 0) + 1; } }}var rcNamed = (rcObj.named_retailers || []).slice();if (locCount > 0 && locNames.length > 0) {  for (var j = 0; j < Math.min(locNames.length, 5); j++) { if (rcNamed.indexOf(locNames[j]) < 0) rcNamed.push(locNames[j]); }}var contact = row.enrich_contact || {};var title = contact.job_title || contact.title || '';var ar = (v.annual_revenue || '').toLowerCase();var revScore = ar === '$500k' ? 1 : ar === '$500k-$1m' ? 2 : ar === '$1m-$3m' ? 3 : ar === '$3m+' ? 4 : 0;var tl = title.toLowerCase();var titleScore = !tl ? 0 : /ceo|founder|owner|cfo|coo|chief financ|chief operat|finance/.test(tl) ? 3 : /operations|chief|vp|vice|president|director|sales/.test(tl) ? 2 : 1;var cpgScore = cpqObj.CPG_Company === true ? 4 : 0;var retailTier = (rcObj.retail_tier || 'unclear');var rcConfidence = typeof rcObj.confidence === 'number' ? rcObj.confidence : 0;var llmRetailScore = typeof rcObj.retail_score === 'number' ? rcObj.retail_score : null;var retailScore;if (locCount >= 50) { retailTier = 'specialty_retail'; retailScore = 3; rcConfidence = Math.max(rcConfidence, 0.95); }else if (locCount >= 5) { retailTier = (retailTier === 'unclear' || retailTier === 'dtc_only') ? 'specialty_retail' : retailTier; retailScore = 3; rcConfidence = Math.max(rcConfidence, 0.85); }else if (locCount >= 1) { if (retailTier === 'unclear' || retailTier === 'dtc_only') retailTier = 'mixed_dtc_retail'; retailScore = 2; rcConfidence = Math.max(rcConfidence, 0.75); }else if (llmRetailScore !== null && rcConfidence >= 0.4) { retailScore = llmRetailScore; }else if (v.in_retail) { retailScore = (v.retailers && v.retailers !== 'Other' && v.retailers.length > 0) ? 3 : (v.retailers === 'Other' ? 2 : 1); }else { retailScore = 0; }var totalScore = cpgScore + revScore + titleScore + retailScore;var isCPG = cpqObj.CPG_Company === true;var revenueTier = ar === '$3m+' ? 'tier_a' : ar === '$1m-$3m' ? 'tier_b' : ar === '$500k-$1m' ? 'tier_c' : ar === '$500k' ? 'tier_d_partner' : 'tier_unknown';var route;if (junk.is_junk) { route = 'drop'; }else if (!isCPG) { route = 'non_cpg_decline'; }else if (revenueTier === 'tier_d_partner') { route = 'partner_referral'; }else if (totalScore >= 8) { route = 'create_deal'; }else if (totalScore >= 5) { route = 'manual_review'; }else { route = 'manual_review'; }var topStates = Object.keys(locStateCounts).map(function(k){return [k, locStateCounts[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0, 5).map(function(p){return p[0]+'='+p[1];}).join(', ');return { total_score: totalScore, cpg_score: cpgScore, revenue_score: revScore, revenue_tier: revenueTier, title_score: titleScore, retail_score: retailScore, retail_tier: retailTier, retail_named: rcNamed, retail_evidence: rcObj.evidence_quotes || [], retail_confidence: rcConfidence, locator_library: locLibrary, locator_count: locCount, locator_top_states: topStates, route: route, status: route, cpg_company: isCPG, cpg_category: cpqObj.Category || '', cpg_reasoning: cpqObj.Reasoning || '', company_overview: cpqObj.Company_Overview || '', funding_hooks: cpqObj.Funding_Hooks || [], enriched_title: title, linkedin_url: contact.linkedin || contact.linkedin_url || '' };"
+        },
+        "tool": "run_javascript"
+      },
+      {
+        "alias": "draft_brief",
+        "operation": "ai_inference",
+        "payload": {
+          "model": "anthropic/claude-sonnet-4.6",
+          "system": "You write tight, skim-in-15-seconds Slack briefs for REPLACE_ME_REP_NAME. Zero fluff. Every line earns its place. Use Slack mrkdwn (single * for bold, > for quotes). NO em-dashes (use hyphens or commas). NO emoji anywhere.",
+          "prompt": "Brief REPLACE_ME_REP_NAME on this inbound. Brand facts:\n- Lead: {{validate.result.data.full_name}} ({{validate.result.data.email}}) · phone {{validate.result.data.phone}}\n- Title: {{score.result.data.enriched_title}} · LinkedIn: {{score.result.data.linkedin_url}}\n- Domain: {{validate.result.data.domain_clean}} · revenue {{validate.result.data.annual_revenue}}\n- Score {{score.result.data.total_score}}/14 (cpg={{score.result.data.cpg_score}} rev={{score.result.data.revenue_score}} title={{score.result.data.title_score}} retail={{score.result.data.retail_score}})\n- Route: {{score.result.data.route}}\n- Retail: {{score.result.data.retail_tier}} (conf {{score.result.data.retail_confidence}}); named: {{score.result.data.retail_named}}\n- Locator: {{score.result.data.locator_library}}, {{score.result.data.locator_count}} stores, top states {{score.result.data.locator_top_states}}\n- Evidence: {{score.result.data.retail_evidence}}\n- Category: {{score.result.data.cpg_category}}\n- Why CPG: {{score.result.data.cpg_reasoning}}\n- Overview: {{score.result.data.company_overview}}\n- Capital hooks: {{score.result.data.funding_hooks}}\n- UTM: {{validate.result.data.utm_source}} / {{validate.result.data.utm_campaign}}\n\nEXACT FORMAT (5-7 lines, no emoji, no decorative chars except a leading bullet):\n*<route> · <Brand> · <revenue> · score <N>/14*\n*Lead:* <name> · <title or —> · <linkedin or —>\n*Contact:* <email> · <phone>\n*Brand:* <one-sentence overview, max 30 words>\n*Retail:* <tier> · <up to 5 named retailers comma-joined, or \"no named retailers\"> · conf <0-1>\n*Capital fit:* <one specific funding mechanic + why, max 25 words>\n*Action:* <one concrete next step in REPLACE_ME_REP_NAME's voice, max 20 words>\n\nROUTE-SPECIFIC ACTION:\n- create_deal: book a call this week, lead with the strongest signal\n- manual_review: name ONE qualifying question that would unblock\n- partner_referral: \"Refer to <partner_placeholder>, sub-$500k below SC minimum\"\n- non_cpg_decline: \"Polite decline, not a CPG manufacturer\"\n\nReturn JSON: {\"slack_text\": \"...\"}.",
+          "jsonSchema": "{\"type\":\"object\",\"properties\":{\"slack_text\":{\"type\":\"string\",\"minLength\":200,\"maxLength\":1100}},\"required\":[\"slack_text\"],\"additionalProperties\":false}"
+        },
+        "run_if_js": "return ['create_deal','manual_review','partner_referral','non_cpg_decline'].indexOf(row.score?.result?.data?.route) >= 0;",
+        "tool": "ai_inference"
+      },
+      {
+        "alias": "draft_email",
+        "operation": "ai_inference",
+        "payload": {
+          "model": "anthropic/claude-sonnet-4.6",
+          "system": "You write short, specific outbound emails for REPLACE_ME_REP_NAME, REPLACE_ME_BRAND_NAME's founder. Voice: warm, plain-spoken, no hype, no jargon. NEVER use em dashes. Two short paragraphs. Reference one concrete brand detail (named retailer, product, or recent campaign). End with exactly one question, then a blank line, then 'REPLACE_ME_REP_NAME' on its own line.",
+          "prompt": "Write REPLACE_ME_REP_NAME's email to {{validate.result.data.first_name}} at {{validate.result.data.domain_clean}}.\n\nFacts:\n- Brand: {{score.result.data.company_overview}}\n- Category: {{score.result.data.cpg_category}}\n- Retail tier: {{score.result.data.retail_tier}}; named retailers: {{score.result.data.retail_named}}\n- Evidence: {{score.result.data.retail_evidence}}\n- Revenue band: {{validate.result.data.annual_revenue}}\n- Capital hooks: {{score.result.data.funding_hooks}}\n- REPLACE_ME_BRAND_NAME funds CPG brands via PO financing, invoice factoring, working capital, and ad-spend.\n\nHARD RULES:\n1. Subject: 25-55 characters. No question mark. No clickbait.\n2. Body opens with a sincere observation about a SPECIFIC product or retailer. NEVER start with 'I noticed', 'I came across', 'Hope this finds you', 'Circling back', 'Quick question'.\n3. If named retailers list is non-empty, MUST mention one by name. Otherwise mention a product.\n4. Tie to ONE REPLACE_ME_BRAND_NAME funding mechanic (PO, factoring, working capital, ad-spend) matching their stage.\n5. End with a SINGLE question about their capital constraint. Never 'want to chat?'.\n6. NO em-dashes. Use comma or period.\n7. Body length: 350-650 characters.\n8. Body MUST end with: <question>?\\n\\nREPLACE_ME_REP_NAME\n\nReturn JSON: {\"subject\": \"...\", \"body\": \"...\"}.",
+          "jsonSchema": "{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\",\"minLength\":25,\"maxLength\":60},\"body\":{\"type\":\"string\",\"minLength\":350,\"maxLength\":700}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}"
+        },
+        "run_if_js": "return row.score?.result?.data?.route === 'create_deal';",
+        "tool": "ai_inference"
+      },
+      {
+        "alias": "draft_linkedin",
+        "operation": "ai_inference",
+        "payload": {
+          "model": "anthropic/claude-sonnet-4.6",
+          "system": "You write short, specific LinkedIn DMs for REPLACE_ME_REP_NAME. Voice: warm, founder-to-founder, lowercase ok. NEVER use em dashes. Reference ONE concrete brand detail (named retailer or product). End with a question, not a meeting ask.",
+          "prompt": "Write REPLACE_ME_REP_NAME's LinkedIn DM to {{validate.result.data.first_name}} at {{validate.result.data.domain_clean}}.\n\nFacts:\n- Brand: {{score.result.data.company_overview}}\n- Category: {{score.result.data.cpg_category}}\n- Retail tier: {{score.result.data.retail_tier}}; retailers: {{score.result.data.retail_named}}\n- Evidence: {{score.result.data.retail_evidence}}\n- Funding hooks: {{score.result.data.funding_hooks}}\n\nHARD RULES:\n1. 200-400 characters total.\n2. Open with one sincere observation about a SPECIFIC product or retailer. NEVER use 'I noticed', 'I came across', 'Hope this finds you', 'Circling back', 'Quick question'.\n3. If named retailers list is non-empty, MUST mention one by name.\n4. End with a single question about their capital constraint. NOT 'want to chat?' or 'open to a meeting?'.\n5. NO em-dashes.\n\nReturn JSON: {\"dm\": \"...\"}.",
+          "jsonSchema": "{\"type\":\"object\",\"properties\":{\"dm\":{\"type\":\"string\",\"minLength\":200,\"maxLength\":400}},\"required\":[\"dm\"],\"additionalProperties\":false}"
+        },
+        "run_if_js": "return row.score?.result?.data?.route === 'create_deal' && Boolean(row.score?.result?.data?.linkedin_url);",
+        "tool": "ai_inference"
+      },
+      {
+        "alias": "lookup_company",
+        "operation": "attio_query_company_records",
+        "payload": {
+          "filter": {
+            "domains": {
+              "domain": "{{validate.result.data.domain_clean}}"
+            }
+          },
+          "limit": 1
+        },
+        "run_if_js": "return ['create_deal','manual_review','partner_referral'].indexOf(row.score?.result?.data?.route) >= 0;",
+        "tool": "attio_query_company_records"
+      },
+      {
+        "alias": "lookup_people",
+        "operation": "attio_query_person_records",
+        "payload": {
+          "filter": {
+            "email_addresses": {
+              "email_address": "{{validate.result.data.email}}"
+            }
+          },
+          "limit": 1
+        },
+        "run_if_js": "return ['create_deal','manual_review','partner_referral'].indexOf(row.score?.result?.data?.route) >= 0;",
+        "tool": "attio_query_person_records"
+      },
+      {
+        "alias": "create_company",
+        "operation": "attio_create_company_record",
+        "payload": {
+          "values": {
+            "domains": "{{validate.result.data.domain_clean}}",
+            "name": "{{validate.result.data.full_name}}"
+          }
+        },
+        "run_if_js": "return false; /* attio writes disabled — see v1 history */",
+        "tool": "attio_create_company_record"
+      },
+      {
+        "alias": "create_person",
+        "operation": "attio_create_person_record",
+        "payload": {
+          "values": {
+            "email_addresses": "{{validate.result.data.email}}",
+            "job_title": "{{score.result.data.enriched_title}}",
+            "linkedin": "{{score.result.data.linkedin_url}}",
+            "name": "{{validate.result.data.full_name}}"
+          }
+        },
+        "run_if_js": "return false; /* attio writes disabled — see v1 history */",
+        "tool": "attio_create_person_record"
+      },
+      {
+        "alias": "create_deal",
+        "operation": "attio_create_deal_record",
+        "payload": {
+          "values": {
+            "lead_source": "Website",
+            "name": "{{validate.result.data.full_name}} -- Website Form Fill",
+            "stage": "Lead"
+          }
+        },
+        "run_if_js": "return false; /* attio writes disabled — see v1 history */",
+        "tool": "attio_create_deal_record"
+      },
+      {
+        "alias": "prep_capi",
+        "operation": "run_javascript",
+        "payload": {
+          "code": "var v = row.validate?.result?.data || {};var srcUrl = v.source_url || '';var fbclidMatch = srcUrl.match(/[?&]fbclid=([^&]+)/);var fbclid = fbclidMatch ? decodeURIComponent(fbclidMatch[1]) : '';var nowSec = Math.floor(Date.now() / 1000);var fbc = fbclid ? ('fb.1.' + (nowSec * 1000) + '.' + fbclid) : '';var phoneDigits = (v.phone || '').replace(/[^0-9]/g, '');if (phoneDigits.length === 10) phoneDigits = '1' + phoneDigits;return {  email_lower: (v.email || '').toLowerCase(),  phone_e164_digits: phoneDigits,  first_name_lower: (v.first_name || '').toLowerCase(),  last_name_lower: (v.last_name || '').toLowerCase(),  fbclid: fbclid,  fbc: fbc,  source_url: srcUrl,  now_unix_seconds: nowSec,  now_unix_millis: nowSec * 1000,  meta_pixel_id: 'PLACEHOLDER_META_PIXEL_ID',  meta_capi_token: 'PLACEHOLDER_META_CAPI_TOKEN',  linkedin_capi_token: 'PLACEHOLDER_LINKEDIN_CAPI_TOKEN',  linkedin_conversion_id: 'PLACEHOLDER_LINKEDIN_CONVERSION_ID'};"
+        },
+        "run_if_js": "return row.score?.result?.data?.route === 'create_deal';",
+        "tool": "run_javascript"
+      },
+      {
+        "alias": "capi_facebook",
+        "operation": "generic_http_request",
+        "payload": {
+          "url": "https://graph.facebook.com/v20.0/{{prep_capi.result.data.meta_pixel_id}}/events",
+          "method": "POST",
+          "query": {
+            "access_token": "{{prep_capi.result.data.meta_capi_token}}"
+          },
+          "body_json": {
+            "data": [
+              {
+                "event_name": "Lead",
+                "event_time": "{{prep_capi.result.data.now_unix_seconds}}",
+                "action_source": "website",
+                "event_source_url": "{{prep_capi.result.data.source_url}}",
+                "user_data": {
+                  "em": [
+                    "{{prep_capi.result.data.email_lower}}"
+                  ],
+                  "ph": [
+                    "{{prep_capi.result.data.phone_e164_digits}}"
+                  ],
+                  "fn": [
+                    "{{prep_capi.result.data.first_name_lower}}"
+                  ],
+                  "ln": [
+                    "{{prep_capi.result.data.last_name_lower}}"
+                  ],
+                  "fbc": "{{prep_capi.result.data.fbc}}"
+                },
+                "custom_data": {
+                  "currency": "USD",
+                  "value": "{{score.result.data.total_score}}",
+                  "content_name": "inbound_form_qualified"
+                }
+              }
+            ]
+          }
+        },
+        "run_if_js": "return false; /* capi disabled until secrets wired — see SC_META_PIXEL_ID etc. */",
+        "tool": "generic_http_request"
+      },
+      {
+        "alias": "capi_linkedin",
+        "operation": "generic_http_request",
+        "payload": {
+          "url": "https://api.linkedin.com/rest/conversionEvents",
+          "method": "POST",
+          "headers": {
+            "Authorization": "Bearer {{prep_capi.result.data.linkedin_capi_token}}",
+            "LinkedIn-Version": "202405",
+            "X-Restli-Protocol-Version": "2.0.0",
+            "Content-Type": "application/json"
+          },
+          "body_json": {
+            "conversion": "urn:lla:llaPartnerConversion:{{prep_capi.result.data.linkedin_conversion_id}}",
+            "conversionHappenedAt": "{{prep_capi.result.data.now_unix_millis}}",
+            "conversionValue": {
+              "currencyCode": "USD",
+              "amount": "1"
+            },
+            "user": {
+              "userIds": [
+                {
+                  "idType": "SHA256_EMAIL",
+                  "idValue": "{{prep_capi.result.data.email_lower}}"
+                }
+              ],
+              "userInfo": {
+                "firstName": "{{validate.result.data.first_name}}",
+                "lastName": "{{validate.result.data.last_name}}"
+              }
+            }
+          }
+        },
+        "run_if_js": "return false; /* capi disabled until secrets wired */",
+        "tool": "generic_http_request"
+      },
+      {
+        "alias": "build_slack_msg",
+        "operation": "run_javascript",
+        "payload": {
+          "code": "var s = row.score?.result?.data || {};var v = row.validate?.result?.data || {};var bObj = row.draft_brief?.result?.extracted_json || row.draft_brief?.result?.result?.object || {};if (typeof bObj === 'string') { try { bObj = JSON.parse(bObj); } catch(e) { bObj = {}; } }var emailObj = row.draft_email?.result?.extracted_json || row.draft_email?.result?.result?.object || {};if (typeof emailObj === 'string') { try { emailObj = JSON.parse(emailObj); } catch(e) { emailObj = {}; } }var dmObj = row.draft_linkedin?.result?.extracted_json || row.draft_linkedin?.result?.result?.object || {};if (typeof dmObj === 'string') { try { dmObj = JSON.parse(dmObj); } catch(e) { dmObj = {}; } }var route = s.route || 'manual_review';var channelMap = {\"create_deal\":\"#REPLACE_ME_INBOUND_CHANNEL\",\"manual_review\":\"#REPLACE_ME_INBOUND_CHANNEL\",\"partner_referral\":\"#REPLACE_ME_INBOUND_CHANNEL\",\"non_cpg_decline\":\"#REPLACE_ME_INBOUND_CHANNEL\",\"default\":\"#REPLACE_ME_INBOUND_CHANNEL\"};var channel = channelMap[route] || channelMap.default;var brief = bObj.slack_text || '(brief generation skipped or failed)';var domain = v.domain_clean || '';var leadName = v.full_name || '';var actionValuePrefix = route + '|' + domain + '|' + (leadName.replace(/\\|/g, ' '));var blocks = [];blocks.push({ type: 'section', text: { type: 'mrkdwn', text: brief } });if (emailObj.subject) {  var emailMd = '*Drafted email* (ready to copy)\\n>*Subject:* ' + emailObj.subject + '\\n>\\n>' + (emailObj.body || '').replace(/\\n/g, '\\n>');  blocks.push({ type: 'divider' });  blocks.push({ type: 'section', text: { type: 'mrkdwn', text: emailMd } });}if (dmObj.dm) {  var dmMd = '*Drafted LinkedIn DM* (ready to copy)\\n>' + dmObj.dm.replace(/\\n/g, '\\n>');  blocks.push({ type: 'divider' });  blocks.push({ type: 'section', text: { type: 'mrkdwn', text: dmMd } });}blocks.push({ type: 'divider' });var primaryLabel = (route === 'create_deal') ? 'Approve & Send' : (route === 'partner_referral') ? 'Confirm Referral' : (route === 'non_cpg_decline') ? 'Confirm Decline' : 'Approve';blocks.push({  type: 'actions',  block_id: 'inbound_actions',  elements: [    { type: 'button', action_id: 'inbound_approve', style: 'primary', text: { type: 'plain_text', text: primaryLabel }, value: 'approve|' + actionValuePrefix },    { type: 'button', action_id: 'inbound_edit', text: { type: 'plain_text', text: 'Edit' }, value: 'edit|' + actionValuePrefix },    { type: 'button', action_id: 'inbound_skip', style: 'danger', text: { type: 'plain_text', text: 'Skip' }, value: 'skip|' + actionValuePrefix }  ]});blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: '_route=' + route + ' · score ' + (s.total_score || 0) + '/14 · domain ' + domain + '_' }] });var fallback = ('Inbound: ' + leadName + ' from ' + domain + ' · ' + route + ' · score ' + (s.total_score || 0) + '/14').slice(0, 200);return { text: fallback, blocks: blocks, channel: channel, route: route };"
+        },
+        "run_if_js": "return ['create_deal','manual_review','partner_referral','non_cpg_decline'].indexOf(row.score?.result?.data?.route) >= 0;",
+        "tool": "run_javascript"
+      },
+      {
+        "alias": "notify_slack",
+        "operation": "slack_post_message",
+        "payload": {
+          "channel": "{{build_slack_msg.result.data.channel}}",
+          "text": "{{build_slack_msg.result.data.text}}",
+          "blocks": "{{build_slack_msg.result.data.blocks}}",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "run_if_js": "return Boolean(row.build_slack_msg?.result?.data?.text);",
+        "tool": "slack_post_message"
+      }
+    ]
+  }
+}

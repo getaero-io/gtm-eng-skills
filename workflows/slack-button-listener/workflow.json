@@ -1,0 +1,50 @@
+{
+  "name": "wf_slack_button_listener",
+  "status": "active",
+  "publish": false,
+  "specification": "## Goals\nListen for Slack button clicks (Approve & Send / Edit / Skip) on inbound brief messages and acknowledge in the channel.\n\n## Trigger\nWebhook from your Slack app's interactivity URL. In your Slack app config (api.slack.com/apps):\n- Interactivity & Shortcuts → Interactivity ON\n- Request URL → this workflow's webhook URL (printed at apply time)\n\n## Steps\n1. validate_event — parse Slack block_actions payload, extract action name + lead context from button value\n2. decide_action — derive label (Approved & Sent / Edit requested / Skipped)\n3. build_reply_payload — produce text + Block Kit ack reply\n4. post_thread_reply — post acknowledgment to the channel\n\n## Button value format\nThe inbound-qualification workflows post buttons whose `value` carries the lead context so the listener can recover it without a Slack history read:\n\n```\n<action>|<route>|<domain>|<lead_name>[|<hubspot_contact_id>|<hubspot_list_id>]\n```\n\nExample: `approve|enterprise|acme.com|Jane Doe|123456789|46`\n\n## Future extensions (stub today, wire up downstream actions)\n\nReplace the stub ack with real downstream actions:\n- approve → hubspot_add_records_to_list (CRM enrollment) + smartlead_add_to_campaign + Attio assert\n- edit → spawn re-draft sub-workflow with new instructions in thread\n- skip → mark Attio deal lost or write a 'skipped' tag to HubSpot\n\n## Channel ID handling\nFor convenience, the validator translates a known channel ID to a friendlier `#name` for the slack_post_message step. Replace REPLACE_ME_CHANNEL_ID with your inbound channel's actual ID and REPLACE_ME_INBOUND_CHANNEL with its name.\n",
+  "config": {
+    "version": 1,
+    "commands": [
+      {
+        "alias": "validate_event",
+        "operation": "run_javascript",
+        "payload": {
+          "code": "var src = (typeof input === 'object' && input) ? input : {};if (src.input && typeof src.input === 'object') src = src.input;var ev = (src.event && typeof src.event === 'object') ? src.event : src;var t = String(ev.type || src.type || '');var actions = (ev.actions && ev.actions.length) ? ev.actions : (src.actions || []);var firstAction = (actions && actions.length > 0 && actions[0]) ? actions[0] : {};var actionId = String(firstAction.action_id || '');var actionValue = String(firstAction.value || '');var parts = actionValue.split('|');var actionName = parts[0] || '';var route = parts[1] || '';var domain = parts[2] || '';var leadName = parts[3] || '';var chRaw = '';if (ev.channel && typeof ev.channel === 'object') chRaw = ev.channel.id || '';else if (src.channel && typeof src.channel === 'object') chRaw = src.channel.id || '';else if (ev.channel) chRaw = String(ev.channel);var rawChannel = String(chRaw);var channel = (rawChannel === 'REPLACE_ME_CHANNEL_ID') ? '#REPLACE_ME_INBOUND_CHANNEL' : rawChannel;var msg = ev.message || src.message || {};var ts = String(msg.ts || '');var userId = '';if (ev.user && typeof ev.user === 'object') userId = ev.user.id || '';else if (src.user && typeof src.user === 'object') userId = src.user.id || '';else if (ev.user) userId = String(ev.user);var validActions = ['approve','edit','skip'];var isActionable = (t === 'block_actions' || actionId.indexOf('inbound_') === 0) && validActions.indexOf(actionName) >= 0 && Boolean(channel) && Boolean(ts);return {  event_type: t,  action: actionName,  action_id: actionId,  route: route,  domain: domain,  lead_name: leadName,  channel: channel,  message_ts: ts,  actor_user: userId,  is_actionable: isActionable};"
+        },
+        "tool": "run_javascript"
+      },
+      {
+        "alias": "decide_action",
+        "operation": "run_javascript",
+        "payload": {
+          "code": "var ev = (row.validate_event && row.validate_event.result && row.validate_event.result.data) || {};var act = ev.action || '';var label = '';if (act === 'approve') label = 'Approved & Sent';else if (act === 'edit') label = 'Edit requested';else if (act === 'skip') label = 'Skipped';return {  action: act,  action_label: label,  actor: ev.actor_user,  domain: ev.domain,  route: ev.route,  lead_name: ev.lead_name,  channel: ev.channel,  thread_ts: ev.message_ts};"
+        },
+        "run_if_js": "return Boolean(row.validate_event && row.validate_event.result && row.validate_event.result.data && row.validate_event.result.data.is_actionable);",
+        "tool": "run_javascript"
+      },
+      {
+        "alias": "build_reply_payload",
+        "operation": "run_javascript",
+        "payload": {
+          "code": "var d = (row.decide_action && row.decide_action.result && row.decide_action.result.data) || {};var label = d.action_label || '';var actor = d.actor || '';var domain = d.domain || '';var leadName = d.lead_name || '';var route = d.route || '';var headline = label + ' by <@' + actor + '>';var sub = (leadName ? leadName + ' (' + domain + ')' : domain) + ' · ' + route;var text = headline + ' — ' + sub;var blocks = [  { type: 'section', text: { type: 'mrkdwn', text: '*' + headline + '*\\n' + sub } }];return { text: text, blocks: blocks, channel: d.channel };"
+        },
+        "run_if_js": "return Boolean(row.decide_action && row.decide_action.result && row.decide_action.result.data && row.decide_action.result.data.action);",
+        "tool": "run_javascript"
+      },
+      {
+        "alias": "post_thread_reply",
+        "operation": "slack_post_message",
+        "payload": {
+          "channel": "{{build_reply_payload.result.data.channel}}",
+          "text": "{{build_reply_payload.result.data.text}}",
+          "blocks": "{{build_reply_payload.result.data.blocks}}",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "run_if_js": "return Boolean(row.build_reply_payload && row.build_reply_payload.result && row.build_reply_payload.result.data && row.build_reply_payload.result.data.text);",
+        "tool": "slack_post_message"
+      }
+    ]
+  }
+}

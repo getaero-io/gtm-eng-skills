@@ -65,6 +65,20 @@ Skills use the [Deepline CLI](https://code.deepline.com) under the hood — one 
 
 ---
 
+## Workflows
+
+Reference Deepline cloud workflows you can deploy with `deepline workflows apply`. Each is a JSON apply-payload with placeholders for IDs, channels, and secrets.
+
+| Workflow | Use case |
+|---|---|
+| [`inbound-qualification-cpg`](workflows/inbound-qualification-cpg/) | CPG / DTC brand signups: detect retail-presence via Storepoint/Stockist/Closeby/Storerocket/Storemapper/Bullseye/Brandify locator widgets, classify CPG vs non-CPG, route to qualified/manual-review/partner-referral, draft rep brief + outbound email + LinkedIn DM |
+| [`inbound-qualification-saas`](workflows/inbound-qualification-saas/) | SaaS / GTM-tool signups (HubSpot webhook): enrich, classify enterprise vs agency, route to two HubSpot lists that trigger different sequences |
+| [`slack-button-listener`](workflows/slack-button-listener/) | Listens for Approve & Send / Edit / Skip button clicks on Slack briefs and acknowledges in-thread. Pair with either inbound-qualification workflow above. |
+
+See [`workflows/README.md`](workflows/README.md) for deployment instructions.
+
+---
+
 ## How It Works
 
 ```
