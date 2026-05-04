@@ -1,0 +1,119 @@
+{
+  "name": "wf_inbound_qualification_saas",
+  "status": "active",
+  "publish": false,
+  "specification": "## Goals\nInbound qualification for SaaS / GTM-tool signups. Triggered by HubSpot's `contact.creation` webhook (or any inbound form). Enriches the contact, classifies enterprise/in-house GTM team vs agency/consultant vs disqualified, posts a Slack brief with [Approve / Edit / Skip] buttons. On Approve, the contact gets added to the right HubSpot list which triggers your standing HubSpot Sequence.\n\n## Trigger\nHubSpot webhook (Settings → Integrations → Webhooks):\n- Subscription type: `contact.creation`\n- Target URL: this workflow's webhook URL (printed at apply time)\n\nThe parse_hubspot_event step also accepts direct test payloads with email/first_name/last_name/company/website fields, so you can curl the webhook to dry-run.\n\n## Steps\n1. parse_hubspot_event — handle HubSpot's array payload OR direct test payloads\n2. validate_email — LeadMagic check\n3. enrich_company — Deepline native\n4. enrich_contact — deepline_native → crustdata waterfall\n5. scrape_website — Firecrawl homepage for AI classification\n6. classify — Sonnet 4.6 decides enterprise / agency / disqualified, returns top_signal\n7. route — assemble routing + Slack channel + HubSpot list ID\n8. build_slack_msg — Block Kit brief with Approve/Edit/Skip buttons (no per-lead drafted sequence — your standing HubSpot Sequence handles outbound)\n9. notify_slack — post for human review\n\n## HubSpot setup (one-time, ~5 min in HubSpot UI)\n\n1. Create two **HubSpot Lists** (Manual): \"Inbound — enterprise\" and \"Inbound — partnerships\"\n2. Note their list IDs from the URL bar (`/contacts/PORTAL/objectLists/{LIST_ID}`)\n3. Replace REPLACE_ME_HUBSPOT_LIST_ID_ENTERPRISE / _AGENCY in this workflow.json\n4. Build a **HubSpot Sequence** (Automation → Sequences) with your 3-touch outbound copy. Configure From-name as your sales rep.\n5. Build a **HubSpot Workflow** (Automation → Workflows) triggered by \"list membership = enterprise\" → action \"Enroll in sequence: <your sequence>\"\n6. Repeat for partnerships if you want a separate intake\n\n## Placeholders to replace\n- SLACK_CHANNELS map at top → your real channel names\n- HUBSPOT_LISTS map → your list IDs from step 2\n- REPLACE_ME_REP_NAME → your sales rep's first name\n- REPLACE_ME_PRODUCT_NAME → your product name (used in classifier prompt)\n- REPLACE_ME_CAL_LINK → your calendar URL (only used if you re-enable per-lead drafting)\n\n## Pair with slack-button-listener\nThe Approve / Edit / Skip buttons in this workflow's brief carry lead context in `value` like `approve|enterprise|<domain>|<lead_name>|<hubspot_contact_id>|<hubspot_list_id>`. The slack-button-listener workflow parses this and calls hubspot_add_records_to_list on Approve.\n",
+  "config": {
+    "version": 1,
+    "commands": [
+      {
+        "alias": "parse_hubspot_event",
+        "operation": "run_javascript",
+        "payload": {
+          "code": "var src = (typeof input === 'object' && input) ? input : {};if (src.input && typeof src.input === 'object') src = src.input;var contactId = '';var portalId = '';var subscriptionType = '';var directEmail = String(src.email || '').toLowerCase();var directFirstName = String(src.first_name || src.firstname || '');var directLastName = String(src.last_name || src.lastname || '');var directWebsite = String(src.website || '').toLowerCase();var directCompany = String(src.company || '');if (Array.isArray(src) && src.length > 0) {  var first = src[0] || {};  contactId = String(first.objectId || first.contactId || '');  portalId = String(first.portalId || '');  subscriptionType = String(first.subscriptionType || '');}var email = directEmail;var domain = '';if (email) { var parts = email.split('@'); if (parts.length === 2) domain = parts[1]; }var domainClean = domain || directWebsite.replace(/^https?:\\/\\//, '').replace(/\\/.*/, '').replace(/^www\\./, '');var personalDomains = ['gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com','aol.com','proton.me','protonmail.com'];var isPersonalEmail = personalDomains.indexOf(domain) >= 0;return {  hubspot_contact_id: contactId,  hubspot_portal_id: portalId,  subscription_type: subscriptionType,  email: email,  first_name: directFirstName,  last_name: directLastName,  full_name: (directFirstName + ' ' + directLastName).trim(),  domain: domainClean,  domain_clean: domainClean,  is_personal_email: isPersonalEmail,  company: directCompany,  website: directWebsite,  has_useful_payload: Boolean(email || contactId)};"
+        },
+        "tool": "run_javascript"
+      },
+      {
+        "alias": "validate_email",
+        "operation": "leadmagic_email_validation",
+        "payload": {
+          "email": "{{parse_hubspot_event.result.data.email}}"
+        },
+        "run_if_js": "return Boolean(row.parse_hubspot_event && row.parse_hubspot_event.result && row.parse_hubspot_event.result.data && row.parse_hubspot_event.result.data.email);",
+        "tool": "leadmagic_email_validation"
+      },
+      {
+        "alias": "enrich_company",
+        "operation": "enrich_company",
+        "payload": {
+          "domain": "{{parse_hubspot_event.result.data.domain_clean}}"
+        },
+        "run_if_js": "return Boolean(row.parse_hubspot_event && row.parse_hubspot_event.result && row.parse_hubspot_event.result.data && row.parse_hubspot_event.result.data.domain_clean && !row.parse_hubspot_event.result.data.is_personal_email);",
+        "tool": "deepline_native_enrich_company"
+      },
+      {
+        "with_waterfall": "enrich_contact",
+        "commands": [
+          {
+            "alias": "enrich_contact__native_contact",
+            "extract_js": "(output_data)=>(()=>{const fullName=extract(\"deepline_native_enrich_contact\", output_data, \"full_name\");const email=extract(\"deepline_native_enrich_contact\", output_data, \"email\");const linkedin=extract(\"deepline_native_enrich_contact\", output_data, \"linkedin\");const company=extract(\"deepline_native_enrich_contact\", output_data, \"company\");return fullName||email||linkedin||company?{full_name:fullName,email,linkedin,company,source:\"deepline_native_enrich_contact\"}:null;})()",
+            "operation": "enrich_contact",
+            "payload": {
+              "email": "{{parse_hubspot_event.result.data.email}}"
+            },
+            "tool": "deepline_native_enrich_contact"
+          },
+          {
+            "alias": "enrich_contact__crust_contact",
+            "extract_js": "(output_data)=>(()=>{const fullName=extract(\"crustdata_enrich_contact\", output_data, \"full_name\");const email=extract(\"crustdata_enrich_contact\", output_data, \"email\");const linkedin=extract(\"crustdata_enrich_contact\", output_data, \"linkedin\");const company=extract(\"crustdata_enrich_contact\", output_data, \"company\");return fullName||email||linkedin||company?{full_name:fullName,email,linkedin,company,source:\"crustdata_enrich_contact\"}:null;})()",
+            "operation": "crustdata_enrich_contact",
+            "payload": {
+              "email": "{{parse_hubspot_event.result.data.email}}"
+            },
+            "tool": "crustdata_enrich_contact"
+          }
+        ]
+      },
+      {
+        "alias": "scrape_website",
+        "operation": "firecrawl_scrape",
+        "payload": {
+          "url": "https://{{parse_hubspot_event.result.data.domain_clean}}",
+          "formats": [
+            {
+              "type": "markdown"
+            }
+          ],
+          "onlyMainContent": false,
+          "waitFor": 2000,
+          "timeout": 25000
+        },
+        "run_if_js": "return Boolean(row.parse_hubspot_event && row.parse_hubspot_event.result && row.parse_hubspot_event.result.data && row.parse_hubspot_event.result.data.domain_clean && !row.parse_hubspot_event.result.data.is_personal_email);",
+        "tool": "firecrawl_scrape"
+      },
+      {
+        "alias": "classify",
+        "operation": "ai_inference",
+        "payload": {
+          "model": "anthropic/claude-sonnet-4.6",
+          "system": "You qualify inbound signups for REPLACE_ME_PRODUCT_NAME, a GTM/outbound automation platform that helps growth teams find prospects, enrich data, score leads, write personalized outbound, and run sequences. Decide if this person is from an in-house GTM/RevOps team at a company that sells products (Enterprise) OR from an agency/consultancy that does outbound on behalf of clients (Agency). Both are valid customers but go to different routes. Filter out anyone who isn't actually doing GTM work.",
+          "prompt": "Classify this inbound signup.\n\nLead: {{parse_hubspot_event.result.data.full_name}} ({{parse_hubspot_event.result.data.email}})\nDomain: {{parse_hubspot_event.result.data.domain_clean}}\nCompany (self-reported): {{parse_hubspot_event.result.data.company}}\n\nWebsite snippet (homepage):\n{{scrape_website.result.data.markdown}}\n\nClassify into one of:\n- enterprise: in-house GTM/RevOps/Marketing/Sales team at a company that sells its OWN product (SaaS, CPG, fintech, e-commerce, services it owns).\n- agency: services business that does outbound, lead generation, growth marketing, demand gen, RevOps consulting, or sales-as-a-service ON BEHALF of client brands.\n- disqualified: free email + no useful info, blocked/empty website, vendor/job-seeker/random spam, NOT actually doing GTM, or competing GTM tool vendor.\n\nReturn:\n- classification (enterprise | agency | disqualified)\n- confidence (0..1)\n- reasoning (1-2 sentences citing specific homepage evidence)\n- company_overview (1-2 sentence neutral description for the CRM)\n- estimated_team_size ('1-10', '11-50', '51-200', '201-1000', '1000+', or 'unknown')\n- gtm_use_cases (array of up to 3 specific REPLACE_ME_PRODUCT_NAME use cases this lead would care about)\n- top_signal (one short string: the single strongest signal REPLACE_ME_REP_NAME should mention if he replies personally)",
+          "jsonSchema": "{\"type\":\"object\",\"properties\":{\"classification\":{\"type\":\"string\",\"enum\":[\"enterprise\",\"agency\",\"disqualified\"]},\"confidence\":{\"type\":\"number\"},\"reasoning\":{\"type\":\"string\"},\"company_overview\":{\"type\":\"string\"},\"estimated_team_size\":{\"type\":\"string\"},\"gtm_use_cases\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"maxItems\":3},\"top_signal\":{\"type\":\"string\"}},\"required\":[\"classification\",\"confidence\",\"reasoning\",\"company_overview\",\"estimated_team_size\",\"gtm_use_cases\",\"top_signal\"],\"additionalProperties\":false}"
+        },
+        "run_if_js": "return Boolean(row.scrape_website && row.scrape_website.result && row.scrape_website.result.data && row.scrape_website.result.data.markdown);",
+        "tool": "ai_inference"
+      },
+      {
+        "alias": "route",
+        "operation": "run_javascript",
+        "payload": {
+          "code": "var v = row.parse_hubspot_event?.result?.data || {};var cls = row.classify?.result?.extracted_json || row.classify?.result?.result?.object || {};if (typeof cls === 'string') { try { cls = JSON.parse(cls); } catch(e) { cls = {}; } }var contact = row.enrich_contact || {};var classification = cls.classification || 'disqualified';var route = classification;if (v.is_personal_email && classification !== 'agency') route = 'disqualified';var channelMap = {\"enterprise\":\"#REPLACE_ME_INBOUND_CHANNEL\",\"agency\":\"#REPLACE_ME_INBOUND_CHANNEL\",\"disqualified\":\"#REPLACE_ME_INBOUND_CHANNEL\",\"default\":\"#REPLACE_ME_INBOUND_CHANNEL\"};var listMap = {\"enterprise\":\"46\",\"agency\":\"47\"};var channel = channelMap[route] || channelMap.default;var hubspotListId = listMap[route] || '';return {  route: route,  classification: classification,  confidence: cls.confidence || 0,  reasoning: cls.reasoning || '',  company_overview: cls.company_overview || '',  team_size: cls.estimated_team_size || 'unknown',  use_cases: cls.gtm_use_cases || [],  top_signal: cls.top_signal || '',  email: v.email,  full_name: v.full_name,  first_name: v.first_name,  domain: v.domain_clean,  enriched_title: contact.job_title || contact.title || '',  linkedin_url: contact.linkedin || contact.linkedin_url || '',  hubspot_contact_id: v.hubspot_contact_id,  hubspot_list_id: hubspotListId,  channel: channel};"
+        },
+        "tool": "run_javascript"
+      },
+      {
+        "alias": "build_slack_msg",
+        "operation": "run_javascript",
+        "payload": {
+          "code": "var r = row.route?.result?.data || {};var route = r.route || 'disqualified';var channel = r.channel || '#REPLACE_ME_INBOUND_CHANNEL';var headline = '*' + route + ' · ' + (r.full_name || '') + ' · ' + (r.domain || '') + ' · conf ' + (r.confidence || 0) + '*';var primaryLabel = (route === 'enterprise') ? 'Enroll in Sales Sequence' : (route === 'agency') ? 'Add to Partnerships' : 'Confirm Disqualify';var briefText = headline + '\\n*Lead:* ' + (r.full_name || '') + ' · ' + (r.enriched_title || '—') + ' · ' + (r.linkedin_url || '—') +  '\\n*Email:* ' + (r.email || '') +  '\\n*Brand:* ' + (r.company_overview || '').slice(0, 220) +  '\\n*Team:* ' + (r.team_size || 'unknown') +  '\\n*Use cases:* ' + ((r.use_cases || []).join(', ')) +  '\\n*Top signal:* ' + (r.top_signal || '—') +  '\\n*Why:* ' + (r.reasoning || '').slice(0, 220) +  '\\n*Action:* ' + primaryLabel;var actionValuePrefix = route + '|' + (r.domain || '') + '|' + ((r.full_name || '').replace(/\\|/g, ' ')) + '|' + (r.hubspot_contact_id || '') + '|' + (r.hubspot_list_id || '');var blocks = [];blocks.push({ type: 'section', text: { type: 'mrkdwn', text: briefText } });blocks.push({ type: 'divider' });blocks.push({  type: 'actions',  block_id: 'inbound_actions',  elements: [    { type: 'button', action_id: 'inbound_approve', style: 'primary', text: { type: 'plain_text', text: primaryLabel }, value: 'approve|' + actionValuePrefix },    { type: 'button', action_id: 'inbound_edit', text: { type: 'plain_text', text: 'Edit' }, value: 'edit|' + actionValuePrefix },    { type: 'button', action_id: 'inbound_skip', style: 'danger', text: { type: 'plain_text', text: 'Skip' }, value: 'skip|' + actionValuePrefix }  ]});blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: '_route=' + route + ' · domain ' + (r.domain || '') + ' · hubspot_id ' + (r.hubspot_contact_id || '—') + '_' }] });var fallback = ('Inbound: ' + (r.full_name || 'lead') + ' from ' + (r.domain || '?') + ' · ' + route).slice(0, 200);return { text: fallback, blocks: blocks, channel: channel, route: route };"
+        },
+        "run_if_js": "return ['enterprise','agency','disqualified'].indexOf(row.route?.result?.data?.route) >= 0;",
+        "tool": "run_javascript"
+      },
+      {
+        "alias": "notify_slack",
+        "operation": "slack_post_message",
+        "payload": {
+          "channel": "{{build_slack_msg.result.data.channel}}",
+          "text": "{{build_slack_msg.result.data.text}}",
+          "blocks": "{{build_slack_msg.result.data.blocks}}",
+          "unfurl_links": false,
+          "unfurl_media": false
+        },
+        "run_if_js": "return Boolean(row.build_slack_msg?.result?.data?.text);",
+        "tool": "slack_post_message"
+      }
+    ]
+  }
+}
