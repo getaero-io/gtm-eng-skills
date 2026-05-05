@@ -16,7 +16,7 @@
 - **`job_change`**: preferred job-change provider — charges only on confirmed moves.
 - **`search_contact`**: secondary people search. **Dropleads is the default people search.** Use `search_contact` only when dropleads fails or is unavailable. Not yet tested enough to be the primary path.
 - **`prospector` / `enrich_contact`**: use when dropleads + Apollo coverage is insufficient for the target segment.
-- **`enrich_company`**: use sparingly — $1.00 per call. Only when firmographic data is required and other sources have been exhausted.
+- **`enrich_company`**: $0.07 per call. Use when firmographic data is required and other sources have been exhausted.
 
 ## Key Behaviors
 
@@ -82,7 +82,7 @@
 
 ### enrich_company
 
-- Pre-reserves $1.00 per launch. Use sparingly and only when firmographic data is needed.
+- Pre-reserves $0.07 per launch.
 - Input: domain is most reliable; linkedin also works.
 - Result is nested under `output.company.*` — not top-level.
 

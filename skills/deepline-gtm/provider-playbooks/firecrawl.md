@@ -2,7 +2,7 @@
 
 ## Action selection
 
-- **Single page** → `firecrawl_scrape`. Returns markdown by default. Costs 1 credit.
+- **Single page** → `firecrawl_scrape`. Returns markdown by default. Costs 1 Firecrawl credit plus scrape option modifiers.
 - **Web search + content** → `firecrawl_search`. Replaces Google search + individual page scraping in one call.
 - **Site discovery** → `firecrawl_map` first to enumerate URLs, then `firecrawl_batch_scrape` the ones you need.
 - **Full site crawl** → `firecrawl_crawl_params_preview` to estimate cost, then `firecrawl_crawl`.
@@ -12,7 +12,10 @@
 
 ## Budget awareness
 
-- Credit costs vary by action — scrape is 1 credit, search is 1 credit per result, crawl is 2 credits per page.
+- Credit costs vary by action: scrape/crawl/batch scrape are 1 Firecrawl credit per page plus modifiers; map is 1 credit per discovered page; search is 2 credits per 10 results plus scrape modifiers; agent and extract are dynamic.
+- Scrape modifiers stack: PDF parsing +1 credit per PDF page, JSON format +4 credits per page, Enhanced Mode +4 credits per page, and Zero Data Retention +1 credit per page.
+- Firecrawl can charge when infrastructure processes a request even if the target returns 403/404. Avoid blind retries of blocked URLs; inspect `metadata.statusCode`.
+- Crawl defaults to `limit: 10000` and Firecrawl preflights available credits against that limit. Always pass an explicit lower `limit` unless a 10000-page crawl is intentional.
 - `crawl_params_preview` is free and shows estimated credit usage before committing.
 
 ## Async operations

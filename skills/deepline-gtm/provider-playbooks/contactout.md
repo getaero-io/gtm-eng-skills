@@ -4,7 +4,7 @@
 
 ContactOut for LinkedIn → email/phone enrichment when you have a LinkedIn URL. High accuracy for active LinkedIn users. Strong for US + global. Falls after dropleads in cost-ordered waterfalls.
 
-**Key differentiator**: Free pre-check APIs (`contactout_check_email_status`) tell you if a profile has work or personal email on file before spending credits. Always use these first when enriching at scale.
+**Key differentiator**: Free pre-check APIs (`contactout_check_email_status`, `contactout_check_work_email`, `contactout_check_personal_email`, `contactout_check_phone`) tell you which contact channels are present before you spend credits on enrichment. Use these first when enriching at scale.
 
 ## Provider characteristics
 
@@ -15,9 +15,9 @@ ContactOut for LinkedIn → email/phone enrichment when you have a LinkedIn URL.
 
 ## Key operations
 
-### contactout_check_email_status (FREE — use first at scale)
+### contactout_check_email_status (FREE convenience helper)
 
-Check if a LinkedIn profile has work email on file. Zero credits consumed. Use this to filter out profiles with no coverage before running enrichment.
+Checks work-email and personal-email availability together for one LinkedIn profile.
 
 ```json
 {
@@ -25,7 +25,25 @@ Check if a LinkedIn profile has work email on file. Zero credits consumed. Use t
 }
 ```
 
-Returns: `{ "has_work_email": true, "has_personal_email": false }`
+Returns:
+
+- `contactout_check_email_status` → `{ "has_personal_email": false, "has_work_email": true, "status": "verified" }`
+
+### contactout_check_work_email / contactout_check_personal_email / contactout_check_phone (FREE — use first at scale)
+
+Check whether a LinkedIn profile has work email, personal email, or phone coverage. Zero credits consumed. Use these to filter out profiles with no coverage before running enrichment.
+
+```json
+{
+  "profile": "https://www.linkedin.com/in/johndoe"
+}
+```
+
+Returns one channel-specific payload per tool:
+
+- `contactout_check_work_email` → `{ "has_work_email": true, "status": "verified" }`
+- `contactout_check_personal_email` → `{ "has_personal_email": false }`
+- `contactout_check_phone` → `{ "has_phone": true }`
 
 ### contactout_enrich_person
 
@@ -80,6 +98,6 @@ Enriches company data (size, industry, funding, HQ) from a domain name.
 ## Anti-patterns
 
 - Don't use Sales Navigator or Recruiter URLs — they'll return 400
-- Don't skip `check_email_status` when enriching a large list — it's free and filters out empty profiles
+- Don't skip the free checker tools when enriching a large list — they filter out empty profiles before you spend credits
 - Don't include "http://" or "www." in domain values for `enrich_domain`
 - Don't set `reveal_info: true` on search without knowing the count first — use `reveal_info: false` to size the audience
