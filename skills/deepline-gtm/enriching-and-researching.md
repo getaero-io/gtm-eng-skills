@@ -53,6 +53,7 @@ If a play exists, use it first. Use manual provider chains only when:
 - Phone recovery usually comes later in the pipeline than email or LinkedIn recovery.
 - Prefer inline code for short `run_javascript` transforms. Only move code into files when the logic is long, reused, or too awkward to keep inline.
 - Never start a second enrich run against the same `--output` file while another enrich is still running. The `.deepline.lock` directory is a safety mechanism, not a bug. Wait for the first run to finish or write to a different output path.
+- In Claude Desktop on Windows, the working directory may look like `C:\Users\...` while the tool executor is still Bash/Git Bash. Use Bash commands such as `rm`, not PowerShell commands such as `Remove-Item`, unless the session context explicitly says the active shell is PowerShell.
 
 ## Plays
 
