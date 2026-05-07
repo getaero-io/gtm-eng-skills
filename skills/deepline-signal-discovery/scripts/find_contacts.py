@@ -3,7 +3,7 @@
 Find contacts + emails at a list of prospect companies.
 
 This script implements the contact discovery fallback chain required by
-Step 7 of the niche-signal-discovery pipeline. It runs through Deepline in
+Step 7 of the deepline-signal-discovery pipeline. It runs through Deepline in
 two phases:
 
   Phase 1: company_to_contact_by_role_waterfall (FREE tier).

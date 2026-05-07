@@ -8,7 +8,7 @@
 - [contact-to-email](https://github.com/getaero-io/gtm-eng-skills/blob/main/skills/contact-to-email/SKILL.md): Find and verify work email addresses from name+company, LinkedIn URL, or name+domain.
 - [build-tam](https://github.com/getaero-io/gtm-eng-skills/blob/main/skills/build-tam/SKILL.md): Build Total Addressable Market lists from ICP filters using Apollo, PDL, and Crustdata.
 - [get-leads-at-company](https://github.com/getaero-io/gtm-eng-skills/blob/main/skills/get-leads-at-company/SKILL.md): Find GTM contacts at a company, pick the best ICP match, and draft personalized outreach.
-- [niche-signal-discovery](https://github.com/getaero-io/gtm-eng-skills/blob/main/skills/niche-signal-discovery/SKILL.md): Discover buying signals that differentiate closed-won vs closed-lost deals for ICP analysis and account scoring.
+- [deepline-signal-discovery](https://github.com/getaero-io/gtm-eng-skills/blob/main/skills/deepline-signal-discovery/SKILL.md): Discover buying signals that differentiate closed-won vs closed-lost deals for ICP analysis and account scoring.
 - [job-change-detector](https://github.com/getaero-io/gtm-eng-skills/blob/main/skills/job-change-detector/SKILL.md): Detect HubSpot contacts who changed jobs, find new work emails, update CRM, add to campaigns.
 - [linkedin-url-lookup](https://github.com/getaero-io/gtm-eng-skills/blob/main/skills/linkedin-url-lookup/SKILL.md): Resolve LinkedIn profile URLs from name+company with identity validation to avoid false positives.
 - [portfolio-prospecting](https://github.com/getaero-io/gtm-eng-skills/blob/main/skills/portfolio-prospecting/SKILL.md): Find companies backed by a specific investor or accelerator, then find contacts and build outbound.

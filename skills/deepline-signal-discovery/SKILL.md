@@ -1,5 +1,5 @@
 ---
-name: niche-signal-discovery
+name: deepline-signal-discovery
 disable-model-invocation: true
 description: 'Discover niche first-party signals that differentiate Closed Won vs Closed Lost accounts for ICP analysis. Use when the user provides won/lost customer domain lists and wants differential signals (website content, job listings, tech stack, maturity markers) to build account scoring models and prospecting criteria. Triggers: ICP analysis, niche signals, won vs lost analysis, differential signals, signal discovery, ICP signal report, account scoring signals, lead scoring, first-party signals, buyer signals. Before reading this file, first read deepline-gtm to understand the Deepline CLI tool and how to use it. Then read this file for guidance on the task.'
 ---

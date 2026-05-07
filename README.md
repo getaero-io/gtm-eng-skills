@@ -57,7 +57,7 @@ Skills use the [Deepline CLI](https://code.deepline.com) under the hood — one 
 | [`build-tam`](skills/build-tam/SKILL.md) | Build a Total Addressable Market list by sourcing accounts and contacts from providers like Apollo, Crustdata, and PDL | Account sourcing from ICP filters |
 | [`portfolio-prospecting`](skills/portfolio-prospecting/SKILL.md) | Find companies backed by a specific investor or accelerator, then find contacts and build personalized outbound | VC portfolio prospecting, accelerator outbound |
 | [`linkedin-url-lookup`](skills/linkedin-url-lookup/SKILL.md) | Resolve LinkedIn profile URLs from name + company with strict identity validation to avoid false positives | LinkedIn enrichment with false-positive prevention |
-| [`niche-signal-discovery`](skills/niche-signal-discovery/SKILL.md) | Discover niche first-party signals that differentiate Closed Won vs Closed Lost accounts for ICP analysis | ICP analysis, account scoring, signal-based prospecting |
+| [`deepline-signal-discovery`](skills/deepline-signal-discovery/SKILL.md) | Discover niche first-party signals that differentiate Closed Won vs Closed Lost accounts for ICP analysis | ICP analysis, account scoring, signal-based prospecting |
 | [`clay-to-deepline`](skills/clay-to-deepline/SKILL.md) | Convert a Clay table configuration into local Deepline scripts (extraction, action mapping, script generation, parity validation) | Migrating from Clay to code-based enrichment |
 | [`workflow-hello-world`](skills/workflow-hello-world/SKILL.md) | Create a cloud Deepline workflow that runs on a recurring cron schedule or via webhook | Workflow scaffolding and trigger validation |
 | [`deepline-feedback`](skills/deepline-feedback/SKILL.md) | Send feedback or bug reports to the Deepline team, including session transcript and environment info | Bug reports, feature requests |
@@ -168,7 +168,7 @@ Claude runs `linkedin-url-lookup`, resolving profile URLs from name + company wi
 
 > "What signals differentiate our closed-won deals from closed-lost?"
 
-Claude runs `niche-signal-discovery`, analyzing website content, job listings, tech stack, and maturity markers across your won/lost lists to build a scoring model.
+Claude runs `deepline-signal-discovery`, analyzing website content, job listings, tech stack, and maturity markers across your won/lost lists to build a scoring model.
 
 ### Portfolio Prospecting
 
