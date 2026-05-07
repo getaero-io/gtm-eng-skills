@@ -1,6 +1,6 @@
 ---
 name: deepline-gtm
-description: "Use this skill for GTM prospecting, enrichment, qualification, and outbound workflows, especially when users mention Deepline, CSV processing, lead/account/contact research, waterfall enrichment, email or LinkedIn lookup, personalization, scoring, or campaign activation. Route CSV-heavy and provider-driven requests through this skill, then rely on linked sub-docs and provider playbooks for execution details. Available providers: adyntel, ai_ark, apify, apollo, attio, bettercontact, bloomberry, builtwith, cloudflare, contactout, crustdata, customer_db, dataforseo, datagma, deepline_native, deeplineagent, discolike, dropleads, exa, findymail, firecrawl, forager, fullenrich, generic_http, heyreach, hubspot, hunter, icypeas, instantly, ipqs, leadmagic, lemlist, linkedin_ads_audiences, lusha, openwebninja, parallel, peopledatalabs, prospeo, rocketreach, salesforce, serper, slack, smartlead, snowflake, theirstack, trestle, wiza, zerobounce."
+description: "Use this skill for GTM prospecting, enrichment, qualification, and outbound workflows, especially when users mention Deepline, CSV processing, lead/account/contact research, waterfall enrichment, email or LinkedIn lookup, personalization, scoring, or campaign activation. Route CSV-heavy and provider-driven requests through this skill, then rely on linked sub-docs and provider playbooks for execution details. Available providers: adyntel, ai_ark, apify, apollo, attio, bettercontact, bloomberry, builtwith, cloudflare, contactout, crustdata, customer_db, dataforseo, datagma, deepline_native, deeplineagent, discolike, dropleads, exa, findymail, firecrawl, forager, fullenrich, generic_http, heyreach, hubspot, hunter, icypeas, instantly, ipqs, leadmagic, lemlist, linkedin_ads_audiences, linkedin_scraper, lusha, openwebninja, parallel, peopledatalabs, prospeo, rocketreach, salesforce, serper, slack, smartlead, snowflake, theirstack, trestle, wiza, zerobounce."
 ---
 
 # GTM Meta Skill
@@ -319,6 +319,10 @@ GTM time windows, thresholds, and interpretation rules are defined in the Defini
 - [linkedin_ads_audiences playbook](provider-playbooks/linkedin_ads_audiences.md)
   Summary: Use list upload segments for contact or company matching. LinkedIn does not support true append semantics on LIST_UPLOAD segments, so treat syncs as replacements.
   Last reviewed: 2026-04-09
+
+- [linkedin_scraper playbook](provider-playbooks/linkedin_scraper.md)
+  Summary: Use LinkedinScraper for LinkedIn/Sales Navigator actions that require an authenticated identity. Prefer live read/extract tools first; engagement tools mutate LinkedIn state.
+  Last reviewed: 2026-05-05
 
 - [lusha playbook](provider-playbooks/lusha.md)
   Summary: Use for B2B email + direct dial enrichment by LinkedIn URL, email, or name+company. Also supports company enrichment by domain and prospecting search with department/seniority/industry filters.
