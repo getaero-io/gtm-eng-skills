@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Warm Intro Paths — Deepline</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #fafaf8;
+      --bg-card:   #f5f4f0;
+      --fg:        #1c1b18;
+      --fg-muted:  #6b6760;
+      --border:    #d0cec8;
+      --border-lt: #e6e4df;
+      --blue:      #1919ff;
+      --amber:     #d97706;
+      --green:     #166534;
+      --green-bg:  #f0fdf4;
+      --green-bd:  #bbf7d0;
+      --warm-shadow: 0 1px 3px rgba(28,27,24,0.08), 0 4px 16px rgba(28,27,24,0.04);
+    }
+
+    html { font-size: 16px; }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Inter', system-ui, sans-serif;
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: 40px 24px 64px;
+    }
+
+    /* ── Page header ─────────────────────────────────────────── */
+    .page-header {
+      max-width: 960px;
+      margin: 0 auto 48px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .page-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--amber);
+    }
+
+    .page-title {
+      font-family: 'Lora', Georgia, serif;
+      font-size: clamp(22px, 3vw, 30px);
+      font-weight: 600;
+      color: var(--fg);
+      margin-top: 6px;
+      line-height: 1.2;
+    }
+
+    .page-meta {
+      font-size: 13px;
+      color: var(--fg-muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ── Legend ──────────────────────────────────────────────── */
+    .legend {
+      max-width: 960px;
+      margin: 0 auto 40px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .legend-label {
+      font-size: 12px;
+      color: var(--fg-muted);
+      font-weight: 500;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--fg-muted);
+    }
+
+    .legend-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-hot  { background: #16a34a; }
+    .dot-warm { background: #ca8a04; }
+    .dot-cold { background: #9ca3af; }
+
+    /* ── Targets grid ────────────────────────────────────────── */
+    .targets {
+      max-width: 960px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    /* ── Target card ─────────────────────────────────────────── */
+    .target-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: var(--warm-shadow);
+    }
+
+    .target-header {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border-lt);
+      background: var(--bg-card);
+    }
+
+    .target-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--blue);
+      background: #eff0ff;
+      border: 1px solid #c7c7fd;
+      border-radius: 3px;
+      padding: 2px 7px;
+      margin-bottom: 8px;
+    }
+
+    .target-name {
+      font-family: 'Lora', Georgia, serif;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--fg);
+      line-height: 1.25;
+    }
+
+    .target-role {
+      font-size: 12px;
+      color: var(--fg-muted);
+      margin-top: 3px;
+    }
+
+    /* ── Best connector (highlighted) ───────────────────────── */
+    .connector-best {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-lt);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: start;
+    }
+
+    .connector-best-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 5px;
+    }
+
+    .connector-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--fg);
+      line-height: 1.3;
+    }
+
+    .connector-role {
+      font-size: 12px;
+      color: var(--fg-muted);
+      margin-top: 2px;
+      line-height: 1.4;
+    }
+
+    .connector-via {
+      font-size: 11px;
+      color: var(--fg-muted);
+      margin-top: 6px;
+    }
+
+    .connector-via strong {
+      color: var(--fg);
+      font-weight: 500;
+    }
+
+    /* ── Score pill ──────────────────────────────────────────── */
+    .score-block {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .score-value {
+      font-family: 'Lora', Georgia, serif;
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--fg);
+      line-height: 1;
+    }
+
+    .score-label {
+      font-size: 10px;
+      color: var(--fg-muted);
+      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Score bar ───────────────────────────────────────────── */
+    .score-breakdown {
+      display: flex;
+      gap: 0;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .bar-company { background: var(--fg); }
+    .bar-sen     { background: var(--amber); }
+    .bar-rec     { background: var(--blue); }
+
+    .score-breakdown-labels {
+      display: flex;
+      gap: 12px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+
+    .breakdown-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      color: var(--fg-muted);
+    }
+
+    .breakdown-dot {
+      width: 6px; height: 6px;
+      border-radius: 1px;
+      flex-shrink: 0;
+    }
+
+    /* ── Recency pill ────────────────────────────────────────── */
+    .recency-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 20px;
+      letter-spacing: 0.04em;
+    }
+
+    .recency-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+    }
+
+    .pill-hot  { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
+    .pill-hot .recency-dot  { background: #16a34a; }
+    .pill-warm { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+    .pill-warm .recency-dot { background: #ca8a04; }
+    .pill-cold { background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; }
+    .pill-cold .recency-dot { background: #9ca3af; }
+
+    /* ── Connected date ──────────────────────────────────────── */
+    .connector-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .connected-date {
+      font-size: 11px;
+      color: var(--fg-muted);
+    }
+
+    /* ── Runners-up ──────────────────────────────────────────── */
+    .runners-up {
+      padding: 0 20px 16px;
+    }
+
+    .runners-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--fg-muted);
+      padding: 12px 0 8px;
+      border-top: 1px solid var(--border-lt);
+    }
+
+    .runner {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border-lt);
+    }
+
+    .runner:last-child { border-bottom: none; }
+
+    .runner-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--fg);
+    }
+
+    .runner-role {
+      font-size: 11px;
+      color: var(--fg-muted);
+      margin-top: 1px;
+    }
+
+    .runner-score {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--fg-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Direct connection note ──────────────────────────────── */
+    .direct-note {
+      max-width: 960px;
+      margin: 28px auto 0;
+      padding: 14px 18px;
+      background: var(--green-bg);
+      border: 1px solid var(--green-bd);
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .direct-note-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .direct-note-text {
+      font-size: 13px;
+      color: #14532d;
+      line-height: 1.5;
+    }
+
+    .direct-note-text strong { font-weight: 600; }
+
+    /* ── Footer ──────────────────────────────────────────────── */
+    .footer {
+      max-width: 960px;
+      margin: 40px auto 0;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-lt);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .footer-left {
+      font-size: 11px;
+      color: var(--fg-muted);
+    }
+
+    .footer-legend {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 11px;
+      color: var(--fg-muted);
+    }
+
+    .footer-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .footer-swatch {
+      width: 8px; height: 8px;
+      border-radius: 1px;
+    }
+
+    /* ── Scoring explainer ───────────────────────────────────── */
+    .explainer {
+      max-width: 960px;
+      margin: 0 auto 36px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .explainer-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--fg-muted);
+      padding: 13px 20px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .explainer-features {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0;
+    }
+
+    .feature {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 16px 20px;
+      border-right: 1px solid var(--border-lt);
+      border-bottom: 1px solid var(--border-lt);
+    }
+
+    .feature:nth-child(2n) { border-right: none; }
+    .feature:nth-last-child(-n+2) { border-bottom: none; }
+
+    .feature-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+
+    .feature-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--fg);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .feature-pts {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--fg-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .feature-desc {
+      font-size: 12px;
+      color: var(--fg-muted);
+      line-height: 1.55;
+    }
+
+    @media (max-width: 600px) {
+      .targets { grid-template-columns: 1fr; }
+      .page-header { flex-direction: column; gap: 4px; }
+      .explainer-features { grid-template-columns: 1fr; }
+      .feature { border-right: none; border-bottom: 1px solid var(--border-lt); }
+      .feature:last-child { border-bottom: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Page header -->
+  <header class="page-header">
+    <div>
+      <p class="page-label">Warm Intro Intelligence</p>
+      <h1 class="page-title">Best intro paths — Jai Toor</h1>
+    </div>
+    <p class="page-meta">6,484 connections · 94 enriched · May 2026</p>
+  </header>
+
+  <!-- Legend -->
+  <div class="legend">
+    <span class="legend-label">Connection recency</span>
+    <span class="legend-item"><span class="legend-dot dot-hot"></span> HOT (&lt; 6 mo)</span>
+    <span class="legend-item"><span class="legend-dot dot-warm"></span> Warm (6 mo – 2 yr)</span>
+    <span class="legend-item"><span class="legend-dot dot-cold"></span> Cold (2 yr+)</span>
+    <span class="legend-item" style="margin-left:8px; border-left:1px solid var(--border-lt); padding-left:16px;">
+      Score = company match + seniority + recency
+    </span>
+  </div>
+
+  <!-- Scoring explainer -->
+  <div class="explainer">
+    <div class="explainer-title">How scoring works</div>
+    <div class="explainer-features">
+
+      <div class="feature">
+        <div class="feature-swatch" style="background:var(--fg)"></div>
+        <div>
+          <div class="feature-name">Company match <span class="feature-pts">50 pts</span></div>
+          <div class="feature-desc">Current or past company matches the target's known employers. Double credit if the connection appears at the same company twice in their history (e.g. acquihire). Company names are normalized — "Stripe, Inc." and "Stripe" score identically.</div>
+        </div>
+      </div>
+
+      <div class="feature">
+        <div class="feature-swatch" style="background:var(--amber)"></div>
+        <div>
+          <div class="feature-name">Seniority <span class="feature-pts">5–20 pts</span></div>
+          <div class="feature-desc">VP / Founder / C-suite scores 20. Director / Head of scores 17. Manager / Lead scores 12. Senior / Principal scores 9. IC scores 5. Higher seniority = more likely to have cross-functional relationships and pull off an intro.</div>
+        </div>
+      </div>
+
+      <div class="feature">
+        <div class="feature-swatch" style="background:var(--blue)"></div>
+        <div>
+          <div class="feature-name">Connection recency <span class="feature-pts">7–30 pts</span></div>
+          <div class="feature-desc">Connected in last 90 days = 30 pts. 90 days – 1 year = 22 pts. 1–2 years = 14 pts. 2+ years = 7 pts. A recent connection is more likely to respond. Cold connections (&gt; 2 yr) still score on company overlap — they just need a reintroduction hook.</div>
+        </div>
+      </div>
+
+      <div class="feature">
+        <div class="feature-swatch" style="background:#e5e4df; border:1px solid var(--border)"></div>
+        <div>
+          <div class="feature-name">Role overlap <span class="feature-pts">0–15 pts</span></div>
+          <div class="feature-desc">Keyword intersection between the connector's current title and the target's role. A GTM connector asking a GTM intro is more natural than a cross-function ask. Partial matches score proportionally.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 3 target cards -->
+  <div class="targets">
+
+    <!-- ── Target 1: Justin Dignelli ───────────────────────── -->
+    <div class="target-card">
+      <div class="target-header">
+        <div class="target-badge">Target 1 · Modal</div>
+        <div class="target-name">Justin Dignelli</div>
+        <div class="target-role">VP of Sales · Modal</div>
+      </div>
+
+      <!-- Best connector -->
+      <div class="connector-best">
+        <div>
+          <div class="connector-best-label">Best connector</div>
+          <div class="connector-name">Sathishkumar Gopalaswamy</div>
+          <div class="connector-role">Sr Director, Partner Sales · MongoDB</div>
+          <div class="connector-meta">
+            <span class="recency-pill pill-warm">
+              <span class="recency-dot"></span>Warm
+            </span>
+            <span class="connected-date">Connected Jan 2025</span>
+          </div>
+          <div class="connector-via" style="margin-top:8px;">
+            Via <strong>MongoDB</strong> — Justin was AE there; Sathish runs partner sales. Business-side overlap.
+          </div>
+        </div>
+        <div class="score-block">
+          <div class="score-value">90</div>
+          <div class="score-label">Score</div>
+        </div>
+      </div>
+
+      <!-- Score bar -->
+      <div style="padding: 0 20px 14px;">
+        <div class="score-breakdown">
+          <div class="bar-company" style="width:62%"></div>
+          <div class="bar-sen"     style="width:22%"></div>
+          <div class="bar-rec"     style="width:16%"></div>
+        </div>
+        <div class="score-breakdown-labels">
+          <span class="breakdown-item"><span class="breakdown-dot" style="background:var(--fg)"></span>Company 56</span>
+          <span class="breakdown-item"><span class="breakdown-dot" style="background:var(--amber)"></span>Seniority 20</span>
+          <span class="breakdown-item"><span class="breakdown-dot" style="background:var(--blue)"></span>Recency 14</span>
+        </div>
+      </div>
+
+      <!-- Runners-up -->
+      <div class="runners-up">
+        <div class="runners-label">Runners-up</div>
+
+        <div class="runner">
+          <div>
+            <div class="runner-name">Charlie Vieth</div>
+            <div class="runner-role">Eng · MongoDB → Porter (left 2024)</div>
+          </div>
+          <span class="recency-pill pill-warm" style="margin-left:4px">
+            <span class="recency-dot"></span>81
+          </span>
+        </div>
+
+        <div class="runner">
+          <div>
+            <div class="runner-name">Mikiko Bazeley</div>
+            <div class="runner-role">Staff Dev Advocate · MongoDB</div>
+          </div>
+          <span class="recency-pill pill-cold" style="margin-left:4px">
+            <span class="recency-dot"></span>72
+          </span>
+        </div>
+
+        <div class="runner">
+          <div>
+            <div class="runner-name">Ryan Waldorf</div>
+            <div class="runner-role">Sr Product Manager · MongoDB</div>
+          </div>
+          <span class="recency-pill pill-cold" style="margin-left:4px">
+            <span class="recency-dot"></span>72
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Target 2: Manpreet Singh ────────────────────────── -->
+    <div class="target-card">
+      <div class="target-header">
+        <div class="target-badge">Target 2 · Stripe</div>
+        <div class="target-name">Manpreet Singh</div>
+        <div class="target-role">Head of Eng, Identity Product · Stripe</div>
+      </div>
+
+      <!-- Best connector -->
+      <div class="connector-best">
+        <div>
+          <div class="connector-best-label">Best connector</div>
+          <div class="connector-name">George Xing</div>
+          <div class="connector-role">Product Manager · Stripe</div>
+          <div class="connector-meta">
+            <span class="recency-pill pill-cold">
+              <span class="recency-dot"></span>Cold
+            </span>
+            <span class="connected-date">Connected Sep 2022</span>
+          </div>
+          <div class="connector-via" style="margin-top:8px;">
+            Via <strong>Stripe</strong> — founded Supaglue (acquired by Stripe). Double Stripe hit in history. Eng/product leadership access.
+          </div>
+        </div>
+        <div class="score-block">
+          <div class="score-value">125</div>
+          <div class="score-label">Score</div>
+        </div>
+      </div>
+
+      <!-- Score bar -->
+      <div style="padding: 0 20px 14px;">
+        <div class="score-breakdown">
+          <div class="bar-company" style="width:75%"></div>
+          <div class="bar-sen"     style="width:15%"></div>
+          <div class="bar-rec"     style="width:10%"></div>
+        </div>
+        <div class="score-breakdown-labels">
+          <span class="breakdown-item"><span class="breakdown-dot" style="background:var(--fg)"></span>Company 106</span>
+          <span class="breakdown-item"><span class="breakdown-dot" style="background:var(--amber)"></span>Seniority 12</span>
+          <span class="breakdown-item"><span class="breakdown-dot" style="background:var(--blue)"></span>Recency 7</span>
+        </div>
+      </div>
+
+      <!-- Runners-up -->
+      <div class="runners-up">
+        <div class="runners-label">Runners-up</div>
+
+        <div class="runner">
+          <div>
+            <div class="runner-name">Carla Colindres</div>
+            <div class="runner-role">Product · Stripe</div>
+          </div>
+          <span class="recency-pill pill-warm" style="margin-left:4px">
+            <span class="recency-dot"></span>77
+          </span>
+        </div>
+
+        <div class="runner">
+          <div>
+            <div class="runner-name">Cat Yu</div>
+            <div class="runner-role">Platform Partnerships · Stripe</div>
+          </div>
+          <span class="recency-pill pill-cold" style="margin-left:4px">
+            <span class="recency-dot"></span>68
+          </span>
+        </div>
+
+        <div class="runner">
+          <div>
+            <div class="runner-name">David Siegel</div>
+            <div class="runner-role">Strategy & Ops, Global Partnerships · Stripe</div>
+          </div>
+          <span class="recency-pill pill-cold" style="margin-left:4px">
+            <span class="recency-dot"></span>68
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Target 3: Ron P. ─────────────────────────────────── -->
+    <div class="target-card">
+      <div class="target-header">
+        <div class="target-badge">Target 3 · Stripe</div>
+        <div class="target-name">Ron P.</div>
+        <div class="target-role">Sr Director of Engineering · Stripe</div>
+      </div>
+
+      <!-- Best connector -->
+      <div class="connector-best">
+        <div>
+          <div class="connector-best-label">Best connector</div>
+          <div class="connector-name">Tiffany Ly</div>
+          <div class="connector-role">Head of Ops, Health AI Research · Google</div>
+          <div class="connector-meta">
+            <span class="recency-pill pill-warm">
+              <span class="recency-dot"></span>Warm
+            </span>
+            <span class="connected-date">Connected Dec 2024</span>
+          </div>
+          <div class="connector-via" style="margin-top:8px;">
+            Via <strong>Google</strong> — Ron was at Google before Stripe. Double Google hit in Tiffany's history. Senior ops background.
+          </div>
+        </div>
+        <div class="score-block">
+          <div class="score-value">135</div>
+          <div class="score-label">Score</div>
+        </div>
+      </div>
+
+      <!-- Score bar -->
+      <div style="padding: 0 20px 14px;">
+        <div class="score-breakdown">
+          <div class="bar-company" style="width:77%"></div>
+          <div class="bar-sen"     style="width:13%"></div>
+          <div class="bar-rec"     style="width:10%"></div>
+        </div>
+        <div class="score-breakdown-labels">
+          <span class="breakdown-item"><span class="breakdown-dot" style="background:var(--fg)"></span>Company 104</span>
+          <span class="breakdown-item"><span class="breakdown-dot" style="background:var(--amber)"></span>Seniority 17</span>
+          <span class="breakdown-item"><span class="breakdown-dot" style="background:var(--blue)"></span>Recency 14</span>
+        </div>
+      </div>
+
+      <!-- Runners-up -->
+      <div class="runners-up">
+        <div class="runners-label">Runners-up</div>
+
+        <div class="runner">
+          <div>
+            <div class="runner-name">Spencer Aller</div>
+            <div class="runner-role">Strategic Client Director · Google</div>
+          </div>
+          <span class="recency-pill pill-cold" style="margin-left:4px">
+            <span class="recency-dot"></span>134
+          </span>
+        </div>
+
+        <div class="runner">
+          <div>
+            <div class="runner-name">George Xing</div>
+            <div class="runner-role">Product Manager · Stripe (also #1 for Manpreet)</div>
+          </div>
+          <span class="recency-pill pill-cold" style="margin-left:4px">
+            <span class="recency-dot"></span>122
+          </span>
+        </div>
+
+        <div class="runner">
+          <div>
+            <div class="runner-name">Gaurav Tungatkar</div>
+            <div class="runner-role">Lead SE · Cisco ThousandEyes</div>
+          </div>
+          <span class="recency-pill pill-cold" style="margin-left:4px">
+            <span class="recency-dot"></span>122
+          </span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /targets -->
+
+  <!-- Direct connection callout -->
+  <div class="direct-note">
+    <div class="direct-note-icon">→</div>
+    <div class="direct-note-text">
+      <strong>Justin Dignelli is already a direct connection</strong> (connected Dec 2023, 869 days ago — cold).
+      No intro needed. Reach out directly and reference a shared signal: Modal's infra growth, a recent product announcement, or GTM tooling overlap.
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-left">
+      Scored from 6,484 LinkedIn connections · 94 enriched via Edges API · 680 experience records · 62 credits used (~$1.20)
+    </div>
+    <div class="footer-legend">
+      <span class="footer-legend-item"><span class="footer-swatch" style="background:var(--fg)"></span>Company match</span>
+      <span class="footer-legend-item"><span class="footer-swatch" style="background:var(--amber)"></span>Seniority</span>
+      <span class="footer-legend-item"><span class="footer-swatch" style="background:var(--blue)"></span>Recency</span>
+    </div>
+  </footer>
+
+</body>
+</html>

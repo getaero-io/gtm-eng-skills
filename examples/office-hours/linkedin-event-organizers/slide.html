@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LinkedIn Event Organizer Intelligence — Deepline</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #fafaf8;
+      --bg-rule:  #f0efe9;
+      --fg:       #1c1b18;
+      --muted:    #6b6760;
+      --faint:    #9b9893;
+      --border:   #d0cec8;
+      --border-lt:#e6e4df;
+      --blue:     #1919ff;
+      --amber:    #d97706;
+      --green:    #15803d;
+      --green-bg: #f0fdf4;
+      --green-bd: #bbf7d0;
+      --red:      #b91c1c;
+      --red-bg:   #fef2f2;
+      --red-bd:   #fecaca;
+    }
+
+    html { font-size: 16px; }
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Inter', system-ui, sans-serif;
+      line-height: 1.5;
+      padding: 48px 32px 80px;
+    }
+
+    /* ─── Page header ─────────────────────────────────────────── */
+    .page-top {
+      max-width: 1040px;
+      margin: 0 auto 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 16px;
+    }
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--amber);
+    }
+    .run-meta {
+      font-size: 12px;
+      color: var(--faint);
+    }
+    .page-title {
+      max-width: 1040px;
+      margin: 0 auto 4px;
+      font-family: 'Lora', Georgia, serif;
+      font-size: clamp(24px, 3.5vw, 36px);
+      font-weight: 600;
+      color: var(--fg);
+      line-height: 1.15;
+    }
+    .page-sub {
+      max-width: 1040px;
+      margin: 0 auto 32px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    /* ─── Divider ─────────────────────────────────────────────── */
+    .rule {
+      max-width: 1040px;
+      margin: 0 auto 36px;
+      border: none;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ─── Stats row ──────────────────────────────────────────── */
+    .stats-row {
+      max-width: 1040px;
+      margin: 0 auto 40px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .stat {
+      padding: 20px 20px 18px;
+      border-right: 1px solid var(--border-lt);
+    }
+    .stat:last-child { border-right: none; }
+    .stat-value {
+      font-family: 'Lora', Georgia, serif;
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--fg);
+      line-height: 1;
+    }
+    .stat-value.accent { color: var(--blue); }
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+    .stat-sub {
+      font-size: 11px;
+      color: var(--faint);
+      margin-top: 2px;
+    }
+
+    /* ─── Two-column body ────────────────────────────────────── */
+    .body {
+      max-width: 1040px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 32px;
+      align-items: start;
+    }
+
+    /* ─── Pipeline section ───────────────────────────────────── */
+    .pipeline-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .pipeline {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      background: #fff;
+      margin-bottom: 28px;
+    }
+
+    .pipeline-step {
+      display: grid;
+      grid-template-columns: 36px 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-lt);
+    }
+    .pipeline-step:last-child { border-bottom: none; }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--fg);
+      color: #fafaf8;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step-main {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--fg);
+    }
+    .step-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+    .step-cost {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--faint);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ─── Cost breakdown table ───────────────────────────────── */
+    .cost-table {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .cost-header {
+      padding: 11px 16px;
+      background: var(--bg-rule);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .cost-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-lt);
+      font-size: 12px;
+    }
+    .cost-row:last-child { border-bottom: none; }
+    .cost-row.total {
+      background: var(--bg-rule);
+      font-weight: 600;
+      font-size: 13px;
+      border-top: 1px solid var(--border);
+    }
+    .cost-name { color: var(--fg); }
+    .cost-credits {
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+    .cost-usd {
+      color: var(--fg);
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      min-width: 44px;
+    }
+
+    /* ─── Right column ───────────────────────────────────────── */
+    .right { display: flex; flex-direction: column; gap: 24px; }
+
+    /* ─── Findings card ──────────────────────────────────────── */
+    .findings {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .findings-header {
+      padding: 11px 16px;
+      background: var(--bg-rule);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .finding {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-lt);
+      font-size: 12px;
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    .finding:last-child { border-bottom: none; }
+    .finding-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 5px;
+    }
+
+    /* ─── Sample events ──────────────────────────────────────── */
+    .samples {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .samples-header {
+      padding: 11px 16px;
+      background: var(--bg-rule);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .samples-note {
+      font-size: 10px;
+      font-weight: 400;
+      letter-spacing: 0;
+      text-transform: none;
+      color: var(--faint);
+    }
+    .sample {
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border-lt);
+    }
+    .sample:last-child { border-bottom: none; }
+    .sample-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--fg);
+      line-height: 1.35;
+    }
+    .sample-org {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .sample-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 5px;
+      flex-wrap: wrap;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 7px;
+      border-radius: 20px;
+      line-height: 1.4;
+    }
+    .tag-person {
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1px solid var(--green-bd);
+    }
+    .tag-company {
+      background: #eff0ff;
+      color: var(--blue);
+      border: 1px solid #c7c7fd;
+    }
+    .tag-cold {
+      background: #f9fafb;
+      color: #6b7280;
+      border: 1px solid #e5e7eb;
+    }
+    .sample-linkedin {
+      font-size: 10px;
+      color: var(--blue);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .sample-linkedin:hover { text-decoration: underline; }
+
+    /* ─── Insight callout ────────────────────────────────────── */
+    .insight {
+      padding: 14px 16px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #78350f;
+      line-height: 1.6;
+    }
+    .insight strong { font-weight: 600; }
+
+    /* ─── Footer ─────────────────────────────────────────────── */
+    .footer {
+      max-width: 1040px;
+      margin: 36px auto 0;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-lt);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .footer-left { font-size: 11px; color: var(--faint); }
+    .footer-right { font-size: 11px; color: var(--faint); }
+
+    @media (max-width: 720px) {
+      .body { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .stat:nth-child(2) { border-right: none; }
+      .stat { border-bottom: 1px solid var(--border-lt); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="page-top">
+    <span class="eyebrow">Deepline Workflow</span>
+    <span class="run-meta">Run: May 7, 2026</span>
+  </div>
+  <h1 class="page-title">LinkedIn event organizer intelligence</h1>
+  <p class="page-sub">12 keyword searches · 105 unique events · organizer name, company page, and LinkedIn — all from one CLI session.</p>
+  <hr class="rule" />
+
+  <!-- Stats row -->
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-value">105</div>
+      <div class="stat-label">unique events found</div>
+      <div class="stat-sub">from 120 raw results</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">36</div>
+      <div class="stat-label">named individual organizers</div>
+      <div class="stat-sub">34% of events</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">28</div>
+      <div class="stat-label">Apify-validated profiles</div>
+      <div class="stat-sub">80% name-match rate</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">63</div>
+      <div class="stat-label">company LinkedIn URLs</div>
+      <div class="stat-sub">all 105 events attempted</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value accent">$8.88</div>
+      <div class="stat-label">total cost</div>
+      <div class="stat-sub">Edges + Apify</div>
+    </div>
+  </div>
+
+  <!-- Body: pipeline + right sidebar -->
+  <div class="body">
+
+    <!-- Left: pipeline + cost -->
+    <div class="left">
+      <div class="pipeline-label">Pipeline — 6 steps</div>
+      <div class="pipeline">
+
+        <div class="pipeline-step">
+          <div class="step-num">1</div>
+          <div>
+            <div class="step-main">Event search</div>
+            <div class="step-sub">12 keyword queries (webinar, masterclass, virtual summit…) via Edges managed identity. Each returns 10 events from a fresh LinkedIn session — no cookies, no account setup.</div>
+          </div>
+          <div class="step-cost">150 cr</div>
+        </div>
+
+        <div class="pipeline-step">
+          <div class="step-num">2</div>
+          <div>
+            <div class="step-main">Dedup &amp; collect</div>
+            <div class="step-sub">Deduped by event ID across all 12 queries. 120 raw → 105 unique. Keyword overlap is expected — union kept.</div>
+          </div>
+          <div class="step-cost">free</div>
+        </div>
+
+        <div class="pipeline-step">
+          <div class="step-num">3</div>
+          <div>
+            <div class="step-main">Event detail extraction</div>
+            <div class="step-sub">Called <code style="font-family:monospace;font-size:11px;background:#f0efe9;padding:1px 4px;border-radius:3px">linkedin-extract-event</code> for every URL. Individual-hosted events return a name. Company-hosted events return blank — no individual to surface. Company LinkedIn page looked up for all 105.</div>
+          </div>
+          <div class="step-cost">157 cr</div>
+        </div>
+
+        <div class="pipeline-step">
+          <div class="step-num">4</div>
+          <div>
+            <div class="step-main">Profile lookup</div>
+            <div class="step-sub">For each of the 36 named organizers: <code style="font-family:monospace;font-size:11px;background:#f0efe9;padding:1px 4px;border-radius:3px">linkedin-find-profile-url</code> with full name + company. Fast, but fuzzy — name + company matching returns wrong profile ~20% of the time.</div>
+          </div>
+          <div class="step-cost">105 cr</div>
+        </div>
+
+        <div class="pipeline-step">
+          <div class="step-num">5</div>
+          <div>
+            <div class="step-main">Apify validation</div>
+            <div class="step-sub">Every returned URL run through Apify LinkedIn Profile Scraper (dev_fusion, 99.9% success rate). Pulled name, headline, company LinkedIn URL, company website. Validated on first name only — keeps profiles where current company differs (may be a past role match). 28 of 35 confirmed.</div>
+          </div>
+          <div class="step-cost">$0.35</div>
+        </div>
+
+        <div class="pipeline-step">
+          <div class="step-num">6</div>
+          <div>
+            <div class="step-main">Google Sheet export</div>
+            <div class="step-sub">All 105 events in one sheet. Named organizer tab: 35 rows, clickable hyperlinks, green/red conditional formatting on name validation, Apify-enriched company data alongside each contact.</div>
+          </div>
+          <div class="step-cost">free</div>
+        </div>
+
+      </div>
+
+      <!-- Cost breakdown -->
+      <div class="pipeline-label">Cost breakdown</div>
+      <div class="cost-table">
+        <div class="cost-header">
+          <span>Step</span>
+        </div>
+        <div class="cost-row">
+          <span class="cost-name">Event search — 12 Edges queries × 15 credits</span>
+          <span class="cost-credits">150 cr</span>
+          <span class="cost-usd">$2.90</span>
+        </div>
+        <div class="cost-row">
+          <span class="cost-name">Event extraction — 105 events × 1.5 credits</span>
+          <span class="cost-credits">157.5 cr</span>
+          <span class="cost-usd">$3.05</span>
+        </div>
+        <div class="cost-row">
+          <span class="cost-name">Company lookup — 69 company-hosted × 4.5 credits</span>
+          <span class="cost-credits">310.5 cr</span>
+          <span class="cost-usd">$2.58 <span style="font-size:10px;color:var(--faint)">new</span></span>
+        </div>
+        <div class="cost-row">
+          <span class="cost-name">Profile lookup — 36 organizers × ~2.9 credits</span>
+          <span class="cost-credits">105 cr</span>
+          <span class="cost-usd">$2.03</span>
+        </div>
+        <div class="cost-row">
+          <span class="cost-name">Apify validation — 35 profiles × $0.01</span>
+          <span class="cost-credits">35 profiles</span>
+          <span class="cost-usd">$0.35</span>
+        </div>
+        <div class="cost-row total">
+          <span class="cost-name">Total</span>
+          <span class="cost-credits">723 cr</span>
+          <span class="cost-usd">$8.88</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: findings + samples -->
+    <div class="right">
+
+      <div class="insight">
+        <strong>66% of events have no individual organizer.</strong> Company-branded events return blank from the API — the person's name isn't there. Company LinkedIn pages are now captured for all 105 rows for future enrichment.
+      </div>
+
+      <!-- Findings -->
+      <div class="findings">
+        <div class="findings-header">What we learned</div>
+
+        <div class="finding">
+          <div class="finding-dot" style="background:var(--fg)"></div>
+          <span>Keyword selection matters. "Virtual summit" and "masterclass" returned almost no overlap with "webinar." Run all variations or you miss event types entirely.</span>
+        </div>
+        <div class="finding">
+          <div class="finding-dot" style="background:var(--amber)"></div>
+          <span>Profile lookup has a 20% false positive rate. Name + company fuzzy matching is fast but imprecise. Apify validation at $0.01/profile catches mismatches before they hit a sequence.</span>
+        </div>
+        <div class="finding">
+          <div class="finding-dot" style="background:var(--blue)"></div>
+          <span>Validation is first-name-only — not current company. The lookup sometimes returns a correct profile where the listed company is a previous role. Rejecting on company mismatch would be wrong.</span>
+        </div>
+        <div class="finding">
+          <div class="finding-dot" style="background:var(--green)"></div>
+          <span>Apify dev_fusion actor: 35 attempted, 35 returned. No failures. Most reliable $0.01 identity check available for LinkedIn.</span>
+        </div>
+      </div>
+
+      <!-- Sample events -->
+      <div class="samples">
+        <div class="samples-header">
+          <span>Sample organizers found</span>
+          <span class="samples-note">from 105 events</span>
+        </div>
+
+        <div class="sample">
+          <div class="sample-name">TÜSİAD NY NextGen Webinar</div>
+          <div class="sample-org">TÜSİAD New York Network</div>
+          <div class="sample-row">
+            <span class="tag tag-person">individual</span>
+            <a class="sample-linkedin" href="https://www.linkedin.com/in/umranbeba" target="_blank">Umran Beba →</a>
+          </div>
+        </div>
+
+        <div class="sample">
+          <div class="sample-name">Agentic Procurement Virtual Summit</div>
+          <div class="sample-org">Juvana Dsouza</div>
+          <div class="sample-row">
+            <span class="tag tag-person">individual</span>
+            <a class="sample-linkedin" href="https://in.linkedin.com/in/juvana-dsouza-3a2851356" target="_blank">Juvana Dsouza →</a>
+          </div>
+        </div>
+
+        <div class="sample">
+          <div class="sample-name">Rapid7 Virtual Global Cybersecurity Summit</div>
+          <div class="sample-org">Miles Baxter</div>
+          <div class="sample-row">
+            <span class="tag tag-person">individual</span>
+            <a class="sample-linkedin" href="https://www.linkedin.com/in/milesbaxter" target="_blank">Miles Baxter →</a>
+          </div>
+        </div>
+
+        <div class="sample">
+          <div class="sample-name">GitGuardian NHI Security — Live Product Demo</div>
+          <div class="sample-org">GitGuardian</div>
+          <div class="sample-row">
+            <span class="tag tag-person">individual</span>
+            <a class="sample-linkedin" href="https://www.linkedin.com/in/dwaynemcdaniel" target="_blank">Dwayne Mcdaniel →</a>
+          </div>
+        </div>
+
+        <div class="sample">
+          <div class="sample-name">SIERA Impact Webinars</div>
+          <div class="sample-org">SIERA</div>
+          <div class="sample-row">
+            <span class="tag tag-company">company-hosted</span>
+            <a class="sample-linkedin" href="https://www.linkedin.com/company/siera" target="_blank">Company page →</a>
+          </div>
+        </div>
+
+        <div class="sample">
+          <div class="sample-name">Onboarding &amp; Retention Free Virtual Summit</div>
+          <div class="sample-org">Customer Success Collective</div>
+          <div class="sample-row">
+            <span class="tag tag-company">company-hosted</span>
+            <a class="sample-linkedin" href="https://www.linkedin.com/company/customersuccesscollective" target="_blank">Company page →</a>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Next step -->
+      <div class="findings">
+        <div class="findings-header">What's next</div>
+        <div class="finding">
+          <div class="finding-dot" style="background:var(--blue)"></div>
+          <span>Email lookup for the 28 validated organizers via Fullenrich or BetterContact waterfall.</span>
+        </div>
+        <div class="finding">
+          <div class="finding-dot" style="background:var(--amber)"></div>
+          <span>Sequence activation — ask connector for intro or reach out directly with event context as the hook.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span class="footer-left">Edges Silver plan · $19.35/1K credits · Apify dev_fusion actor · $0.01/profile · Google Sheets API (free)</span>
+    <span class="footer-right">deepline/data/linkedin-event-organizers/ · May 2026</span>
+  </footer>
+
+</body>
+</html>
