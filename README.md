@@ -1,10 +1,10 @@
 # GTM Engineering Skills for Claude Code
 
-> AI agent skills that turn Claude Code into a GTM engineering workstation — lead enrichment, signal discovery, TAM building, and outbound automation. Powered by [Deepline](https://code.deepline.com).
+> AI agent skills that turn Claude Code into a GTM engineering workstation — lead enrichment, signal discovery, TAM building, and outbound automation. Powered by [Deepline](https://deepline.com).
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Skills-blueviolet)](https://docs.anthropic.com/en/docs/claude-code)
-[![Deepline](https://img.shields.io/badge/Deepline-CLI-orange)](https://code.deepline.com)
+[![Deepline](https://img.shields.io/badge/Deepline-CLI-orange)](https://deepline.com)
 
 ## Quick Start
 
@@ -13,13 +13,13 @@
 Paste this prompt:
 
 ```
-Install the Deepline CLI and skills using https://code.deepline.com/agent-install.txt
+Install the Deepline CLI and skills using https://deepline.com/agent-install.txt
 ```
 
 ### From the command line
 
 ```bash
-curl -fsSL "https://code.deepline.com/api/v2/cli/install" | bash
+curl -fsSL "https://deepline.com/api/v2/cli/install" | bash
 ```
 
 Then tell Claude what you need:
@@ -44,7 +44,7 @@ Each skill is a markdown file (`SKILL.md`) that encodes:
 - **Cost optimization patterns** (cheapest provider first, approval gates before expensive runs)
 - **Output formats** (enriched CSVs, CRM updates, campaign imports)
 
-Skills use the [Deepline CLI](https://code.deepline.com) under the hood — one command that orchestrates 40+ data providers (Apollo, Crustdata, PDL, Hunter, LeadMagic, Dropleads, Apify, and more) with cost-aware routing and waterfall fallbacks.
+Skills use the [Deepline CLI](https://deepline.com) under the hood — one command that orchestrates 40+ data providers (Apollo, Crustdata, PDL, Hunter, LeadMagic, Dropleads, Apify, and more) with cost-aware routing and waterfall fallbacks.
 
 ---
 
@@ -125,14 +125,14 @@ git submodule add https://github.com/getaero-io/gtm-eng-skills.git .claude/skill
 
 ## Prerequisites
 
-You need a [Deepline](https://code.deepline.com) account. The Deepline CLI powers all enrichment commands in these skills.
+You need a [Deepline](https://deepline.com) account. The Deepline CLI powers all enrichment commands in these skills.
 
 ```bash
 npm install -g @deepline/cli
 deepline auth login
 ```
 
-Free tier includes 100 credits (~300 enrichments). [Sign up here](https://code.deepline.com).
+Free tier includes 100 credits (~300 enrichments). [Sign up here](https://deepline.com).
 
 ---
 
@@ -184,7 +184,7 @@ Claude invokes `deepline-gtm` (the meta-skill), which loads the relevant recipes
 
 ## Why Deepline
 
-These skills use the [Deepline CLI](https://code.deepline.com) instead of calling provider APIs directly. Here's why:
+These skills use the [Deepline CLI](https://deepline.com) instead of calling provider APIs directly. Here's why:
 
 | Without Deepline | With Deepline |
 |---|---|
@@ -212,10 +212,10 @@ These skills work with any AI coding agent that supports the `SKILL.md` format:
 
 ## Documentation
 
-- **Full CLI reference:** [code.deepline.com/docs](https://code.deepline.com/docs)
-- **AI-readable docs:** [llms.txt](https://docs.code.deepline.com/docs/llms.txt)
-- **Waterfall patterns:** [code.deepline.com/docs/waterfalls](https://code.deepline.com/docs/waterfalls)
-- **GTM plays & recipes:** [code.deepline.com/docs/plays](https://code.deepline.com/docs/plays)
+- **Full CLI reference:** [deepline.com/docs](https://deepline.com/docs)
+- **AI-readable docs:** [llms.txt](https://docs.deepline.com/docs/llms.txt)
+- **Waterfall patterns:** [deepline.com/docs/waterfalls](https://deepline.com/docs/waterfalls)
+- **GTM plays & recipes:** [deepline.com/docs/plays](https://deepline.com/docs/plays)
 
 ---
 

@@ -487,7 +487,7 @@ deepline billing usage    # Show recent billing activity and grouped recent usag
 deepline billing limit    # Show the current monthly billing cap
 ```
 
-When credits at zero, link to https://code.deepline.com/dashboard/billing to top up.
+When credits at zero, link to https://deepline.com/dashboard/billing to top up.
 10 credits == $1
 
 ## 5) Provider routing (high level)
@@ -520,7 +520,7 @@ Critical: keep [writing-outreach.md](writing-outreach.md) workflow context activ
 - If enrichment or CLI behavior is unstable, rerun the installer to ensure the latest CLI/client wiring is in place:
 
 ```bash
-curl -s "https://code.deepline.com/api/v2/cli/install" | bash
+curl -s "https://deepline.com/api/v2/cli/install" | bash
 ```
 
 **Sites requiring auth:** Don't use Apify. Tell the user to use Claude in Chrome or guide them through Inspect Element to get a curl command with headers (user is non-technical).

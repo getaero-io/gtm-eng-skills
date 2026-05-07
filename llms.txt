@@ -25,7 +25,7 @@ deepline auth login
 
 ## Documentation
 
-- [Deepline CLI Docs](https://code.deepline.com/docs)
-- [Deepline AI-Readable Docs](https://docs.code.deepline.com/docs/llms.txt)
+- [Deepline CLI Docs](https://deepline.com/docs)
+- [Deepline AI-Readable Docs](https://docs.deepline.com/docs/llms.txt)
 - [GitHub Repository](https://github.com/getaero-io/gtm-eng-skills)
 - [Contributing Guide](https://github.com/getaero-io/gtm-eng-skills/blob/main/CONTRIBUTING.md)

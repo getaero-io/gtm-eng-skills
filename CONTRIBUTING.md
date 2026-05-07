@@ -22,7 +22,7 @@ description: |
   Triggers:
   - "example user request that activates this skill"
 
-  Requires: Deepline CLI — https://code.deepline.com
+  Requires: Deepline CLI — https://deepline.com
 ---
 ```
 
@@ -32,7 +32,7 @@ description: |
 - [ ] Includes a working `deepline enrich` or `deepline tools execute` example
 - [ ] Includes a `--rows 0:1` pilot step before any full run
 - [ ] Documents required and optional input columns
-- [ ] Links to code.deepline.com for setup
+- [ ] Links to deepline.com for setup
 - [ ] Written for external audience (no internal file paths or implementation details)
 
 ## Submitting a PR
