@@ -1,0 +1,42 @@
+{
+  "name": "linkedin_event_organizers",
+  "input": {
+    "event_url": "https://www.linkedin.com/events/example"
+  },
+  "commands": [
+    {
+      "alias": "route",
+      "tool": "run_javascript",
+      "payload": {
+        "code": "const eventUrl = row.event_url || row.input?.event_url || ''; const requiresAuth = /linkedin\\.com\\/events\\//.test(eventUrl); return { event_url: eventUrl, public_first: true, fallback_required: requiresAuth };"
+      }
+    },
+    {
+      "alias": "public_fetch",
+      "tool": "firecrawl_scrape_url",
+      "payload": {
+        "url": "{{route.data.event_url}}",
+        "formats": ["markdown"]
+      }
+    },
+    {
+      "alias": "apify_extract",
+      "tool": "apify_run_actor_sync",
+      "run_if_js": "const md = row.public_fetch?.data?.markdown || ''; return md.length < 500 || /sign in|login|authwall/i.test(md);",
+      "payload": {
+        "actor_id": "apify/linkedin-events-scraper",
+        "input": {
+          "eventUrls": ["{{route.data.event_url}}"],
+          "maxItems": 50
+        }
+      }
+    },
+    {
+      "alias": "normalize",
+      "tool": "run_javascript",
+      "payload": {
+        "code": "const publicText = row.public_fetch?.data?.markdown || ''; const apifyItems = row.apify_extract?.data?.items || row.apify_extract?.items || []; const organizers = apifyItems.map((item) => ({ name: item.name || item.fullName || '', title: item.title || item.headline || '', company: item.company || '', linkedin_url: item.linkedinUrl || item.url || '', source: 'apify', confidence: item.linkedinUrl ? 0.85 : 0.55 })); return { event_url: row.route.data.event_url, public_text_chars: publicText.length, organizers, needs_fallback_csv: organizers.length === 0 };"
+      }
+    }
+  ]
+}

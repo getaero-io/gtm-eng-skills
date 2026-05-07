@@ -1,0 +1,72 @@
+{
+  "name": "vector_warm_outbound",
+  "trigger": {
+    "type": "webhook",
+    "event": "contact.visited"
+  },
+  "commands": [
+    {
+      "alias": "normalize_visitor",
+      "tool": "run_javascript",
+      "payload": {
+        "code": "const source = row || {}; const contact = source.contact || source.person || {}; const company = source.company || {}; const views = source.page_views || source.visits || []; const linkedin = contact.linkedin_url || contact.linkedin || ''; const domain = company.domain || contact.company_domain || ''; return { primary_id: contact.id || source.id || '', hashed_email: contact.hashed_email || contact.hem || '', full_name: contact.name || contact.full_name || '', title: contact.title || '', company_name: company.name || contact.company || '', company_domain: domain, linkedin_url: linkedin, page_views: views.map((view) => ({ url: view.url || view.page_url || '', title: view.title || '', ts: view.timestamp || view.ts || '' })) };"
+      }
+    },
+    {
+      "alias": "dedupe_before_spend",
+      "tool": "run_javascript",
+      "payload": {
+        "code": "const v = row.normalize_visitor.data; const keys = [v.primary_id && `visitor:${v.primary_id}`, v.hashed_email && `hem:${v.hashed_email}`].filter(Boolean); return { should_continue: keys.length > 0, dedupe_keys: keys };"
+      }
+    },
+    {
+      "alias": "linkedin_route",
+      "tool": "run_javascript",
+      "payload": {
+        "code": "const v = row.normalize_visitor.data; return { mode: v.linkedin_url ? 'use_source_url' : 'search_profile', linkedin_url: v.linkedin_url, search_query: v.linkedin_url ? '' : `${v.full_name} ${v.company_name} site:linkedin.com/in` };"
+      }
+    },
+    {
+      "alias": "deterministic_icp_filter",
+      "tool": "run_javascript",
+      "payload": {
+        "code": "const v = row.normalize_visitor.data; const title = String(v.title || '').toLowerCase(); const excluded = ['student', 'teacher', 'recruiter', 'account executive', 'sdr']; const isExcluded = excluded.some((term) => title.includes(term)); const hasCompany = Boolean(v.company_domain || v.company_name); return { pass: hasCompany && !isExcluded, reason: !hasCompany ? 'missing_company' : isExcluded ? 'excluded_title' : 'qualified_for_ai' };"
+      }
+    },
+    {
+      "alias": "email_waterfall",
+      "tool": "email_waterfall",
+      "run_if_js": "return row.deterministic_icp_filter?.data?.pass === true;",
+      "payload": {
+        "full_name": "{{normalize_visitor.data.full_name}}",
+        "company_domain": "{{normalize_visitor.data.company_domain}}",
+        "linkedin_url": "{{linkedin_route.data.linkedin_url}}"
+      }
+    },
+    {
+      "alias": "approval",
+      "tool": "slack_message_with_hitl",
+      "payload": {
+        "channel": "#alerts-gtm",
+        "allow_edit": true,
+        "text": "Approve warm outbound to {{normalize_visitor.data.full_name}} at {{normalize_visitor.data.company_name}}?",
+        "buttons": [
+          { "id": "approve", "label": "Approve", "style": "primary", "emit": { "decision": "approve" } },
+          { "id": "skip", "label": "Skip", "style": "danger", "emit": { "decision": "skip" } },
+          { "id": "snooze", "label": "Snooze 24h", "emit": { "decision": "snooze" } }
+        ]
+      }
+    },
+    {
+      "alias": "send_to_lemlist",
+      "tool": "lemlist_add_to_campaign",
+      "run_if_js": "return row.approval?.selected_option === 'approve';",
+      "payload": {
+        "campaign_id": "{{env.LEMLIST_CAMPAIGN_ID}}",
+        "email": "{{email_waterfall.data.email}}",
+        "firstName": "{{normalize_visitor.data.full_name}}",
+        "companyName": "{{normalize_visitor.data.company_name}}"
+      }
+    }
+  ]
+}
