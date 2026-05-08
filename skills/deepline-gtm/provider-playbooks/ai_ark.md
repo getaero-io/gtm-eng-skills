@@ -146,7 +146,7 @@ String filters use arrays directly in `include`/`exclude`:
 
 **Path B — Find Emails from Search:**
 1. Run `ai_ark_people_search` first → response includes a `trackId`.
-2. `ai_ark_find_emails` with that `trackId` (single-use, expires in 6 hours).
+2. `ai_ark_find_emails` with that `trackId` and a `webhook` URL (single-use, expires in 6 hours).
 3. Poll `ai_ark_email_finder_statistics` until `state: "DONE"`.
 4. Fetch results via `ai_ark_email_finder_results` (paginated).
 
