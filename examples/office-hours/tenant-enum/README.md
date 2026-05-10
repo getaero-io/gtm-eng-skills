@@ -1,6 +1,6 @@
 # Tenant Enumeration — Find Confirmed Customers of Any SaaS Product
 
-Find every confirmed customer of 16 SaaS platforms by enumerating tenant subdomains and HTTP-probing platform fingerprints.
+Find every confirmed customer of 17 SaaS platforms by enumerating tenant subdomains and HTTP-probing platform fingerprints.
 
 **Blog post:** [deepline.com/blog/find-every-customer-saas-tenant-enumeration](https://deepline.com/blog/find-every-customer-saas-tenant-enumeration)
 
@@ -49,14 +49,29 @@ python3 slug_probe.py --domain shopify.com --company "Shopify" \
 
 ## Output columns
 
+**ct_harvest.py** (bulk subdomain harvest):
+
 | Column | Description |
 |--------|-------------|
 | `platform` | Platform label (e.g. "Jamf Cloud") |
 | `slug` | Tenant slug (e.g. `github`) |
 | `subdomain` | Full subdomain (e.g. `github.jamfcloud.com`) |
 | `login_url` | Clickable login URL |
-| `confirmed` | `yes` = HTTP probe confirmed live tenant |
-| `source` | `subfinder` or `crtsh_json` |
+| `confirmed` | `yes` = HTTP probe confirmed / `crtsh_unprobed` = from CT logs, not HTTP-verified |
+| `source` | `subfinder`, `crtsh_json`, or `crtsh_postgres` |
+
+**slug_probe.py** (per-company probe from a domain/CSV list):
+
+| Column | Description |
+|--------|-------------|
+| `domain` | Input company domain |
+| `company_name` | Input company name |
+| `platform` | Platform probed |
+| `slug_tried` | First slug that returned a confirmed response |
+| `login_url` | Clickable login URL (empty if no match) |
+| `confirmed` | `yes` = confirmed live / `no` = no match / `crt_only` = needs ct_harvest.py |
+| `probe_method` | How the check worked (e.g. `http_200`, `http_fragment`) |
+| `all_slugs_tried` | All slug candidates tried, comma-separated |
 
 ## Platform fingerprints
 
@@ -71,6 +86,16 @@ python3 slug_probe.py --domain shopify.com --company "Shopify" \
 | Salesloft | `{slug}.salesloft.com` | HTTP 200 | DNS NXDOMAIN |
 | PagerDuty | `{slug}.pagerduty.com` | HTTP 405 | 0/timeout |
 | Greenhouse | `job-boards.greenhouse.io/{slug}` | HTTP 200 | HTTP 404 |
+| Workday | `{slug}.myworkday.com` | CT logs only | wildcard DNS |
+| BambooHR | `{slug}.bamboohr.com` | CT logs only | wildcard DNS |
+| Outreach | `{slug}.outreach.io` | CT logs only | wildcard DNS |
+| Gong | `{slug}.app.gong.io` | CT logs only | wildcard DNS |
+| Monday.com | `{slug}.monday.com` | CT logs only | wildcard DNS |
+| HubSpot | `{slug}.hs-sites.com` | CT logs only | wildcard DNS |
+| NetSuite | `{slug}.app.netsuite.com` | CT logs only | wildcard DNS |
+| Datadog | `{slug}.datadoghq.com` | CT logs only | wildcard DNS |
+
+CT-log-only platforms use wildcard DNS — every slug resolves regardless of whether a tenant exists. Use `ct_harvest.py` (subfinder path) for these; HTTP probing alone is unreliable.
 
 > **Note on `-fr` flag:** `httpx` must be called with `-fr` (follow redirects). Without it, platforms that 302 before reaching 200 (Jamf, Salesforce, Freshdesk) are silently dropped.
 

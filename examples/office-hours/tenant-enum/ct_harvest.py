@@ -127,10 +127,16 @@ PLATFORMS: dict[str, Platform] = {
         notes="Tenant landing pages on hs-sites.com.",
     ),
     "netsuite": Platform(
-        label="Oracle NetSuite", root_domain="netsuite.com", slug_suffix=".netsuite.com",
+        label="Oracle NetSuite", root_domain="netsuite.com", slug_suffix=".app.netsuite.com",
         login_url_template="https://{slug}.app.netsuite.com",
         httpx_match_codes="200,301,302",
         notes="Numeric account IDs. Company name is in cert CN.",
+    ),
+    "greenhouse": Platform(
+        label="Greenhouse", root_domain="greenhouse.io", slug_suffix=".greenhouse.io",
+        login_url_template="https://job-boards.greenhouse.io/{slug}",
+        httpx_match_codes="200,301,302",
+        notes="Path-based ATS. subfinder finds greenhouse.io subdomains; check job-boards path.",
     ),
     "datadog": Platform(
         label="Datadog", root_domain="datadoghq.com", slug_suffix=".datadoghq.com",
@@ -194,7 +200,6 @@ def _httpx(urls: list[str], match_codes: str, threads: int = 100, timeout: int =
 
 
 def _final_url_check(url: str, fragment: str, timeout: int = 8) -> bool:
-    from urllib.request import urlopen, Request
     req = Request(url, headers={"User-Agent": "Mozilla/5.0"}, method="HEAD")
     try:
         with urlopen(req, timeout=timeout) as r:

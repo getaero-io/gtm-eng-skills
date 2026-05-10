@@ -31,10 +31,12 @@ from urllib.error import HTTPError, URLError
 # Slug generation
 # ---------------------------------------------------------------------------
 
+# Strips common legal suffixes from the end of a domain prefix.
+# "sonomainc" handles the specific case of williams-sonomainc.com → williams-sonoma
 _LEGAL = re.compile(
     r"[-.]?(inc|corp|llc|ltd|co|group|holdings|international|intl|"
     r"technologies?|solutions|services|systems|global|enterprises?|"
-    r"partners|consulting|advisors|plc|sa|srl|sonomainc|brandco)$",
+    r"partners|consulting|advisors|plc|sa|srl|sonomainc|brandco|inc)$",
     re.I,
 )
 
