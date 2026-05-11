@@ -14,9 +14,9 @@ Starting point: Jai's LinkedIn export. 6,484 connections, mostly from the last 5
 
 Three targets:
 
-- **Justin Dignelli** — VP of Sales at Modal (GPU compute infra)
-- **Manpreet Singh** — Head of Engineering, Identity Product at Stripe
-- **Ron P.** — Senior Director of Engineering at Stripe (Manpreet's manager, 17 direct reports)
+- **Target A** — VP of Sales at Modal (GPU compute infra)
+- **Target B** — Head of Engineering, Identity Product at Stripe
+- **Target C** — Senior Director of Engineering at Stripe (Manpreet's manager, 17 direct reports)
 
 The goal wasn't just to find someone at the same company. It was to find the person most likely to make a warm, well-placed introduction — and score them on how good that path actually is.
 
@@ -30,7 +30,7 @@ Four signals. Each one is justified, not just arbitrary.
 Total score = company match + seniority + connection recency + role overlap
 ```
 
-**Company match (50 pts)** is the biggest weight because shared employers are the strongest proxy for actual relationship. If you both worked at MongoDB, there's a reasonable chance you know each other or at least have a natural conversation opener. The scorer normalizes company names so "Stripe, Inc." and "Stripe" don't count differently. It also gives double credit for multiple overlaps in the history — someone who shows up at Stripe twice (once as an employee, once via acquisition) has a deeper relationship with the company than someone who spent six months there.
+**Company match (50 pts)** is the biggest weight because shared employers are the strongest proxy for actual relationship. If you both worked at [Company E], there's a reasonable chance you know each other or at least have a natural conversation opener. The scorer normalizes company names so "Stripe, Inc." and "Stripe" don't count differently. It also gives double credit for multiple overlaps in the history — someone who shows up at Stripe twice (once as an employee, once via acquisition) has a deeper relationship with the company than someone who spent six months there.
 
 **Seniority (5-20 pts)** matters because a VP or founder asking for an intro has more social capital than an IC asking the same favor. Not a moral judgment — just how it works. VP/founder gets 20, Director/Head of gets 17, Manager/Lead gets 12, Senior/Principal gets 9, IC gets 5.
 
@@ -44,15 +44,15 @@ Total score = company match + seniority + connection recency + role overlap
 
 We ingested all 6,484 connections from the LinkedIn export CSV — just names, current companies, and connection dates. No job history yet.
 
-Running the scorer gave us current-company signals only. Results for Justin Dignelli:
+Running the scorer gave us current-company signals only. Results for Target A:
 
 | Connector | Score | Via |
 |---|---|---|
-| Sathishkumar Gopalaswamy | 91 | MongoDB (current) |
-| Charlie Vieth | 81 | MongoDB (current) |
-| Mikiko Bazeley | 72 | MongoDB (current) |
+| Connector 1 | 91 | [Company E] (current) |
+| Connector 3 Vieth | 81 | [Company E] (current) |
+| Mikiko Bazeley | 72 | [Company E] (current) |
 
-Both Sathishkumar and Charlie were flagged as "currently at MongoDB." Neither was. Sathishkumar left for Harness in January 2025. Charlie left for Porter in 2024. LinkedIn's exported data is a snapshot, and the snapshot was already wrong.
+Both Connector 1 and Connector 3 were flagged as "currently at [Company E]." Neither was. Connector 1 left for [Company D] in January 2025. Connector 3 left for [Company C] in 2024. LinkedIn's exported data is a snapshot, and the snapshot was already wrong.
 
 Current-company data alone is unreliable for anything you actually plan to act on.
 
@@ -68,37 +68,37 @@ Rate limit on the Silver plan is 600 requests per minute. 94 profiles at one eve
 
 The enrichment wrote 780 experience records across 473 unique companies. Each record has company name, title, start date, end date, and whether it's current.
 
-Re-running the scorer with full history changed several results. The biggest change was for Ron P. at Stripe:
+Re-running the scorer with full history changed several results. The biggest change was for Target C at Stripe:
 
 | Connector | Score (before enrichment) | Score (after) | Why it changed |
 |---|---|---|---|
 | George Xing | 83 | 122 | Double Stripe hit — current employee + Supaglue acquisition history |
-| Tiffany Ly | — | 135 | Not in Stripe results before; enrichment revealed double Google history, Ron worked at Google pre-Stripe |
+| Connector 2 | — | 135 | Not in Stripe results before; enrichment revealed double Google history, Ron worked at Google pre-Stripe |
 | Spencer Aller | — | 134 | Also surfaced via Google history |
 
-Tiffany Ly went from invisible to the highest-scoring connector for Ron P. That wouldn't have happened without job history.
+Connector 2 went from invisible to the highest-scoring connector for Target C That wouldn't have happened without job history.
 
 ---
 
 ## Final scores
 
 ```
-Target: Justin Dignelli (VP Sales, Modal)
-  #1 Sathishkumar Gopalaswamy — 90  [warm, connected Jan 2025]
-       Now at Harness. Worked at MongoDB when Justin was there.
-       Seniority: Sr Director = 20 pts. Still has the MongoDB network.
-  #2 Charlie Vieth — 81  [warm, connected Aug 2025]
-       Now at Porter. Left MongoDB 2024.
+Target: Target A (VP Sales, Modal)
+  #1 Connector 1 — 90  [warm, connected Jan 2025]
+       Now at [Company D]. Worked at [Company E] when Target A was there.
+       Seniority: Sr Director = 20 pts. Still has the [Company E] network.
+  #2 Connector 3 Vieth — 81  [warm, connected Aug 2025]
+       Now at [Company C]. Left [Company E] 2024.
        Freshest connection but cross-functional (Eng → Sales).
   #3 Mikiko Bazeley — 72  [cold, connected May 2024]
-       Still at MongoDB. Staff Dev Advocate.
+       Still at [Company E]. Staff Dev Advocate.
 
-Note: Justin is already a direct connection (Dec 2023, 869 days ago).
+Note: Target A is already a direct connection (Dec 2023, 869 days ago).
 Cold but reachable directly — no intro needed.
 ```
 
 ```
-Target: Manpreet Singh (Head of Eng, Identity Product, Stripe)
+Target: Target B (Head of Eng, Identity Product, Stripe)
   #1 George Xing — 125  [cold, connected Sep 2022]
        Currently at Stripe. Founded Supaglue, which Stripe acquired.
        Double company match = 106 pts on company alone.
@@ -107,8 +107,8 @@ Target: Manpreet Singh (Head of Eng, Identity Product, Stripe)
        Currently at Stripe, Product role.
        Lower score than George but a much fresher relationship.
 
-Target: Ron P. (Sr Director of Engineering, Stripe)
-  #1 Tiffany Ly — 135  [warm, connected Dec 2024]
+Target: Target C (Sr Director of Engineering, Stripe)
+  #1 Connector 2 — 135  [warm, connected Dec 2024]
        Head of Operations, Health AI Research at Google.
        Double Google hit in her history. Ron was at Google before Stripe.
   #2 Spencer Aller — 134  [cold, connected 2015]
@@ -155,7 +155,7 @@ Total cost: $1.09 for enrichment. The rest is free.
 
 It tells you who has the most factual overlap. It doesn't tell you whether to ask them.
 
-Sathishkumar scoring 90 for a Justin Dignelli intro means he ran partner sales at MongoDB when Justin was an AE there — real overlap on paper. Whether they actually knew each other, whether Sathishkumar would pick up the phone, whether he knows Justin personally or just by reputation: none of that shows up in the data.
+Connector 1 scoring 90 for a Target A intro means he ran partner sales at [Company E] when Target A was an AE there — real overlap on paper. Whether they actually knew each other, whether Connector 1 would pick up the phone, whether he knows Target A personally or just by reputation: none of that shows up in the data.
 
 A score of 90 is a strong reason to look at the person. It's not a strong reason to send the ask. That decision still requires a human who knows the relationship.
 

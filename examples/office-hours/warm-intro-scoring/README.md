@@ -4,7 +4,7 @@ Office-hours example from May 7, 2026.
 
 Score your LinkedIn connections as intro paths to a target person. Uses job history (not just current company) to surface connectors who overlapped with the target at a past employer — catching the people that current-company-only lookups miss.
 
-**What we built this for:** finding the best intro paths from Jai Toor's 6,484 LinkedIn connections to three targets at Stripe and Modal. Full write-up in `warm_intro_blog_post.md`.
+**What we built this for:** finding the best intro paths from your 6,484 LinkedIn connections to three targets at Stripe and Modal. Full write-up in `warm_intro_blog_post.md`.
 
 ## How it works
 
@@ -29,7 +29,7 @@ Validation on first name only, not current company. The lookup sometimes returns
 
 ## What job history enrichment changes
 
-Running on current-company data only, the top result for a MongoDB target was Sathishkumar Gopalaswamy — scored 91. After enrichment: he left MongoDB for Harness in January 2025. The DB said MongoDB. The real answer was Harness.
+Running on current-company data only, the top result for a MongoDB target was Connector 1 — scored 91. After enrichment: he left MongoDB for Harness in January 2025. The DB said MongoDB. The real answer was Harness.
 
 Current-company data from a LinkedIn export is a snapshot. The snapshot is already wrong. Enrichment with live job history is necessary before acting on results.
 
