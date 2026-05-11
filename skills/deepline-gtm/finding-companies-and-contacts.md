@@ -199,10 +199,10 @@ Direct extraction example:
 deepline tools execute parallel_extract --payload '{"urls":["https://www.ycombinator.com/companies?batch=W26"],"objective":"Extract all company names, domains, and one-line descriptions from this page","full_content":true}'
 ```
 
-Apify for source-specific scraping. Known actors: `dev_fusion/linkedin-profile-scraper`, `apimaestro/linkedin-profile-detail`, `harvestapi/linkedin-company-employees`, `radeance/similarweb-scraper`. Discover more with `deepline tools get apify_run_actor_sync` or `deepline tools execute apify_list_store_actors --payload '{"search":"...","limit":20}'`.
+Apify for source-specific scraping. Known actors: `dev_fusion/linkedin-profile-scraper`, `apimaestro/linkedin-profile-detail`, `harvestapi/linkedin-company-employees`, `supreme_coder/linkedin-post`, `harvestapi/linkedin-profile-posts`, `harvestapi/linkedin-post-reactions`, `radeance/similarweb-scraper`. Discover more with `deepline tools get apify_run_actor_sync` or `deepline tools execute apify_list_store_actors --payload '{"search":"...","limit":20}'`.
 
 ```bash
-deepline tools execute apify_run_actor_sync --payload '{"actorId":"apimaestro/linkedin-profile-detail","input":{"profileUrl":"https://www.linkedin.com/in/someone/"},"timeoutMs":300000}'
+deepline tools execute apify_run_actor_sync --payload '{"actorId":"apimaestro/linkedin-profile-detail","input":{"username":"https://www.linkedin.com/in/someone/"},"timeoutMs":300000}'
 ```
 
 For LinkedIn URL recovery itself (not scraping after you have the URL), use `URL recovery` below.

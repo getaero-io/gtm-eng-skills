@@ -549,8 +549,9 @@ curl -s "https://code.deepline.com/api/v2/cli/install" | bash
 2. If not, search `deepline tools get apify_run_actor_sync` for the actor id, or try deepline tools search.
 3. If not present, run discovery search.
 4. Avoid rental-priced actors.
-5. Pick value-over-quality-fit; when tied, choose best evidence-quality/price balance.
-6. Honor `operatorNotes` over public ratings when conflicting.
+5. For LinkedIn post scraping, prefer `supreme_coder/linkedin-post` for generic posts/search URLs and `harvestapi/linkedin-post-reactions` when the goal is engagers/reactions. Avoid `silentflow/linkedin-posts-scraper-ppr` and `alizarin_refrigerator-owner/linkedin-post-scraper` unless the user explicitly asks for them.
+6. Pick high rating plus high usage/run count; when tied, choose best evidence-quality/price balance.
+7. Honor `operatorNotes` over public ratings when conflicting.
 
 ```bash
 deepline tools execute apify_list_store_actors --payload '{"search":"linkedin company employees scraper","sortBy":"relevance","limit":20}'
