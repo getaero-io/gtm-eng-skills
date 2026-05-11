@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """
-Two-phase LinkedIn event organizer extraction using Edges managed identity API.
+Two-phase LinkedIn event organizer extraction via Deepline.
 
-Phase 1: Search across multiple keywords → save raw search results CSV (playground)
+Phase 1: Search across multiple keywords → save raw search results CSV
 Phase 2: For each event, extract details → organizer name + company URL + individual LinkedIn
+
+No API keys needed. Deepline manages LinkedIn identities.
+Requires: deepline CLI authenticated (`deepline auth status`)
 """
 
 import json
-import os
 import csv
 import subprocess
 import time
 import sys
 from pathlib import Path
 
-EDGES_API_KEY = os.environ["EDGES_API_KEY"]
-EDGES_API_BASE = "https://api.edges.run/v1/actions"
 WORKDIR = Path(__file__).parent
 
 SEARCH_RESULTS_CSV = WORKDIR / "phase1_search_results.csv"
@@ -23,7 +23,6 @@ ORGANIZERS_CSV = WORKDIR / "phase2_event_organizers.csv"
 
 TARGET = 100
 
-# Different keywords to diversify results across managed sessions
 KEYWORDS = [
     "webinar",
     "virtual+event",
@@ -40,37 +39,21 @@ KEYWORDS = [
 ]
 
 
-def edges_post(action: str, input_data: dict, timeout: int = 60) -> dict | list:
-    url = f"{EDGES_API_BASE}/{action}/run/live"
-    body = json.dumps({"identity_mode": "managed", "input": input_data})
+def deepline_execute(tool_id: str, payload: dict, timeout: int = 90) -> dict | list:
     result = subprocess.run(
         [
-            "curl", "-s", "--request", "POST",
-            "--url", url,
-            "--header", f"X-API-Key: {EDGES_API_KEY}",
-            "--header", "Content-Type: application/json",
-            "--header", "Accept: application/json",
-            "--data", body,
+            "deepline", "tools", "execute", tool_id,
+            "--payload", json.dumps(payload),
+            "--json",
         ],
         capture_output=True, text=True, timeout=timeout,
     )
+    if result.returncode != 0:
+        return {"error": result.stderr or result.stdout}
     try:
         return json.loads(result.stdout)
     except Exception:
         return {"error": result.stdout or result.stderr}
-
-
-def get_credits_left() -> float:
-    result = subprocess.run(
-        ["curl", "-s", "--request", "GET",
-         "--url", "https://api.edges.run/v1/workspaces",
-         "--header", f"X-API-Key: {EDGES_API_KEY}"],
-        capture_output=True, text=True, timeout=15,
-    )
-    try:
-        return json.loads(result.stdout).get("credits_left", 0)
-    except Exception:
-        return 0
 
 
 # ── Phase 1: collect search results ──────────────────────────────────────────
@@ -88,16 +71,22 @@ def phase1_search() -> list[dict]:
             f"?keywords={kw}&origin=SWITCH_SEARCH_VERTICAL"
         )
         print(f"  Keyword '{kw}': {url}")
-        result = edges_post("linkedin-search-events", {"url": url})
 
-        if not isinstance(result, list):
-            print(f"    ERROR: {result.get('message', result)}")
+        result = deepline_execute(
+            "linkedin_scraper_linkedin_search_events",
+            {"input": {"linkedin_event_search_url": url}},
+        )
+
+        # Result may be wrapped in Deepline response envelope
+        events = result if isinstance(result, list) else result.get("results", result.get("data", []))
+        if not isinstance(events, list):
+            print(f"    ERROR: {result.get('error', result)}")
             time.sleep(2)
             continue
 
         new = 0
-        for event in result:
-            eid = event.get("linkedin_event_id")
+        for event in events:
+            eid = event.get("linkedin_event_id") or event.get("id")
             if eid and eid not in seen_ids:
                 seen_ids.add(eid)
                 location = event.get("location", "")
@@ -108,7 +97,6 @@ def phase1_search() -> list[dict]:
         print(f"    +{new} new unique events (total: {len(all_events)})")
         time.sleep(1.5)
 
-    # Write phase 1 CSV
     if not all_events:
         print("No events found.")
         return []
@@ -129,44 +117,34 @@ def phase1_search() -> list[dict]:
 # ── Phase 2: extract event detail + organizer LinkedIn ───────────────────────
 
 def extract_event_detail(event_url: str) -> dict:
-    result = edges_post("linkedin-extract-event", {"linkedin_event_url": event_url})
-    if isinstance(result, dict) and "error" not in result and "error_label" not in result:
+    result = deepline_execute(
+        "linkedin_scraper_linkedin_extract_event",
+        {"input": {"linkedin_event_url": event_url}},
+    )
+    if isinstance(result, dict) and "error" not in result:
         return result
     return {}
 
 
-def find_linkedin_profile(full_name: str, company: str = "") -> str:
-    if not full_name.strip():
+def find_linkedin_profile(first_name: str, last_name: str, company_name: str = "") -> str:
+    if not first_name.strip() and not last_name.strip():
         return ""
-    payload = {"full_name": full_name}
-    if company:
-        payload["company_name"] = company
-    result = edges_post("linkedin-find-profile-url", payload)
+    payload: dict = {"first_name": first_name, "last_name": last_name}
+    if company_name:
+        payload["company_name"] = company_name
+    result = deepline_execute("name_to_linkedin_url_waterfall", payload)
     if isinstance(result, dict):
         return (
-            result.get("linkedin_profile_url")
-            or result.get("url")
-            or result.get("profile_url")
+            result.get("linkedin")
+            or result.get("linkedin_url")
+            or result.get("linkedin_profile_url")
             or ""
         )
     return ""
 
 
-PHASE2_FIELDNAMES = [
-    "event_name", "event_url", "event_id", "event_date", "attendees",
-    "organizer_company",             # display name parsed from search result location field
-    "organizer_company_linkedin",    # company LinkedIn page URL (all events)
-    "organizer_company_website",     # company website (all events)
-    "organizer_full_name",           # individual name (personal-hosted events only)
-    "organizer_first_name",
-    "organizer_last_name",
-    "organizer_individual_linkedin", # individual LinkedIn URL (personal-hosted only)
-    "hosted_by",                     # "person" or "company"
-]
-
-
-def lookup_company_linkedin(company_name: str) -> tuple[str, str]:
-    """Return (company_linkedin_url, company_website) by searching LinkedIn companies by name."""
+def lookup_company_page(company_name: str) -> tuple[str, str]:
+    """Search LinkedIn companies by name, return (company_linkedin_url, website)."""
     if not company_name.strip():
         return "", ""
     import urllib.parse
@@ -174,18 +152,32 @@ def lookup_company_linkedin(company_name: str) -> tuple[str, str]:
         "https://www.linkedin.com/search/results/companies/?keywords="
         + urllib.parse.quote(company_name)
     )
-    result = edges_post("linkedin-search-companies", {"url": search_url}, timeout=90)
-    # Returns a list of company results; take the first match
+    result = deepline_execute(
+        "linkedin_scraper_linkedin_extract_company",
+        {"input": {"linkedin_company_url": search_url}},
+    )
     if isinstance(result, list) and result:
         first = result[0]
-        linkedin = first.get("linkedin_company_url") or first.get("url") or ""
-        website = first.get("website") or ""
-        return linkedin, website
+        return first.get("linkedin_company_url") or first.get("url") or "", first.get("website") or ""
+    if isinstance(result, dict) and "error" not in result:
+        return result.get("linkedin_company_url") or result.get("url") or "", result.get("website") or ""
     return "", ""
 
 
+PHASE2_FIELDNAMES = [
+    "event_name", "event_url", "event_id", "event_date", "attendees",
+    "organizer_company",
+    "organizer_company_linkedin",
+    "organizer_company_website",
+    "organizer_full_name",
+    "organizer_first_name",
+    "organizer_last_name",
+    "organizer_individual_linkedin",
+    "hosted_by",
+]
+
+
 def phase2_enrich(events: list[dict]):
-    # Write header once
     with open(ORGANIZERS_CSV, "w", newline="", encoding="utf-8") as f:
         csv.DictWriter(f, fieldnames=PHASE2_FIELDNAMES).writeheader()
 
@@ -205,7 +197,6 @@ def phase2_enrich(events: list[dict]):
         last_name = detail.get("last_name", "")
         full_name = detail.get("full_name", "").strip() or f"{first_name} {last_name}".strip()
 
-        # Company URL from event detail endpoint (present on some events)
         company_linkedin = (
             detail.get("organizer_url")
             or detail.get("company_url")
@@ -218,18 +209,15 @@ def phase2_enrich(events: list[dict]):
         individual_linkedin = ""
 
         if full_name:
-            # Personal-hosted event — look up individual profile
-            individual_linkedin = find_linkedin_profile(full_name, organizer_company)
+            individual_linkedin = find_linkedin_profile(first_name, last_name, organizer_company)
             named_count += 1
             hosted_by = "person"
             print(f"    Person: {full_name} @ {organizer_company} → {individual_linkedin or 'not found'}")
-            # Company URL comes from Apify in the validation pass; skip lookup here
         else:
-            # Company-hosted event — look up company LinkedIn page
             company_count += 1
             hosted_by = "company"
             if not company_linkedin and organizer_company:
-                company_linkedin, company_website = lookup_company_linkedin(organizer_company)
+                company_linkedin, company_website = lookup_company_page(organizer_company)
             print(f"    Company: {organizer_company} → {company_linkedin or 'not found'}")
 
         row = {
@@ -254,17 +242,13 @@ def phase2_enrich(events: list[dict]):
         time.sleep(0.8)
 
     print(f"\n✓ Phase 2 done — {len(events)} rows → {ORGANIZERS_CSV}")
-    print(f"  {named_count} personal-hosted events (individual organizer found)")
-    print(f"  {company_count} company-hosted events (company page logged)")
+    print(f"  {named_count} personal-hosted  |  {company_count} company-hosted")
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
     skip_phase1 = "--skip-search" in sys.argv
-
-    credits_before = get_credits_left()
-    print(f"Credits available: {credits_before:,.0f}\n")
 
     if skip_phase1 and SEARCH_RESULTS_CSV.exists():
         print("Loading existing phase 1 results...")
@@ -279,12 +263,6 @@ def main():
 
     print(f"\n=== Phase 2: Extracting organizer details ({len(events)} events) ===")
     phase2_enrich(events)
-
-    credits_after = get_credits_left()
-    spent = credits_before - credits_after
-    cost_usd = spent * 19.35 / 1000
-    print(f"\nCredits spent: {spent:.1f} (~${cost_usd:.2f} at $19.35/1K)")
-    print(f"Credits remaining: {credits_after:,.0f}")
 
 
 if __name__ == "__main__":
