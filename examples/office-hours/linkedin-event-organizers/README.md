@@ -2,11 +2,11 @@
 
 Office-hours example from May 7, 2026.
 
-Search LinkedIn events by keyword, extract the organizer for each event, look up their LinkedIn profile, and export to Google Sheets. No API keys — runs entirely through Deepline.
+Search LinkedIn events by keyword, extract the organizer for each event, look up their LinkedIn profile, and export to Google Sheets. Two versions: one using Deepline (no API keys needed), one using the Edges API directly.
 
 ## What we built
 
-12 keyword searches (webinar, masterclass, virtual summit, etc.) via Deepline's managed LinkedIn identity layer — no cookies, no LinkedIn account needed. Each search returns 10 events from a fresh session. Deduplicated to 105 unique events, then extracted organizer names and company pages for all of them.
+12 keyword searches (webinar, masterclass, virtual summit, etc.) via managed LinkedIn identity — no cookies, no LinkedIn account needed. Each search returns 10 events from a fresh session. Deduplicated to 105 unique events, then extracted organizer names and company pages for all of them.
 
 Results:
 - 105 unique events
@@ -15,11 +15,11 @@ Results:
 
 ## How it works
 
-**Phase 1 — Search:** call `linkedin_scraper_linkedin_search_events` with a search URL for each keyword. Deduplicate by event ID. Write to CSV.
+**Phase 1 — Search:** search events by keyword URL. Deduplicate by event ID. Write to CSV.
 
-**Phase 2 — Extract:** call `linkedin_scraper_linkedin_extract_event` for each URL. Individual-hosted events return `first_name` / `last_name`. Company-hosted events return blank — the API has no individual to surface. For company-hosted events, call `linkedin_scraper_linkedin_extract_company` with the company name to get the company LinkedIn page URL.
+**Phase 2 — Extract:** extract event detail for each URL. Individual-hosted events return `first_name` / `last_name`. Company-hosted events return blank — the API has no individual to surface. For those, look up the company LinkedIn page by name.
 
-**Phase 3 — Profile lookup:** for named organizers, call `name_to_linkedin_url_waterfall` with first name, last name, and company. Fast but fuzzy — returns wrong profile ~20% of the time.
+**Phase 3 — Profile lookup:** for named organizers, look up their LinkedIn profile URL by name + company. Fast but fuzzy — returns wrong profile ~20% of the time.
 
 **Phase 4 — Export:** write to Google Sheets via Sheets API. Named organizers tab has green/red conditional formatting on validation status.
 
@@ -29,34 +29,45 @@ Results:
 
 ## Files
 
-- `extract_organizers.py` — main two-phase pipeline. Calls Deepline tools for each event, writes phase 2 CSV incrementally.
+- `extract_organizers_deepline.py` — pipeline using Deepline CLI. No API keys needed, just `deepline auth status`.
+- `extract_organizers_edges.py` — pipeline using Edges API directly. Requires `EDGES_API_KEY`.
 - `export_to_sheets.py` — Google Sheets export via OAuth2. Creates spreadsheet, formats headers, adds conditional formatting on name_validated column.
 - `phase1_search_results.csv` — raw search results (105 events).
 - `phase2_event_organizers.csv` — enriched output with organizer names, LinkedIn URLs, and company pages.
 
-## Deepline tools used
+## Version comparison
 
-| Tool | Purpose | Cost |
+| | Deepline (`extract_organizers_deepline.py`) | Edges (`extract_organizers_edges.py`) |
 |---|---|---|
-| `linkedin_scraper_linkedin_search_events` | Search events by keyword | $0.07/result |
-| `linkedin_scraper_linkedin_extract_event` | Extract event detail + organizer info | $0.07/result |
-| `linkedin_scraper_linkedin_extract_company` | Company LinkedIn page lookup | $0.07/result |
-| `name_to_linkedin_url_waterfall` | Individual profile URL lookup | ~$0.06–$0.12/call |
+| Auth | `deepline auth status` | `EDGES_API_KEY` env var |
+| LinkedIn identities | Managed by Deepline | Managed by Edges |
+| Search | `linkedin_scraper_linkedin_search_events` | `linkedin-search-events` |
+| Extract | `linkedin_scraper_linkedin_extract_event` | `linkedin-extract-event` |
+| Profile lookup | `name_to_linkedin_url_waterfall` | `linkedin-find-profile-url` |
+| Company lookup | `linkedin_scraper_linkedin_extract_company` | `linkedin-search-companies` |
+| Cost tracking | Deepline dashboard | `GET /v1/workspaces` |
 
 ## Usage
 
+**Deepline version (recommended):**
 ```bash
-# Authenticate once
 deepline auth status
 
-# Run the pipeline (both phases)
-python examples/office-hours/linkedin-event-organizers/extract_organizers.py
+python extract_organizers_deepline.py
+python extract_organizers_deepline.py --skip-search  # resume from phase 1 CSV
+```
 
-# Skip phase 1 if you already have search results
-python examples/office-hours/linkedin-event-organizers/extract_organizers.py --skip-search
+**Edges version:**
+```bash
+export EDGES_API_KEY=your_key
 
-# Export to Google Sheets (requires OAuth setup)
-python examples/office-hours/linkedin-event-organizers/export_to_sheets.py
+python extract_organizers_edges.py
+python extract_organizers_edges.py --skip-search
+```
+
+**Export to Google Sheets (both versions write the same CSV format):**
+```bash
+python export_to_sheets.py
 ```
 
 ## Pagination
