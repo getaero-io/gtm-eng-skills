@@ -26,7 +26,7 @@ Search-to-enrichment handoff rules:
 ## Company search providers (ROI order)
 
 Escalate only when you need a filter the current step lacks.
-1. **`free_simple_company_search`** — SQL over industry, location, employee_count, year_founded, domain, company_name. Up to 100k rows. FREE.
+1. **`free_simple_company_search`** — SQL over the free company corpus. Exact/domain lookup and bounded SQL. FREE.
 2. **`dropleads_search_people`** — adds revenue, funding range, technologies + people filters. Use `dropleads_get_lead_count` to size first. FREE.
 3. **`apollo_company_search`** — adds hiring signals (job titles, locations, num roles), funding dates, tech UIDs.
 4. **`crustdata_companydb_search`** — adds investors, funding stage, fuzzy `(.)` operator. Use `crustdata_companydb_autocomplete` (free) first.
@@ -158,6 +158,16 @@ Recommended course of action:
 3. Run a count-like first pass with `limit:1` when appropriate.
 4. Pull more rows than the final target if downstream attrition is expected.
 5. If the exact filter set is unclear, use the tool-discovery pattern above instead of hardcoding a provider guess.
+
+### Free native company search
+
+Use `free_simple_company_search` for exact and bounded SQL:
+- exact `normalized_domain = ...` or `normalized_domain IN (...)`
+- small exact `linkedin_url = ...` or `linkedin_url IN (...)` batches
+- small exact `company_name = ...` or `company_name IN (...)` batches
+- anchored prefix candidates like `company_name ILIKE 'acme%'`
+
+Plain `ILIKE '%...%'` is valid SQL on the Snowflake-backed corpus, but it can still scan the full 35M-company table when combined with long OR chains, `COUNT`/`GROUP BY`, country-wide location scans, or high limits like 50k. Use `dropleads_get_lead_count`, `apollo_company_search`, `crustdata_companydb_search`, or another purpose-built provider when you need broad keyword discovery, strict totals, live coverage, or provider-native facets.
 
 ### Canonical value validation
 
