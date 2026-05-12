@@ -19,7 +19,7 @@ Actors are ranked by:
 score = rating * log2(reviews + 1) * log10(runs + 1) / 5
 ```
 
-Actors with <80% 30-day success rate are penalized. Actors with 0 reviews but high usage get a reduced fallback score.
+Actors with less than 80% 30-day success rate are penalized. Actors with 0 reviews but high usage get a reduced fallback score.
 
 To bypass quality ranking and use Apify's native sort, pass `rankBy: "relevance"`.
 
