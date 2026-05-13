@@ -79,29 +79,30 @@ For multi-phase tasks (e.g. "find 5 VP Marketing contacts at US fintech companie
 
 When the table does not fit, default to `jobs/enriching-and-researching.md` — it covers most row-level work.
 
-## The deterministic loop
+## Execution Loop
 
 Once the job doc has named the pattern category (e.g. "name + domain → email waterfall," "structured firmographic company search"), the CLI loop is how you find the current canonical tool or play for that category and confirm its input contract. Skipping the loop makes the agent guess at provider names, input shapes, or auth state that the CLI would have answered for free.
 
 ```
 1. Confirm runtime is healthy:        deepline health
 2. Confirm auth is registered:        deepline auth status --json
-3. Discover the right tool or play:   deepline tools search <category> --json
+3. For CSV tasks, inspect row shape:  deepline csv show --csv rows.csv --summary
+4. Discover the right tool or play:   deepline tools search <category> --json
                                       deepline plays search <category> --json
-4. Confirm the input contract:        deepline tools describe <id> --json
+5. Confirm the input contract:        deepline tools describe <id> --json
                                       deepline plays describe <reference> --json
-5. Either:
+6. Either:
    a) call directly for one-shot:     deepline tools execute <id> --payload '{...}' --json
                                       deepline plays run <name> --input '{...}' --watch
                                       deepline plays run <name> --csv rows.csv --columns.domain Website --watch
    b) write a *.play.ts file and run: deepline plays run <file.play.ts> --input '{...}' --watch
                                       deepline plays run <file.play.ts> --csv rows.csv --watch
-6. Inspect runs as needed:            deepline plays runs <name> --json
-                                      deepline plays status <id> --json
-                                      deepline plays tail <id> --json
+7. Inspect runs as needed:            deepline runs list --play <name> --json
+                                      deepline runs get <id> --json
+                                      deepline runs tail <id> --json
 ```
 
-Use `--json` whenever a downstream step parses output. Use `--watch` for evals and short verification runs so the command returns when the run is finished. The CLI auto-emits JSON when stdout is piped, but `--json` is explicit and safe in interactive terminals. When `run` is invoked without `--watch`, it returns the run ID and the play executes asynchronously — follow it with `deepline plays status <id> --json` or `deepline plays tail <id> --json`.
+Use `--json` whenever a downstream step parses output. Use `--watch` for evals and short verification runs so the command returns when the run is finished. The CLI auto-emits JSON when stdout is piped, but `--json` is explicit and safe in interactive terminals. When `run` is invoked without `--watch`, it returns the run ID and the play executes asynchronously — follow it with `deepline runs get <id> --json` or `deepline runs tail <id> --json`.
 
 `deepline plays run <name>` runs the live registered version of the play; `deepline plays run <file.play.ts>` runs the local file directly without going through the registry. If the local file diverges from the live version, run by file path explicitly during iteration, or `set-live` the file before calling by name. For any flag's exact behavior, `deepline <command> --help` is authoritative.
 
@@ -127,7 +128,19 @@ Inside a custom `*.play.ts`, every non-deterministic operation goes through the 
 
 ### Prebuilts are templates
 
-Search for a prebuilt before writing a custom play. If the prebuilt's behavior fits, run it directly. If only CSV headers differ, pass column aliases such as `--columns.first_name "First Name"` instead of copying the play. Copy a prebuilt only for semantic changes: provider order, validation policy, extra stages, filtering, or output shape. Use `deepline plays get <play> --source --out ./my-play.play.ts`; do not parse `play.sourceCode` out of JSON when copying templates. Run the copied play by file path while iterating, then `set-live` when stable. See `shared/plays-best-practices.md` for the copy/edit loop.
+Search for a prebuilt before writing a custom play. If the prebuilt's behavior fits, run it directly. If only CSV headers differ, pass column aliases such as `--columns.first_name "First Name"` instead of copying the play.
+
+When the user asks to customize, compose, extend, or use a prebuilt as a starting point, prefer the copy/edit loop over rewriting from scratch:
+
+```bash
+deepline plays search <task> --json
+deepline plays describe <play-name-from-search> --json
+deepline plays get <play-name-from-search> --source --out ./my-play.play.ts
+deepline plays check ./my-play.play.ts
+deepline plays run ./my-play.play.ts --csv pilot.csv --watch
+```
+
+Copy a prebuilt only for semantic changes: provider order, validation policy, extra stages, filtering, or output shape. `plays get --source --out` preserves the provider order, input contract, CSV handling, logs, and output conventions the prebuilt already got right. Do not parse `play.sourceCode` out of JSON when copying templates. Run the copied play by file path while iterating, then `set-live` when stable. See `shared/plays-best-practices.md` for the copy/edit loop.
 
 ### Outputs go in a project-local working directory
 

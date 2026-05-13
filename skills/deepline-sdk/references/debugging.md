@@ -5,13 +5,12 @@ Read this when a run failed, stalled, or produced unexpected output. The bulk of
 ## First commands when a run goes sideways
 
 ```bash
-deepline plays runs --name <play-name> --json     # which runs exist; which failed
-deepline runs status <full-run-id> --json         # detailed state and last event
-deepline runs logs <full-run-id> --json           # persisted log output
-deepline plays tail --run-id <full-run-id> --json # live stream if the run is active
+deepline runs list --play <play-name> --json # which runs exist; which failed
+deepline runs get <run-id> --json            # detailed state, progress, outputs, and last event
+deepline runs tail <run-id> --json           # live stream if the run is active
 ```
 
-A failed run shows up in `status` as `failed` with a final-event message. `tail` shows the `ctx.log(...)` output up to the failure. For a play that never completes, `tail` reveals whether it is stuck on a tool call (provider hang), a retry loop (rate limit), or genuinely waiting.
+A failed run shows up in `runs get` as `failed` with a final-event message. `tail` shows the `ctx.log(...)` output up to the failure. For a play that never completes, `tail` reveals whether it is stuck on a tool call (provider hang), a retry loop (rate limit), or genuinely waiting.
 
 ## Failure: replay-safety violation
 
@@ -54,8 +53,8 @@ Cause: a previous run is still active (or its lock did not clean up). Deepline s
 Fix: check for the prior run, and either wait or cancel.
 
 ```bash
-deepline plays runs --name <play-name> --json | jq '.runs[] | select(.status == "running")'
-deepline plays stop --run-id <full-run-id> --reason "stale lock"
+deepline runs list --play <play-name> --status running --json
+deepline runs stop <run-id> --reason "stale lock" --json
 ```
 
 Lock files in the working directory (typically a `.deepline.lock` directory next to the output) are safety mechanisms, not bugs. If no run is actually active and the lock is genuinely stale, the lock can be removed manually — but verify the run is finished first.
@@ -101,7 +100,7 @@ Fix: confirm the intended input shape (`--csv` vs `--input`), the stage keys, an
 
 ## When `tail` shows the play is stuck
 
-Symptom: `tail` stops emitting log lines, but `status` shows the run as still active.
+Symptom: `tail` stops emitting log lines, but `runs get` shows the run as still active.
 
 Cause: the play is waiting on something. Common waits:
 
@@ -112,7 +111,7 @@ Cause: the play is waiting on something. Common waits:
 Fix: check whether the wait is intentional (read the play source for the current step). For long-running provider calls, the right move is usually to wait — the runtime handles retries and timeouts. For genuinely stuck runs (no progress in 10+ minutes for a synchronous tool that should be fast), `stop` and rerun.
 
 ```bash
-deepline plays stop --run-id <full-run-id> --reason "stuck on provider call" --json
+deepline runs stop <run-id> --reason "stuck on provider call" --json
 ```
 
 ## When everything looks right and it still fails
@@ -136,11 +135,11 @@ The four discovery commands plus `auth status` and `health` answer 80% of "why d
 
 ```bash
 # Latest failed run for a play
-deepline plays runs --name <play-name> --json | jq -r '.runs[] | select(.status == "failed") | (.workflowId // .playId // .runId)' | head -1
+deepline runs list --play <play-name> --status failed --json | jq -r '.runs[0].runId'
 
 # Tail the most recent run
-deepline plays runs --name <play-name> --json | jq -r '.runs[0] | (.workflowId // .playId // .runId)' | xargs -I {} deepline plays tail --run-id {} --json
+deepline runs list --play <play-name> --json | jq -r '.runs[0].runId' | xargs -I {} deepline runs tail {} --json
 
 # Find runs older than a day that are still active (likely stuck)
-deepline plays runs --name <play-name> --json | jq '.runs[] | select(.status == "running" and ((.createdAt // 0) < ((now - 86400) * 1000)))'
+deepline runs list --play <play-name> --status running --json | jq '.runs[] | select((.createdAt // 0) < ((now - 86400) * 1000))'
 ```

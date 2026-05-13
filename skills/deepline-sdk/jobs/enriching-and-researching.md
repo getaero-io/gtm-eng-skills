@@ -17,6 +17,14 @@ You have an input that is row-shaped — a CSV, a JSON array of objects, or outp
 
 If the prompt is closer to "find me 25 companies that match X" or "find contacts at these accounts", you are in `jobs/finding-companies-and-contacts.md`.
 
+Before choosing a play for a CSV task, inspect the CSV with the CLI, not only by reading the file:
+
+```bash
+deepline csv show --csv <input.csv> --summary
+```
+
+Use the summary to confirm row count, exact headers, and whether columns already match the target play's CSV contract. Do this before `plays search`/`plays describe` so the play choice and any `--columns.*` mapping are based on the actual input shape visible to the runtime.
+
 ## Choose your approach
 
 Route by what identifiers each row has and what column you need. The play names below are starting hints — confirm with `deepline plays search` + `deepline plays describe` before invoking, because canonical play names get renamed when the underlying provider mix evolves.

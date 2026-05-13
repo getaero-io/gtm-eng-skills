@@ -41,11 +41,16 @@ Use `--input` for complex one-off JSON payloads. For CSV plays, prefer first-cla
 
 Copy a prebuilt when the workflow is almost right but needs a real semantic change: provider order, validation policy, derived columns, filtering, output shape, or an added stage. Do not copy a prebuilt just to rename CSV headers; use `columns`.
 
-Inspect the current source through the live CLI, then materialize it to a local play file if you need to edit it:
+Use this sequence when the user says to customize, compose, extend, tweak, add a stage, change validation, or use a prebuilt as a starting point:
 
 ```bash
+deepline plays search <task> --json
+deepline plays describe <play-name-from-search> --json
 deepline plays get <play-name-from-search> --source --out ./my-play.play.ts
+deepline plays check ./my-play.play.ts
 ```
+
+`describe` tells you whether a direct run or column mapping is enough. `get --source --out` is the materialization step for real edits: it writes the current TypeScript source to a local play file so you can preserve the existing provider order, input contract, CSV handling, logs, and output shape while changing only the behavior the user asked to change.
 
 `--source` is raw TypeScript. Do not parse `play.sourceCode` out of JSON, scrape `tool-results`, or pipe through Python just to copy a template. If a `*.play.ts` file already exists in the working directory after `plays get`, edit that file directly or copy it to the final play name.
 
@@ -83,7 +88,7 @@ deepline plays run ./my-play.play.ts --csv pilot.csv --watch
 
 Move to 2 rows only when the second row exercises a different branch you need to verify and there is enough time budget. Passing `--input '{"rows":"0:1"}'` does not filter a CSV unless the play code implements that option.
 
-Use `ctx.log(...)` for long-running stages. Logs are visible through `--watch`, `plays tail`, and run history, which lets an agent tell whether the play is still searching, validating, retrying, or stuck.
+Use `ctx.log(...)` for long-running stages. Logs are visible through `--watch`, `runs tail`, and run history, which lets an agent tell whether the play is still searching, validating, retrying, or stuck.
 
 ## Idempotency and replay
 
@@ -302,7 +307,7 @@ Use stable IDs. Do not derive IDs from timestamps or random values.
 
 ### `ctx.log(message)` and `ctx.sleep(ms)`
 
-`ctx.log` emits progress visible through `--watch`, `plays tail`, and run history. `ctx.sleep` creates a durable timer for backoff or coordination.
+`ctx.log` emits progress visible through `--watch`, `runs tail`, and run history. `ctx.sleep` creates a durable timer for backoff or coordination.
 
 ### `ctx.input`
 
