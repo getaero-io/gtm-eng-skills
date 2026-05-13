@@ -5,9 +5,10 @@ Read this when a run failed, stalled, or produced unexpected output. The bulk of
 ## First commands when a run goes sideways
 
 ```bash
-deepline plays runs <play-name> --json      # which runs exist; which failed
-deepline plays status <run-id> --json       # detailed state and last event
-deepline plays tail <run-id> --json         # stream the play's log output
+deepline plays runs --name <play-name> --json     # which runs exist; which failed
+deepline runs status <full-run-id> --json         # detailed state and last event
+deepline runs logs <full-run-id> --json           # persisted log output
+deepline plays tail --run-id <full-run-id> --json # live stream if the run is active
 ```
 
 A failed run shows up in `status` as `failed` with a final-event message. `tail` shows the `ctx.log(...)` output up to the failure. For a play that never completes, `tail` reveals whether it is stuck on a tool call (provider hang), a retry loop (rate limit), or genuinely waiting.
@@ -24,7 +25,7 @@ Cause: the play body uses an effect that does not go through `ctx.*`. The most c
 - `process.env.X` reads inside the play body.
 - A top-level side effect at module load (e.g. opening a file, instantiating a global client).
 
-Fix: route the operation through the appropriate `ctx.*` method. For arbitrary operations with no dedicated method, wrap in `ctx.step('stable-id', () => operation())`. See `shared/play-anatomy.md` for the full list of safe surfaces.
+Fix: route the operation through the appropriate `ctx.*` method. For arbitrary operations with no dedicated method, wrap in `ctx.step('stable-id', () => operation())`. See `shared/plays-best-practices.md` for the full list of safe surfaces.
 
 ## Failure: set-live mismatch
 
@@ -53,8 +54,8 @@ Cause: a previous run is still active (or its lock did not clean up). Deepline s
 Fix: check for the prior run, and either wait or cancel.
 
 ```bash
-deepline plays runs <play-name> --json | jq '.[] | select(.status == "running")'
-deepline plays stop <run-id> --reason "stale lock"
+deepline plays runs --name <play-name> --json | jq '.runs[] | select(.status == "running")'
+deepline plays stop --run-id <full-run-id> --reason "stale lock"
 ```
 
 Lock files in the working directory (typically a `.deepline.lock` directory next to the output) are safety mechanisms, not bugs. If no run is actually active and the lock is genuinely stale, the lock can be removed manually — but verify the run is finished first.
@@ -92,11 +93,11 @@ Symptom: errors like "csv input not staged" or "duplicate map key" or "cannot re
 
 Cause:
 
-- "csv input not staged": the play was invoked with `--input` instead of `--csv`, but the play calls `ctx.csv(input.file)`. Either run with `--csv`, or change the play to accept a different input shape.
+- "csv input not staged": the play was invoked with `--input` instead of `--csv`, but the play calls `ctx.csv(input.csv)`. Either run with `--csv`, or change the play to accept a different input shape.
 - "duplicate map key": two `ctx.map` calls in the same play used the same key. Pick distinct names per stage.
 - "cannot read .length of dataset": the code is treating the `PlayDataset` returned by `ctx.csv` or `ctx.map` as an array. Pass the dataset directly to `ctx.map`; do not call `.length` or iterate manually.
 
-Fix: confirm the intended input shape (`--csv` vs `--input`), the stage keys, and the dataset handling pattern. See `shared/play-anatomy.md` for the contract.
+Fix: confirm the intended input shape (`--csv` vs `--input`), the stage keys, and the dataset handling pattern. See `shared/plays-best-practices.md` for the contract.
 
 ## When `tail` shows the play is stuck
 
@@ -111,7 +112,7 @@ Cause: the play is waiting on something. Common waits:
 Fix: check whether the wait is intentional (read the play source for the current step). For long-running provider calls, the right move is usually to wait — the runtime handles retries and timeouts. For genuinely stuck runs (no progress in 10+ minutes for a synchronous tool that should be fast), `stop` and rerun.
 
 ```bash
-deepline plays stop <run-id> --reason "stuck on provider call" --json
+deepline plays stop --run-id <full-run-id> --reason "stuck on provider call" --json
 ```
 
 ## When everything looks right and it still fails
@@ -135,11 +136,11 @@ The four discovery commands plus `auth status` and `health` answer 80% of "why d
 
 ```bash
 # Latest failed run for a play
-deepline plays runs <name> --json | jq '.[] | select(.status == "failed") | .id' | head -1
+deepline plays runs --name <play-name> --json | jq -r '.runs[] | select(.status == "failed") | (.workflowId // .playId // .runId)' | head -1
 
 # Tail the most recent run
-deepline plays runs <name> --json | jq -r '.[0].id' | xargs -I {} deepline plays tail {} --json
+deepline plays runs --name <play-name> --json | jq -r '.runs[0] | (.workflowId // .playId // .runId)' | xargs -I {} deepline plays tail --run-id {} --json
 
 # Find runs older than a day that are still active (likely stuck)
-deepline plays runs <name> --json | jq '.[] | select(.status == "running" and (.started_at | fromdate) < (now - 86400))'
+deepline plays runs --name <play-name> --json | jq '.runs[] | select(.status == "running" and ((.createdAt // 0) < ((now - 86400) * 1000)))'
 ```

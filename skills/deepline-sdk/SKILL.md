@@ -24,8 +24,8 @@ This skill is **decision-routed**: read the right job doc for what you are doing
 
 Deepline has two surfaces that hit the same registry, runs, and provider catalog:
 
-- **The CLI** (`deepline`) is for _invoking, discovering, and managing_. It's how you search for tools and plays, run them, inspect runs, and promote a `*.play.ts` file to a live registered play.
-- **The SDK** is the TypeScript package (`import from 'deepline'`) for _writing_. Use `definePlay` to write a `*.play.ts` file. Inside, the runtime context (`ctx.tool`, `ctx.runPlay`, `ctx.map`, `ctx.csv`, etc.) is how the play body talks to the same backend the CLI talks to. There is also a programmatic client (`Deepline.connect()`) for embedding tool and play calls in your own Node app — see `shared/play-anatomy.md`.
+- **The CLI** (`deepline`) is for *invoking, discovering, and managing*. It's how you search for tools and plays, run them, inspect runs, and promote a `*.play.ts` file to a live registered play.
+- **The SDK** is the TypeScript package (`import from 'deepline'`) for *writing*. Use `definePlay` to write a `*.play.ts` file. Inside, the runtime context (`ctx.tool`, `ctx.runPlay`, `ctx.map`, `ctx.csv`, etc.) is how the play body talks to the same backend the CLI talks to. There is also a programmatic client (`Deepline.connect()`) for embedding tool and play calls in your own Node app — see `shared/plays-best-practices.md`.
 
 The lifecycle of a custom play makes the relationship concrete:
 
@@ -40,14 +40,12 @@ Same backend, three invocation paths.
 
 Deepline has two kinds of building blocks. You either invoke them directly via the CLI for one-shot work, or you compose them into a TypeScript `*.play.ts` file when the work is reusable, multi-stage, row-aware, or durable.
 
-| Building block | What it is                                                                                                             | How to find one                           | How to invoke                                                                                |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **Tool**       | A single provider call. One tool ID per integration capability (e.g. an email-finder, a company-search, a job-search). | `deepline tools search <category> --json` | `deepline tools execute <id> --payload '{...}' --json` from the CLI, or `ctx.tools.execute({ |
 
-tool: id,
-input: payload,
-})`from a play                     |
-| **Play**       | A typed workflow that composes tools and other plays. Some plays are shipped by Deepline ("prebuilt") for canonical patterns like email waterfalls; others are written by you in a`\*.play.ts`file ("custom"). Both kinds invoke the same way. |`deepline plays search <category> --json`|`deepline plays run <name-or-file> --input '{...}' --watch`from the CLI, or`ctx.runPlay(name, input)` from another play |
+| Building block | What it is                                                                                                                                                                                                                                      | How to find one                           | How to invoke                                                                                                                   |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Tool**       | A single provider call. One tool ID per integration capability (e.g. an email-finder, a company-search, a job-search).                                                                                                                          | `deepline tools search <category> --json` | `deepline tools execute <id> --payload '{...}' --json` from the CLI, or `ctx.tools.execute(key, id, payload, { description })` from a play |
+| **Play**       | A typed workflow that composes tools and other plays. Some plays are shipped by Deepline ("prebuilt") for canonical patterns like email waterfalls; others are written by you in a `*.play.ts` file ("custom"). Both kinds invoke the same way. | `deepline plays search <category> --json` | `deepline plays run <name-or-file> --input '{...}' --watch` from the CLI, or `ctx.runPlay(name, input)` from another play |
+
 
 **One-shot** vs **reusable** is a judgment call:
 
@@ -62,22 +60,22 @@ Start by reading the matching job doc, then use the CLI loop below to discover l
 
 For multi-phase tasks (e.g. "find 5 VP Marketing contacts at US fintech companies and get work emails"), discovery and row-level enrichment are different phases — read both docs in order before executing. The first picks the source; the second handles the waterfall.
 
-| If the user wants to…                                                     | Start in                                                           | Then read                                                                         |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
-| Find companies (TAM, ICP-matching list, portfolio extraction)             | `jobs/finding-companies-and-contacts.md`                           | `jobs/enriching-and-researching.md` if hydration / research columns are needed    |
-| Find contacts across a market, segment, ICP, or industry                  | `jobs/finding-companies-and-contacts.md`                           | `jobs/enriching-and-researching.md` if emails / phones / LinkedIn URLs are needed |
-| Find contacts at known companies (persona lookup, role-based discovery)   | `jobs/finding-companies-and-contacts.md`                           | `jobs/enriching-and-researching.md` if enrichment is needed                       |
-| Detect signals on a list (active hiring, job changes, recent funding)     | `jobs/finding-companies-and-contacts.md`                           | `jobs/enriching-and-researching.md` for AI verification of the signal             |
-| Fill emails / phones / LinkedIn URLs / company hydration on existing rows | `jobs/enriching-and-researching.md`                                |                                                                                   |
-| Custom AI research per row (pain points, summaries, context for outreach) | `jobs/enriching-and-researching.md`                                | `jobs/writing-outreach.md` if copy follows                                        |
-| Score, classify, or qualify rows against an ICP                           | `jobs/enriching-and-researching.md`                                |                                                                                   |
-| Write per-row outreach copy, sequences, or scoring language               | `jobs/writing-outreach.md`                                         | `jobs/enriching-and-researching.md` if research columns are missing               |
-| Build or debug a custom `*.play.ts` file                                  | `shared/play-anatomy.md`                                           | `references/debugging.md` when a run or check fails                               |
-| Look up a CLI command's flags or output behavior                          | `deepline <command> --help`                                        |                                                                                   |
-| **Exit conditions**                                                       |                                                                    |                                                                                   |
-| Extract / convert a Clay table                                            | route to `clay-to-deepline`                                        | Different surface entirely.                                                       |
-| Set up a cloud cron / webhook workflow with no enrichment                 | route to `workflow-hello-world`                                    |                                                                                   |
-| Pure copywriting with no row-level data work                              | stay in `jobs/writing-outreach.md` and skip discovery / enrichment |                                                                                   |
+| If the user wants to… | Start in | Then read |
+| --- | --- | --- |
+| Find companies (TAM, ICP-matching list, portfolio extraction) | `jobs/finding-companies-and-contacts.md` | `jobs/enriching-and-researching.md` if hydration / research columns are needed |
+| Find contacts across a market, segment, ICP, or industry | `jobs/finding-companies-and-contacts.md` | `jobs/enriching-and-researching.md` if emails / phones / LinkedIn URLs are needed |
+| Find contacts at known companies (persona lookup, role-based discovery) | `jobs/finding-companies-and-contacts.md` | `jobs/enriching-and-researching.md` if enrichment is needed |
+| Detect signals on a list (active hiring, job changes, recent funding) | `jobs/finding-companies-and-contacts.md` | `jobs/enriching-and-researching.md` for AI verification of the signal |
+| Fill emails / phones / LinkedIn URLs / company hydration on existing rows | `jobs/enriching-and-researching.md` | |
+| Custom AI research per row (pain points, summaries, context for outreach) | `jobs/enriching-and-researching.md` | `jobs/writing-outreach.md` if copy follows |
+| Score, classify, or qualify rows against an ICP | `jobs/enriching-and-researching.md` | |
+| Write per-row outreach copy, sequences, or scoring language | `jobs/writing-outreach.md` | `jobs/enriching-and-researching.md` if research columns are missing |
+| Build, copy, or debug a custom `*.play.ts` file | `shared/plays-best-practices.md` | `references/debugging.md` when a run or check fails |
+| Look up a CLI command's flags or output behavior | `deepline <command> --help` | |
+| **Exit conditions** | | |
+| Extract / convert a Clay table | route to `clay-to-deepline` | Different surface entirely. |
+| Set up a cloud cron / webhook workflow with no enrichment | route to `workflow-hello-world` | |
+| Pure copywriting with no row-level data work | stay in `jobs/writing-outreach.md` and skip discovery / enrichment | |
 
 When the table does not fit, default to `jobs/enriching-and-researching.md` — it covers most row-level work.
 
@@ -91,10 +89,11 @@ Once the job doc has named the pattern category (e.g. "name + domain → email w
 3. Discover the right tool or play:   deepline tools search <category> --json
                                       deepline plays search <category> --json
 4. Confirm the input contract:        deepline tools describe <id> --json
-                                      deepline plays describe <name> --json
+                                      deepline plays describe <reference> --json
 5. Either:
    a) call directly for one-shot:     deepline tools execute <id> --payload '{...}' --json
                                       deepline plays run <name> --input '{...}' --watch
+                                      deepline plays run <name> --csv rows.csv --columns.domain Website --watch
    b) write a *.play.ts file and run: deepline plays run <file.play.ts> --input '{...}' --watch
                                       deepline plays run <file.play.ts> --csv rows.csv --watch
 6. Inspect runs as needed:            deepline plays runs <name> --json
@@ -116,15 +115,19 @@ Run `--rows 0:1` (or a 1-2 row `--input` subset) before the full input. A missha
 
 ### When tools come up empty, return null
 
-Do not pattern-complete companies or contacts from training data when a provider returns nothing. The output then looks like success but contains rows the user cannot verify, and the campaign fails at outreach time. Returning null (or fewer rows) keeps the line between _found by tools_ and _inferred from memory_ visible.
+Do not pattern-complete companies or contacts from training data when a provider returns nothing. The output then looks like success but contains rows the user cannot verify, and the campaign fails at outreach time. Returning null (or fewer rows) keeps the line between *found by tools* and *inferred from memory* visible.
 
 ### Preserve provider evidence columns
 
 Provider responses often include proof fields the user did not explicitly ask for: job title, source URL, funding metadata, growth metrics, validation status, confidence scores, hiring counts, role context, provider provenance. Trimming output to the requested display columns makes correct rows unverifiable and leaves downstream review with nothing to work with. If the user asked for `name, title, company, email` and the provider returned `seniority`, `last_changed_at`, and `source`, keep all seven.
 
-### All I/O through `ctx.`\* (replay-safety)
+### All I/O through `ctx.`* (replay-safety)
 
-Inside a custom `*.play.ts`, every non-deterministic operation goes through the runtime: `ctx.tool`, `ctx.runPlay`, `ctx.csv`, `ctx.map`, `ctx.waterfall`, `ctx.log`, `ctx.sleep`. The play body re-executes during durability replay; reading `process.env`, calling `Date.now()`, opening a file with `fs`, or hitting the network with `fetch` makes the second execution see different values, which corrupts the workflow or fails replay-safety validation. See `shared/play-anatomy.md` before writing a custom play.
+Inside a custom `*.play.ts`, every non-deterministic operation goes through the runtime: `ctx.tool`, `ctx.runPlay`, `ctx.csv`, `ctx.map`, `ctx.waterfall`, `ctx.log`, `ctx.sleep`. The play body re-executes during durability replay; reading `process.env`, calling `Date.now()`, opening a file with `fs`, or hitting the network with `fetch` makes the second execution see different values, which corrupts the workflow or fails replay-safety validation. See `shared/plays-best-practices.md` before writing a custom play.
+
+### Prebuilts are templates
+
+Search for a prebuilt before writing a custom play. If the prebuilt's behavior fits, run it directly. If only CSV headers differ, pass column aliases such as `--columns.first_name "First Name"` instead of copying the play. Copy a prebuilt only for semantic changes: provider order, validation policy, extra stages, filtering, or output shape. Use `deepline plays get <play> --source --out ./my-play.play.ts`; do not parse `play.sourceCode` out of JSON when copying templates. Run the copied play by file path while iterating, then `set-live` when stable. See `shared/plays-best-practices.md` for the copy/edit loop.
 
 ### Outputs go in a project-local working directory
 
@@ -134,9 +137,11 @@ Set up a task-descriptive slug at step zero (e.g. `deepline/data/acme-email-wate
 WORKDIR="deepline/data/<descriptive-slug>" && mkdir -p "$WORKDIR" && echo "$WORKDIR"
 ```
 
+When authoring a custom `*.play.ts`, keep the play file in the current repo/worktree or another directory with the Deepline SDK dependencies available. The final CSV can still be written to the user-requested output path via `--out`, but the play source itself should not live in a dependency-free temp/eval directory.
+
 ### `ctx.csv` returns a dataset, not an array
 
-When a play takes `--csv`, the runtime stages the file and passes a reference as `input.file`. The play must call `ctx.csv(input.file)` (or `ctx.csv('relative-file.csv')`); `ctx.csv()` with no argument is invalid. The return value is a `PlayDataset` — pass it directly to `ctx.map`, do not cast it, do not read `.length`, do not iterate it manually. Row progress, retries, idempotency, and table output all depend on the runtime owning the iteration; manual `for...of` loops break those guarantees. See `jobs/enriching-and-researching.md` for the row-work patterns built on this contract.
+When a play takes `--csv`, the runtime stages the file and passes a reference as `input.csv`. The play must call `ctx.csv(input.csv, { columns, required })` (or `ctx.csv('relative-file.csv')` for a file next to the play); `ctx.csv()` with no argument is invalid. The return value is a `PlayDataset` — pass it directly to `ctx.map`, do not cast it, do not read `.length`, do not iterate it manually. Row progress, retries, idempotency, and table output all depend on the runtime owning the iteration; manual `for...of` loops break those guarantees. See `jobs/enriching-and-researching.md` for the row-work patterns built on this contract.
 
 ## Examples
 
@@ -155,26 +160,17 @@ deepline plays run <play-name-from-search> --input '{...}' --watch
 ```typescript
 import { definePlay } from 'deepline';
 
-export default definePlay(
-  'lead-email-lookup',
-  async (ctx, input: { leads: Lead[] }) => {
-    return ctx
-      .map('linkedin_leads', input.leads, { key: 'LINKEDIN_URL' })
-      .step('email', (lead, ctx) =>
-        ctx.runPlay(
-          'person_linkedin_email',
-          'prebuilt/person-linkedin-to-email-waterfall',
-          {
-            /* ... */
-          },
-          {
-            description: 'Resolve email from LinkedIn profile.',
-          },
-        ),
-      )
-      .run({ description: 'Resolve emails from LinkedIn profiles.' });
-  },
-);
+export default definePlay('lead-email-lookup', async (ctx, input: { leads: Lead[] }) => {
+  const rows = await ctx
+    .map('LINKEDIN_URL', input.leads)
+    .step('email', (lead, ctx) =>
+      ctx.runPlay('person_linkedin_email', 'prebuilt/person-linkedin-to-email', { /* ... */ }, {
+        description: 'Resolve email from LinkedIn profile.',
+      }))
+    .run({ description: 'Resolve emails.' });
+
+  return { rows };
+});
 ```
 
-For two-stage maps (enrich → validate), provider routing, the Sales Nav URL trap, and the personal-vs-work email split, read `jobs/enriching-and-researching.md`. For the full `ctx.*` contract and replay-safety rules, read `shared/play-anatomy.md`.
+For two-stage maps (enrich → validate), provider routing, the Sales Nav URL trap, and the personal-vs-work email split, read `jobs/enriching-and-researching.md`. For the full `ctx.*` contract, replay-safety rules, idempotent iteration, and copying-prebuilt pattern, read `shared/plays-best-practices.md`.
