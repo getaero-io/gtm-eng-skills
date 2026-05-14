@@ -61,6 +61,7 @@ When a recipe matches: **follow it step-by-step as your execution plan.** Recipe
 
 | Recipe                          | Use when...                                                                                                                                |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `account-orgchart.md`           | Building an org chart around a target person or company - map reporting structures, find decision makers, highlight warm intro paths       |
 | `build-tam.md`                  | Building a total addressable market list or large company list from ICP criteria                                                           |
 | `clay-to-deepline.md`           | Converting a Clay table into local Deepline enrich scripts (extraction, mapping, parity validation)                                       |
 | `linkedin-url-lookup.md`        | Resolving a person's LinkedIn profile URL from their name and company with strict identity validation                                      |
