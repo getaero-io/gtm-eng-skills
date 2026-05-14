@@ -1,6 +1,6 @@
 ---
 name: deepline-gtm
-description: "Use this skill for GTM prospecting, enrichment, qualification, and outbound workflows, especially when users mention Deepline, CSV processing, lead/account/contact research, waterfall enrichment, email or LinkedIn lookup, personalization, scoring, or campaign activation. Route CSV-heavy and provider-driven requests through this skill, then rely on linked sub-docs and provider playbooks for execution details. Available providers: adyntel, ai_ark, apify, apollo, attio, bettercontact, bloomberry, builtwith, cloudflare, contactout, crustdata, crustdata-v2, customer_db, dataforseo, datagma, deepline_native, deeplineagent, discolike, dropleads, exa, findymail, firecrawl, forager, fullenrich, generic_http, heyreach, hubspot, hunter, icypeas, instantly, ipqs, leadmagic, lemlist, linkedin_ads_audiences, linkedin_scraper, lusha, openwebninja, parallel, peopledatalabs, prospeo, rocketreach, salesforce, serper, slack, smartlead, snowflake, theirstack, trestle, wiza, zerobounce."
+description: "Use this skill for GTM prospecting, enrichment, qualification, and outbound workflows, especially when users mention Deepline, CSV processing, lead/account/contact research, waterfall enrichment, email or LinkedIn lookup, personalization, scoring, or campaign activation. Route CSV-heavy and provider-driven requests through this skill, then rely on linked sub-docs and provider playbooks for execution details. Available providers: adyntel, ai_ark, apify, apollo, attio, bettercontact, bloomberry, builtwith, cloudflare, contactout, crustdata, crustdata-v2, customer_db, dataforseo, datagma, deepline_native, deeplineagent, discolike, dropleads, exa, findymail, firecrawl, forager, fullenrich, generic_http, heyreach, hubspot, hunter, icypeas, instantly, ipqs, leadmagic, lemlist, linkedin_ads_audiences, linkedin_scraper, lusha, openwebninja, parallel, peopledatalabs, predictleads, prospeo, rocketreach, salesforce, serper, slack, smartlead, snowflake, theirstack, trestle, wiza, zerobounce."
 ---
 
 # GTM Meta Skill
@@ -344,6 +344,10 @@ GTM time windows, thresholds, and interpretation rules are defined in the Defini
 - [peopledatalabs playbook](provider-playbooks/peopledatalabs.md)
   Summary: Use clean/autocomplete helpers to normalize input before costly person/company search and enrich calls. Treat company search as a last-resort structured path, and prefer payload files or heredocs for non-trivial SQL-style queries.
   Last reviewed: 2026-02-11
+
+- [predictleads playbook](provider-playbooks/predictleads.md)
+  Summary: Use direct company endpoints when you already know a domain. Use discovery endpoints for broad searches and budget them per returned result.
+  Last reviewed: 2026-05-12
 
 - [prospeo playbook](provider-playbooks/prospeo.md)
   Summary: Use enrich-person for individual contacts, search-person for prospecting with stable filters, and search-company for account-level lists. Use FullEnrich for job-change workflows; Prospeo's live job-change search filter is not reliable.
