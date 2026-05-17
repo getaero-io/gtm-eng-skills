@@ -36,6 +36,7 @@ Route by what identifiers each row has and what column you need. The play names 
 | Standard `/in/` LinkedIn URL + name | work email | linkedin profile → work email waterfall | `deepline plays search email --json` |
 | `email` | hydrated person + company context | reverse contact enrichment | `deepline plays search contact --json` |
 | `first_name`, `last_name`, `domain` (+ optional `email`/`linkedin_url`) | phone number | identity → phone waterfall | `deepline plays search phone --json` |
+| `first_name`, `last_name`, `company_name` (+ optional `linkedin_url`) | job-change status | job-change detection + verification | `deepline plays search "job change" --json` |
 | `company_name`, `domain`, role intent | candidate contacts at a company | role-based contact waterfall | `deepline plays search contact --json` |
 | `name`, optional company context | LinkedIn profile URL | name → LinkedIn URL waterfall | `deepline plays search linkedin --json` |
 | Existing email | validation status (valid / catch_all / invalid / unknown) | email verifier | `deepline tools search "email verifier" --json` |
@@ -213,8 +214,31 @@ Confirm the live tool ID with `deepline tools search "reverse contact" --json`.
 
 You have name + domain and want a phone number; `email` and `linkedin_url` are optional hints that unlock additional provider paths inside the play.
 
+For a CSV, use the batch prebuilt directly:
+
+```bash
+deepline plays search phone --json
+deepline plays describe <phone-batch-play-from-search> --json
+deepline plays run <phone-batch-play-from-search> --csv contacts.csv --watch --out contacts_with_phones.csv
+```
+
+Default CSV headers are `FIRST_NAME`, `LAST_NAME`, `COMPANY_DOMAIN`, `CONTACT_EMAIL`, and `LINKEDIN_URL`. If the user's CSV uses different headers, map them at invocation time instead of copying the play:
+
+```bash
+deepline plays run <phone-batch-play-from-search> \
+  --csv contacts.csv \
+  --columns.first_name "First Name" \
+  --columns.last_name "Last Name" \
+  --columns.email "Email" \
+  --columns.linkedin_url "LinkedIn URL" \
+  --watch \
+  --out contacts_with_phones.csv
+```
+
+For a one-row direct lookup, use the scalar prebuilt:
+
 ```typescript
-const result = await ctx.runPlay('phone_waterfall', 'prebuilt/contact-to-phone-waterfall', {
+const result = await ctx.runPlay('phone_waterfall', 'prebuilt/person-to-phone', {
   first_name: row.first_name,
   last_name: row.last_name,
   domain: row.domain,
@@ -226,6 +250,22 @@ const result = await ctx.runPlay('phone_waterfall', 'prebuilt/contact-to-phone-w
 ```
 
 After the phone is recovered, validate line type and activity with a phone validator (find one with `deepline tools search phone --json`).
+
+### Contact → job-change status
+
+You have contacts with their current company and want to detect whether they changed jobs. Use the job-change prebuilt before writing a custom play; it combines a job-change detector with profile verification and appends outcome columns while preserving the original CSV headers.
+
+```bash
+deepline plays search "job change" --json
+deepline plays describe <job-change-batch-play-from-search> --json
+deepline plays run <job-change-batch-play-from-search> --csv champion_contacts.csv --watch --out job_changes.csv
+```
+
+Default CSV headers are `FIRST_NAME`, `LAST_NAME`, `COMPANY_NAME`, `TITLE`, `CONTACT_EMAIL`, `COMPANY_DOMAIN`, and `LINKEDIN_URL`. If the CSV uses different headers, pass `--columns.first_name`, `--columns.last_name`, `--columns.company_name`, and optional mappings for `title`, `email`, `domain`, or `linkedin_url`.
+
+Pilot job-change detection on two data rows before the full run (`head -3 input.csv > pilot.csv`, which keeps the header plus two contacts). The workflow has multiple provider branches, so a single row can hide missing-column or verification-path issues.
+
+The batch output preserves source columns and appends `job_change`, `job_changed`, `confidence_tier`, `new_company`, and `new_title`. Treat `HIGH` as detector and verification agreement, `MEDIUM` as a single-source change signal, and `LOW` as no reliable change.
 
 ### Company + role → candidate contacts
 

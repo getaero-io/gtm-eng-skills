@@ -103,11 +103,7 @@ Treat these names as durable identity:
 
 Stable names make reruns recoverable and avoid double-billing. Renaming play names, map keys, or step names is a migration: it can create new tables, hide old columns, or recompute work. When the semantics truly changed, that may be correct. When only the code got tidier, keep the durable names stable.
 
-To intentionally recompute, change the relevant map key or clear history:
-
-```bash
-deepline plays clear-history <play-name>
-```
+To intentionally recompute completed durable work, make the identity change explicit by changing the relevant play name, map key, row key, or step name. `deepline plays run --force` supersedes an active run for the same play; it does not clear completed row history or force already-satisfied rows to execute again. There is currently no `deepline plays clear-history` CLI command.
 
 Every `ctx.map` key in one play must be unique. Reusing a key is ambiguous for persistence and fails registration.
 
