@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Deduplication utilities for niche-signal-discovery prospect lists.
+Deduplication utilities for deepline-signal-discovery prospect lists.
 
 Primary match: apex-domain (public-suffix-aware, handles multi-label TLDs).
 Fallback match: fuzzy company name (after stripping corporate suffixes).

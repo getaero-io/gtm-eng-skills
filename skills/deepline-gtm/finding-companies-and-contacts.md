@@ -544,4 +544,4 @@ deepline tools execute dropleads_search_people \
 
 ### Signal prioritization
 
-Don't outreach the full list. Use `niche-signal-discovery` skill if you have won/lost data. Otherwise enrich with `crustdata_job_listings` (hiring), `exa_search` w/ `includeDomains`+`contents` (website/pain language), then score.
+Don't outreach the full list. Use `deepline-signal-discovery` skill if you have won/lost data. Otherwise enrich with `crustdata_job_listings` (hiring), `exa_search` w/ `includeDomains`+`contents` (website/pain language), then score.
