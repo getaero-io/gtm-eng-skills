@@ -94,9 +94,9 @@ Once the job doc has named the pattern category (e.g. "name + domain → email w
 6. Either:
    a) call directly for one-shot:     deepline tools execute <id> --payload '{...}' --json
                                       deepline plays run <name> --input '{...}' --watch
-                                      deepline plays run <name> --csv rows.csv --columns.domain Website --watch
+                                      deepline plays run <name> --input '{"csv":"rows.csv","columns":{"domain":"Website"}}' --watch
    b) write a *.play.ts file and run: deepline plays run <file.play.ts> --input '{...}' --watch
-                                      deepline plays run <file.play.ts> --csv rows.csv --watch
+                                      deepline plays run <file.play.ts> --input '{"file":"rows.csv"}' --watch
 7. Inspect runs as needed:            deepline runs list --play <name> --json
                                       deepline runs get <id> --json
                                       deepline runs tail <id> --json
@@ -137,7 +137,7 @@ deepline plays search <task> --json
 deepline plays describe <play-name-from-search> --json
 deepline plays get <play-name-from-search> --source --out ./my-play.play.ts
 deepline plays check ./my-play.play.ts
-deepline plays run ./my-play.play.ts --csv pilot.csv --watch
+deepline plays run ./my-play.play.ts --input '{"file":"pilot.csv"}' --watch
 ```
 
 Copy a prebuilt only for semantic changes: provider order, validation policy, extra stages, filtering, or output shape. `plays get --source --out` preserves the provider order, input contract, CSV handling, logs, and output conventions the prebuilt already got right. Do not parse `play.sourceCode` out of JSON when copying templates. Run the copied play by file path while iterating, then `set-live` when stable. See `shared/plays-best-practices.md` for the copy/edit loop.

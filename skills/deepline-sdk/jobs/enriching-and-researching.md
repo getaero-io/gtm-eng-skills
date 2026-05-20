@@ -51,7 +51,7 @@ For CSV pilots, create a separate one-row pilot CSV and run the same play agains
 
 ```bash
 head -2 leads.csv > pilot.csv
-deepline plays run ./my-play.play.ts --csv pilot.csv --watch
+deepline plays run ./my-play.play.ts --input '{"file":"pilot.csv"}' --watch
 ```
 
 Use 2 rows only when the second row exercises a different branch you need to verify and there is enough time budget. Passing `--input '{"rows":"0:1"}'` does not filter a CSV unless the play code explicitly reads `input.rows` and slices the dataset.
@@ -60,10 +60,7 @@ When source CSV headers do not match a play's canonical input names, pass column
 
 ```bash
 deepline plays run <play-name-from-search> \
-  --csv leads.csv \
-  --columns.first_name "First Name" \
-  --columns.last_name "Last Name" \
-  --columns.domain "Company Domain" \
+  --input '{"csv":"leads.csv","columns":{"first_name":"First Name","last_name":"Last Name","domain":"Company Domain"}}' \
   --watch
 ```
 
@@ -148,17 +145,14 @@ For a CSV that already has first name, last name, and domain columns, run the pr
 ```bash
 deepline plays search email --json
 deepline plays describe <play-name-from-search> --json
-deepline plays run <play-name-from-search> --csv leads.csv --watch --out leads_with_emails.csv
+deepline plays run <play-name-from-search> --input '{"csv":"leads.csv"}' --watch --out leads_with_emails.csv
 ```
 
 If the CSV headers are variants such as `First Name`, `Last Name`, and `Website`, keep the prebuilt and provide aliases:
 
 ```bash
 deepline plays run <play-name-from-search> \
-  --csv leads.csv \
-  --columns.first_name "First Name" \
-  --columns.last_name "Last Name" \
-  --columns.domain Website \
+  --input '{"csv":"leads.csv","columns":{"first_name":"First Name","last_name":"Last Name","domain":"Website"}}' \
   --watch \
   --out leads_with_emails.csv
 ```
@@ -219,18 +213,14 @@ For a CSV, use the batch prebuilt directly:
 ```bash
 deepline plays search phone --json
 deepline plays describe <phone-batch-play-from-search> --json
-deepline plays run <phone-batch-play-from-search> --csv contacts.csv --watch --out contacts_with_phones.csv
+deepline plays run <phone-batch-play-from-search> --input '{"csv":"contacts.csv"}' --watch --out contacts_with_phones.csv
 ```
 
 Default CSV headers are `FIRST_NAME`, `LAST_NAME`, `COMPANY_DOMAIN`, `CONTACT_EMAIL`, and `LINKEDIN_URL`. If the user's CSV uses different headers, map them at invocation time instead of copying the play:
 
 ```bash
 deepline plays run <phone-batch-play-from-search> \
-  --csv contacts.csv \
-  --columns.first_name "First Name" \
-  --columns.last_name "Last Name" \
-  --columns.email "Email" \
-  --columns.linkedin_url "LinkedIn URL" \
+  --input '{"csv":"contacts.csv","columns":{"first_name":"First Name","last_name":"Last Name","email":"Email","linkedin_url":"LinkedIn URL"}}' \
   --watch \
   --out contacts_with_phones.csv
 ```
@@ -258,10 +248,10 @@ You have contacts with their current company and want to detect whether they cha
 ```bash
 deepline plays search "job change" --json
 deepline plays describe <job-change-batch-play-from-search> --json
-deepline plays run <job-change-batch-play-from-search> --csv champion_contacts.csv --watch --out job_changes.csv
+deepline plays run <job-change-batch-play-from-search> --input '{"csv":"champion_contacts.csv"}' --watch --out job_changes.csv
 ```
 
-Default CSV headers are `FIRST_NAME`, `LAST_NAME`, `COMPANY_NAME`, `TITLE`, `CONTACT_EMAIL`, `COMPANY_DOMAIN`, and `LINKEDIN_URL`. If the CSV uses different headers, pass `--columns.first_name`, `--columns.last_name`, `--columns.company_name`, and optional mappings for `title`, `email`, `domain`, or `linkedin_url`.
+Default CSV headers are `FIRST_NAME`, `LAST_NAME`, `COMPANY_NAME`, `TITLE`, `CONTACT_EMAIL`, `COMPANY_DOMAIN`, and `LINKEDIN_URL`. If the CSV uses different headers, pass a `columns` object inside `--input` for `first_name`, `last_name`, `company_name`, and optional mappings for `title`, `email`, `domain`, or `linkedin_url`.
 
 Pilot job-change detection on two data rows before the full run (`head -3 input.csv > pilot.csv`, which keeps the header plus two contacts). The workflow has multiple provider branches, so a single row can hide missing-column or verification-path issues.
 

@@ -21,21 +21,18 @@ Search before writing. Prebuilt plays encode provider order, validation rules, r
 ```bash
 deepline plays search email --json
 deepline plays describe <play-name-from-search> --json
-deepline plays run <play-name-from-search> --csv leads.csv --watch
+deepline plays run <play-name-from-search> --input '{"csv":"leads.csv"}' --watch
 ```
 
 Treat play names in this skill as starting hints. The registry changes; the CLI is the source of truth. If the prebuilt input contract fits, invoke it directly. If only CSV headers differ, pass column aliases rather than copying the play.
 
 ```bash
 deepline plays run <play-name-from-search> \
-  --csv leads.csv \
-  --columns.first_name "First Name" \
-  --columns.last_name "Last Name" \
-  --columns.domain "Company Domain" \
+  --input '{"csv":"leads.csv","columns":{"first_name":"First Name","last_name":"Last Name","domain":"Company Domain"}}' \
   --watch
 ```
 
-Use `--input` for complex one-off JSON payloads. For CSV plays, prefer first-class flags such as `--csv` and `--columns.*`; they are easier for agents to inspect, retry, and vary than a large JSON blob.
+For CSV plays, pass the CSV path and any column aliases through `--input` using the play's declared field names. Inspect the contract with `deepline plays describe <play> --json` before choosing `csv`, `file`, or another file input name.
 
 ## Customize by copying
 
@@ -63,9 +60,9 @@ If the exact source-export shape differs, run `deepline plays get --help`; `get`
 - Run by file path while iterating; only `set-live` once stable.
 
 ```bash
-deepline plays run ./my-play.play.ts --csv leads.csv --watch
+deepline plays run ./my-play.play.ts --input '{"file":"leads.csv"}' --watch
 deepline plays set-live ./my-play.play.ts
-deepline plays run my-play --csv leads.csv --watch
+deepline plays run my-play --input '{"file":"leads.csv"}' --watch
 ```
 
 ## Iterate on one play file
@@ -76,14 +73,14 @@ Run checks before spending provider credits:
 
 ```bash
 deepline plays check ./my-play.play.ts
-deepline plays run ./my-play.play.ts --csv pilot.csv --watch
+deepline plays run ./my-play.play.ts --input '{"file":"pilot.csv"}' --watch
 ```
 
 Use a one-row pilot CSV first for provider waterfalls and other slow paid work:
 
 ```bash
 head -2 leads.csv > pilot.csv
-deepline plays run ./my-play.play.ts --csv pilot.csv --watch
+deepline plays run ./my-play.play.ts --input '{"file":"pilot.csv"}' --watch
 ```
 
 Move to 2 rows only when the second row exercises a different branch you need to verify and there is enough time budget. Passing `--input '{"rows":"0:1"}'` does not filter a CSV unless the play code implements that option.
