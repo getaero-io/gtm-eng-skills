@@ -191,6 +191,14 @@ Provider behavior to remember:
 - `prospeo` and `crustdata` are structured fallbacks, not reasons to jump to `deeplineagent`.
 - If the user asks for a very specific persona and you only have a broad function, refine the role phrasing first before adding more providers.
 
+Persona matching guidance:
+
+- Treat requested `roles` and `seniority` as semantic intent, not raw substring rules. Provider search can return adjacent titles that contain the same words but mean something different.
+- Validate that the returned title actually matches the requested persona before treating it as the decision maker. If the match is weak, return no result, broaden intentionally, or mark it low confidence instead of filling the row with a plausible-looking person.
+- Common false positives: `Owner` does not mean `Product Owner`, `Process Owner`, `Salesforce Product Owner`, or `P2P Functional Process Owner`; `Sales` does not mean `Salesforce`; `Head` does not always mean department head; `Chief` can be non-executive in phrases like `Chief of Staff`; `Security` can mean physical security instead of cybersecurity leadership.
+- Prefer exact title families or explicit role phrases when intent is narrow. For example, use `Founder`, `Co-Founder`, `CEO`, `Chief Executive Officer`, or `Owner/Proprietor` for business-owner intent instead of relying on a loose `owner` token.
+- Ambiguous terms need supporting evidence from company/domain fit, full title context, and the requested function. Do not let one overlapping word override a bad persona fit.
+
 Practical input patterns:
 
 - Exact exec intent: `CEO`, `Founder`, `Co-Founder`, `CTO`, `CFO`, `CMO`, `CISO`
