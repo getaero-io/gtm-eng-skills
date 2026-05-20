@@ -173,14 +173,18 @@ deepline plays run <play-name-from-search> --input '{...}' --watch
 ```typescript
 import { definePlay } from 'deepline';
 
-export default definePlay('lead-email-lookup', async (ctx, input: { leads: Lead[] }) => {
+type Lead = {
+  first_name: string;
+  last_name: string;
+  linkedin_url?: string | null;
+};
+
+export default definePlay('lead-review-list', async (ctx, input: { leads: Lead[] }) => {
   const rows = await ctx
-    .map('LINKEDIN_URL', input.leads)
-    .step('email', (lead, ctx) =>
-      ctx.runPlay('person_linkedin_email', 'prebuilt/person-linkedin-to-email', { /* ... */ }, {
-        description: 'Resolve email from LinkedIn profile.',
-      }))
-    .run({ description: 'Resolve emails.' });
+    .map('lead_review', input.leads)
+    .step('full_name', (lead) => `${lead.first_name} ${lead.last_name}`.trim())
+    .step('linkedin_url', (lead) => lead.linkedin_url ?? null)
+    .run({ description: 'Prepare leads for review.' });
 
   return { rows };
 });

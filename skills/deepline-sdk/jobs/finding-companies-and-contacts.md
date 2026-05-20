@@ -94,7 +94,34 @@ When a discovery pass returns mostly good rows and a few bad ones, drop the bad 
 
 If the primary source returns nothing, the answer is *not* "I'll list the fintech companies I know." The answer is to widen the filter, switch the primary source, or tell the user the criteria returned zero. Pattern-completing companies from memory looks like a successful run and produces unverifiable rows.
 
+### Do not salvage company discovery with domain-by-domain enrichment loops
+
+For "build a list of N companies matching criteria" tasks, domain-by-domain enrichment is a verification or gap-fill step after you already have a candidate set. It is not a discovery strategy. If you catch yourself running repeated loops over hand-picked domains, stop and return to a provider-native company or job search with broader filters. This failure mode is slow, expensive, and tends to smuggle in companies from memory rather than from the requested filter set.
+
+Hard stop: after two provider searches and one supplement pass, either write the valid rows you have with source evidence, broaden one filter and rerun the primary search, or report that the criteria were too narrow. Do not continue with ad-hoc domain lists.
+
 ## Patterns
+
+### Fast path: constrained ICP company list
+
+Use this path for prompts like "Build a list of 25 Series A/B US fintech and identity verification companies, 50-500 employees, actively hiring fraud/identity roles."
+
+1. Use a structured company search as the primary candidate source. Prefer a provider that can filter by funding stage, headcount, country, and category in one call.
+2. Pull about 1.4x the requested count, not dozens of pages.
+3. Use a job search only to attach hiring evidence or supplement gaps. Group jobs by company; do not enrich arbitrary domains one at a time.
+4. Write the CSV from provider rows, preserving `name`, `domain`, `headcount`, `funding_round`, `hq`, and a `hiring_evidence` field.
+
+Example shape:
+
+```bash
+deepline tools search "company search funding headcount hq category" --json
+deepline tools search "job search hiring role company domain" --json
+deepline tools describe <company-tool-id> --json
+deepline tools execute <company-tool-id> --payload '{"hq_country":"USA","funding_round":["Series A","Series B"],"employee_count":{"min":50,"max":500},"categories":["fintech","identity verification","fraud detection"],"limit":35}' --json
+deepline tools execute <job-tool-id> --payload '{"query":"fraud OR identity","company_domain_or":["domain1.com","domain2.com"],"limit":50}' --json
+```
+
+If the exact provider uses different field names, adapt the payload to the described schema. Keep the strategy fixed: one primary company pull, one hiring-evidence pass, then CSV.
 
 ### Companies by structured firmographic filters
 
