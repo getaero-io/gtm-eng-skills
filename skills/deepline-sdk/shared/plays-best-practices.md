@@ -106,11 +106,11 @@ Every `ctx.map` key in one play must be unique. Reusing a key is ambiguous for p
 
 ## Design inputs for CLI use
 
-Make common inputs first-class and typed. A CSV-backed play should usually expose `csv` and optional `columns`:
+Make common inputs first-class and typed. A CSV-backed play should usually expose `file` and optional `columns`:
 
 ```typescript
 import { definePlay } from 'deepline';
-import type { ColumnMap, CsvInput } from 'deepline';
+import type { ColumnMap } from 'deepline';
 
 type PersonRow = {
   first_name: string;
@@ -124,9 +124,9 @@ export default definePlay(
   'name-and-domain-email',
   async (
     ctx,
-    input: { csv: CsvInput<PersonRow>; columns?: ColumnMap<PersonRow> },
+    input: { file: string; columns?: ColumnMap<PersonRow> },
   ) => {
-    const rows = await ctx.csv<PersonRow>(input.csv, {
+    const rows = await ctx.csv<PersonRow>(input.file, {
       columns: {
         first_name: 'FIRST_NAME',
         last_name: 'LAST_NAME',
@@ -158,18 +158,18 @@ Dotted CLI flags map onto nested input fields:
 
 ```bash
 deepline plays run ./name-and-domain-email.play.ts \
-  --csv leads.csv \
+  --input '{"file":"leads.csv"}' \
   --columns.first_name "First Name" \
   --columns.last_name "Last Name" \
   --columns.domain Website \
   --watch
 ```
 
-Avoid `any` and vague wrapper types when the input shape can be stated inline. Small named aliases like `PersonRow` are useful because they document the data contract and keep `ctx.csv`, `CsvInput<PersonRow>`, and `ColumnMap<PersonRow>` typed.
+Avoid `any` and vague wrapper types when the input shape can be stated inline. Small named aliases like `PersonRow` are useful because they document the data contract and keep `ctx.csv` and `ColumnMap<PersonRow>` typed.
 
 ## Normalize CSV columns up front
 
-CSV header differences are data-mapping problems, not reasons to rewrite a play. Use `ctx.csv(input.csv, { columns, required })` to project source headers into canonical field names once, then write the rest of the play against those canonical fields.
+CSV header differences are data-mapping problems, not reasons to rewrite a play. Use `ctx.csv(input.file, { columns, required })` to project source headers into canonical field names once, then write the rest of the play against those canonical fields.
 
 The projection is for code access. Persisted output should preserve the user's original CSV headers and append derived columns. That keeps lineage visible: reviewers can see the source data they uploaded next to the fields the play produced.
 
@@ -192,7 +192,7 @@ A play is a default export from a `*.play.ts` file:
 ```typescript
 export default definePlay(
   'lead-email-lookup',
-  async (ctx, input: { csv: string }) => {
+  async (ctx, input: { file: string }) => {
     return { ok: true };
   },
 );
@@ -272,13 +272,13 @@ const enriched = await ctx
 Loads a staged CSV as a `PlayDataset`:
 
 ```typescript
-const rows = await ctx.csv<PersonRow>(input.csv, {
+const rows = await ctx.csv<PersonRow>(input.file, {
   columns: input.columns,
   required: ['first_name', 'last_name', 'domain'],
 });
 ```
 
-`path` is required. When invoked with CLI `--csv`, the runtime stages the file and populates `input.csv`. `ctx.csv()` with no argument is invalid.
+`path` is required. Invoke file-backed plays with normal JSON input, for example `deepline plays run my.play.ts --input '{"file":"leads.csv"}' --watch`, and call `ctx.csv(input.file)`. `ctx.csv()` with no argument is invalid.
 
 ### `ctx.waterfall(...)`
 
@@ -324,8 +324,8 @@ Do not use `Deepline.connect()` inside a play body. The runtime `ctx` is the dur
 
 - **Calling live names without discovery.** Names rot. Search and describe before invoking.
 - **Copying a prebuilt to rename headers.** Use `columns`; copying is for semantic changes.
-- **Reading CSVs with `fs`.** Staged CSVs are runtime inputs. Use `ctx.csv(input.csv)`.
-- **Using `input.file` for new CSV plays.** New CSV-backed play contracts should expose `input.csv`.
+- **Reading CSVs with `fs`.** Staged CSVs are runtime inputs. Use `ctx.csv(input.file)`.
+- **Using `--csv` at invocation time.** Pass CSV paths through normal JSON input, such as `--input '{"file":"leads.csv"}'`.
 - **Iterating a dataset manually.** `PlayDataset` is a durable dataset handle. Use `ctx.map`.
 - **Reusing a map key.** Each `ctx.map` stage needs a unique durable key.
 - **Using raw `fetch` or `Date.now()` in the play body.** Route effects through `ctx.fetch`, `ctx.step`, or another `ctx.*` primitive.

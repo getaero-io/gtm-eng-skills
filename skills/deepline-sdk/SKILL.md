@@ -150,11 +150,11 @@ Set up a task-descriptive slug at step zero (e.g. `deepline/data/acme-email-wate
 WORKDIR="deepline/data/<descriptive-slug>" && mkdir -p "$WORKDIR" && echo "$WORKDIR"
 ```
 
-When authoring a custom `*.play.ts`, keep the play file in the current repo/worktree or another directory with the Deepline SDK dependencies available. The final CSV can still be written to the user-requested output path via `--out`, but the play source itself should not live in a dependency-free temp/eval directory.
+When authoring a custom `*.play.ts`, keep the play file in the current repo/worktree or another directory with the Deepline SDK dependencies available. After a run completes, export the final CSV to the user-requested output path with `deepline runs export <run-id> --out <path>`. The play source itself should not live in a dependency-free temp/eval directory.
 
 ### `ctx.csv` returns a dataset, not an array
 
-When a play takes `--csv`, the runtime stages the file and passes a reference as `input.csv`. The play must call `ctx.csv(input.csv, { columns, required })` (or `ctx.csv('relative-file.csv')` for a file next to the play); `ctx.csv()` with no argument is invalid. The return value is a `PlayDataset` — pass it directly to `ctx.map`, do not cast it, do not read `.length`, do not iterate it manually. Row progress, retries, idempotency, and table output all depend on the runtime owning the iteration; manual `for...of` loops break those guarantees. See `jobs/enriching-and-researching.md` for the row-work patterns built on this contract.
+When a play processes a CSV, pass the file path through normal JSON input, such as `deepline plays run enrich.play.ts --input '{"file":"leads.csv"}' --watch`. The play must call `ctx.csv(input.file, { columns, required })` (or `ctx.csv('relative-file.csv')` for a file next to the play); `ctx.csv()` with no argument is invalid. The return value is a `PlayDataset` — pass it directly to `ctx.map`, do not cast it, do not read `.length`, do not iterate it manually. Row progress, retries, idempotency, and table output all depend on the runtime owning the iteration; manual `for...of` loops break those guarantees. See `jobs/enriching-and-researching.md` for the row-work patterns built on this contract.
 
 ## Examples
 
