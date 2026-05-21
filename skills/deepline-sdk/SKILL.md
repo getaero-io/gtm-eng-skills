@@ -94,9 +94,9 @@ Once the job doc has named the pattern category (e.g. "name + domain → email w
 6. Either:
    a) call directly for one-shot:     deepline tools execute <id> --payload '{...}' --json
                                       deepline plays run <name> --input '{...}' --watch
-                                      deepline plays run <name> --input '{"csv":"rows.csv","columns":{"domain":"Website"}}' --watch
+                                      deepline plays run <name> --csv rows.csv --columns.domain Website --watch
    b) write a *.play.ts file and run: deepline plays run <file.play.ts> --input '{...}' --watch
-                                      deepline plays run <file.play.ts> --input '{"file":"rows.csv"}' --watch
+                                      deepline plays run <file.play.ts> --csv rows.csv --watch
 7. Inspect runs as needed:            deepline runs list --play <name> --json
                                       deepline runs get <id> --json
                                       deepline runs tail <id> --json
@@ -137,7 +137,7 @@ deepline plays search <task> --json
 deepline plays describe <play-name-from-search> --json
 deepline plays get <play-name-from-search> --source --out ./my-play.play.ts
 deepline plays check ./my-play.play.ts
-deepline plays run ./my-play.play.ts --input '{"file":"pilot.csv"}' --watch
+deepline plays run ./my-play.play.ts --csv pilot.csv --watch
 ```
 
 Copy a prebuilt only for semantic changes: provider order, validation policy, extra stages, filtering, or output shape. `plays get --source --out` preserves the provider order, input contract, CSV handling, logs, and output conventions the prebuilt already got right. Do not parse `play.sourceCode` out of JSON when copying templates. Run the copied play by file path while iterating, then `set-live` when stable. See `shared/plays-best-practices.md` for the copy/edit loop.
@@ -154,7 +154,7 @@ When authoring a custom `*.play.ts`, keep the play file in the current repo/work
 
 ### `ctx.csv` returns a dataset, not an array
 
-When a play processes a CSV, pass the file path through normal JSON input, such as `deepline plays run enrich.play.ts --input '{"file":"leads.csv"}' --watch`. The play must call `ctx.csv(input.file, { columns, required })` (or `ctx.csv('relative-file.csv')` for a file next to the play); `ctx.csv()` with no argument is invalid. The return value is a `PlayDataset` — pass it directly to `ctx.map`, do not cast it, do not read `.length`, do not iterate it manually. Row progress, retries, idempotency, and table output all depend on the runtime owning the iteration; manual `for...of` loops break those guarantees. See `jobs/enriching-and-researching.md` for the row-work patterns built on this contract.
+When a play processes a CSV, the play owns the input field name. If the play declares `input: { csv: string }`, run it with `deepline plays run enrich.play.ts --csv leads.csv --watch` and call `ctx.csv(input.csv, { columns, required })`. A play can instead declare `leads_csv` or another unreserved name; the matching CLI flag is just the field name. If the play declares a field that collides with a reserved run flag, such as `file`, pass it through JSON input: `--input '{"file":"leads.csv"}'`. `ctx.csv()` with no argument is invalid. The return value is a `PlayDataset` — pass it directly to `ctx.map`, do not cast it, do not read `.length`, do not iterate it manually. Row progress, retries, idempotency, and table output all depend on the runtime owning the iteration; manual `for...of` loops break those guarantees. See `jobs/enriching-and-researching.md` for the row-work patterns built on this contract.
 
 ## Examples
 

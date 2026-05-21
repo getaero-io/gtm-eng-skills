@@ -51,7 +51,7 @@ For CSV pilots, create a separate one-row pilot CSV and run the same play agains
 
 ```bash
 head -2 leads.csv > pilot.csv
-deepline plays run ./my-play.play.ts --input '{"file":"pilot.csv"}' --watch
+deepline plays run ./my-play.play.ts --csv pilot.csv --watch
 ```
 
 Use 2 rows only when the second row exercises a different branch you need to verify and there is enough time budget. Passing `--input '{"rows":"0:1"}'` does not filter a CSV unless the play code explicitly reads `input.rows` and slices the dataset.

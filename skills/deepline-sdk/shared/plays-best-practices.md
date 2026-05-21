@@ -28,11 +28,14 @@ Treat play names in this skill as starting hints. The registry changes; the CLI 
 
 ```bash
 deepline plays run <play-name-from-search> \
-  --input '{"csv":"leads.csv","columns":{"first_name":"First Name","last_name":"Last Name","domain":"Company Domain"}}' \
+  --csv leads.csv \
+  --columns.first_name "First Name" \
+  --columns.last_name "Last Name" \
+  --columns.domain "Company Domain" \
   --watch
 ```
 
-For CSV plays, pass the CSV path and any column aliases through `--input` using the play's declared field names. Inspect the contract with `deepline plays describe <play> --json` before choosing `csv`, `file`, or another file input name.
+For CSV plays, pass the CSV path and any column aliases through the play's declared field names. `--csv leads.csv` means `input.csv`; `--columns.first_name "First Name"` means `input.columns.first_name`. Inspect the contract with `deepline plays describe <play> --json` before choosing `csv`, `file`, or another file input name.
 
 ## Customize by copying
 
@@ -60,9 +63,9 @@ If the exact source-export shape differs, run `deepline plays get --help`; `get`
 - Run by file path while iterating; only `set-live` once stable.
 
 ```bash
-deepline plays run ./my-play.play.ts --input '{"file":"leads.csv"}' --watch
+deepline plays run ./my-play.play.ts --csv leads.csv --watch
 deepline plays set-live ./my-play.play.ts
-deepline plays run my-play --input '{"file":"leads.csv"}' --watch
+deepline plays run my-play --csv leads.csv --watch
 ```
 
 ## Iterate on one play file
@@ -73,14 +76,14 @@ Run checks before spending provider credits:
 
 ```bash
 deepline plays check ./my-play.play.ts
-deepline plays run ./my-play.play.ts --input '{"file":"pilot.csv"}' --watch
+deepline plays run ./my-play.play.ts --csv pilot.csv --watch
 ```
 
 Use a one-row pilot CSV first for provider waterfalls and other slow paid work:
 
 ```bash
 head -2 leads.csv > pilot.csv
-deepline plays run ./my-play.play.ts --input '{"file":"pilot.csv"}' --watch
+deepline plays run ./my-play.play.ts --csv pilot.csv --watch
 ```
 
 Move to 2 rows only when the second row exercises a different branch you need to verify and there is enough time budget. Passing `--input '{"rows":"0:1"}'` does not filter a CSV unless the play code implements that option.
@@ -124,9 +127,9 @@ export default definePlay(
   'name-and-domain-email',
   async (
     ctx,
-    input: { file: string; columns?: ColumnMap<PersonRow> },
+    input: { csv: string; columns?: ColumnMap<PersonRow> },
   ) => {
-    const rows = await ctx.csv<PersonRow>(input.file, {
+    const rows = await ctx.csv<PersonRow>(input.csv, {
       columns: {
         first_name: 'FIRST_NAME',
         last_name: 'LAST_NAME',
@@ -158,7 +161,7 @@ Dotted CLI flags map onto nested input fields:
 
 ```bash
 deepline plays run ./name-and-domain-email.play.ts \
-  --input '{"file":"leads.csv"}' \
+  --csv leads.csv \
   --columns.first_name "First Name" \
   --columns.last_name "Last Name" \
   --columns.domain Website \
@@ -169,7 +172,7 @@ Avoid `any` and vague wrapper types when the input shape can be stated inline. S
 
 ## Normalize CSV columns up front
 
-CSV header differences are data-mapping problems, not reasons to rewrite a play. Use `ctx.csv(input.file, { columns, required })` to project source headers into canonical field names once, then write the rest of the play against those canonical fields.
+CSV header differences are data-mapping problems, not reasons to rewrite a play. Use `ctx.csv(input.csv, { columns, required })` to project source headers into canonical field names once, then write the rest of the play against those canonical fields.
 
 The projection is for code access. Persisted output should preserve the user's original CSV headers and append derived columns. That keeps lineage visible: reviewers can see the source data they uploaded next to the fields the play produced.
 
@@ -272,13 +275,13 @@ const enriched = await ctx
 Loads a staged CSV as a `PlayDataset`:
 
 ```typescript
-const rows = await ctx.csv<PersonRow>(input.file, {
+const rows = await ctx.csv<PersonRow>(input.csv, {
   columns: input.columns,
   required: ['first_name', 'last_name', 'domain'],
 });
 ```
 
-`path` is required. Invoke file-backed plays with normal JSON input, for example `deepline plays run my.play.ts --input '{"file":"leads.csv"}' --watch`, and call `ctx.csv(input.file)`. `ctx.csv()` with no argument is invalid.
+`path` is required. Invoke file-backed plays with the matching input flag, for example `deepline plays run my.play.ts --csv leads.csv --watch`, and call `ctx.csv(input.csv)`. `ctx.csv()` with no argument is invalid.
 
 ### `ctx.waterfall(...)`
 
@@ -324,8 +327,8 @@ Do not use `Deepline.connect()` inside a play body. The runtime `ctx` is the dur
 
 - **Calling live names without discovery.** Names rot. Search and describe before invoking.
 - **Copying a prebuilt to rename headers.** Use `columns`; copying is for semantic changes.
-- **Reading CSVs with `fs`.** Staged CSVs are runtime inputs. Use `ctx.csv(input.file)`.
-- **Using `--csv` at invocation time.** Pass CSV paths through normal JSON input, such as `--input '{"file":"leads.csv"}'`.
+- **Reading CSVs with `fs`.** Staged CSVs are runtime inputs. Use `ctx.csv(input.csv)` or the file field your play declares.
+- **Mismatching CSV field names.** `--csv leads.csv` sets `input.csv`; reserved run flags such as `--file` keep their command meaning, so use `--input '{"file":"leads.csv"}'` for `input.file`. Make the invocation and `ctx.csv(input.<field>)` agree.
 - **Iterating a dataset manually.** `PlayDataset` is a durable dataset handle. Use `ctx.map`.
 - **Reusing a map key.** Each `ctx.map` stage needs a unique durable key.
 - **Using raw `fetch` or `Date.now()` in the play body.** Route effects through `ctx.fetch`, `ctx.step`, or another `ctx.*` primitive.

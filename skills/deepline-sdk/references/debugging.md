@@ -92,7 +92,7 @@ Symptom: errors like "csv input not staged" or "duplicate map key" or "cannot re
 
 Cause:
 
-- "csv input not staged": the play invocation and `ctx.csv(...)` field do not agree. Prefer `ctx.csv(input.file)` in the play and invoke it with `deepline plays run my.play.ts --input '{"file":"leads.csv"}' --watch`.
+- "csv input not staged": the play invocation and `ctx.csv(...)` field do not agree. If the play uses `ctx.csv(input.csv)`, invoke it with `deepline plays run my.play.ts --csv leads.csv --watch`; if it uses `ctx.csv(input.file)`, invoke it with `--input '{"file":"leads.csv"}'` because `--file` is reserved for the play file target.
 - "duplicate map key": two `ctx.map` calls in the same play used the same key. Pick distinct names per stage.
 - "cannot read .length of dataset": the code is treating the `PlayDataset` returned by `ctx.csv` or `ctx.map` as an array. Pass the dataset directly to `ctx.map`; do not call `.length` or iterate manually.
 

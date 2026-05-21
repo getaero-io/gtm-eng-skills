@@ -77,7 +77,7 @@ If none match, grep for more specific keywords: `Grep pattern="<keyword>" path="
 - **NEVER read a large CSV into context with the Read tool.** Reading CSV rows into the conversation window exhausts context and produces zero output. This is the single most common failure mode.
 - Use `deepline enrich` for any row-by-row processing (enrichment, rewriting, research, scoring).
 - To explore or understand CSV content without loading it, use `deepline csv show --csv <path> --rows 0:2` for a two-row sample, or spawn an Explore subagent to answer questions about the data.
-- For SDK plays that process a CSV, the play owns the file contract. Write the play with `ctx.csv(input.file)` (or whatever input field the play declares), then run it with normal JSON input: `deepline plays run enrich.play.ts --input '{"file":"leads.csv"}' --watch`. After the run completes, export row output with `deepline runs export <run-id> --out output.csv`.
+- For SDK plays that process a CSV, the play owns the file contract. Write the play with `ctx.csv(input.csv)` (or whatever input field the play declares), then run it with the matching input flag: `deepline plays run enrich.play.ts --csv leads.csv --watch`. After the run completes, export row output with `deepline runs export <run-id> --out output.csv`.
 
 ### Tools
 
