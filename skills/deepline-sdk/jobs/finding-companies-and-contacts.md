@@ -38,9 +38,11 @@ The right tool depends on what fact the user actually wants. If the user asks fo
 
 These rules apply across discovery work and are the difference between "agent built the list from real data" and "agent fell back to training-data names after tool friction."
 
-### Discovery is one-shot CLI by default; reach for a custom play only when reused
+### Discovery belongs in the play
 
-Most discovery work is one or two CLI invocations followed by a CSV write. Wrapping that into a `*.play.ts` is overkill unless the workflow is being re-run, has multiple row-aware stages, or needs durability. The previous agent failure mode was reaching for a custom play *first*, hitting replay-safety friction (because discovery often involves writing CSVs and reading from search responses), and recovering by manually compiling the list — at which point the play layer added no value. Reach for `deepline tools execute` and `deepline plays run` directly. Promote to a custom play only when you find yourself re-running the same composition.
+Use `deepline tools execute` only to probe the live contract, count, or one sample row. The first provider call that contributes candidate companies or contacts should move into a play before you scale it. Discovery often needs supplementing, filtering, deduping, and downstream enrichment; putting those stages in one scratchpad play gives the run a replayable source of truth and lets the next run reuse completed steps instead of reparsing terminal JSON.
+
+When `tools execute --json` returns `starter_script`, use it as the first draft of the discovery play. Keep the durable names stable as you add stages: candidate pull, evidence attachment, contact lookup, email waterfall, and final export.
 
 ### Companies first, then people
 
@@ -117,11 +119,12 @@ Example shape:
 deepline tools search "company search funding headcount hq category" --json
 deepline tools search "job search hiring role company domain" --json
 deepline tools describe <company-tool-id> --json
-deepline tools execute <company-tool-id> --payload '{"hq_country":"USA","funding_round":["Series A","Series B"],"employee_count":{"min":50,"max":500},"categories":["fintech","identity verification","fraud detection"],"limit":35}' --json
-deepline tools execute <job-tool-id> --payload '{"query":"fraud OR identity","company_domain_or":["domain1.com","domain2.com"],"limit":50}' --json
+deepline tools execute <company-tool-id> --payload '{"hq_country":"USA","funding_round":["Series A","Series B"],"employee_count":{"min":50,"max":500},"categories":["fintech","identity verification","fraud detection"],"limit":1}' --json
+deepline plays check ./target-company-list.play.ts
+deepline plays run ./target-company-list.play.ts --input '{"target_count":25}' --watch --out target_companies.csv
 ```
 
-If the exact provider uses different field names, adapt the payload to the described schema. Keep the strategy fixed: one primary company pull, one hiring-evidence pass, then CSV.
+If the exact provider uses different field names, adapt the play payload to the described schema. Keep the strategy fixed: one primary company pull, one hiring-evidence pass, then CSV. The `limit: 1` call is only the shape probe; the 1.4x candidate pull belongs in the play.
 
 ### Companies by structured firmographic filters
 
@@ -141,8 +144,9 @@ deepline tools execute <autocomplete-tool> --payload '{"field":"industry","query
 # Probe count.
 deepline tools execute <tool-id> --payload '{"hq_country":"USA","funding_round":["Series A","Series B"],"employee_count":{"min":50,"max":500},"limit":1}' --json
 
-# Pull ~1.4× the target.
-deepline tools execute <tool-id> --payload '{"hq_country":"USA","funding_round":["Series A","Series B"],"employee_count":{"min":50,"max":500},"limit":35}' --json
+# Put the real pull (~1.4x target), filtering, and export in a play.
+deepline plays check ./company-discovery.play.ts
+deepline plays run ./company-discovery.play.ts --input '{"target_count":25}' --watch --out target_companies.csv
 ```
 
 Preserve the response's evidence columns when writing the CSV. If the response includes `funding_round`, `last_funding_at`, `employee_count`, `growth_6m_percent`, `hq_city`, `hq_country`, `industry_codes`, `description`, keep them — they are the proof that justifies why each row is in the list.
@@ -154,7 +158,9 @@ When the user wants "companies hiring fraud engineers" or similar role-specific 
 ```bash
 deepline tools search "job search" --json
 deepline tools describe <tool-id> --json
-deepline tools execute <tool-id> --payload '{"job_title":"fraud engineer","company_size":{"min":50,"max":500},"hq_country":"USA","limit":35}' --json
+deepline tools execute <tool-id> --payload '{"job_title":"fraud engineer","company_size":{"min":50,"max":500},"hq_country":"USA","limit":1}' --json
+deepline plays check ./hiring-signal-discovery.play.ts
+deepline plays run ./hiring-signal-discovery.play.ts --input '{"target_count":25}' --watch --out companies_hiring.csv
 ```
 
 Pull job listings, then group by company. Preserve the listing-level evidence (`hiring_role`, `hiring_url`, `hiring_posted_at`, `hiring_count`) because that is the proof.
@@ -202,10 +208,12 @@ When you do not yet have a company list and want people directly:
 ```bash
 deepline tools search "people search" --json
 deepline tools describe <tool-id> --json
-deepline tools execute <tool-id> --payload '{"function":"Marketing","seniority":["VP","Director"],"hq_country":"USA","limit":50}' --json
+deepline tools execute <tool-id> --payload '{"function":"Marketing","seniority":["VP","Director"],"hq_country":"USA","limit":1}' --json
+deepline plays check ./people-discovery.play.ts
+deepline plays run ./people-discovery.play.ts --input '{"target_count":5}' --watch --out contacts.csv
 ```
 
-Use broad function plus seniority, not exact titles. Companies-first is still preferred when ICP fit matters — broad people search lacks the firmographic filters to validate the ICP.
+Use broad function plus seniority, not exact titles. Companies-first is still preferred when ICP fit matters — broad people search lacks the firmographic filters to validate the ICP. If people search is the right primary source, make it the first stage of the scratchpad play, then add email enrichment and final export as later stages in the same play.
 
 ### Engagers on a LinkedIn post
 

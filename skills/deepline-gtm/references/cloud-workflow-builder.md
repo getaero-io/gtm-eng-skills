@@ -88,7 +88,7 @@ Steps execute **sequentially** by default. Each step's output is available to al
 - `{{input.field}}` — from the workflow call input or webhook payload
 - `{{alias.result.field}}` — from a previous step's result (in payload templates)
 - `{{alias.result.field}}` — from a previous step's result (enrichment tools return data inside the result envelope)
-- Inside `run_javascript` code, local tool results are wrapped as `{ data, meta }`, so use `row.alias.result.data.field` (JS object access, not template syntax)
+- Inside `run_javascript` code, local tool results expose V2 output as `{ body, meta }`, so use `row.alias.output.body.field` (JS object access, not template syntax)
 
 **Retry policy:** 3 attempts with exponential backoff (1s base, 30s max, jitter enabled). Rate limits can be handled as wait, fallback (in waterfalls), or fail.
 

@@ -43,7 +43,7 @@ Route by what identifiers each row has and what column you need. The play names 
 | Row + ICP description | tier / fit classification | structured AI column with `jsonSchema` | (see "Custom AI research") |
 | Row + research need not covered by a provider | custom research column | `deeplineagent` with optional structured output | (see "Custom AI research") |
 
-Use direct tools rather than a play only when no play covers the pattern, when the workflow needs a custom provider order, or when testing a niche provider path. Plays encode hard-won provider sequencing and validation rules — start with them.
+Use direct tools only as probes. Plays encode hard-won provider sequencing, validation rules, row progress, and retry behavior, so row-level enrichment should run through a prebuilt play or a local scratchpad play. When no prebuilt covers the pattern, when provider order is custom, or when the workflow adds filtering/scoring/validation stages, write a small `*.play.ts` and add one stage at a time.
 
 For custom play files, keep `definePlay(...)` names short. The persisted sheet table is named from the normalized play name plus the `ctx.map` key, and Postgres caps that combined identifier at 63 characters. Use names like `email-wf-eval`, `phone-wf`, or `company-fit`, not long task descriptions.
 
@@ -97,19 +97,22 @@ A `catch_all` email whose domain does not match the person's company domain is a
 
 The two responsibilities — recovering an address and confirming it is deliverable — read better as separate stages. Validating inside a waterfall step inflates cost (one validator call per provider attempt, including the misses) and conflates the recovery question (which provider returns the most coverage) with the validation question (which subset of recovered addresses is deliverable). The two-stage `ctx.map` pattern in `SKILL.md` is the default; a single combined stage is occasionally right when the validator's response steers which provider to try next, but the cost of finding out is high enough that it should be a deliberate choice.
 
-When the user explicitly asks to "validate after," run the email waterfall first, then run a separate verifier stage against the recovered `email` column. Do not count the waterfall's internal pattern checks as the requested after-step validation. Find the current verifier with `deepline tools search "email verifier" --json` and confirm the payload with `deepline tools describe <tool-id> --json`; for CSV work, add a second `ctx.map` stage or use the canonical validation play/tool surface if one is available in `deepline plays search "email validation" --json`.
+When the user explicitly asks to "validate after," run the email waterfall first, then run a separate verifier stage against the recovered `email` column. Do not count the waterfall's internal pattern checks as the requested after-step validation. Find the current verifier with `deepline tools search "email verifier" --json` and confirm the payload with `deepline tools describe <tool-id> --json`; for CSV work, add a second `ctx.map` stage in the scratchpad play or use the canonical validation play surface if one is available in `deepline plays search "email validation" --json`.
 
-Inside a play, tool results use the same shape as `deepline tools execute --json`: Deepline execution metadata is top-level, provider output is `result.data`, provider metadata is `result.meta`, and Deepline's semantic extractions live in `extracted`.
+Inside a play, tool results use the same shape as `deepline tools execute --json`: Deepline execution metadata is top-level, provider output is `toolOutput.raw`, provider metadata is `toolOutput.meta`, and Deepline's semantic extractions live in `extractedValues`.
 
 ```typescript
-const verification = await ctx.tools.execute('verify_email', '<verifier-tool-id>', {
-  email: row.email,
-}, {
+const verification = await ctx.tools.execute({
+  id: 'verify_email',
+  tool: '<verifier-tool-id>',
+  input: {
+    email: row.email,
+  },
   description: 'Validate recovered email deliverability.',
 });
 const email_status =
-  verification.result.data.status
-  ?? verification.extracted.email_status?.value
+  verification.extractedValues.email_status?.get()
+  ?? verification.toolOutput.raw.status
   ?? null;
 ```
 
@@ -170,7 +173,7 @@ const result = await ctx.runPlay('email_waterfall', '<play-name-from-search>', {
 
 When you only have `company_name` (no domain), or a Sales Navigator `/sales/lead/` URL, resolve the domain first via search, then run the play. The discovery → resolution → email-waterfall sequence is three steps; the middle step extracts the domain from the search response.
 
-If validation was requested, validate after the waterfall has produced an `email` column. For a one-off job, run the prebuilt to an intermediate CSV, then validate that CSV in a second run. If the user explicitly asks for a customized play, copy the prebuilt with `deepline plays get <play-name-from-search> --source --out ./my-play.play.ts`, then make the smallest local edit that adds a second validation `ctx.map` stage; do not parse JSON source fields or rewrite the waterfall from scratch. Pilot that custom play on exactly one row before the full CSV. The validation result should be a new column such as `email_status`; keep the recovered address even when status is `catch_all` or `unknown` so the user can decide whether to send. Export the final enriched + validated CSV to the exact output path the user requested; intermediate pilot, waterfall, or validation files can live under a working directory, but the deliverable path should not move.
+If validation was requested, validate after the waterfall has produced an `email` column. Copy the prebuilt with `deepline plays get <play-name-from-search> --source --out ./my-play.play.ts`, then make the smallest local edit that adds a second validation `ctx.map` stage; do not parse JSON source fields or rewrite the waterfall from scratch. Pilot that custom play on exactly one row before the full CSV. The validation result should be a new column such as `email_status`; keep the recovered address even when status is `catch_all` or `unknown` so the user can decide whether to send. Export the final enriched + validated CSV to the exact output path the user requested; intermediate pilot, waterfall, or validation files can live under a working directory, but the deliverable path should not move.
 
 ### LinkedIn `/in/` URL → work email
 

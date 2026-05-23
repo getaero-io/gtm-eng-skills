@@ -27,6 +27,8 @@ If the rows do not have research columns yet, route to `jobs/enriching-and-resea
 
 `deeplineagent` is the right tool for almost all generative outreach work. `run_javascript` is for the rare case where the user wants strict template merge (e.g. a field substitution with no rewriting) — and at that point, the question is whether the user wants AI-assisted personalization at all.
 
+Outreach generation is row work, so put it in a play. Probe `deeplineagent` or `run_javascript` only to confirm the live input contract or model menu; the copy that ships to the user should be produced by a `ctx.map` stage with stable keys. This makes regeneration cheap when only the prompt changes, preserves the research columns that fed each message, and keeps the final CSV tied to an inspectable run instead of a one-off script.
+
 ## Durable rules
 
 ### Personalization requires a row-specific signal
@@ -35,7 +37,7 @@ Every email must reference something specific to the row: a product the company 
 
 ### Research happens in enriching-and-researching, not here
 
-A common failure mode is writing the research and the copy in the same `deeplineagent` prompt: "Look up Acme and write me a personalized email." That conflates two responsibilities, makes the output non-cacheable, and produces shallow research because the prompt is optimized for copy quality, not factual depth. Research belongs in a prior `ctx.map` stage (or a prior CLI run) that produces a `company_research` or `pain_points` column. The copy stage then _reads_ that column.
+A common failure mode is writing the research and the copy in the same `deeplineagent` prompt: "Look up Acme and write me a personalized email." That conflates two responsibilities and produces shallow research because the prompt is optimized for copy quality, not factual depth. Research belongs in a prior `ctx.map` stage that produces a `company_research` or `pain_points` column. The copy stage then _reads_ that column.
 
 ### Structured output for anything downstream will read
 

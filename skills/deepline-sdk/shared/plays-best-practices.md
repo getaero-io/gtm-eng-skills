@@ -1,6 +1,6 @@
 # Plays best practices
 
-Use this when authoring, copying, debugging, or customizing Deepline `*.play.ts` files. If the task is a one-shot call to a prebuilt play whose input contract already fits, use the CLI directly and do not write a play.
+Use this when authoring, copying, debugging, or customizing Deepline `*.play.ts` files. Deepline work should run through plays: a fitting prebuilt play for canonical one-shots, or a local scratchpad play for anything that discovers, enriches, filters, scores, validates, or exports multiple rows. Direct `tools execute` calls are probes; they should not become the script that produces the final artifact.
 
 ## Table of contents
 
@@ -69,6 +69,8 @@ deepline plays run my-play --csv leads.csv --watch
 ```
 
 ## Iterate on one play file
+
+Start the play early, while you are still discovering the workflow. A small scratchpad play with one provider call is better than ten terminal probes plus a late rewrite: it gives each known-good step a durable identity, makes watch output inspectable, and lets the next run resume from completed work.
 
 Edit one local play file in place instead of creating `-v2`, `-fixed`, or `-final` variants. Deepline's durable cache makes repeated local runs cheap when names and keys stay stable; unchanged rows and steps can reuse prior results.
 
@@ -184,7 +186,7 @@ When scalar and CSV/batch modes share provider logic, put that logic in a reusab
 
 Batch code should not usually call the registered scalar play once per row. That gives perfect semantic parity, but adds child-play overhead, makes traces harder to read, and can block provider-level batching or rate scheduling. Use `ctx.runPlay` for true workflow composition boundaries; use a local helper when you just want to share row logic.
 
-Use `ctx.waterfall` when provider order is the customization point. Use direct `ctx.tools.execute` when one provider call is exactly the step you need. Use prebuilt plays when the business-level behavior already exists.
+Use `ctx.waterfall` when provider order is the customization point. Use `ctx.tools.execute` inside a play when one provider call is exactly the step you need. Use prebuilt plays when the business-level behavior already exists.
 
 ## SDK primitive reference
 
@@ -219,13 +221,13 @@ const company = await ctx.tools.execute(
   },
 );
 
-const providerPayload = company.result.data;
-const upstreamStatus = company.result.meta?.status;
-const normalizedDomain = company.extracted.domain?.value;
+const providerPayload = company.toolOutput.raw;
+const upstreamStatus = company.toolOutput.meta?.status;
+const normalizedDomain = company.extractedValues.domain?.get();
 ```
 
 Find tool IDs with `deepline tools search <category> --json` and confirm payloads with `deepline tools describe <id> --json`.
-The shape matches `deepline tools execute --json`: `result.data` is the provider payload, `result.meta` is provider/upstream metadata, and `extracted` contains Deepline-normalized semantic values with source paths.
+The shape matches `deepline tools execute --json`: `toolOutput.raw` is the provider payload, `toolOutput.meta` is provider/upstream metadata, and `extractedValues` contains Deepline-normalized semantic values with source paths.
 
 ### `ctx.runPlay(key, playRef, input, options)`
 

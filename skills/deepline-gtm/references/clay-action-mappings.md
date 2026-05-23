@@ -77,7 +77,7 @@ deepline tools get <candidate_tool_id>      # verify it exists + see payload sch
 --with '{"alias":"person_profile","tool":"leadmagic_profile_search","payload":{"profile_url":"{{linkedin_url}}"}}'
 ```
 
-Key output paths: `.result.data.full_name`, `.result.data.work_experience[0].company_website`, `.result.data.company_website`
+Key output paths: `.output.body.full_name`, `.output.body.work_experience[0].company_website`, `.output.body.company_website`
 
 **Richer fallback** — `crustdata_person_enrichment`:
 
@@ -85,7 +85,7 @@ Key output paths: `.result.data.full_name`, `.result.data.work_experience[0].com
 --with '{"alias":"person_profile","tool":"crustdata_person_enrichment","payload":{"linkedinProfileUrl":"{{linkedin_url}}"}}'
 ```
 
-Key output paths: `.result.data[0].name`, `.result.data[0].email`, `.result.data[0].current_employers[0].employer_company_website_domain[0]`
+Key output paths: `.output.body[0].name`, `.output.body[0].email`, `.output.body[0].current_employers[0].employer_company_website_domain[0]`
 
 **Work history / posts** — Apify (structured, free):
 
@@ -161,7 +161,7 @@ Default — `leadmagic_email_validation`:
 --with '{"alias":"email_valid","tool":"leadmagic_email_validation","payload":{"email":"{{work_email}}"}}'
 ```
 
-LeadMagic returns four relevant statuses (as `.result.data.email_status`):
+LeadMagic returns four relevant statuses (as `.output.body.email_status`):
 
 | Status            | Meaning                                            | Bounce rate | Charge   |
 | ----------------- | -------------------------------------------------- | ----------- | -------- |

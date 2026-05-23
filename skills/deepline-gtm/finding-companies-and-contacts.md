@@ -411,7 +411,7 @@ Dropleads note: keep title filters broad (`jobTitles`) and allow seniority to do
 - `jobTitlesExactMatch`: no observable effect -- ignore it.
 - `companyNames`: fuzzy -- prefer `companyDomains` for precision.
 - `departments`/`seniority`: enum-only (see schema).
-- Use `limit:1` first to check `result.data.pagination.total`, then pull full pages. Don't iterate exploratory queries.
+- Use `limit:1` first to check `output.body.pagination.total`, then pull full pages. Don't iterate exploratory queries.
 
 ### CrustData (company + person search, autocomplete)
 

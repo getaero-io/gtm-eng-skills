@@ -312,7 +312,7 @@ Why this play:
 Key waterfall rules:
 
 - Always pilot first with `--rows 0:1`, then scale after the shape looks right.
-- Every waterfall step needs its own `extract_js`. Before writing it: run `deepline tools get <tool>` to see the response shape, then confirm the path from the normalized wrapper. `extract_js` receives `{ result: <tool output> }`, so author paths against `result.*` and only drill into `result.data.*` when that provider's payload actually nests under `data`. Use `@path/to/file.js` for multi-line or regex-heavy JS — inline JS in `--with` JSON breaks on escapes.
+- Every waterfall step needs its own `extract_js`. Before writing it: run `deepline tools describe <tool>` and prefer the usage guidance's extracted/list accessors. For raw fallbacks, V2 tool output lives at `toolExecutionResult.toolOutput.raw`; only drill into provider-specific nesting when the tool's own payload truly has a nested field. Use `@path/to/file.js` for multi-line or regex-heavy JS — inline JS in `--with` JSON breaks on escapes.
 - Close each waterfall with `--end-waterfall` before starting another one.
 - Do not run email waterfalls without minimum match data: name + company, name + domain, or a strong LinkedIn-seeded identity.
 - If you need different validation behavior, remember the native cost-aware play only accepts pattern hits when the validator says `valid`.
@@ -392,7 +392,7 @@ Use this when you are hand-authoring `deepline enrich` steps instead of relying 
   - in `extract_js`, read `output_data.result`
   - in later `run_javascript` passes over saved CSV rows, read `row["some_column"].result`
   - if the saved cell also has `matched_result`, prefer it as the normalized value you already extracted
-  - only drill into provider-specific nesting like `.result.data.*` after unwrapping `result`, and only when that provider's raw payload truly has a `data` envelope
+  - only drill into provider-specific nesting after reading the documented raw output root, and only when that provider's raw payload truly has that nested field
 
 Minimal examples:
 
