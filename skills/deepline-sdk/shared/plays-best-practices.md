@@ -205,21 +205,19 @@ export default definePlay(
 
 The name is the slug used by `deepline plays run <name>`, `deepline plays set-live`, and `ctx.runPlay`. Bindings can add cron or webhook triggers when the play is live.
 
-### `ctx.tools.execute(key, toolId, input, options)`
+### `ctx.tools.execute({ id, tool, input, description })`
 
 Calls one provider tool with a stable idempotency key and a required description:
 
 ```typescript
-const company = await ctx.tools.execute(
-  'company_search',
-  '<tool-id>',
-  {
+const company = await ctx.tools.execute({
+  id: 'company_search',
+  tool: '<tool-id>',
+  input: {
     domain: row.domain,
   },
-  {
-    description: 'Look up company details by domain.',
-  },
-);
+  description: 'Look up company details by domain.',
+});
 
 const providerPayload = company.toolOutput.raw;
 const upstreamStatus = company.toolOutput.meta?.status;
@@ -258,19 +256,35 @@ Fans out across rows and records each step as a durable column:
 const enriched = await ctx
   .map('companies', rows)
   .step('company', (row, rowCtx) =>
-    rowCtx.tools.execute(
-      'company_search',
-      '<tool-id>',
-      { domain: row.domain },
-      {
-        description: 'Look up company details by domain.',
-      },
-    ),
+    rowCtx.tools.execute({
+      id: 'company_search',
+      tool: '<tool-id>',
+      input: { domain: row.domain },
+      description: 'Look up company details by domain.',
+    }),
   )
   .run({ description: 'Enrich companies.' });
 ```
 
 `items` can be an array, async iterable, or `PlayDataset` from `ctx.csv` or another `ctx.map`. Returns a `PlayDataset` of original rows plus new columns. Pass it to another `ctx.map` for a later stage; do not treat it like an array.
+
+For typed tool inputs with optional fields, keep the required keys visible in the object type. Do not widen the input to `Record<string, string>`; the play checker cannot prove that required schema keys are present after that widening.
+
+```typescript
+const input: {
+  first_name: string;
+  last_name: string;
+  domain: string;
+  company_name?: string;
+  linkedin_url?: string;
+} = {
+  first_name: row.first_name,
+  last_name: row.last_name,
+  domain: row.domain,
+};
+if (row.company_name) input.company_name = row.company_name;
+if (row.linkedin_url) input.linkedin_url = row.linkedin_url;
+```
 
 ### `ctx.csv(path, options?)`
 

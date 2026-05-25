@@ -199,9 +199,12 @@ Do not use this play for `/sales/lead/` URLs — see rule #2.
 You have an email and want to hydrate person and company fields.
 
 ```typescript
-const result = await ctx.tools.execute('enrich_contact', 'deepline_native_enrich_contact', {
-  email: row.email,
-}, {
+const result = await ctx.tools.execute({
+  id: 'enrich_contact',
+  tool: 'deepline_native_enrich_contact',
+  input: {
+    email: row.email,
+  },
   description: 'Hydrate person and company context from email.',
 });
 ```
@@ -291,19 +294,22 @@ deepline tools describe deeplineagent --json
 ```
 
 ```typescript
-const research = await ctx.tools.execute('company_research', 'deeplineagent', {
-  model: '<model-id-from-describe>',
-  prompt: `Research ${row.company_name} (${row.domain}). Return JSON with what_they_build and who_they_sell_to. Use Deepline-managed tools only if needed.`,
-  jsonSchema: {
-    type: 'object',
-    properties: {
-      what_they_build: { type: 'string' },
-      who_they_sell_to: { type: 'string' },
+const research = await ctx.tools.execute({
+  id: 'company_research',
+  tool: 'deeplineagent',
+  input: {
+    model: '<model-id-from-describe>',
+    prompt: `Research ${row.company_name} (${row.domain}). Return JSON with what_they_build and who_they_sell_to. Use Deepline-managed tools only if needed.`,
+    jsonSchema: {
+      type: 'object',
+      properties: {
+        what_they_build: { type: 'string' },
+        who_they_sell_to: { type: 'string' },
+      },
+      required: ['what_they_build', 'who_they_sell_to'],
+      additionalProperties: false,
     },
-    required: ['what_they_build', 'who_they_sell_to'],
-    additionalProperties: false,
   },
-}, {
   description: 'Research company positioning for enrichment.',
 });
 ```
@@ -313,19 +319,22 @@ const research = await ctx.tools.execute('company_research', 'deeplineagent', {
 Tier classification is just `deeplineagent` with a `jsonSchema` that enumerates the tiers.
 
 ```typescript
-const tiering = await ctx.tools.execute('icp_tiering', 'deeplineagent', {
-  model: '<model-id-from-describe>',
-  prompt: `Using only the provided context, classify ${row.company_name} into one of: high_fit, medium_fit, low_fit. Context: ${row.company_research}`,
-  jsonSchema: {
-    type: 'object',
-    properties: {
-      tier: { type: 'string', enum: ['high_fit', 'medium_fit', 'low_fit'] },
-      reason: { type: 'string' },
+const tiering = await ctx.tools.execute({
+  id: 'icp_tiering',
+  tool: 'deeplineagent',
+  input: {
+    model: '<model-id-from-describe>',
+    prompt: `Using only the provided context, classify ${row.company_name} into one of: high_fit, medium_fit, low_fit. Context: ${row.company_research}`,
+    jsonSchema: {
+      type: 'object',
+      properties: {
+        tier: { type: 'string', enum: ['high_fit', 'medium_fit', 'low_fit'] },
+        reason: { type: 'string' },
+      },
+      required: ['tier', 'reason'],
+      additionalProperties: false,
     },
-    required: ['tier', 'reason'],
-    additionalProperties: false,
   },
-}, {
   description: 'Classify company ICP fit from research context.',
 });
 ```
@@ -341,13 +350,16 @@ When the eventual deliverable is outreach copy, do research as one row stage and
 `deeplineagent` structured-output columns are wrapped in a result envelope. Downstream interpolation (`{{column}}`) into another `deeplineagent` prompt usually works, but field-level access (`{{column.field}}`) does not because the cell carries an AI result wrapper. If a downstream step needs deterministic field-level reuse, add a `run_javascript` flatten pass that emits a scalar column.
 
 ```typescript
-const flat = await ctx.tools.execute('flatten_research', 'run_javascript', {
-  code: `
+const flat = await ctx.tools.execute({
+  id: 'flatten_research',
+  tool: 'run_javascript',
+  input: {
+    code: `
     const research = row["company_research"];
     const extracted = research?.output ?? research?.extracted_json ?? research?.result?.object ?? research;
     return extracted?.pain_points ?? null;
   `,
-}, {
+  },
   description: 'Flatten structured research into a reusable scalar field.',
 });
 ```
