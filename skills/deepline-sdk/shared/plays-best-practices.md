@@ -92,6 +92,27 @@ Move to 2 rows only when the second row exercises a different branch you need to
 
 Use `ctx.log(...)` for long-running stages. Logs are visible through `--watch`, `runs tail`, and run history, which lets an agent tell whether the play is still searching, validating, retrying, or stuck.
 
+When a play run exposes an empty derived column or a wrong getter path, debug
+from persisted run tables instead of direct tool previews:
+
+```bash
+deepline plays run ./my-play.play.ts --input '{...}' --watch
+deepline runs get <run-id> --json
+# copy the printed top-level outputs or inspect rows command
+deepline db query --sql 'select * from "storage"."<run_table>" where _run_id = ... limit 20' --json
+```
+
+Use `top-level outputs` for scalar `ctx.step` / top-level `ctx.tools.execute`
+results. Use `inspect rows` for `ctx.map` stages. Then edit the getter from the
+stored JSON row you actually queried.
+
+For an existing or starter play, run the file before editing getter paths, even
+when the code looks obviously stale. `tools describe` gives the declared
+contract, and `tools execute` probes an isolated call; neither proves what a
+prior step serialized into that play's table. The first fix should come from a
+`deepline db query` row for the failed run, not from a direct probe or output
+schema alone.
+
 ## Idempotency and replay
 
 Play authoring is not normal scripting. Plays run on a durable execution engine; the play body can re-execute from the beginning during worker restart, retry, or workflow replay. Calls routed through `ctx.*` replay from cached history. Calls outside `ctx.*` run again with fresh values and can corrupt the workflow.
@@ -219,13 +240,13 @@ const company = await ctx.tools.execute({
   description: 'Look up company details by domain.',
 });
 
-const providerPayload = company.toolOutput.raw;
-const upstreamStatus = company.toolOutput.meta?.status;
+const providerPayload = company.toolResponse.raw;
+const upstreamStatus = company.toolResponse.meta?.status;
 const normalizedDomain = company.extractedValues.domain?.get();
 ```
 
 Find tool IDs with `deepline tools search <category> --json` and confirm payloads with `deepline tools describe <id> --json`.
-The shape matches `deepline tools execute --json`: `toolOutput.raw` is the provider payload, `toolOutput.meta` is provider/upstream metadata, and `extractedValues` contains Deepline-normalized semantic values with source paths.
+The serialized shape matches `deepline tools execute --json`: `toolResponse.raw` is the raw tool response body, `toolResponse.meta` is tool/provider metadata, and `extractedValues` / `extractedLists` contain Deepline-normalized semantic values with source paths. Use `toolResponse.raw` in play code that reads from a prior step or a persisted row; non-serialized convenience aliases are not a debugging contract.
 
 ### `ctx.runPlay(key, playRef, input, options)`
 

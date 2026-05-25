@@ -12,6 +12,57 @@ deepline runs tail <run-id> --json           # live stream if the run is active
 
 A failed run shows up in `runs get` as `failed` with a final-event message. `tail` shows the `ctx.log(...)` output up to the failure. For a play that never completes, `tail` reveals whether it is stuck on a tool call (provider hang), a retry loop (rate limit), or genuinely waiting.
 
+## Failure: a play column is empty or the getter path is wrong
+
+Symptom: the tool returned useful data, but a later play column is `null`,
+empty, or shaped differently than the script expected.
+
+Cause: the play guessed a provider path or copied a direct CLI probe path into
+runtime code. Direct `tools execute` output is useful for checking a tool in
+isolation, but the authoritative shape for a play is the object persisted by
+that play run in the customer DB tables. Treat `tools describe` as the
+input/schema contract, not as proof of the exact runtime output wrapper or row
+field casing.
+
+Fix: inspect the actual run emissions before editing again.
+
+```bash
+deepline plays run my.play.ts --input '{...}' --watch
+deepline runs get <run-id> --json
+deepline runs get <run-id> --full --json
+```
+
+The run output lists the relevant persisted tables under `execution statistics`.
+Use the printed `deepline db query` commands as the debugging surface:
+
+- `top-level outputs:` queries the run receipt table for top-level `ctx.step`
+  and `ctx.tools.execute` outputs that are not inside a map table.
+- `inspect rows:` queries a map/runtime sheet table for row-backed stages.
+
+Tool-result cells are JSON objects and serialize raw provider data under
+`toolResponse.raw`, while semantic getters are under
+`extractedValues` / `extractedLists`. If a derived column is empty, query the row
+that contains both the raw tool-result column and the derived column, then fix
+the play from the observed table row.
+
+Do not fix getter bugs by adding casts until you have inspected either:
+
+- the stage table row that contains the tool result, or
+- an explicit `ctx.log(...)` shape emitted by the play.
+
+Good loop:
+
+```bash
+deepline plays run contact-search.play.ts --input '{"limit":1}' --watch
+deepline runs get <run-id> --json
+# copy the top-level outputs or inspect rows command printed by runs get
+deepline db query --sql 'select * from "storage"."<table>" where _run_id = ... limit 20' --json
+```
+
+Then change the play to use the observed path, or use declared semantic getters
+such as `result.extractedValues.email.get()` and
+`result.extractedLists.people.get()` when the tool exposes them.
+
 ## Failure: replay-safety violation
 
 Symptom: the run fails at registration or mid-execution with an error mentioning replay, determinism, or non-deterministic operation.

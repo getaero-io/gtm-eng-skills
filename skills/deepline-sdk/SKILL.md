@@ -50,6 +50,14 @@ The loop:
 4. Run the play on a tiny input or one row.
 5. Inspect the result, then add the next step.
 
+When the user gives you an existing or starter `*.play.ts`, run it before
+editing output getter paths. `tools describe` shows declared contracts and
+semantic getters; it does not prove what that play serialized at runtime. If
+the run output is empty, null, or shaped wrong, use the `top-level outputs:` or
+`inspect rows:` `deepline db query` command printed by the run, then edit from
+that stored row. Top-level `ctx.tools.execute` / `ctx.step` results are in
+`top-level outputs`; `ctx.map` stage results are in `inspect rows`.
+
 Use direct CLI calls for probes, schema inspection, and known prebuilt one-offs. Use a play as soon as the work has multiple provider calls, row fanout, a waterfall, intermediate filtering, or a final output schema the user may want to rerun.
 
 A play should accumulate known-good steps. It should not be a last-minute escape hatch after broad CLI probing, JSON parsing failures, or output truncation. If a `plays check` failure takes more than two edits to resolve, stop and re-anchor on current play-authoring patterns in `shared/plays-best-practices.md`.

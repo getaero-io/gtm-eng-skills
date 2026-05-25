@@ -99,7 +99,7 @@ The two responsibilities — recovering an address and confirming it is delivera
 
 When the user explicitly asks to "validate after," run the email waterfall first, then run a separate verifier stage against the recovered `email` column. Do not count the waterfall's internal pattern checks as the requested after-step validation. Find the current verifier with `deepline tools search "email verifier" --json` and confirm the payload with `deepline tools describe <tool-id> --json`; for CSV work, add a second `ctx.map` stage in the scratchpad play or use the canonical validation play surface if one is available in `deepline plays search "email validation" --json`.
 
-Inside a play, tool results use the same shape as `deepline tools execute --json`: Deepline execution metadata is top-level, provider output is `toolOutput.raw`, provider metadata is `toolOutput.meta`, and Deepline's semantic extractions live in `extractedValues`.
+Inside a play, tool results serialize with the same shape as `deepline tools execute --json`: Deepline execution metadata is top-level, raw tool response data is `toolResponse.raw`, tool response metadata is `toolResponse.meta`, and Deepline's semantic extractions live in `extractedValues` / `extractedLists`.
 
 ```typescript
 const verification = await ctx.tools.execute({
@@ -112,7 +112,7 @@ const verification = await ctx.tools.execute({
 });
 const email_status =
   verification.extractedValues.email_status?.get()
-  ?? verification.toolOutput.raw.status
+  ?? verification.toolResponse.raw.status
   ?? null;
 ```
 
