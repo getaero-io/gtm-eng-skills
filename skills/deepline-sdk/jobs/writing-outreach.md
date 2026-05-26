@@ -1,49 +1,49 @@
 # Writing outreach
 
-Per-row copy generation, sequence design, qualification language, and scoring. The deliverable is text columns on rows that already have research and identity context.
+Outbound copy, sequence design, qualification language, and scoring for known contacts/accounts with evidence.
 
 This doc does **not** cover finding people or filling emails — those live in `jobs/finding-companies-and-contacts.md` and `jobs/enriching-and-researching.md` and must complete before this doc is useful. Outreach generation without research columns produces mail-merge.
 
 ## When you are in this doc
 
-You have rows with name, title, company, identity, and **at least one research or context column** ("what they sell," "recent funding," "pain points," "tier"). The user phrasing is something like:
+You have contacts/accounts with name, title, company, identity, and at least one evidence signal ("what they sell," "recent funding," "pain points," "tier"). User phrasing looks like:
 
 - "write a cold email for each of these leads"
 - "draft a 4-step sequence for the Tier 1 contacts"
-- "write qualification copy for each row explaining why they are a good fit"
+- "write qualification copy explaining why each contact is a good fit"
 - "personalize a first line per contact based on the research column"
 
-If the rows do not have research columns yet, route to `jobs/enriching-and-researching.md` (research section) first. Trying to write personalized outreach off `name + title + company` alone produces template output regardless of how good the prompt is.
+If the list lacks evidence, route to `jobs/enriching-and-researching.md` first. `name + title + company` alone produces template output.
 
 ## Choose your approach
 
 | You need                                                           | Pattern category                                                                  | Discovery                                       |
 | ------------------------------------------------------------------ | --------------------------------------------------------------------------------- | ----------------------------------------------- |
-| One personalized snippet per row (subject, first line, value prop) | single-prompt `deeplineagent` with output `jsonSchema`                            | `deepline tools describe deeplineagent --json`  |
-| A multi-step sequence per row (4 emails, each with subject + body) | `deeplineagent` with array `jsonSchema`                                           | (same)                                          |
+| One personalized snippet per contact/account (subject, first line, value prop) | single-prompt `deeplineagent` with output `jsonSchema`                            | `deepline tools describe deeplineagent --json`  |
+| A multi-step sequence per contact/account | `deeplineagent` with array `jsonSchema`                                           | (same)                                          |
 | ICP fit / tier classification with reasoning                       | `deeplineagent` with enum `jsonSchema`                                            | (same)                                          |
-| Score rows on multiple criteria                                    | `deeplineagent` with object `jsonSchema` returning `{score, fit_band, rationale}` | (same)                                          |
-| Deterministic template merge (no AI)                               | `run_javascript` with the template inline                                         | `deepline tools describe run_javascript --json` |
+| Score accounts/contacts on multiple criteria                       | `deeplineagent` with object `jsonSchema` returning `{score, fit_band, rationale}` | (same)                                          |
+| Deterministic template merge (no AI)                               | plain TypeScript in the play step                                                 | no tool needed                                  |
 
-`deeplineagent` is the right tool for almost all generative outreach work. `run_javascript` is for the rare case where the user wants strict template merge (e.g. a field substitution with no rewriting) — and at that point, the question is whether the user wants AI-assisted personalization at all.
+`deeplineagent` is the right tool for almost all generative outreach work. If the user wants strict template merge with no rewriting, write the merge directly in TypeScript inside the play.
 
 Outreach generation is row work, so put it in a play. Probe `deeplineagent` or `run_javascript` only to confirm the live input contract or model menu; the copy that ships to the user should be produced by a `ctx.map` stage with stable keys. This makes regeneration cheap when only the prompt changes, preserves the research columns that fed each message, and keeps the final CSV tied to an inspectable run instead of a one-off script.
 
 ## Durable rules
 
-### Personalization requires a row-specific signal
+### Personalization requires a contact/account-specific signal
 
-Every email must reference something specific to the row: a product the company makes, a pain point, recent news, a use case, the persona's actual responsibility — not just `{{first_name}}` and `{{company_name}}` in a template. If the only row-specific data feeding the prompt is name + title + company, the output is mail-merge regardless of how the prompt is phrased. The fix is upstream: enrich the row with a research column first, then write copy that conditions on it.
+Every email must reference a specific signal: product, pain point, recent news, use case, or persona responsibility. If the prompt only has name + title + company, the output is mail merge. Fix upstream by adding evidence first.
 
 ### Research happens in enriching-and-researching, not here
 
-A common failure mode is writing the research and the copy in the same `deeplineagent` prompt: "Look up Acme and write me a personalized email." That conflates two responsibilities and produces shallow research because the prompt is optimized for copy quality, not factual depth. Research belongs in a prior `ctx.map` stage that produces a `company_research` or `pain_points` column. The copy stage then _reads_ that column.
+A common failure mode is writing the research and the copy in the same `deeplineagent` prompt: "Look up Acme and write me a personalized email." That conflates two responsibilities, makes the output non-cacheable, and produces shallow research because the prompt is optimized for copy quality, not factual depth. Research belongs in a prior durable boundary that produces `company_research`, `pain_points`, or similar context. For row work that boundary is usually a `ctx.map` stage; for scalar work it may be `ctx.step` or `ctx.tools.execute`. The copy stage then _reads_ that saved context.
 
 ### Structured output for anything downstream will read
 
 When the output is one or more emails, sequences, or qualification objects, use `jsonSchema`. _Failure mode:_ free-text output for sequences makes the user (or the next stage) parse N emails out of a blob, and any malformed run silently breaks the parse. A schema enforces shape at write time and gives downstream stages a clean contract.
 
-```typescript
+```typescript fragment
 // 4-step sequence schema
 jsonSchema: {
   type: 'object',
@@ -71,25 +71,25 @@ jsonSchema: {
 
 ### Qualification is evidence-based and uses high recall
 
-When classifying rows against an ICP (Tier 1 / 2 / 3, fit / no-fit, score 0-100), build the prompt around _only_ the provided context — do not let the model hallucinate evidence. Mark `Unknown` when evidence is missing, not a low score. _Failure mode:_ a model asked "is this lead a fit?" without explicit instruction to ground on context will fabricate plausible-sounding reasons, and the resulting tiers correlate poorly with reality.
+When classifying accounts/contacts against an ICP, ground only on provided evidence. Mark `Unknown` when evidence is missing, not a low score.
 
 Default to high recall: when evidence is borderline, lean toward the higher tier. Outreach is cheaper than missing a real prospect; the noise is filtered downstream by reply rate.
 
 ### Carry lineage end-to-end
 
-Preserve provider provenance, research source columns, and identity columns alongside the generated copy. _Failure mode:_ a CSV of generated emails with no link back to which research informed each one is impossible to QA, debug, or A/B test. Every row should carry the inputs that produced its copy, not just the copy itself.
+Preserve provider provenance, research sources, and identity fields next to generated copy. Copy without lineage is impossible to QA, debug, or A/B test.
 
 ### Structured outputs are wrapped — flatten before re-prompting
 
-`deeplineagent` columns with `jsonSchema` are stored wrapped in an AI result envelope. Direct interpolation `{{column}}` into another `deeplineagent` prompt usually works, but field-level access `{{column.subject}}` does not. If a downstream step needs `column.subject`, add a `run_javascript` flatten pass first that emits a scalar column. (Same rule as in `jobs/enriching-and-researching.md`.)
+`deeplineagent` columns with `jsonSchema` are stored wrapped in an AI result envelope. Direct interpolation `{{column}}` into another `deeplineagent` prompt usually works, but field-level access `{{column.subject}}` does not. If a downstream step needs `column.subject`, flatten it in the next TypeScript step and emit the scalar there. (Same rule as in `jobs/enriching-and-researching.md`.)
 
 ## Patterns
 
-### One-shot per-row personalization
+### One-shot personalization
 
-The simplest pattern: one prompt produces one output object per row. Use when the deliverable is a single email or a single first-line snippet.
+The simplest pattern: one prompt produces one output object per contact/account. Use for a single email or first-line snippet.
 
-```typescript
+```typescript fragment
 const personalized = await ctx.tools.execute({
   id: 'personalized_email',
   tool: 'deeplineagent',
@@ -120,7 +120,7 @@ The prompt explicitly references `row.pain_points` as the personalization signal
 
 When the user wants a 3-5 email sequence, generate it as one structured output rather than calling the model N times. The model can plan the arc better when it sees all steps at once, and the schema enforces a fixed number of steps.
 
-```typescript
+```typescript fragment
 const sequence = await ctx.tools.execute({
   id: 'outbound_sequence',
   tool: 'deeplineagent',
@@ -142,7 +142,7 @@ Each step under 90 words.`,
 
 Qualification is just a structured output with an enum tier and a free-text rationale.
 
-```typescript
+```typescript fragment
 const tier = await ctx.tools.execute({
   id: 'lead_tier',
   tool: 'deeplineagent',
@@ -176,7 +176,7 @@ If the context does not contain enough evidence to decide, return tier "unknown"
 
 When the user wants a 0-100 score against multiple criteria, return both the composite score and the per-criterion breakdown.
 
-```typescript
+```typescript fragment
 const score = await ctx.tools.execute({
   id: 'lead_score',
   tool: 'deeplineagent',
@@ -218,9 +218,9 @@ Return the composite score, fit_band (high|medium|low|unknown), and a per-criter
 
 ### Novelty check
 
-After generating copy across a list, sample a few rows and check: does each email reference something specific to that row, or do the emails read like a template with name swaps? If the latter, the upstream research column is too thin — go back to `jobs/enriching-and-researching.md` and produce richer research before regenerating.
+After generating copy, sample a few contacts/accounts. If emails read like name-swapped templates, the upstream evidence is too thin; enrich again before regenerating.
 
-A simple programmatic check: count the rows where the email body is detectable across two or more rows with substring overlap > 80%. High overlap rate means the model is template-completing, which means the research signal is not strong enough to differentiate rows.
+A simple programmatic check: flag email bodies with >80% overlap across multiple contacts. High overlap means the evidence is not differentiated enough.
 
 ### Spot-check before bulk send
 
@@ -230,4 +230,4 @@ Generated copy should be sampled and read by a human before going to a sender. M
 
 - Copy and qualification columns are ready → hand off to the user's outreach tool. Deepline does not send mail; the deliverable is a CSV the user uploads to Apollo, Instantly, Smartlead, or wherever they run sequences.
 - The output reads as mail-merge → back to `jobs/enriching-and-researching.md` to enrich the row with a stronger research signal, then regenerate.
-- A custom play is failing — usually because the research column is malformed or the schema is rejecting wrapped output → `references/debugging.md`.
+- A play is failing - usually because the research column is malformed or the schema is rejecting wrapped output -> `references/debugging.md`.
