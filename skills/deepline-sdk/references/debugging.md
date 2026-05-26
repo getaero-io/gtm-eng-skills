@@ -135,7 +135,7 @@ Cause: usually one of three:
 2. Wrong provider for the data class (e.g. work-email provider for personal-email request — see `jobs/enriching-and-researching.md`).
 3. Sales Navigator URL fed into an email waterfall — every provider rejects `/sales/lead/` URLs.
 
-Fix: pilot one example and inspect the raw response. If the provider returned nothing, the filter is wrong; if it returned data and the play field is null, the extraction is wrong.
+Fix: pilot with `--rows 0:1` and inspect the raw response. If the provider returned nothing for row 1, the filter is wrong; if it returned data and the play column is null, the extraction is wrong.
 
 ## Failure: `ctx.csv` or `ctx.map` errors
 

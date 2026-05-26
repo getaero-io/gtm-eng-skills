@@ -19,7 +19,7 @@ Use this when authoring, copying, debugging, or customizing Deepline `*.play.ts`
 Search before writing. Prebuilt plays encode provider order, validation rules, retry behavior, and output conventions that are easy to lose in a custom rewrite.
 
 ```bash
-deepline plays search email
+deepline plays search email --json
 deepline plays describe <play-name-from-search> --json
 deepline plays run <play-name-from-search> --input '{"csv":"leads.csv"}' --watch
 ```
@@ -44,7 +44,7 @@ Copy a prebuilt when the workflow is almost right but needs a real semantic chan
 Use this sequence when the user says to customize, compose, extend, tweak, add a stage, change validation, or use a prebuilt as a starting point:
 
 ```bash
-deepline plays search <task>
+deepline plays search <task> --json
 deepline plays describe <play-name-from-search> --json
 deepline plays get <play-name-from-search> --source --out ./my-play.play.ts
 deepline plays check ./my-play.play.ts
@@ -130,31 +130,13 @@ To intentionally recompute completed durable work, make the identity change expl
 
 Every `ctx.map` key in one play must be unique. Reusing a key is ambiguous for persistence and fails registration.
 
-Use the current map shape:
-
-```typescript fragment
-const rows = await ctx
-  .map('company_research', companies)
-  .step('summary', async (company, rowCtx) => {
-    const result = await rowCtx.tools.execute({
-      id: 'company_summary',
-      tool: 'deeplineagent',
-      input: { prompt: `Summarize ${company.name}` },
-      description: 'Summarize company.',
-    });
-    return result.toolResponse.raw;
-  })
-  .run({ key: 'domain', description: 'Research companies.' });
-```
-
-Do not pass `{ key }` as the third argument to `ctx.map`; that older form was removed.
-
 ## Design inputs for CLI use
 
-Make common inputs first-class and typed. A CSV-backed play should usually expose `csv` and optional `columns`:
+Make common inputs first-class and typed. A CSV-backed play should usually expose `file` and optional `columns`:
 
-```typescript fragment
-import type { ColumnMap, CsvInput } from 'deepline';
+```typescript
+import { definePlay } from 'deepline';
+import type { ColumnMap } from 'deepline';
 
 type PersonRow = {
   first_name: string;
@@ -164,40 +146,38 @@ type PersonRow = {
   linkedin_url?: string;
 };
 
-type Input = {
-  csv: CsvInput<PersonRow>;
-  columns?: ColumnMap<PersonRow>;
-};
-
-const rows = await ctx.csv<PersonRow>(input.csv, {
-  columns: {
-    first_name: 'FIRST_NAME',
-    last_name: 'LAST_NAME',
-    domain: 'COMPANY_DOMAIN',
-    company_name: 'COMPANY_NAME',
-    linkedin_url: 'LINKEDIN_URL',
-    ...input.columns,
-  },
-  required: ['first_name', 'last_name', 'domain'],
-});
-
-const enriched = await ctx
-  .map('email_waterfall', rows)
-  .step('email', async (row, rowCtx) => {
-    const result = await rowCtx.tools.execute({
-      id: 'work_email_lookup',
-      tool: '<email-finder-tool-id>',
-      input: {
-        first_name: row.first_name,
-        last_name: row.last_name,
-        domain: row.domain,
+export default definePlay(
+  'name-and-domain-email',
+  async (
+    ctx,
+    input: { csv: string; columns?: ColumnMap<PersonRow> },
+  ) => {
+    const rows = await ctx.csv<PersonRow>(input.csv, {
+      columns: {
+        first_name: 'FIRST_NAME',
+        last_name: 'LAST_NAME',
+        domain: 'COMPANY_DOMAIN',
+        company_name: 'COMPANY_NAME',
+        linkedin_url: 'LINKEDIN_URL',
+        ...input.columns,
       },
-      description: 'Resolve work email from name and domain.',
+      required: ['first_name', 'last_name', 'domain'],
     });
 
-    return result.extractedValues.email?.get() ?? null;
-  })
-  .run({ key: 'domain', description: 'Resolve work emails.' });
+    const enriched = await ctx
+      .map('email_waterfall', rows)
+      .step('email', async (row, rowCtx) => {
+        return rowCtx.waterfall('person_to_email', {
+          first_name: row.first_name,
+          last_name: row.last_name,
+          domain: row.domain,
+        });
+      })
+      .run({ description: 'Resolve work emails from name and domain.' });
+
+    return { rows: enriched };
+  },
+);
 ```
 
 Dotted CLI flags map onto nested input fields:
@@ -236,8 +216,6 @@ Use `ctx.waterfall` when provider order is the customization point. Use `ctx.too
 A play is a default export from a `*.play.ts` file:
 
 ```typescript
-import { definePlay } from 'deepline';
-
 export default definePlay(
   'lead-email-lookup',
   async (ctx, input: { file: string }) => {
@@ -252,7 +230,7 @@ The name is the slug used by `deepline plays run <name>`, `deepline plays set-li
 
 Calls one provider tool with a stable idempotency key and a required description:
 
-```typescript fragment
+```typescript
 const company = await ctx.tools.execute({
   id: 'company_search',
   tool: '<tool-id>',
@@ -267,16 +245,14 @@ const upstreamStatus = company.toolResponse.meta?.status;
 const normalizedDomain = company.extractedValues.domain?.get();
 ```
 
-Find tool IDs with `deepline tools search <category>` and confirm payloads with `deepline tools describe <id> --json`.
+Find tool IDs with `deepline tools search <category> --json` and confirm payloads with `deepline tools describe <id> --json`.
 The serialized shape matches `deepline tools execute --json`: `toolResponse.raw` is the raw tool response body, `toolResponse.meta` is tool/provider metadata, and `extractedValues` / `extractedLists` contain Deepline-normalized semantic values with source paths. Use `toolResponse.raw` in play code that reads from a prior step or a persisted row; non-serialized convenience aliases are not a debugging contract.
-
-For list-shaped tools, prefer `Object.values(result.extractedLists)[0]?.get() ?? []` over hand-parsing nested provider JSON when a semantic list exists.
 
 ### `ctx.runPlay(key, playRef, input, options)`
 
 Invokes another registered play or file-backed play as a child workflow:
 
-```typescript fragment
+```typescript
 const result = await ctx.runPlay(
   'email_waterfall',
   '<play-name>',
@@ -297,7 +273,7 @@ The first argument is a stable child-call key. Use this for real composition bou
 
 Fans out across rows and records each step as a durable column:
 
-```typescript fragment
+```typescript
 const enriched = await ctx
   .map('companies', rows)
   .step('company', (row, rowCtx) =>
@@ -315,7 +291,7 @@ const enriched = await ctx
 
 For typed tool inputs with optional fields, keep the required keys visible in the object type. Do not widen the input to `Record<string, string>`; the play checker cannot prove that required schema keys are present after that widening.
 
-```typescript fragment
+```typescript
 const input: {
   first_name: string;
   last_name: string;
@@ -331,38 +307,11 @@ if (row.company_name) input.company_name = row.company_name;
 if (row.linkedin_url) input.linkedin_url = row.linkedin_url;
 ```
 
-Each `step(name, resolver)` appends exactly one durable column named `name`. If the resolver returns an object, that object is the value of `row.<name>` in later stages; its properties are not flattened into the row.
-
-```typescript fragment
-const withLeaders = await ctx
-  .map('leader_lookup', companies)
-  .step('leader', async (company, rowCtx) => {
-    const person = await rowCtx.tools.execute({
-      id: 'clinical_leader_search',
-      tool: '<people-search-tool-id>',
-      input: { domain: company.domain, role: 'clinical operations' },
-      description: 'Find the best clinical operations leader.',
-    });
-    return {
-      name: person.extractedValues.person_name?.get() ?? null,
-      email: person.extractedValues.email?.get() ?? null,
-    };
-  })
-  .run({ key: 'domain', description: 'Find one leader per company.' });
-
-const withEmails = await ctx
-  .map('email_cleanup', withLeaders)
-  .step('work_email', (row) => row.leader?.email ?? null)
-  .run({ key: 'domain', description: 'Expose work email as its own column.' });
-```
-
-In the second stage, use `row.leader?.email`. Do not write `row.email` or `row.leader_email` unless a previous step with that exact name created it.
-
 ### `ctx.csv(path, options?)`
 
 Loads a staged CSV as a `PlayDataset`:
 
-```typescript fragment
+```typescript
 const rows = await ctx.csv<PersonRow>(input.csv, {
   columns: input.columns,
   required: ['first_name', 'last_name', 'domain'],
@@ -383,7 +332,7 @@ Durable HTTP. Same purpose as `fetch`, but cached by workflow history so replay 
 
 Memoizes a one-off operation that has no dedicated `ctx.*` method:
 
-```typescript fragment
+```typescript
 const requestId = await ctx.step('request-id', () => crypto.randomUUID());
 ```
 
@@ -401,7 +350,7 @@ Read-only access to the raw play input. Prefer a typed `input` parameter when po
 
 External client for app code that calls Deepline from outside a play:
 
-```typescript fragment
+```typescript
 import { Deepline } from 'deepline';
 
 const client = await Deepline.connect();
@@ -418,7 +367,6 @@ Do not use `Deepline.connect()` inside a play body. The runtime `ctx` is the dur
 - **Reading CSVs with `fs`.** Staged CSVs are runtime inputs. Use `ctx.csv(input.csv)` or the file field your play declares.
 - **Mismatching CSV field names.** `--csv leads.csv` sets `input.csv`; reserved run flags such as `--file` keep their command meaning, so use `--input '{"file":"leads.csv"}'` for `input.file`. Make the invocation and `ctx.csv(input.<field>)` agree.
 - **Iterating a dataset manually.** `PlayDataset` is a durable dataset handle. Use `ctx.map`.
-- **Assuming step objects flatten.** `step('leader', () => ({ email }))` creates `row.leader.email`, not `row.email`. Add another named step when you want a top-level output column.
 - **Reusing a map key.** Each `ctx.map` stage needs a unique durable key.
 - **Using raw `fetch` or `Date.now()` in the play body.** Route effects through `ctx.fetch`, `ctx.step`, or another `ctx.*` primitive.
 - **Calling a play via `ctx.tools.execute`.** Tools and plays live in separate namespaces. Use `ctx.runPlay` for plays.

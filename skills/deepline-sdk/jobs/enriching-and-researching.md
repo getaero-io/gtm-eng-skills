@@ -1,52 +1,62 @@
 # Enriching and researching
 
-Use this when you already have accounts, contacts, companies, or signals and need to add data: email, phone, LinkedIn, reverse enrichment, research, scoring, ICP qualification.
+Row-level work: take rows that already have some identifiers and fill in additional columns. Covers email recovery, phone lookup, LinkedIn URL resolution, reverse-email hydration, persona lookup, custom AI research, classification, scoring, and ICP qualification.
 
-Still need to source the accounts or contacts? Use `jobs/finding-companies-and-contacts.md`. Need copy? Use `jobs/writing-outreach.md` after evidence exists.
+This doc does **not** cover building a list from scratch. If you do not yet have rows or known entities, read `jobs/finding-companies-and-contacts.md` first. It does not cover writing outreach copy either — that lives in `jobs/writing-outreach.md` and assumes the research columns it needs already exist.
 
 ## When you are in this doc
 
-You have known entities plus a JTBD: "enrich this CSV", "find phones", "resolve LinkedIns", "score these leads", "research each company", "detect job changes".
+You have an input that is row-shaped — a CSV, a JSON array of objects, or output from a previous discovery step — and a target column or columns to produce. The user phrasing is something like:
 
-For CSV tasks, inspect runtime-visible headers first:
+- "enrich this CSV with work emails"
+- "find phone numbers for these contacts"
+- "resolve the LinkedIn URL for each row"
+- "score these leads as Tier 1 / 2 / 3 against this ICP"
+- "research what each company does and who they sell to"
+- "detect who in this list changed jobs recently"
+
+If the prompt is closer to "find me 25 companies that match X" or "find contacts at these accounts", you are in `jobs/finding-companies-and-contacts.md`.
+
+Before choosing a play for a CSV task, inspect the CSV with the CLI, not only by reading the file:
 
 ```bash
 deepline csv show --csv <input.csv> --summary
 ```
 
-Use that shape to choose the play and aliases.
+Use the summary to confirm row count, exact headers, and whether columns already match the target play's CSV contract. Do this before `plays search`/`plays describe` so the play choice and any `--columns.*` mapping are based on the actual input shape visible to the runtime.
 
 ## Choose your approach
 
-Route by identifiers and target column. Confirm names with `plays search` + `plays describe`.
+Route by what identifiers each row has and what column you need. The play names below are starting hints — confirm with `deepline plays search` + `deepline plays describe` before invoking, because canonical play names get renamed when the underlying provider mix evolves.
 
 | You have | You need | Pattern category | Discovery |
 |---|---|---|---|
-| `first_name`, `last_name`, `domain` | work email | name + domain → work email waterfall | `deepline plays search email` |
+| `first_name`, `last_name`, `domain` | work email | name + domain → work email waterfall | `deepline plays search email --json` |
 | `first_name`, `last_name`, `company_name` (no domain) or Sales Nav `/sales/lead/` URL | work email | resolve domain first, then name + domain waterfall | discovery, then domain → email |
-| Standard `/in/` LinkedIn URL + name | work email | linkedin profile → work email waterfall | `deepline plays search email` |
-| `email` | hydrated person + company context | reverse contact enrichment | `deepline plays search contact` |
-| `first_name`, `last_name`, `domain` (+ optional `email`/`linkedin_url`) | phone number | identity → phone waterfall | `deepline plays search phone` |
-| `first_name`, `last_name`, `company_name` (+ optional `linkedin_url`) | job-change status | job-change detection + verification | `deepline plays search "job change"` |
-| `company_name`, `domain`, role intent | candidate contacts at a company | role-based contact waterfall | `deepline plays search contact` |
-| `name`, optional company context | LinkedIn profile URL | name → LinkedIn URL waterfall | `deepline plays search linkedin` |
-| Existing email | validation status (valid / catch_all / invalid / unknown) | email verifier | `deepline tools search "email verifier"` |
-| Account/contact + ICP description | tier / fit classification | structured AI field with `jsonSchema` | (see "Custom AI research") |
-| Account/contact + research need not covered by a provider | custom research signal | `deeplineagent` with optional structured output | (see "Custom AI research") |
+| Standard `/in/` LinkedIn URL + name | work email | linkedin profile → work email waterfall | `deepline plays search email --json` |
+| `email` | hydrated person + company context | reverse contact enrichment | `deepline plays search contact --json` |
+| `first_name`, `last_name`, `domain` (+ optional `email`/`linkedin_url`) | phone number | identity → phone waterfall | `deepline plays search phone --json` |
+| `first_name`, `last_name`, `company_name` (+ optional `linkedin_url`) | job-change status | job-change detection + verification | `deepline plays search "job change" --json` |
+| `company_name`, `domain`, role intent | candidate contacts at a company | role-based contact waterfall | `deepline plays search contact --json` |
+| `name`, optional company context | LinkedIn profile URL | name → LinkedIn URL waterfall | `deepline plays search linkedin --json` |
+| Existing email | validation status (valid / catch_all / invalid / unknown) | email verifier | `deepline tools search "email verifier" --json` |
+| Row + ICP description | tier / fit classification | structured AI column with `jsonSchema` | (see "Custom AI research") |
+| Row + research need not covered by a provider | custom research column | `deeplineagent` with optional structured output | (see "Custom AI research") |
 
 Use direct tools only as probes. Plays encode hard-won provider sequencing, validation rules, row progress, and retry behavior, so row-level enrichment should run through a prebuilt play or a local scratchpad play. When no prebuilt covers the pattern, when provider order is custom, or when the workflow adds filtering/scoring/validation stages, write a small `*.play.ts` and add one stage at a time.
-Once a search or lookup feeds later columns, make it the next play boundary. Keep `definePlay(...)` names short; persisted table identifiers cap at 63 chars.
 
-Pilot with a small CSV:
+For custom play files, keep `definePlay(...)` names short. The persisted sheet table is named from the normalized play name plus the `ctx.map` key, and Postgres caps that combined identifier at 63 characters. Use names like `email-wf-eval`, `phone-wf`, or `company-fit`, not long task descriptions.
+
+For CSV pilots, create a separate one-row pilot CSV and run the same play against that smaller file:
 
 ```bash
 head -2 leads.csv > pilot.csv
 deepline plays run ./my-play.play.ts --csv pilot.csv --watch
 ```
 
-Use 2 examples only when they exercise different branches. Passing a range flag does not filter CSVs unless the play implements that input explicitly.
+Use 2 rows only when the second row exercises a different branch you need to verify and there is enough time budget. Passing `--input '{"rows":"0:1"}'` does not filter a CSV unless the play code explicitly reads `input.rows` and slices the dataset.
 
-When CSV headers differ, pass aliases instead of editing the play:
+When source CSV headers do not match a play's canonical input names, pass column aliases instead of editing the play. Inspect the current contract with `deepline plays describe <play> --json`, then map the user's headers at invocation time:
 
 ```bash
 deepline plays run <play-name-from-search> \
@@ -54,35 +64,44 @@ deepline plays run <play-name-from-search> \
   --watch
 ```
 
-The play gets canonical fields; output keeps the user's original headers.
+The play gets canonical fields in code, while persisted output keeps the user's original CSV headers next to the derived columns. That preserves lineage and avoids creating duplicate raw fields.
 
-## Row Rules
+## Durable rules
+
+These rules survive provider renames and are worth carrying in your head every time you do row-level work. The cross-cutting rules in `SKILL.md` (pilot, never-fabricate, evidence preservation, replay-safety) apply here too — they are not restated.
 
 ### Sales Navigator URLs do not work in email waterfalls
 
-`linkedin.com/sales/lead/...` URLs are session-scoped and fail email providers. Detect them, resolve company domain, then use name + domain.
+LinkedIn URLs in the form `linkedin.com/sales/lead/...` are rejected by every provider that accepts a LinkedIn URL — they are scoped to a Sales Navigator session and have no public-profile equivalent. Feeding them into an email waterfall returns zero matches across every provider, even though the same person's `/in/` URL would resolve. Detect the form, resolve the company domain first, then use a name + domain pattern.
 
-```typescript fragment
+```typescript
 const isSalesNavUrl = (url: string) => /linkedin\.com\/sales\/lead\//.test(url);
 ```
 
 ### Personal and work email are a hard provider split
 
-Personal email means Gmail/Hotmail/Yahoo/Outlook, not `@company.com`. Work-email providers will return corporate addresses; use `deepline plays search "personal email"`.
+When the user asks for "personal emails" they mean Gmail, Hotmail, Yahoo, Outlook — the address that follows the person across jobs. Work-email providers (Apollo, Hunter, LeadMagic) return `@company.com` addresses regardless, because that is the only data class they index. Routing a personal-email request to a work-email provider returns work emails marked as personal, lands the campaign in someone's corporate inbox, and burns deliverability before the user catches it. Personal-email work uses a different provider class entirely. Find the canonical play with `deepline plays search "personal email" --json`.
 
 ### Catch-all is operationally usable, not deliverable
 
-Validator statuses: `valid` sends; `catch_all` is usable but unproven; `invalid` drops; `unknown` is a miss. Flag `catch_all` when the email domain differs from company domain.
+Email validators return one of `valid`, `catch_all`, `invalid`, `unknown`:
+
+- `valid` — deliverable, send.
+- `catch_all` — the domain accepts mail at any address, so the validator cannot prove the inbox exists. Operationally usable for outreach but riskier; do not count it as a confirmed pattern hit inside a waterfall.
+- `invalid` — drop.
+- `unknown` — unresolved; treat like a miss.
+
+A `catch_all` email whose domain does not match the person's company domain is a strong signal of a wrong-person match (often a previous employer); flag rather than send.
 
 ### Validation belongs after recovery
 
-Recover email first; validate after. Validating inside each provider attempt burns credits and mixes coverage with deliverability. Add a later verifier boundary so validation does not rerun recovery.
+The two responsibilities — recovering an address and confirming it is deliverable — read better as separate stages. Validating inside a waterfall step inflates cost (one validator call per provider attempt, including the misses) and conflates the recovery question (which provider returns the most coverage) with the validation question (which subset of recovered addresses is deliverable). The two-stage `ctx.map` pattern in `SKILL.md` is the default; a single combined stage is occasionally right when the validator's response steers which provider to try next, but the cost of finding out is high enough that it should be a deliberate choice.
 
-When the user explicitly asks to "validate after," run the email waterfall first, then run a separate verifier stage against the recovered `email` column. Do not count the waterfall's internal pattern checks as the requested after-step validation. Find the current verifier with `deepline tools search "email verifier"` and confirm the payload with `deepline tools describe <tool-id> --json`; for CSV work, add a second `ctx.map` stage in the scratchpad play or use the canonical validation play surface if one is available in `deepline plays search "email validation"`.
+When the user explicitly asks to "validate after," run the email waterfall first, then run a separate verifier stage against the recovered `email` column. Do not count the waterfall's internal pattern checks as the requested after-step validation. Find the current verifier with `deepline tools search "email verifier" --json` and confirm the payload with `deepline tools describe <tool-id> --json`; for CSV work, add a second `ctx.map` stage in the scratchpad play or use the canonical validation play surface if one is available in `deepline plays search "email validation" --json`.
 
 Inside a play, tool results serialize with the same shape as `deepline tools execute --json`: Deepline execution metadata is top-level, raw tool response data is `toolResponse.raw`, tool response metadata is `toolResponse.meta`, and Deepline's semantic extractions live in `extractedValues` / `extractedLists`.
 
-```typescript fragment
+```typescript
 const verification = await ctx.tools.execute({
   id: 'verify_email',
   tool: '<verifier-tool-id>',
@@ -99,37 +118,41 @@ const email_status =
 
 ### Use provider data directly when it is already there
 
-Use provider fields directly when present. Do not ask `deeplineagent` to re-derive industry, confidence, employment history, or validation fields the provider already returned.
+Provider responses for company and contact lookups often include firmographics, employment history, role context, validation status, and confidence scores in the same payload. Use those fields directly. Re-running a `deeplineagent` research column to get a company's industry when the discovery provider already returned it wastes credits and introduces synthesis error where deterministic data was available. AI is for the synthesis the providers cannot do, not for re-deriving fields they handed back.
 
-### TypeScript for transforms, `deeplineagent` for synthesis
+### `run_javascript` for transforms, `deeplineagent` for synthesis
 
-- TypeScript in the play: deterministic transforms, parsing, coalescing, formatting.
-- `deeplineagent`: synthesis, research, scoring, structured generation. Use `jsonSchema` when downstream steps read the output.
+The two AI-adjacent escape hatches are not interchangeable:
+
+- **`run_javascript`** is for deterministic logic: normalization, coalescing, templating, conditional dispatch, parsing, formatting. Inside, `row` is the current row. Confirm the live tool with `deepline tools describe run_javascript --json`.
+- **`deeplineagent`** is for synthesis: research, classification, scoring, structured generation, multi-step reasoning. Use `jsonSchema` for any structured output a downstream step will read. Confirm the live model menu with `deepline tools describe deeplineagent --json`.
+
+Reach for the deterministic option first. Using AI for a transform that JS can do is slow, costly, and non-reproducible across runs.
 
 ### Validate the person before trusting a recovered LinkedIn URL
 
-Searched LinkedIn URLs need name validation. Null out profile URLs when last name does not match or first name has no exact/prefix/nickname match. Use `linkedin-url-lookup` for large runs.
+Searched-recovered LinkedIn URLs (from name + company queries) carry a ~26% false-positive rate without a name-validation gate, measured on a 253-person dataset. Null out URLs where the profile name does not match: last name should match exactly or as a substring; first name should match exactly, by 3+ char prefix, or by a known nickname. The sibling skill `linkedin-url-lookup` has the full treatment when row counts get large.
 
 ### Two-stage maps need distinct keys
 
-Each `ctx.map` in one play needs a unique key after normalization. Reusing a key fails registration.
+Each `ctx.map` in one play needs a unique key after normalization. The `SKILL.md` example uses `LINKEDIN_URL` for the enrich stage and `LINKEDIN_URL_EMAIL_STATUS` for the validate stage. Reusing the same key fails the runtime's idempotency check at registration time — the play will not run.
 
 ## Patterns
 
 ### Name + domain → work email
 
-Needs `first_name`, `last_name`, canonical `domain`. `company_name` is usually not enough.
+You have first name, last name, and the company's canonical domain (not a LinkedIn URL). Required payload: `first_name`, `last_name`, `domain` — `company_name` is generally not part of the contract.
 
-Use the prebuilt when it fits:
+For a CSV that already has first name, last name, and domain columns, run the prebuilt directly and export rows:
 
 ```bash
-deepline plays search email
+deepline plays search email --json
 deepline plays describe <play-name-from-search> --json
 deepline plays run <play-name-from-search> --input '{"csv":"leads.csv"}' --watch
 deepline runs export <run-id> --out leads_with_emails.csv
 ```
 
-Map aliases at invocation time:
+If the CSV headers are variants such as `First Name`, `Last Name`, and `Website`, keep the prebuilt and provide aliases:
 
 ```bash
 deepline plays run <play-name-from-search> \
@@ -138,7 +161,7 @@ deepline plays run <play-name-from-search> \
 deepline runs export <run-id> --out leads_with_emails.csv
 ```
 
-```typescript fragment
+```typescript
 const result = await ctx.runPlay('email_waterfall', '<play-name-from-search>', {
   first_name: row.first_name,
   last_name: row.last_name,
@@ -151,17 +174,31 @@ const result = await ctx.runPlay('email_waterfall', '<play-name-from-search>', {
 When you only have `company_name` (no domain), or a Sales Navigator `/sales/lead/` URL, resolve the domain first via search, then run the play. The discovery → resolution → email-waterfall sequence is three steps; the middle step extracts the domain from the search response.
 
 If validation was requested, validate after the waterfall has produced an `email` column. Copy the prebuilt with `deepline plays get <play-name-from-search> --source --out ./my-play.play.ts`, then make the smallest local edit that adds a second validation `ctx.map` stage; do not parse JSON source fields or rewrite the waterfall from scratch. Pilot that custom play on exactly one row before the full CSV. The validation result should be a new column such as `email_status`; keep the recovered address even when status is `catch_all` or `unknown` so the user can decide whether to send. Export the final enriched + validated CSV to the exact output path the user requested; intermediate pilot, waterfall, or validation files can live under a working directory, but the deliverable path should not move.
-Need custom provider order? Mirror generated prebuilts: `steps()`, `when(...)`, semantic accessors such as `result.extractedValues.email?.get()`, then `.return(...)`.
 
 ### LinkedIn `/in/` URL → work email
 
-Use a standard `/in/` URL plus name. Domain is optional but useful. Do not use this path for `/sales/lead/` URLs.
+You have a standard LinkedIn profile URL plus name; domain is optional but unlocks extra deterministic finder steps.
+
+For a one-row direct lookup, run the prebuilt play. For a custom CSV play, prefer an inline provider waterfall with `ctx.tools.execute(...)`/`ctx.waterfall(...)` rather than wrapping this prebuilt via `ctx.runPlay(...)`; nested prebuilt calls in Cloudflare-backed CSV plays require trusted child manifests and can fail preflight.
+
+```typescript
+const result = await ctx.runPlay('linkedin_email_waterfall', 'prebuilt/person-linkedin-to-email', {
+  linkedin_url: row.linkedin_url,
+  first_name: row.first_name,
+  last_name: row.last_name,
+  domain: row.domain,
+}, {
+  description: 'Resolve work email from LinkedIn profile.',
+});
+```
+
+Do not use this play for `/sales/lead/` URLs — see rule #2.
 
 ### Email → person and company context
 
 You have an email and want to hydrate person and company fields.
 
-```typescript fragment
+```typescript
 const result = await ctx.tools.execute({
   id: 'enrich_contact',
   tool: 'deepline_native_enrich_contact',
@@ -172,20 +209,22 @@ const result = await ctx.tools.execute({
 });
 ```
 
-Confirm the live tool ID with `deepline tools search "reverse contact"`.
+Confirm the live tool ID with `deepline tools search "reverse contact" --json`.
 
 ### Identity → phone
 
-Use name + domain; add `email` or `linkedin_url` when available. Prefer the batch prebuilt:
+You have name + domain and want a phone number; `email` and `linkedin_url` are optional hints that unlock additional provider paths inside the play.
+
+For a CSV, use the batch prebuilt directly:
 
 ```bash
-deepline plays search phone
+deepline plays search phone --json
 deepline plays describe <phone-batch-play-from-search> --json
 deepline plays run <phone-batch-play-from-search> --input '{"csv":"contacts.csv"}' --watch
 deepline runs export <run-id> --out contacts_with_phones.csv
 ```
 
-Map header aliases instead of copying the play:
+Default CSV headers are `FIRST_NAME`, `LAST_NAME`, `COMPANY_DOMAIN`, `CONTACT_EMAIL`, and `LINKEDIN_URL`. If the user's CSV uses different headers, map them at invocation time instead of copying the play:
 
 ```bash
 deepline plays run <phone-batch-play-from-search> \
@@ -194,14 +233,28 @@ deepline plays run <phone-batch-play-from-search> \
 deepline runs export <run-id> --out contacts_with_phones.csv
 ```
 
-After recovery, validate line type/activity with a phone validator (`deepline tools search phone`).
+For a one-row direct lookup, use the scalar prebuilt:
+
+```typescript
+const result = await ctx.runPlay('phone_waterfall', 'prebuilt/person-to-phone', {
+  first_name: row.first_name,
+  last_name: row.last_name,
+  domain: row.domain,
+  email: row.email ?? undefined,
+  linkedin_url: row.linkedin_url ?? undefined,
+}, {
+  description: 'Resolve phone from contact identity.',
+});
+```
+
+After the phone is recovered, validate line type and activity with a phone validator (find one with `deepline tools search phone --json`).
 
 ### Contact → job-change status
 
-Use the job-change prebuilt; it appends change columns while preserving source headers.
+You have contacts with their current company and want to detect whether they changed jobs. Use the job-change prebuilt before writing a custom play; it combines a job-change detector with profile verification and appends outcome columns while preserving the original CSV headers.
 
 ```bash
-deepline plays search "job change"
+deepline plays search "job change" --json
 deepline plays describe <job-change-batch-play-from-search> --json
 deepline plays run <job-change-batch-play-from-search> --input '{"csv":"champion_contacts.csv"}' --watch
 deepline runs export <run-id> --out job_changes.csv
@@ -215,17 +268,32 @@ The batch output preserves source columns and appends `job_change`, `job_changed
 
 ### Company + role → candidate contacts
 
-Use company domain plus role/seniority. Prefer exact title tokens (`CEO`, `CTO`, `Head of Security`) for specific intent; broad functions return more noise.
+You have a company domain and want contacts at a target role or seniority.
+
+```typescript
+const result = await ctx.runPlay('company_contacts_waterfall', 'prebuilt/company-to-contact-by-role-waterfall', {
+  company_name: row.company_name,
+  domain: row.domain,
+  roles: row.roles,           // exact title tokens or broad function
+  seniority: row.seniority,   // portable values: C-Level, VP, Head, Director
+}, {
+  description: 'Find contacts at a target role or seniority.',
+});
+```
+
+Prefer exact title tokens (`CEO`, `CTO`, `Head of Security`, `VP Marketing`) when the user intent is specific. Use broad functional roles (`marketing`, `engineering`, `security`) only when the intent is genuinely broad — they return more candidates but noisier ones. Use `seniority` as a level hint with portable values; do not pass provider-specific enums like `c_level` unless you are bypassing the play and calling a provider directly.
 
 ### Custom AI research per row
 
-For synthesis columns, use `deeplineagent` with `jsonSchema` when downstream steps read the output. Confirm live fields:
+When the column is synthesis (pain points, tier classification, summary, custom signal), use `deeplineagent`. Add `jsonSchema` for any output a downstream step will interpolate.
+
+Confirm the live tool contract first — the model menu and accepted fields evolve:
 
 ```bash
 deepline tools describe deeplineagent --json
 ```
 
-```typescript fragment
+```typescript
 const research = await ctx.tools.execute({
   id: 'company_research',
   tool: 'deeplineagent',
@@ -246,11 +314,11 @@ const research = await ctx.tools.execute({
 });
 ```
 
-### ICP qualification
+### ICP qualification as a structured AI column
 
 Tier classification is just `deeplineagent` with a `jsonSchema` that enumerates the tiers.
 
-```typescript fragment
+```typescript
 const tiering = await ctx.tools.execute({
   id: 'icp_tiering',
   tool: 'deeplineagent',
@@ -271,17 +339,17 @@ const tiering = await ctx.tools.execute({
 });
 ```
 
-For ICP-engagement classification on a list of people (e.g. reactors on a LinkedIn post), there is usually a prebuilt play — confirm with `deepline plays search "icp"`.
+For ICP-engagement classification on a list of people (e.g. reactors on a LinkedIn post), there is usually a prebuilt play — confirm with `deepline plays search "icp" --json`.
 
 ### Research → generation split
 
-Do research as one stage and copy as another so copy variants reuse the same evidence. Route copy to `jobs/writing-outreach.md`.
+When the eventual deliverable is outreach copy, do research as one row stage and copy as a second. The research column gets reused across multiple copy variants without re-running synthesis. Route the copy stage to `jobs/writing-outreach.md`.
 
 ### Flatten before reuse
 
 `deeplineagent` structured-output columns are wrapped in a result envelope. Downstream interpolation (`{{column}}`) into another `deeplineagent` prompt usually works, but field-level access (`{{column.field}}`) does not because the cell carries an AI result wrapper. If a downstream step needs deterministic field-level reuse, add a `run_javascript` flatten pass that emits a scalar column.
 
-```typescript fragment
+```typescript
 const flat = await ctx.tools.execute({
   id: 'flatten_research',
   tool: 'run_javascript',
@@ -303,10 +371,10 @@ When no prebuilt play fits and you need explicit provider control, compose with 
 Find the current provider IDs first — names rot:
 
 ```bash
-deepline tools search "email finder"
+deepline tools search "email finder" --json
 ```
 
-```typescript fragment
+```typescript
 const email = await ctx.waterfall([
   { tool: '<provider-id-from-search>', input: { /* ... */ } },
   { tool: '<provider-id-from-search>', input: { /* ... */ } },
@@ -322,14 +390,14 @@ When you reach for a manual waterfall, write down why no prebuilt play fit. If t
 
 ### Email domain ≠ company domain
 
-Compare recovered email domain to company domain. High mismatch rates usually mean upstream contact disambiguation is wrong.
+After recovery, compare each row's email domain against the company domain it should belong to. Mismatches are often previous-employer or wrong-person matches. If more than ~20% of rows mismatch, the contact-finding step upstream likely needs re-running with better company disambiguation.
 
 ### LinkedIn name validation
 
-Use `linkedin-url-lookup` for high-row-count profile validation.
+The durable rule is in the rules section above. The full treatment for high-row-count work lives in the `linkedin-url-lookup` sibling skill.
 
 ## Exit
 
 - Outputs a CSV with research and validation columns ready for outreach → `jobs/writing-outreach.md`.
-- Discovery yielded weak account/contact coverage because the source set was wrong → back to `jobs/finding-companies-and-contacts.md`.
-- A play is failing replay-safety, has a stale set-live mismatch, or hit a lock file → `references/debugging.md`.
+- Discovery yielded zero or sparse rows because the company set itself was wrong → back to `jobs/finding-companies-and-contacts.md`.
+- A custom play is failing replay-safety, has a stale set-live mismatch, or hit a lock file → `references/debugging.md`.

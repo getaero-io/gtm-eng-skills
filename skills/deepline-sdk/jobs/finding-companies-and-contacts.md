@@ -2,11 +2,11 @@
 
 List-building from scratch: turning a description ("US fintech, Series A/B, 50-500 employees, hiring fraud roles") into a CSV of companies, contacts, or both. Covers TAM construction, ICP-matching, portfolio extraction, hiring-signal sourcing, and contact discovery at known companies.
 
-This doc does **not** cover enriching an existing account/contact list. Once you have known entities, use `jobs/enriching-and-researching.md`.
+This doc does **not** cover row-level enrichment of an existing list. Once you have rows, the next step is `jobs/enriching-and-researching.md`.
 
 ## When you are in this doc
 
-You do not yet have the target accounts or contacts. User phrasing looks like:
+You do not yet have rows. The user phrasing is something like:
 
 - "build a list of 25 Series A/B US fintech companies hiring fraud roles"
 - "find 5 VP-level marketing contacts at US fintech companies"
@@ -22,15 +22,15 @@ Route by what data the user actually needs. Tool IDs below are starting hints �
 
 | You need | Pattern category | Discovery |
 |---|---|---|
-| Companies filtered by funding round / headcount / HQ / industry / category | structured firmographic company search | `deepline tools search "company search"` |
-| Companies hiring for a specific role / function | hiring-signal search (job listings) | `deepline tools search "job search"` |
+| Companies filtered by funding round / headcount / HQ / industry / category | structured firmographic company search | `deepline tools search "company search" --json` |
+| Companies hiring for a specific role / function | hiring-signal search (job listings) | `deepline tools search "job search" --json` |
 | Companies hiring (cheap signal, no role specificity) | growth metric on a firmographic search response | (read response from structured search) |
-| Companies in a portfolio (YC, a16z, Tiger, an accelerator cohort) | portfolio-source-aware company search | `deepline tools search portfolio` |
-| The canonical domain for a company name | semantic web search | `deepline tools search search` |
-| People at a known company by role and seniority | role-based contact waterfall (play) | `deepline plays search contact` |
-| People matching a title and function across many companies | structured people search | `deepline tools search "people search"` |
-| Reactors / commenters on a LinkedIn post | post-engagers play | `deepline plays search engagers` |
-| Employees of a company when structured search is thin | Apify employee scraper actor | `deepline tools search apify` |
+| Companies in a portfolio (YC, a16z, Tiger, an accelerator cohort) | portfolio-source-aware company search | `deepline tools search portfolio --json` |
+| The canonical domain for a company name | semantic web search | `deepline tools search search --json` |
+| People at a known company by role and seniority | role-based contact waterfall (play) | `deepline plays search contact --json` |
+| People matching a title and function across many companies | structured people search | `deepline tools search "people search" --json` |
+| Reactors / commenters on a LinkedIn post | post-engagers play | `deepline plays search engagers --json` |
+| Employees of a company when structured search is thin | Apify employee scraper actor | `deepline tools search apify --json` |
 
 The right tool depends on what fact the user actually wants. If the user asks for "fintech companies hiring fraud engineers," the data needed is *funding round + headcount + HQ + active hiring evidence*, and the right primary source is a structured company search that returns growth metrics — not a generic web search and not a speculative AI-generated list.
 
@@ -44,12 +44,6 @@ Use `deepline tools execute` only to probe the live contract, count, or one samp
 
 When `tools execute --json` returns `starter_script`, use it as the first draft of the discovery play. Keep the durable names stable as you add stages: candidate pull, evidence attachment, contact lookup, email waterfall, and final export.
 
-Use direct CLI calls to discover the live tool and prove a tiny payload. Once the discovered accounts, contacts, or signals are what later work builds on, put that search in the play as the first durable boundary. Do not run a search in the CLI, paste results into a static CSV, then write a play that starts after the interesting part. That throws away the durable checkpoint the rest of the workflow depends on.
-
-The right sequence is: search/describe with the CLI, execute a `limit: 1` shape probe, then make the play reproduce that one proven call with a stable `ctx.tools.execute({ id: ... })` or `ctx.runPlay(...)` key. Add grouping, filtering, people lookup, and enrichment as separate durable stages. This keeps the first failure tied to one source or stage instead of an entire workflow.
-
-For "find contacts + enrich emails" tasks, discovery and waterfall enrichment belong in the same local play or composed plays. Direct provider calls are allowed for shape probes only: count endpoints or one-record samples. Their output is not the final data source. If a prebuilt batch play fails, write a local play with the proven payloads and stable `ctx.map`/`ctx.tools.execute` ids, then run `deepline plays check`, a capped pilot, and the full play. If run/auth/sheet/database infrastructure fails, report that blocker; do not salvage the task by writing the requested CSV from probe output or by calling tools row by row. That passes data through but fails the durable workflow.
-
 ### Companies first, then people
 
 When a task requires finding contacts at companies that match an ICP, build the company set first, then find people at each company. Going straight to a broad people-search ("VPs of Marketing at fintechs") returns lower-quality candidates because the people-search filters are coarser than firmographic ones, and the people you get are scattered across companies you have not validated. The exception is when the user provides a specific named company list and only needs contacts.
@@ -58,8 +52,8 @@ When a task requires finding contacts at companies that match an ICP, build the 
 
 This is the rule the v1 GTM workflow encoded and the v2 SDK skill missed. Map the user's data need to a primary source before reaching for tools. For "Series A/B US fintech, 50-500 employees, hiring fraud engineers":
 
-- *Funding, headcount, HQ, industry/category* → structured company search (find one with `deepline tools search "company search"`).
-- *Active hiring* → either a job-listing search (`deepline tools search "job search"`) or the growth metric on the structured search response (often a `growth_6m_percent`-style field, returned for free).
+- *Funding, headcount, HQ, industry/category* → structured company search (find one with `deepline tools search "company search" --json`).
+- *Active hiring* → either a job-listing search (`deepline tools search "job search" --json`) or the growth metric on the structured search response (often a `growth_6m_percent`-style field, returned for free).
 
 Trying every tool that mentions "company" in its name burns credits and produces inconsistent results across runs. Pick the primary source first, supplement gaps deliberately.
 
@@ -72,7 +66,7 @@ Before pulling pages of results, ask the source how many it has. Many providers 
 Filters that look like free text often validate against a closed enum on the provider side: industry codes, category strings, country codes, funding round labels. Sending `"financial services"` to a provider that expects `"Financial Services"` (or `54`, or `industry:financial-services`) silently returns zero results without an error. When the provider has an autocomplete or enum endpoint, use it on a sample value before the full search:
 
 ```bash
-deepline tools search autocomplete
+deepline tools search autocomplete --json
 ```
 
 Confirm the relevant filter values resolve, then run the full query.
@@ -92,15 +86,15 @@ If you are calling a people-search tool directly across companies, lean broad-fu
 
 ### Over-provision then filter; do not restart on misses
 
-Pull ~1.4x the target count from the primary source. Each downstream stage has natural falloff, so a 25-account target wants ~35 candidates in the first pull. When you have enough qualified accounts or contacts after filtering, stop. Chasing the last gap usually costs more than it is worth.
+Pull ~1.4× the target rows from the primary source. Each downstream stage (people-finding, email recovery, validation) has natural falloff (~15-20% per stage), so a 25-row target wants ~35 candidate rows in the first pull. When you have more than enough valid rows after filtering, stop. Restarting discovery to chase the last row almost never helps — the rows you cannot find usually have zero coverage across all providers, and the cost of restarting exceeds the value of one extra row.
 
 ### Filter, then supplement; do not re-discover
 
-When a discovery pass returns mostly good candidates and a few bad ones, drop the bad and supplement gaps from a second source. Do not throw out the result and rerun the primary search hoping for a cleaner set; the noise is in the data, not the query.
+When a discovery pass returns mostly good rows and a few bad ones, drop the bad and supplement gaps from a second source. Do not throw out the result and re-run the primary search with different filters in the hope of getting a cleaner set — the noise is in the data, not the query.
 
 ### Source from API tools, not from training data
 
-If the primary source returns nothing, widen the filter, switch sources, or tell the user the criteria returned zero. Pattern-completing companies from memory creates unverifiable prospects.
+If the primary source returns nothing, the answer is *not* "I'll list the fintech companies I know." The answer is to widen the filter, switch the primary source, or tell the user the criteria returned zero. Pattern-completing companies from memory looks like a successful run and produces unverifiable rows.
 
 ### Do not salvage company discovery with domain-by-domain enrichment loops
 
@@ -122,8 +116,8 @@ Use this path for prompts like "Build a list of 25 Series A/B US fintech and ide
 Example shape:
 
 ```bash
-deepline tools search "company search funding headcount hq category"
-deepline tools search "job search hiring role company domain"
+deepline tools search "company search funding headcount hq category" --json
+deepline tools search "job search hiring role company domain" --json
 deepline tools describe <company-tool-id> --json
 deepline tools execute <company-tool-id> --payload '{"hq_country":"USA","funding_round":["Series A","Series B"],"employee_count":{"min":50,"max":500},"categories":["fintech","identity verification","fraud detection"],"limit":1}' --json
 deepline plays check ./target-company-list.play.ts
@@ -138,7 +132,7 @@ The default for any "find me companies that match X criteria" request when X is 
 
 ```bash
 # Find the live tool.
-deepline tools search "company search"
+deepline tools search "company search" --json
 
 # Confirm the input contract — what fields it accepts, what enums look like,
 # what evidence columns it returns.
@@ -162,7 +156,7 @@ Preserve the response's evidence columns when writing the CSV. If the response i
 When the user wants "companies hiring fraud engineers" or similar role-specific hiring evidence, a job-listing search is the primary source.
 
 ```bash
-deepline tools search "job search"
+deepline tools search "job search" --json
 deepline tools describe <tool-id> --json
 deepline tools execute <tool-id> --payload '{"job_title":"fraud engineer","company_size":{"min":50,"max":500},"hq_country":"USA","limit":1}' --json
 deepline plays check ./hiring-signal-discovery.play.ts
@@ -178,8 +172,8 @@ When the user only needs *whether* a company is hiring (not for what role), the 
 When the source is a YC batch, an accelerator cohort, an investor's portfolio, or a curated list, the primary source is a portfolio-aware tool, not a firmographic search.
 
 ```bash
-deepline tools search portfolio
-deepline tools search "yc batch"
+deepline tools search portfolio --json
+deepline tools search "yc batch" --json
 ```
 
 After pulling the portfolio list, hand off to a firmographic enrichment tool to add headcount / funding / industry to each row.
@@ -189,45 +183,30 @@ After pulling the portfolio list, hand off to a firmographic enrichment tool to 
 A common helper. Domain lookup is mechanical — use a search tool, not `deeplineagent`.
 
 ```bash
-deepline tools search search
+deepline tools search search --json
 deepline tools execute <search-tool-id> --payload '{"query":"\"Acme Corp\" official site","numResults":1}' --json
 ```
 
-Extract the domain from the first result. For batch resolution inside a play, make the search the durable stage you build on:
-
-```typescript fragment
-const withDomains = await ctx
-  .map('company_domain_resolution', companies)
-  .step('resolved_domain', (company, rowCtx) =>
-    rowCtx.tools.execute({
-      id: 'company_domain_search',
-      tool: '<search-tool-id>',
-      input: { query: `"${company.company_name}" official website` },
-      description: 'Resolve the company domain before downstream enrichment.',
-    }))
-  .run({ key: 'company_name' });
-```
-
-Do not precompute the search outside the play and paste domains into a temporary CSV unless the CSV is the user's actual deliverable.
+Extract the domain from the first result. For batch resolution inside a play, this is the rare case where a one-step `ctx.map` over `ctx.tool` is cleaner than a CLI script.
 
 ### People at known companies (persona lookup)
 
 When you have a domain and want contacts at a specific role:
 
 ```bash
-deepline plays search contact
+deepline plays search contact --json
 deepline plays describe <play-name> --json
 deepline plays run <play-name> --input '{"company_name":"Acme","domain":"acme.com","roles":"VP Marketing","seniority":"VP"}' --watch
 ```
 
-For a list of companies -> contacts, keep company discovery/domain resolution and contact lookup in the same durable play script when the work will be rerun or extended. The search stage is not disposable setup; later contact lookup, validation, and scoring stages should build on its saved output. Read `jobs/enriching-and-researching.md` for the role-waterfall pattern.
+For a list of companies → contacts, this is one of the cleanest cases for a small custom play with a single `ctx.map` stage. Read `jobs/enriching-and-researching.md` for the role-waterfall pattern.
 
 ### People search across companies
 
 When you do not yet have a company list and want people directly:
 
 ```bash
-deepline tools search "people search"
+deepline tools search "people search" --json
 deepline tools describe <tool-id> --json
 deepline tools execute <tool-id> --payload '{"function":"Marketing","seniority":["VP","Director"],"hq_country":"USA","limit":1}' --json
 deepline plays check ./people-discovery.play.ts
@@ -241,7 +220,7 @@ Use broad function plus seniority, not exact titles. Companies-first is still pr
 When the user wants to qualify reactors on a post (a common inbound signal):
 
 ```bash
-deepline plays search engagers
+deepline plays search engagers --json
 deepline plays describe <play-name> --json
 deepline plays run <play-name> --input '{"post_url":"https://www.linkedin.com/posts/...","max_items":1000}' --watch
 ```
@@ -253,7 +232,7 @@ The output is a list of people — hand off to `jobs/enriching-and-researching.m
 Structured providers can have sparse coverage for very small companies (<50 employees), niche verticals, or recent batches. When the primary source returns thin results and you have specific named companies, an Apify employee scraper or company scraper actor is the next step.
 
 ```bash
-deepline tools search apify
+deepline tools search apify --json
 deepline tools describe <tool-id> --json
 ```
 
@@ -263,11 +242,11 @@ Apify actors are slower than structured providers, which is why they are a fallb
 
 ### Stop at "good enough"
 
-Define the target count up front. Pull ~1.4x that, filter, and stop when the qualified set hits the target. Past ~80% of target, marginal returns drop sharply.
+Define the target row count up front (usually from the user's ask). Pull ~1.4× that, filter, and stop when the filtered set hits the target. Past ~80% of target after filtering, marginal returns drop sharply — extra time spent chasing the last 20% almost never produces real rows.
 
 ### Dedup
 
-Deduplicate by canonical key (domain for companies, LinkedIn URL or email for people). Dedup after filtering; early dedup can drop valid candidates whose key is missing from one source.
+Deduplicate by canonical key (domain for companies, LinkedIn URL or email for people). Run dedup *after* filtering, not before — filtering by canonical key first can drop valid rows whose key is missing from one of the merge sources.
 
 ### Verify with a second source for high-stakes signals
 
@@ -277,4 +256,4 @@ For job changes, recent funding, recent leadership moves, or other claims that d
 
 - Discovery yielded a list of companies or contacts → `jobs/enriching-and-researching.md` to fill emails, phones, LinkedIn URLs, research columns.
 - Discovery shape is right but the company set is wrong → re-pick the primary source above and re-run; do not rely on training data.
-- A discovery play is failing replay-safety or has a stale set-live mismatch → `references/debugging.md`.
+- A custom discovery play is failing replay-safety or has a stale set-live mismatch → `references/debugging.md`.
