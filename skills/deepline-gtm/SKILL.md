@@ -263,7 +263,7 @@ GTM time windows, thresholds, and interpretation rules are defined in the Defini
   Last reviewed: 2026-04-30
 
 - [dropleads playbook](provider-playbooks/dropleads.md)
-  Summary: Use Prime-DB search/count first to scope segments efficiently, then run finder/verifier steps only on shortlisted records. Prefer companyDomains over companyNames, split multi-word keywords into separate tokens, and use broad jobTitles plus seniority instead of exact-title matching.
+  Summary: Use Prime-DB search/count for contact discovery at known accounts, then run finder/verifier steps only on shortlisted records. Prefer filters.companyDomains when you already have account domains; do not rely on search_people results to discover a complete account-domain list. Split multi-word keywords into separate tokens, and use broad jobTitles plus seniority instead of exact-title matching.
   Last reviewed: 2026-02-26
 
 - [exa playbook](provider-playbooks/exa.md)
