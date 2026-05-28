@@ -11,6 +11,8 @@ A good Deepline search run has a shape: discover the live provider contract, put
 
 The play is the notebook. Stable step ids are the cache. Getter contracts are the interface. The CSV is only the final surface.
 
+Build a notebook, not a masterpiece. Start with a probe. Checkpoint what costs money. Add gates before fanout. Climb the ladder only when the receipts look good.
+
 ## Command Discipline
 
 Run Deepline commands as direct commands. Do not add shell helpers around them.
@@ -42,6 +44,12 @@ If you need structured data, request Deepline JSON and read that command's outpu
 Use these terms consistently.
 
 - **Scratchpad play** — the local `.play.ts` file where paid provider work becomes replayable state, not disposable console output. A scratchpad is always a play, not a loose CLI transcript or notes file.
+- **Notebook** — the play as a learning surface. It can contain tiny runs, inspection comments, pure scoring steps, gates, and export projections because each rerun preserves useful knowledge.
+- **Probe** — the smallest useful run: usually 1-2 rows, one source, one getter, one hypothesis. A probe is allowed to be incomplete; its job is to make the next edit less speculative.
+- **Checkpoint** — a stable `ctx.tools.execute`, `ctx.runPlay`, or `ctx.map(...).step(...)` id that turns paid or slow work into reusable state. If a rerun should not rebuy it, checkpoint it.
+- **Gate** — a pure step that decides whether paid fanout is allowed: domain match, title fit, category evidence, placeholder filter, max rows, max fallback legs, or balance floor.
+- **Ladder** — the scale path: 1 row -> 5 rows -> 25 rows -> full. Do not jump from unknown shape to full fanout unless a prebuilt play exactly covers a tiny input.
+- **Receipt** — row-level evidence that explains why a result is trustworthy: source, provider/play, getter used, fit evidence, status, and miss reason.
 - **Source call** — a provider call that creates candidate companies, people, domains, or accounts.
 - **Pilot** — a tiny run that proves row shape, getter availability, null behavior, relevance, and cost before scale.
 - **Getter contract** — the semantic output interface declared by `deepline tools describe`, such as `extractedLists.people.get()` or `extractedValues.email_status.get()`.
@@ -61,8 +69,8 @@ Search is an economic narrowing loop:
 4. Drop to provider tools only after naming the play mismatch: missing input, wrong output, wrong scale, or custom gating/validation needed.
 5. Discover fallback tools by capability tags/categories, then describe exact contracts, getters, cost, and failure modes.
 6. Put useful custom provider work into a scratchpad play with stable ids.
-7. Pilot small enough to inspect shape, getters, nulls, response size, and spend.
-8. Narrow with evidence columns before paid fanout; enrich only survivors.
+7. Probe 1-2 rows first, then ladder up only after receipts prove shape and fit.
+8. Add gates before paid fanout; enrich only survivors.
 9. Export flat user-facing rows with provenance and miss reasons.
 
 Put any provider call that might contribute final rows into a `.play.ts` file before continuing exploration. The scratchpad play is the artifact; rendered CLI output is only a transient inspection aid.
@@ -286,7 +294,7 @@ Names rot. Tags are the live map; `describe` is the contract. Use provider names
 - people search: `ai_ark_export_people`, `ai_ark_export_results`, `ai_ark_people_search`, `apollo_people_search`, `apollo_people_search_paid`, `apollo_search_people`, `apollo_search_people_with_match`, `attio_query_person_records`, `attio_query_records`, `attio_search_records`, `contactout_search_people`, `crustdata_people_search`, +42 more
 - company enrichment: `apollo_bulk_organization_enrichment`, `apollo_enrich_company`, `apollo_get_complete_organization_info`, `apollo_organization_enrich`, `attio_assert_record`, `bloomberry_get_company_tech_stack`, `contactout_enrich_domain`, `crustdata_company_enrichment`, `crustdata_enrich_company`, `crustdata_v2_enrich_company`, `datagma_enrich_company`, `datagma_full_enrichment`, +36 more
 - people enrichment: `ai_ark_mobile_phone_finder`, `ai_ark_personality_analysis`, `ai_ark_reverse_lookup`, `apollo_bulk_people_enrichment`, `apollo_enrich_person`, `apollo_people_match`, `apollo_reveal_person`, `apollo_search_people_with_match`, `attio_assert_record`, `bettercontact_bulk_enrich`, `bettercontact_enrich`, `bettercontact_get_result`, +63 more
-- email finder: `ai_ark_find_emails`, `datagma_find_email`, `dropleads_email_finder`, `findymail_find_from_business_profile`, `findymail_find_from_name`, `forager_person_contacts_lookup_personal_emails`, `forager_person_contacts_lookup_work_emails`, `hunter_email_finder`, `leadmagic_b2b_social_email`, `leadmagic_email_finder`, `leadmagic_personal_email_finder`, `openmart_lookup_business_email`, +2 more
+- email finder: `ai_ark_find_emails`, `datagma_find_email`, `dropleads_email_finder`, `findymail_find_from_business_profile`, `findymail_find_from_name`, `forager_person_contacts_lookup_personal_emails`, `forager_person_contacts_lookup_work_emails`, `hunter_email_finder`, `leadmagic_b2b_social_email`, `leadmagic_email_finder`, `leadmagic_personal_email_finder`, `openmart_lookup_business_email`, +1 more
 - phone finder: `ai_ark_mobile_phone_finder`, `datagma_search_phone_numbers`, `dropleads_mobile_finder`, `enrich_phone`, `enrich_phone_finder`, `findymail_find_phone`, `forager_person_contacts_lookup_phone_numbers`, `leadmagic_mobile_finder`, `upcell_enrich_contact`
 - email verify: `dropleads_email_verifier`, `findymail_verify_email`, `hunter_email_verifier`, `icypeas_email_verification`, `ipqs_batch_email_verify`, `ipqs_email_verify`, `leadmagic_email_validation`, `zerobounce_validate`
 - phone verify: `ipqs_batch_phone_validate`, `ipqs_phone_validate`, `trestle_phone_validation`, `trestle_real_contact`
