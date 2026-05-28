@@ -34,6 +34,14 @@ All Dropleads filters nest under the `filters` object. Pagination nests under `p
 | Seniority | `filters.seniority` | Exact values only: `C-Level`, `VP`, `Director`, `Manager`, `Senior`, `Entry`, `Intern`. |
 | Industry | `filters.industries` | Exact strings from Dropleads. Pilot with a broad search first when unsure. |
 
+### Geo filters are best-effort, not verified
+
+Dropleads geo filters (`personalCountries` / `personalStates` / `personalCities` and the `organization*` equivalents) match against **self-reported, LinkedIn-sourced location text** — they are not verified against the contact's actual location. Treat them accordingly:
+
+- **City-level is the loosest match and leaks.** `personalCities` can return contacts whose stated city loosely matches even when their real location differs, and non-US contacts can appear under a US-city filter (e.g. a Bulgarian contact surfacing under `personalCities: San Francisco` + `personalCountries: United States`). Country/state are more reliable.
+- **Person vs. company location are different fields.** `personal*` filters the contact's own location; `organization*` filters the company HQ. Don't conflate them — filtering a remote employee by company HQ city (or vice versa) drops or leaks legitimate matches.
+- **Verify geo when precision matters.** Combine `personalCountries`/`personalStates` with `personalCities`, then post-filter the returned leads on their `country`/`state`/`city` (and exclude obvious mismatches) before trusting the result or spending on enrichment. Do not assume the filter alone guarantees the geo.
+
 ## 2) Escalate paid calls only for shortlisted targets
 
 - Run `dropleads_email_finder` for contacts that passed the discovery pass.
