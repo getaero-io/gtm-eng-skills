@@ -23,15 +23,40 @@ Search-to-enrichment handoff rules:
 - move per-column work into `deepline enrich --with ...`
 - keep lineage in-sheet with `_metadata`
 
-## Company search providers (ROI order)
+## Play-first routing
 
-Escalate only when you need a filter the current step lacks.
-1. **`free_simple_company_search`** — SQL over the free company corpus. Exact/domain lookup and bounded SQL. FREE.
-2. **`dropleads_search_people`** — adds revenue, funding range, technologies + people filters. Use `dropleads_get_lead_count` to size first. FREE.
-3. **`apollo_company_search`** — adds hiring signals (job titles, locations, num roles), funding dates, tech UIDs.
-4. **`crustdata_companydb_search`** — adds investors, funding stage, fuzzy `(.)` operator. Use `crustdata_companydb_autocomplete` (free) first.
+Search plays first, then describe the closest match before running or copying it. A good play works out of the box for the common case and is also the safest template when you need customization.
 
-**When DB providers return 0** (pre-revenue startups, niche verticals, non-US): `exa_company_search` (AI/concept search — finds companies by what they do, not structured fields); `parallel_extract` (scrapes known source URLs like VC portfolios, accelerator directories, conference lists); `serper_google_maps_search` for local/SMB brick-and-mortar; `serper_google_search` for `site:` scoped URL discovery on specific directories.
+| If you need | Use this play | Why |
+|---|---|---|
+| Companies filtered by funding round, headcount, HQ, category, or hiring signal | `prebuilt/structured-company-discovery` | Works out of the box for firmographic company lists and hiring evidence. Also provides a template for custom company acquisition plays. |
+| Contacts at known companies by role or seniority | `prebuilt/company-to-contact-by-role-waterfall` | Works out of the box for company-scoped contact discovery. Also provides a template for role ranking and contact filtering. |
+| Company list first, then contacts at each company | Start with `prebuilt/structured-company-discovery`, then compose the company-to-contact play | Keeps company validation separate from people discovery, and gives a clean template for multi-stage acquisition. |
+| Work emails or phones for rows you already have | Stop and use `enriching-and-researching.md` | Existing rows are enrichment work, not company acquisition. |
+| A public source page such as a portfolio, accelerator batch, conference list, or directory | Search for a source-specific play first with `deepline plays search "<source type> company list" --json` | A source-specific play should handle extraction and evidence. If none exists, use tools only to build a new reusable play. |
+
+If no play fits, run `deepline tools search` only to find the missing source or provider contract, then put that provider call into a scratchpad play before scaling. Do not keep the final workflow as loose `tools execute` calls.
+
+## Tool discovery after plays
+
+Use tools discovery after play discovery, not before it.
+
+1. Search plays for the workflow pattern.
+2. Describe the closest play and run it if the input contract fits.
+3. Copy/edit the play if it almost fits.
+4. Use `deepline tools search` only for the provider/source contract missing from the play.
+5. Add that tool call to the copied play, then run `deepline plays check`.
+
+```bash
+deepline plays search "structured company discovery hiring" --json
+deepline plays describe prebuilt/structured-company-discovery --json
+deepline plays get prebuilt/structured-company-discovery --source --out ./company-discovery.play.ts
+deepline tools search "job search hiring role company domain" --json
+deepline tools describe <tool-id> --json
+deepline plays check ./company-discovery.play.ts
+```
+
+Tools are the live provider catalog. Plays are the workflow surface. Use tools to discover missing ingredients, then put the ingredient in the play.
 
 ## People search providers (ROI order)
 
@@ -44,36 +69,15 @@ Escalate only when you need a filter the current step lacks.
 
 **Alts:** `exa_people_search` (tiny startups); `contactout_search_people`; `icypeas_find_people` (700M+ DB); `rocketreach_search_people` (30+ filters).
 
-## Tool discovery
-
-Use `deepline tools search` once near the top when the scenario is clear but the exact tool family is not.
-
-Prefer category-constrained searches. More search terms helps with recall. Then inspect the strongest candidates.
-
-```bash
-deepline tools search --categories company_search --search_terms "structured filters,firmographics" &
-deepline tools search --categories people_search --search_terms "title filters,linkedin" &
-deepline tools search --categories company_search --search_terms "investors,funding" &
-deepline tools search --categories research --search_terms "ads,technographics" &
-wait
-
-deepline tools get crustdata_companydb_search &
-deepline tools get dropleads_search_people &
-deepline tools get apify_run_actor_sync &
-wait
-```
-
-After tool discovery, do not jump straight into broad execution. Shortlist 1-2 realistic candidates, inspect their schemas with `deepline tools get`, validate enum-like inputs where needed, then run a narrow first pass.
-
 ## Discovery workflow
 
 | Step | What to do | Why |
 |---|---|---|
 | 0 | Check if the data already exists or has a known source URL | Avoid unnecessary provider calls |
-| 1 | Shortlist 1-2 providers from the reference table | Prevent random provider thrash |
-| 2 | Inspect the schema with `deepline tools get` | Avoid guessed field names and bad payloads |
-| 3 | Validate enum-like values with autocomplete tools | Prevent silent empty searches |
-| 4 | Execute a count-like or narrow first pass | Cheaply confirm fit before full pull |
+| 1 | Search and describe the closest play | Prefer reusable workflows over loose provider calls |
+| 2 | Run the play if the input contract fits | Use the out-of-box path first |
+| 3 | Copy/edit the play if only one stage needs customization | Keep a working template and avoid provider thrash |
+| 4 | Use `tools search/describe` only for missing provider contracts | Raw tools are inputs to a custom play, not the final workflow |
 
 Anti-patterns:
 - **jumping to people-search first** — searching for "GTM Engineer at YC startup" via `exa_people_search` or `dropleads_search_people` before having a company list. Find companies first, then find people at each.
@@ -153,38 +157,22 @@ Use this section when the user has a crisp ICP, such as:
 - hiring proxy or company maturity
 
 Recommended course of action:
-1. Use structured company search first.
-2. Validate enum-like values before committing to a full search.
-3. Run a count-like first pass with `limit:1` when appropriate.
-4. Pull more rows than the final target if downstream attrition is expected.
-5. If the exact filter set is unclear, use the tool-discovery pattern above instead of hardcoding a provider guess.
-
-### Free native company search
-
-Use `free_simple_company_search` for exact and bounded SQL:
-- exact `normalized_domain = ...` or `normalized_domain IN (...)`
-- small exact `linkedin_url = ...` or `linkedin_url IN (...)` batches
-- small exact `company_name = ...` or `company_name IN (...)` batches
-- anchored prefix candidates like `company_name ILIKE 'acme%'`
-
-Plain `ILIKE '%...%'` is valid SQL on the Snowflake-backed corpus, but it can still scan the full 35M-company table when combined with long OR chains, `COUNT`/`GROUP BY`, country-wide location scans, or high limits like 50k. Use `dropleads_get_lead_count`, `apollo_company_search`, `crustdata_companydb_search`, or another purpose-built provider when you need broad keyword discovery, strict totals, live coverage, or provider-native facets.
-
-### Canonical value validation
+1. Describe `prebuilt/structured-company-discovery` and compare its input fields to the prompt.
+2. Run it directly when the fit is clean.
+3. Copy/edit it when the user needs a different source, filter, scoring rule, or output shape.
+4. Preserve `name`, `domain`, `headcount`, `funding_round`, `hq`, and a `hiring_evidence` field.
 
 ```bash
-deepline tools execute crustdata_companydb_autocomplete --payload '{"field":"crunchbase_categories","query":"identity","limit":5}'
+deepline plays describe prebuilt/structured-company-discovery --json
+deepline plays run prebuilt/structured-company-discovery --input '{"target_count":25,"hq_country":"USA","funding_rounds":["Series A","Series B"],"employee_count_min":50,"employee_count_max":500,"categories":["FinTech","Identity Management","Fraud Detection"],"hiring_keywords":["fraud","identity","risk","kyc"]}' --watch --out target_companies.csv
 ```
 
-### Count-first structured company search
+If the play almost fits, copy it first and edit the copy:
 
 ```bash
-deepline tools execute crustdata_companydb_search --payload '{"filters":[{"filter_type":"crunchbase_categories","type":"in","value":["Identity Management","Fraud Detection"]},{"filter_type":"hq_country","type":"=","value":"USA"},{"filter_type":"employee_count_range","type":"in","value":["51-200","201-500"]},{"filter_type":"last_funding_round_type","type":"in","value":["Series A","Series B"]}],"limit":1}'
-```
-
-### Full structured company pull
-
-```bash
-deepline tools execute crustdata_companydb_search --payload '{"filters":[{"filter_type":"crunchbase_categories","type":"in","value":["Identity Management","Fraud Detection"]},{"filter_type":"hq_country","type":"=","value":"USA"},{"filter_type":"employee_count_range","type":"in","value":["51-200","201-500"]},{"filter_type":"last_funding_round_type","type":"in","value":["Series A","Series B"]}],"sorts":[{"column":"employee_metrics.latest_count","order":"desc"}],"limit":35}'
+deepline plays get prebuilt/structured-company-discovery --source --out ./target-company-list.play.ts
+deepline plays check ./target-company-list.play.ts
+deepline plays run ./target-company-list.play.ts --input '{"target_count":25}' --watch --out target_companies.csv
 ```
 
 Structured company search is the wrong choice when:
