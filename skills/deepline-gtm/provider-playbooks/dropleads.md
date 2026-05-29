@@ -1,11 +1,13 @@
 # Dropleads Playbook
 
-Use Dropleads as a two-phase flow: low-cost segment discovery first, paid enrichment second.
+Use Dropleads as a two-phase flow: low-cost contact discovery first, paid enrichment second. Do not use Dropleads people search as the first step for account discovery.
 
 ## 1) Start with low-cost discovery
 
 - Use `dropleads_get_lead_count` to size the audience before any paid call.
 - Use `dropleads_search_people` to inspect masked contacts and validate ICP filters (free).
+- Use `dropleads_search_people` after you already have target account domains, by passing `filters.companyDomains`. It is a contact search primitive, not a dependable way to discover target accounts.
+- Do not build joins or account-discovery flows that depend on every returned lead having `companyDomain`. Treat returned `companyDomain` as optional; if you need account domains as the source of truth, use a company-native search/enrichment tool first.
 - Tighten filters until sample rows clearly match role, industry, and geo expectations.
 - Key filter fields: `filters.jobTitles`, `filters.seniority` (C-Level/VP/Director/Manager/Senior/Entry/Intern), `filters.industries`, `filters.departments`, `filters.companyDomains`, `filters.employeeRanges`, `filters.personalCountries.include` (for geo), `pagination.page`, `pagination.limit`.
 
@@ -29,7 +31,7 @@ All Dropleads filters nest under the `filters` object. Pagination nests under `p
 
 | Filter | Correct key | Why |
 |--------|------------|-----|
-| Company | `filters.companyDomains` | Exact domain match. `companyNames` does fuzzy substring matching — "Microsoft" pulls in unrelated businesses. 53K+ results at microsoft.com confirmed. |
+| Company | `filters.companyDomains` | Exact domain match for known accounts. Prefer this when you already have domains; do not rely on people-search results to discover a complete account-domain list. `companyNames` does fuzzy substring matching — "Microsoft" pulls in unrelated businesses. |
 | Country | `filters.personalCountries.include` | Array inside a nested object. |
 | Seniority | `filters.seniority` | Exact values only: `C-Level`, `VP`, `Director`, `Manager`, `Senior`, `Entry`, `Intern`. |
 | Industry | `filters.industries` | Exact strings from Dropleads. Pilot with a broad search first when unsure. |
@@ -64,3 +66,7 @@ Dropleads geo filters (`personalCountries` / `personalStates` / `personalCities`
 6. Enrich emails via waterfall (`dropleads_email_finder` first, then other providers).
 7. Verify candidate emails (`dropleads_email_verifier` or `leadmagic_email_validation`).
 8. Expand only after pilot quality is confirmed.
+
+## 5) Account discovery boundary
+
+For account-based pipelines, start with a company-native source such as `apollo_company_search` or another provider that returns account domains as first-class results. Feed those domains into Dropleads via `filters.companyDomains` to find contacts at known accounts. Dropleads may include `companyDomain` on returned people, but it is not guaranteed enough to be the join key that creates the account universe.

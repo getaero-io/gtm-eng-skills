@@ -2,7 +2,7 @@ Use Apollo as the default high-recall people/company prospector.
 
 Company vs CRM split:
 
-- `apollo_company_search` maps to Apollo Organization Search (`mixed_companies/search`).
+- `apollo_company_search` maps to Apollo Organization Search (`organizations/search`).
 - Use `apollo_company_search` when you want Apollo's broad company database, including companies that are not in your team's CRM yet.
 - `crm_search_for_accounts` maps to Apollo CRM Account Search (`accounts/search`).
 - Use `crm_search_for_accounts` only when you specifically want accounts your team already added to Apollo CRM.
@@ -31,8 +31,9 @@ Company-search planning guardrails:
 
 - Start with a pilot query: `per_page=1..3`, plus either `q_organization_name` or exact domains, before broad pagination.
 - Treat `organization_num_employees_ranges` as contract-sensitive. Use the exact format shown by `deepline tools get apollo_company_search`, and update stale local examples when the live contract changes.
-- For broad discovery, `q_organization_keyword_tags` is often a better first-pass search constraint than structural-only filters.
-- Inspect `result.data.organizations` first. If that array is empty, then check `result.data.accounts` as a compatibility fallback.
+- For exact industry targeting, use `organization_industry_tag_ids` with Apollo taxonomy IDs. `q_organization_keyword_tags` is keyword/description search and can pull off-industry companies that mention the terms.
+- Apollo does not publish the industry taxonomy in the Organization Search OpenAPI spec. Discover IDs from `industry_tag_id` / `industry_tag_hash` in organization rows or from Apollo UI/network payloads.
+- Inspect `result.data.organizations`; organization rows include Apollo's human-readable `industry` field when Apollo returns it.
 - Do not trust `pagination.total_entries` alone when planning a large pull. Verify that retrieved rows, returned shape, and deduped output all look sane on a pilot before fanning out.
 
 Response-shape contract (critical):
@@ -48,16 +49,12 @@ Company search shape gotcha (critical):
 
 - Apollo company search is canonical at `organizations` (not `accounts`).
 - In Deepline output, prefer `result.data.organizations` (or `<column>.result.data.organizations` in enrich columns).
-- Compatibility fallback: if `organizations` is empty or absent, read `result.data.accounts`.
 - Recommended extractor pattern:
 
 ```javascript
 const q = (row["Company"] || "").trim().toLowerCase();
 const d = row["apollo_company"]?.result?.data || {};
-const orgs =
-  d.organizations && d.organizations.length > 0
-    ? d.organizations
-    : d.accounts || [];
+const orgs = d.organizations || [];
 const match =
   orgs.find((x) => (x?.name || "").trim().toLowerCase() === q) ||
   orgs[0] ||
@@ -67,6 +64,7 @@ return {
   company_name: match.name || null,
   company_domain: match.primary_domain || match.domain || null,
   company_linkedin: match.linkedin_url || null,
+  company_industry: match.industry || null,
 };
 ```
 

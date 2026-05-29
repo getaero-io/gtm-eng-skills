@@ -179,7 +179,7 @@ Alternative — `zerobounce_validate` (more detailed sub_status, better for catc
 --with '{"alias":"email_valid","tool":"zerobounce_validate","payload":{"email":"{{work_email}}"}}'
 ```
 
-Check `.status` and `.sub_status`. Use `zerobounce_batch_validate` for 5+ emails in one call.
+Check `.status` and `.sub_status`. Use `zerobounce_validate` for each email; Deepline disables ZeroBounce batch validation because the upstream batch endpoint currently returns 403 Access denied from Deepline egress.
 
 Alternative — `dropleads_email_verifier` (cheapest option):
 
