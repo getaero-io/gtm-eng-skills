@@ -1,6 +1,6 @@
 ---
 name: deepline-sdk
-description: "Use for Deepline SDK/CLI GTM work: build/run/debug plays, find companies or contacts, enrich emails/phones/LinkedIn, size TAMs, route providers, use getters, recover from tool/play shape issues, control spend, and export CSVs."
+description: 'Use for Deepline SDK/CLI GTM work: build/run/debug plays, find companies or contacts, enrich emails/phones/LinkedIn, size TAMs, route providers, use getters, recover from tool/play shape issues, control spend, and export CSVs.'
 ---
 
 # Deepline SDK Search Discipline
@@ -17,6 +17,9 @@ Build a notebook, not a masterpiece. Start with a probe. Checkpoint what costs m
 
 Run Deepline commands as direct commands. Do not add shell helpers around them.
 Do not search parent repos or unrelated worktrees for old `*.play.ts` scratch files.
+When an eval or user asks for an output file, write it directly with the
+editor/write tool using the exact requested path. Do not first call write with
+placeholder arguments, and do not use shell redirection to create the file.
 
 Good:
 
@@ -24,7 +27,7 @@ Good:
 deepline health --json && deepline auth status --json && deepline billing balance --json
 deepline plays list --origin prebuilt --json
 deepline plays grep email --origin prebuilt --json
-deepline tools list --categories email_finder --json
+deepline tools grep "email finder" --categories email_finder --json
 deepline tools describe dropleads_email_finder --json
 ```
 
@@ -35,9 +38,20 @@ deepline health --json 2>&1
 deepline plays search email --json | head
 deepline tools describe dropleads_email_finder --json | jq '.cost'
 deepline tools search "email finder" --json &
+deepline tools list --categories email_finder --json | python3 -c "..."
+deepline tools grep "email finder" --json 2>&1 | head -20
 ```
 
-If you need structured data, request Deepline JSON and read that command's output directly. Do not pipe, redirect, slice, parse with Python, background, or wrap commands in shell fallbacks. A short `&&` preflight is fine for cheap status checks; do not chain paid executes, play runs, or discovery commands whose output you need to inspect. Shell parsing turns a typed contract into disposable rendered text and slows the run.
+If you need structured data, request Deepline JSON and read that command's output directly. Do not pipe, slice, parse with Python, background, or wrap commands in shell fallbacks. A short `&&` preflight is fine for cheap status checks; do not chain paid executes, play runs, or discovery commands whose output you need to inspect. Shell parsing turns a typed contract into disposable rendered text and slows the run.
+
+Exception: `deepline plays bootstrap` prints a `.play.ts` file to stdout by design. Redirect that command once to create the scratchpad file, then inspect/edit/check the file.
+
+If a JSON response is too large to inspect comfortably, change the Deepline
+query, not the shell. Prefer `plays grep ... --compact --json`,
+category-filtered `tools grep ... --categories <category> --json`, or one
+targeted `tools describe <tool-id> --json`. Do not recover from large output by
+reading tool-result files, grepping transcripts, piping to Python, or truncating
+with `head`.
 
 ## Vocabulary
 
@@ -167,6 +181,162 @@ deepline runs get <run-id> --json --full
 
 Plays before tools. Prebuilt plays are waterfalls: they already encode provider ordering, fallback stop conditions, getter handling, and common export shape. If a prebuilt play covers the job, use it directly or wrap it in the scratchpad with `ctx.runPlay(...)`. Drop to manual `ctx.tools.execute` provider chains only when the play is missing, too broad, missing required outputs, or you need custom ordering, extraction, gating, or validation behavior.
 
+### First 90 Seconds
+
+Do not spend the opening of a GTM task auditing providers. Pick the nearest prebuilt play route, write or copy the smallest scratchpad, then let `plays check` and a tiny watched run tell you what is actually wrong.
+
+For common GTM requests, the first commands are:
+
+```bash
+deepline health --json && deepline auth status --json && deepline billing balance --json
+deepline plays bootstrap people-email \
+  --from csv:<rows.csv> \
+  --using play:prebuilt/name-and-domain-to-email-waterfall \
+  --limit 5 > scratchpad.play.ts
+deepline plays check scratchpad.play.ts
+```
+
+`plays bootstrap` takes a route template first. Use the JTBD, not a bag of flags:
+
+```text
+people-list             people/contact search only
+company-list            company/account search only
+people-email            people/contact rows -> email finder
+people-phone            people/contact rows -> phone finder
+company-people          company/account rows -> people play
+company-people-email    company/account rows -> people play -> email finder
+company-people-phone    company/account rows -> people play -> phone finder
+```
+
+Bind resources with typed refs:
+
+```text
+csv:data/leads.csv
+play:prebuilt/name-and-domain-to-email-waterfall
+provider:dropleads_search_people
+providers:hunter_email_finder,leadmagic_email_finder
+```
+
+For one-stage routes, `--using` is the shortest spelling. The explicit stage
+flag also works and is often clearer while editing: `people-email --email ...`,
+`people-phone --phone ...`, or `company-people --people ...`.
+
+For known people/contact rows, pick the finder route that matches the requested
+channel. Use a prebuilt play when it exists; bootstrap will wrap it with
+`ctx.runPlay(...)` and leave row-to-input TODO comments in the generated file.
+
+```bash
+deepline plays bootstrap people-phone \
+  --from csv:data/contacts.csv \
+  --using play:prebuilt/person-to-phone \
+  --limit 5 > phone-flow.play.ts
+deepline plays check phone-flow.play.ts
+```
+
+If the task starts from search instead of rows, bind the source provider and let bootstrap write TODO comments for the provider-specific query/filter inputs inside the generated play:
+
+```bash
+deepline plays grep "<goal words>" --origin prebuilt --compact --json
+deepline tools grep "<source capability>" --categories people_search --json
+deepline plays bootstrap people-email \
+  --from provider:<people-search-tool-id> \
+  --using play:prebuilt/name-and-domain-to-email-waterfall \
+  --limit 5 > scratchpad.play.ts
+deepline plays check scratchpad.play.ts
+```
+
+`plays bootstrap` is route-aware, but not a mapper. It validates route shape and
+category/getter compatibility. It does not pretend CSV headers or provider rows
+already have canonical fields like `first_name` or `domain`. The generated
+`.play.ts` contains TODO comments where you explicitly map source row keys,
+source provider inputs, company-to-people persona fields, or final scalar output
+columns.
+
+Company rows cannot go straight to email or phone. Bridge companies to contacts
+with a people play so the generated code has a concrete mapping contract:
+
+```bash
+deepline plays bootstrap company-people-email \
+  --from provider:<company-search-tool-id> \
+  --people play:prebuilt/company-to-contact \
+  --email play:prebuilt/name-and-domain-to-email-waterfall \
+  --limit 5 > account-contacts.play.ts
+deepline plays check account-contacts.play.ts
+```
+
+For a company-to-contact-to-phone route, use the phone route explicitly. If you
+want custom phone providers instead of a prebuilt phone play, pass finder tools
+from the `phone_finder` category; multiple providers become an ordered
+waterfall guarded by `when(...)`.
+
+```bash
+deepline plays bootstrap company-people-phone \
+  --from provider:<company-search-tool-id> \
+  --people play:prebuilt/company-to-contact \
+  --phone providers:<phone-finder-tool-id>[,<phone-finder-tool-id>] \
+  --limit 5 > account-phones.play.ts
+deepline plays check account-phones.play.ts
+```
+
+`plays bootstrap` is only a scaffold. After it prints the scratchpad, edit TODO values, source filters, and route-specific input mappings in the generated `.play.ts`; then run `deepline plays check scratchpad.play.ts`, followed by `deepline plays run scratchpad.play.ts --input '{"limit":5}' --watch`. For CSV bootstrap, the CSV path is baked into `ctx.csv(...)`; do not pass `csv` again at run time.
+
+When you need custom finder providers instead of a prebuilt finder play, pass tools from the matching category. Multiple provider ids become a waterfall in the generated play. Validators (`email_verify`, `phone_verify`) check known emails/phones; they are not finder providers.
+
+```bash
+deepline tools list --categories email_finder --json
+deepline tools describe <provider-tool-id> --json
+deepline plays bootstrap people-email \
+  --from csv:<rows.csv> \
+  --using providers:<provider-tool-id>[,<provider-tool-id>] \
+  --limit 5 > scratchpad.play.ts
+deepline plays check scratchpad.play.ts
+```
+
+```bash
+deepline tools list --categories phone_finder --json
+deepline tools describe <phone-finder-tool-id> --json
+deepline plays bootstrap people-phone \
+  --from csv:<rows.csv> \
+  --using providers:<phone-finder-tool-id>[,<phone-finder-tool-id>] \
+  --limit 5 > phone-waterfall.play.ts
+deepline plays check phone-waterfall.play.ts
+```
+
+For "use the existing V2 email waterfall as the starting point, then customize/add validation" on rows or a CSV, prefer bootstrap over copying the waterfall source. It wraps the existing waterfall with `ctx.runPlay` and leaves explicit row-to-input TODOs in the generated play:
+
+```bash
+deepline tools list --categories email_verify --json
+deepline tools describe <email-verify-tool-id> --json
+deepline plays describe prebuilt/name-and-domain-to-email-waterfall --json
+deepline plays bootstrap people-email \
+  --from csv:data/leads.csv \
+  --using play:prebuilt/name-and-domain-to-email-waterfall \
+  --limit 5 > email-waterfall-validated.play.ts
+deepline plays check email-waterfall-validated.play.ts
+deepline plays run email-waterfall-validated.play.ts --input '{"limit":5}' --watch
+```
+
+Drop to lower-level play routing only when bootstrap cannot express the start entity or route:
+
+```bash
+deepline plays grep "<goal words>" --origin prebuilt --compact --json
+deepline plays describe prebuilt/<chosen-play> --json
+deepline plays get prebuilt/<chosen-play> --source --out ./scratchpad.play.ts
+deepline plays check ./scratchpad.play.ts
+```
+
+Only make provider-tool discovery calls after the first chosen play or bootstrap scaffold has a named mismatch. Good mismatches are: required input unavailable, wrong starting entity, missing required output, custom gate needed before paid fanout, or custom validation needed after recovery.
+
+If the user gives a search goal instead of rows, start from a source/search play route. If the user gives people, companies, domains, LinkedIns, or a CSV/table, start from the enrichment play route that accepts that entity. Do not wait for a CSV to exist.
+
+```text
+Goal starts with search/discovery -> source play first, then enrichment plays.
+Known companies/domains -> company/contact play first, then email/phone plays.
+Known people + company/domain -> person-to-email/phone play first.
+Known LinkedIn URLs -> LinkedIn enrichment play first.
+Need verified emails -> email waterfall first, verifier after recovery as a separate stage.
+```
+
 ```bash
 deepline plays list --origin prebuilt --json
 deepline plays grep email --origin prebuilt --json
@@ -194,36 +364,100 @@ deepline tools grep "people search title seniority linkedin" --categories people
 deepline tools describe <tool-id> --json
 ```
 
-`deepline play run` / `deepline plays run` may return after starting the run unless `--watch` is present. For eval and deliverable work, run with `--watch` so success or failure is observed before continuing. After a watched run fails, inspect the run with the exact `runs get` command printed by the CLI; do not infer success from a returned `runId`.
+For custom or local `.play.ts` files, always run `deepline plays check <file.play.ts>` before `deepline plays run`. Static check is cheaper than discovering TypeScript, bundling, or getter-shape errors during a watched run. `deepline play run` / `deepline plays run` may return after starting the run unless `--watch` is present. For eval and deliverable work, run with `--watch` so success or failure is observed before continuing. After a watched run fails, inspect the run with the exact `runs get` command printed by the CLI; do not infer success from a returned `runId`.
 
-| Scenario | Use when | Start with | Required input | Notes |
-|---|---|---|---|---|
-| Name + domain -> work email | You have first name, last name, and company domain | `prebuilt/name-and-domain-to-email-waterfall` | `first_name`, `last_name`, `domain` | Canonical work-email route. Include `company_name` and `linkedin_url` when known. |
-| CSV name + domain -> work email | You have a CSV with first/last/domain columns | `prebuilt/name-and-domain-to-email-waterfall-batch` | `csv` | Fastest bulk work-email route. Pass a workspace-relative CSV path such as `data/leads.csv`, not an absolute local path. |
-| LinkedIn profile -> work email | You have a standard LinkedIn `/in/` profile URL | `prebuilt/person-linkedin-to-email` | `linkedin_url` | Do not use Sales Navigator `/sales/lead/` URLs as profile URLs; resolve company/domain first. |
-| Person -> LinkedIn profile | You have name plus company/domain/email context and need the profile URL | `prebuilt/person-to-linkedin` | `first_name`, `last_name` | Mechanical identity lookup before LinkedIn-backed enrichment. |
-| Company -> persona contacts | You have a target account and need candidate people by role or seniority | `prebuilt/company-to-contact` | `roles` | Prefer exact roles plus account identifiers: `domain`, `company_name`, or `linkedin_company_url`. Validate title fit before email/phone fanout. |
-| Person -> phone | You have a verified person identity and want one phone number | `prebuilt/person-to-phone` | `first_name`, `last_name` | Phone comes after identity. Add `domain`, `email`, or `linkedin_url` when available. Validate known phones after recovery. |
-| Personal email | User explicitly asks for personal emails, not work emails | `prebuilt/personal-email` | `first_name`, `last_name` | Do not substitute work-email plays or providers when the requested channel is personal email. |
-| LinkedIn post -> engagers | You have a LinkedIn post URL and need reactors/commenters | `prebuilt/linkedin-post-to-engagers` | `post_url` | Use this for post-level audience capture, then qualify or enrich later. |
-| Engager/person -> ICP tier | You have person rows with position/headline and an ICP definition | `prebuilt/engagers-to-icp-qualification` | `first_name`, `last_name`, `position`, `icp_description` | Classification only. If qualification needs company size, funding, or web research, use a custom research step. |
+These are play routes, not provider tools. The table is compiled from the current generated play catalog so route selection stays current as plays are added or removed.
+
+| Task | Use This Play First | Required Inputs | Why |
+| --- | --- | --- | --- |
+| Company Domain To Individual | `company_domain_to_individual` | `domain`; optional: `roles`, `seniority`, `limit` | Generated company-to-individual play that resolves individual from company domain. Defaults to decision-maker roles unless roles are provided. |
+| Company Domain To Individual Email | `company_domain_to_individual_email` | `domain`; optional: `roles`, `seniority`, `limit` | Generated company-to-individual play that resolves email from company domain. Defaults to decision-maker roles unless roles are provided. |
+| Company Domain To Individual First Last | `company_domain_to_individual_first_last` | `domain`; optional: `roles`, `seniority`, `limit` | Generated company-to-individual play that resolves first last from company domain. Defaults to decision-maker roles unless roles are provided. |
+| Company Domain To Individual LinkedIn Url | `company_domain_to_individual_linkedin_url` | `domain`; optional: `roles`, `seniority`, `limit` | Generated company-to-individual play that resolves linkedin url from company domain. Defaults to decision-maker roles unless roles are provided. |
+| Company LinkedIn Url To Individual | `company_linkedin_url_to_individual` | `linkedin_company_url`; optional: `roles`, `seniority`, `limit` | Generated company-to-individual play that resolves individual from company LinkedIn URL. Defaults to decision-maker roles unless roles are provided. |
+| Company LinkedIn Url To Individual Email | `company_linkedin_url_to_individual_email` | `linkedin_company_url`; optional: `roles`, `seniority`, `limit` | Generated company-to-individual play that resolves email from company LinkedIn URL. Defaults to decision-maker roles unless roles are provided. |
+| Company LinkedIn Url To Individual First Last | `company_linkedin_url_to_individual_first_last` | `linkedin_company_url`; optional: `roles`, `seniority`, `limit` | Generated company-to-individual play that resolves first last from company LinkedIn URL. Defaults to decision-maker roles unless roles are provided. |
+| Company LinkedIn Url To Individual LinkedIn Url | `company_linkedin_url_to_individual_linkedin_url` | `linkedin_company_url`; optional: `roles`, `seniority`, `limit` | Generated company-to-individual play that resolves linkedin url from company LinkedIn URL. Defaults to decision-maker roles unless roles are provided. |
+| Company Name To Individual | `company_name_to_individual` | `company_name`; optional: `roles`, `seniority`, `limit` | Generated company-to-individual play that resolves individual from company name. Defaults to decision-maker roles unless roles are provided. |
+| Company Name To Individual Email | `company_name_to_individual_email` | `company_name`; optional: `roles`, `seniority`, `limit` | Generated company-to-individual play that resolves email from company name. Defaults to decision-maker roles unless roles are provided. |
+| Company Name To Individual First Last | `company_name_to_individual_first_last` | `company_name`; optional: `roles`, `seniority`, `limit` | Generated company-to-individual play that resolves first last from company name. Defaults to decision-maker roles unless roles are provided. |
+| Company Name To Individual LinkedIn Url | `company_name_to_individual_linkedin_url` | `company_name`; optional: `roles`, `seniority`, `limit` | Generated company-to-individual play that resolves linkedin url from company name. Defaults to decision-maker roles unless roles are provided. |
+| Company To Contact By Role Waterfall | `company_to_contact_by_role_waterfall` | `roles`; optional: `company_name`, `domain`, `linkedin_company_url`, `seniority`, `limit` | Find contact candidates from a company domain via an explicit quality-first waterfall. The play translates portable roles into provider-specific search inputs, including Deepline native boolean title-filter expressions for leadership-style searches. Provider order: dropleads domain search → Deepline native contact search → apollo domain search → icypeas domain profile search → prospeo domain search → crustdata domain search. |
+| Engagers To Icp Qualification | `engagers_to_icp_qualification` | `first_name`, `last_name`, `position`, `icp_description`; optional: `company` | Classify a person against an ICP using their name and position/headline. Returns {icp_tier, icp_reason} via deeplineagent. |
+| LinkedIn Post To Engagers | `linkedin_post_to_engagers` | `post_url`; optional: `max_items` | Scrape all reactors and commenters from a LinkedIn post via harvestapi/linkedin-post-reactions. Returns an array of {first_name, last_name, linkedin_url, position, engagement_type} per engager. |
+| Name And Domain To Email Waterfall | `name_and_domain_to_email_waterfall` | `first_name`, `last_name`, `domain`; optional: `company_name`, `linkedin_url` | Find work email from name and domain. Resolve a work email from first name, last name, and company domain. Starts with pattern validation (validated on 6,772 emails): first@ (57.8%), flast@ (13.8%), first.last@ (13.3%), firstl@ (2.2%), firstlast@ (2.0%), then finder APIs ordered by verified-email quality: hunter (76% valid) → leadmagic → datagma → findymail → icypeas → prospeo → native → lusha → contactout → dropleads (last resort, 9% valid on enterprise SaaS). |
+| Person LinkedIn Sales Nav Url To Email | `person_linkedin_sales_nav_url_to_email` | `linkedin_sales_nav_url` | Generated play that resolves person email from LinkedIn Sales Navigator URL. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person LinkedIn Sales Nav Url To Job History | `person_linkedin_sales_nav_url_to_job_history` | `linkedin_sales_nav_url` | Generated play that resolves person job history from LinkedIn Sales Navigator URL. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person LinkedIn Sales Nav Url To Personal Email | `person_linkedin_sales_nav_url_to_personal_email` | `linkedin_sales_nav_url` | Generated play that resolves person personal email from LinkedIn Sales Navigator URL. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person LinkedIn Sales Nav Url To Phone | `person_linkedin_sales_nav_url_to_phone` | `linkedin_sales_nav_url` | Generated play that resolves person phone from LinkedIn Sales Navigator URL. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person LinkedIn Sales Nav Url To Work Email | `person_linkedin_sales_nav_url_to_work_email` | `linkedin_sales_nav_url` | Generated play that resolves person work email from LinkedIn Sales Navigator URL. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person LinkedIn To Email Waterfall | `person_linkedin_to_email_waterfall` | `linkedin_url` | Resolve contact email from a standard person LinkedIn URL using LinkedIn-native enrichment providers. Waterfall order optimised for verified-email quality: prospeo → deepline_native → findymail → lusha → contactout → forager → leadmagic. |
+| Person LinkedIn Url Context To Email | `person_linkedin_url_context_to_email` | `linkedin_url`; optional: `first_name`, `last_name`, `domain`, `company_name`, `email` | Generated play that resolves person email from LinkedIn URL plus context. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person LinkedIn Url Context To Job History | `person_linkedin_url_context_to_job_history` | `linkedin_url`; optional: `first_name`, `last_name`, `domain`, `company_name`, `email` | Generated play that resolves person job history from LinkedIn URL plus context. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person LinkedIn Url Context To Personal Email | `person_linkedin_url_context_to_personal_email` | `linkedin_url`; optional: `first_name`, `last_name`, `domain`, `company_name`, `email` | Generated play that resolves person personal email from LinkedIn URL plus context. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person LinkedIn Url Context To Phone | `person_linkedin_url_context_to_phone` | `linkedin_url`; optional: `first_name`, `last_name`, `domain`, `company_name`, `email` | Generated play that resolves person phone from LinkedIn URL plus context. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person LinkedIn Url Context To Work Email | `person_linkedin_url_context_to_work_email` | `linkedin_url`; optional: `first_name`, `last_name`, `domain`, `company_name`, `email` | Generated play that resolves person work email from LinkedIn URL plus context. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person LinkedIn Url To Job History | `person_linkedin_url_to_job_history` | `linkedin_url` | Generated play that resolves person job history from LinkedIn URL. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person LinkedIn Url To Personal Email | `person_linkedin_url_to_personal_email` | `linkedin_url` | Generated play that resolves person personal email from LinkedIn URL. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person LinkedIn Url To Phone | `person_linkedin_url_to_phone` | `linkedin_url` | Generated play that resolves person phone from LinkedIn URL. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person Name Company To Email | `person_name_company_to_email` | `first_name`, `last_name`, `company_name`; optional: `linkedin_url` | Generated play that resolves person email from first name, last name, and company name. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person Name Company To Job History | `person_name_company_to_job_history` | `first_name`, `last_name`, `company_name`; optional: `linkedin_url` | Generated play that resolves person job history from first name, last name, and company name. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person Name Company To LinkedIn Url | `person_name_company_to_linkedin_url` | `first_name`, `last_name`, `company_name`; optional: `linkedin_url` | Generated play that resolves person linkedin url from first name, last name, and company name. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person Name Company To Personal Email | `person_name_company_to_personal_email` | `first_name`, `last_name`, `company_name`; optional: `linkedin_url` | Generated play that resolves person personal email from first name, last name, and company name. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person Name Company To Work Email | `person_name_company_to_work_email` | `first_name`, `last_name`, `company_name`; optional: `linkedin_url` | Generated play that resolves person work email from first name, last name, and company name. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person Name Domain To Job History | `person_name_domain_to_job_history` | `first_name`, `last_name`, `domain`; optional: `company_name`, `email`, `linkedin_url` | Generated play that resolves person job history from first name, last name, and domain. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person Name Domain To LinkedIn Url | `person_name_domain_to_linkedin_url` | `first_name`, `last_name`, `domain`; optional: `company_name`, `email`, `linkedin_url` | Generated play that resolves person linkedin url from first name, last name, and domain. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person Name Domain To Personal Email | `person_name_domain_to_personal_email` | `first_name`, `last_name`, `domain`; optional: `company_name`, `email`, `linkedin_url` | Generated play that resolves person personal email from first name, last name, and domain. Provider paths are selected from typed capability metadata and capped at four provider hops. |
+| Person Name Domain To Phone | `person_name_domain_to_phone` | `first_name`, `last_name`, `domain`; optional: `company_name`, `email`, `linkedin_url` | Generated play that resolves person phone from first name, last name, and domain. Provider paths are selected from typed capability metadata and capped at four provider hops. |
 
 Prebuilt plays are not tools. In the CLI, call them with `deepline plays run`. Inside a scratchpad play, compose them with `ctx.runPlay(key, playRef, input, { description })`; inside `ctx.map`, use the row context: `rowCtx.runPlay(...)`.
 
 Keep each child play call behind a stable key just like a provider call. The key is scoped to the parent run and row, so reruns can reuse completed child work.
 
-When you bypass a likely prebuilt play, write the mismatch before writing custom provider code:
+### Use The Play In Code
+
+Use `ctx.runPlay<TOutput>(...)` when you want a prebuilt play as one stage inside your scratchpad. This keeps the prebuilt waterfall reusable while letting you add cheap downstream validation, gating, and flat user-facing columns in your own play.
+
+When composing a prebuilt play over rows, adapt row shape before the child play call. Do not key or call the child play from raw CSV/table headers unless those headers already match the described input schema. Build a small explicit adapter object, then key and call from that object.
 
 ```text
-Prebuilt route rejected:
-- Play: prebuilt/company-to-contact
-- Contract checked with: deepline plays describe prebuilt/company-to-contact --json
-- Mismatch: <missing input/output, wrong scale, wrong persona control, or custom validation needed>
-- Custom route: <provider tools and why they are necessary>
+const contacts = rawRows.map((row) => ({
+  first_name: row.first_name ?? row.FIRST_NAME ?? row.firstName ?? '',
+  last_name: row.last_name ?? row.LAST_NAME ?? row.lastName ?? '',
+  domain: row.domain ?? row.DOMAIN ?? row.company_domain ?? '',
+  company_name: row.company_name ?? row.COMPANY ?? row.company ?? '',
+  linkedin_url: row.linkedin_url ?? row.LINKEDIN_URL ?? row.linkedin ?? '',
+}));
+
+const validContacts = contacts.filter((row) => row.first_name && row.last_name && row.domain);
+
+const rows = await ctx
+  .map('contact_email_rows', validContacts)
+  .step('email', async (row, rowCtx) => {
+    const result = await rowCtx.runPlay<{ email: string | null }>(
+      'name_domain_email',
+      'prebuilt/name-and-domain-to-email-waterfall',
+      {
+        first_name: row.first_name,
+        last_name: row.last_name,
+        domain: row.domain,
+        company_name: row.company_name,
+        linkedin_url: row.linkedin_url,
+      },
+      { description: 'Resolve a work email with the canonical prebuilt play.' },
+    );
+    return result.email ?? null;
+  })
+  .run({
+    key: (row) => `${row.first_name}:${row.last_name}:${row.domain}`,
+    description: 'One reusable child play call per adapted contact.',
+  });
 ```
 
+For one-off composition:
+
 ```text
-const email = await rowCtx.runPlay(
+const emailResult = await rowCtx.runPlay<{ email: string | null }>(
   'name_domain_email',
   'prebuilt/name-and-domain-to-email-waterfall',
   {
@@ -238,7 +472,7 @@ const email = await rowCtx.runPlay(
   },
 );
 
-const workEmail = email?.email ?? null;
+const workEmail = emailResult.email ?? null;
 ```
 
 Use row-scoped child plays inside maps for bulk enrichment:
@@ -246,8 +480,8 @@ Use row-scoped child plays inside maps for bulk enrichment:
 ```text
 const contacts = await ctx
   .map('contact_email_rows', rows)
-  .step('work_email', (row, rowCtx) =>
-    rowCtx.runPlay(
+  .step('email', async (row, rowCtx) => {
+    const result = await rowCtx.runPlay<{ email: string | null }>(
       'name_domain_email',
       'prebuilt/name-and-domain-to-email-waterfall',
       {
@@ -260,20 +494,40 @@ const contacts = await ctx
       {
         description: 'Resolve a work email with the canonical prebuilt play.',
       },
-    ),
-  )
-  .step('export_row', (row) => ({
-    company_name: row.company_name,
-    domain: row.domain,
-    contact_name: `${row.first_name} ${row.last_name}`.trim(),
-    email: row.work_email?.email ?? null,
-    source: 'prebuilt/name-and-domain-to-email-waterfall',
-    status: row.work_email?.email ? 'found' : 'missing',
-  }))
+    );
+    return result.email ?? null;
+  })
+  .step('source', () => 'prebuilt/name-and-domain-to-email-waterfall')
+  .step('status', (row) => (row.email ? 'found' : 'missing'))
+  .step('miss_reason', (row) => (row.email ? null : 'email_not_found'))
   .run({
     key: (row) => `${row.first_name}:${row.last_name}:${row.domain}`,
     description: 'One reusable child play call per contact identity.',
   });
+```
+
+### If The Suggested Play Is Wrong
+
+If a suggested prebuilt play is close but needs a different final shape, extra validation, or a custom gate, wrap it with `ctx.runPlay<TOutput>(...)` before switching to raw provider tools. Keep the original play call intact, add your custom scalar stages after it, then check and run the wrapper. Copy the full play source only when you need to change the play internals or provider order.
+
+```bash
+deepline plays describe prebuilt/name-and-domain-to-email-waterfall --json
+deepline plays bootstrap people-email \
+  --from csv:data/leads.csv \
+  --using play:prebuilt/name-and-domain-to-email-waterfall \
+  --limit 5 > email-waterfall-validated.play.ts
+deepline plays check email-waterfall-validated.play.ts
+deepline plays run email-waterfall-validated.play.ts --watch
+```
+
+When you bypass a likely prebuilt play, write the mismatch before writing custom provider code:
+
+```text
+Prebuilt route rejected:
+- Play: prebuilt/company-to-contact
+- Contract checked with: deepline plays describe prebuilt/company-to-contact --json
+- Mismatch: <missing input/output, wrong scale, wrong persona control, or custom validation needed>
+- Custom route: <provider tools and why they are necessary>
 ```
 
 For CSV-backed prebuilt plays, keep the CSV path relative to the eval/project working directory so the SDK can stage the file for the worker:
@@ -374,7 +628,7 @@ Before editing a play, identify whether the change is upstream paid source work,
 - Not every play step should execute a tool. Use pure `.step(...)` stages for normalization, scoring, fit checks, placeholder cleanup, fanout estimates, and final export projection.
 - The first play version should copy the exact probe payload that worked. Do not make filters fancier inside the play.
 - A pilot is not complete until you have verified row shape, declared getters, null semantics, status fields, provider errors, and the fanout shape.
-- No mapped paid enrichment until the code contains or logs the estimated fanout: candidate rows * paid providers * fallback legs.
+- No mapped paid enrichment until the code contains or logs the estimated fanout: candidate rows _ paid providers _ fallback legs.
 - If a map step's logic changes but row keys and inputs stay the same, change that step `id` before the next run. This includes placeholder filtering, exception handling, getter-path fixes, scoring, and export-shape changes.
 - After one source-shape correction to the same provider, stop tuning that provider for count. Add a disjoint branch, relax downstream filters, or export partials with miss reasons.
 
@@ -464,10 +718,19 @@ Company-first contact scratchpad with row keys. Write it iteratively, but keep t
 import { definePlay, when } from 'deepline';
 
 const compact = (o: Record<string, any>) =>
-  Object.fromEntries(Object.entries(o).filter(([, v]) => v !== null && v !== undefined && v !== ''));
+  Object.fromEntries(
+    Object.entries(o).filter(
+      ([, v]) => v !== null && v !== undefined && v !== '',
+    ),
+  );
 
 const cleanDomain = (v: any) =>
-  String(v ?? '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+  String(v ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .split('/')[0];
 
 const missing = (miss_reason: string, source = 'scratchpad') => ({
   status: 'missing',
@@ -476,7 +739,8 @@ const missing = (miss_reason: string, source = 'scratchpad') => ({
 });
 
 const toAccount = (result: any) => {
-  const company = result.entities?.find((e: any) => e.type === 'company')?.properties ?? {};
+  const company =
+    result.entities?.find((e: any) => e.type === 'company')?.properties ?? {};
   return compact({
     domain: cleanDomain(result.url),
     company_name: company.name ?? result.title,
@@ -489,7 +753,9 @@ const scoreAccountFit = (account: any) => {
   const evidence = String(account.company_fit_evidence ?? '').toLowerCase();
   const hasFit =
     account.domain &&
-    String(account.hq_country ?? account.company_fit_evidence).toLowerCase().includes('united states') &&
+    String(account.hq_country ?? account.company_fit_evidence)
+      .toLowerCase()
+      .includes('united states') &&
     /fintech|payments|bank|api|platform/.test(evidence);
 
   return {
@@ -501,7 +767,9 @@ const scoreAccountFit = (account: any) => {
 };
 
 const pickBestPerson = (people: any[]) => {
-  const person = people.find((p: any) => /founder|ceo|marketing/i.test(String(p.title ?? '')));
+  const person = people.find((p: any) =>
+    /founder|ceo|marketing/i.test(String(p.title ?? '')),
+  );
   return person
     ? compact({
         status: 'found',
@@ -510,108 +778,167 @@ const pickBestPerson = (people: any[]) => {
         linkedin_url: person.linkedin_url ?? person.linkedin,
         first_name: person.first_name,
         last_name: person.last_name,
-        current_domain: cleanDomain(person.organization?.domain ?? person.company_domain),
+        current_domain: cleanDomain(
+          person.organization?.domain ?? person.company_domain,
+        ),
       })
     : missing('no_matching_person', 'people_search');
 };
 
-export default definePlay('company-first-contact-scratchpad', async (ctx, input: any = {}) => {
-  const target = Math.max(1, Math.min(Number(input.target ?? 5), 25));
+export default definePlay(
+  'company-first-contact-scratchpad',
+  async (ctx, input: any = {}) => {
+    const target = Math.max(1, Math.min(Number(input.target ?? 5), 25));
 
-  // Draft 1: buy the reusable source rows. Run here first and inspect this
-  // getter before adding fanout. Keep this id stable while editing below.
-  const seed = await ctx.tools.execute({
-    id: 'semantic_account_seed',
-    tool: 'exa_company_search',
-    input: {
-      query: `US ${input.category ?? input.query ?? ''} companies ${input.use_case ?? ''}`,
-      type: 'fast',
-      numResults: Math.min(target * 3, 25),
-      userLocation: 'US',
-    },
-    description: 'Evidence-grade niche account seed before domain-scoped people search.',
-  });
-
-  const seedRows: any[] = seed.extractedLists.results.get();
-
-  // Draft 2: add cheap notebook logic downstream of the source call. Reruns can
-  // improve account normalization, scoring, and export columns without rebuying
-  // Exa because `semantic_account_seed` stayed stable.
-  const contacts = await ctx
-    .map('company_first_contacts', seedRows)
-    .step('account', toAccount)
-    .step('account_fit', (row: any) => scoreAccountFit(row.account))
-    // Draft 3: add paid fanout only after fit is visible. `when` skips the
-    // provider call unless the cheap step proved the row is worth spending on.
-    .step('people_search', when(
-      (row: any) => row.account_fit?.status === 'fit',
-      async (row: any, rowCtx: any) => {
-        const people = await rowCtx.tools.execute({
-          id: 'domain_people_search',
-          tool: 'apollo_people_search',
-          input: {
-            q_organization_domains_list: [row.account.domain],
-            person_titles: input.roles ?? ['founder', 'ceo', 'head of marketing', 'vp marketing'],
-            per_page: 3,
-          },
-          description: 'Find persona contacts at a sourced company domain.',
-        });
-        return pickBestPerson(people.extractedLists.people.get());
+    // Draft 1: buy the reusable source rows. Run here first and inspect this
+    // getter before adding fanout. Keep this id stable while editing below.
+    const seed = await ctx.tools.execute({
+      id: 'semantic_account_seed',
+      tool: 'exa_company_search',
+      input: {
+        query: `US ${input.category ?? input.query ?? ''} companies ${input.use_case ?? ''}`,
+        type: 'fast',
+        numResults: Math.min(target * 3, 25),
+        userLocation: 'US',
       },
-    ))
-    .step('work_email', async (row: any, rowCtx: any) => {
-      const person = row.people_search;
-      if (person?.status !== 'found') return missing(person?.miss_reason ?? row.account_fit?.miss_reason ?? 'no_matching_person', 'people_search');
-      if (person.current_domain && person.current_domain !== row.account.domain) {
-        return { email: null, source: 'domain_check', status: 'missing', miss_reason: 'out_of_seed_domain' };
-      }
-
-      // Keep paid finder ids stable. Add new scoring/export steps later without
-      // rebuying successful email lookups.
-      const first = await rowCtx.tools.execute({
-        id: 'email_primary',
-        tool: 'dropleads_email_finder',
-        input: { first_name: person.first_name, last_name: person.last_name, company_domain: row.account.domain },
-        description: 'Primary work email finder for fitted person/domain.',
-      });
-      const firstEmail = first.extractedValues.email.get();
-      if (firstEmail) return { email: firstEmail, source: 'dropleads_email_finder', status: 'found' };
-
-      const second = await rowCtx.tools.execute({
-        id: 'email_fallback',
-        tool: 'hunter_email_finder',
-        input: { first_name: person.first_name, last_name: person.last_name, domain: row.account.domain },
-        description: 'Fallback work email finder only for still-missing rows.',
-      });
-      const secondEmail = second.extractedValues.email.get();
-      return secondEmail
-        ? { email: secondEmail, source: 'hunter_email_finder', status: 'found' }
-        : { email: null, source: 'email_waterfall', status: 'missing', miss_reason: 'email_not_found' };
-    })
-    .step('export_row', (row: any) => ({
-      company_name: row.account.company_name,
-      domain: row.account.domain,
-      category: row.account_fit?.category ?? null,
-      company_fit_evidence: row.account.company_fit_evidence,
-      fit_score: row.account_fit?.fit_score ?? null,
-      contact_name: row.people_search?.contact_name ?? null,
-      title: row.people_search?.title ?? null,
-      linkedin_url: row.people_search?.linkedin_url ?? null,
-      email: row.work_email?.email ?? null,
-      source: row.work_email?.source ?? 'company_first_contacts',
-      status: row.work_email?.status ?? row.people_search?.status ?? row.account_fit?.status ?? 'missing',
-      miss_reason: row.work_email?.miss_reason ?? row.people_search?.miss_reason ?? row.account_fit?.miss_reason ?? null,
-    }))
-    .run({
-      key: (row: any) => cleanDomain(row.url),
-      description: 'One idempotent row per sourced account domain; reruns can add new steps without rebuying completed provider work.',
+      description:
+        'Evidence-grade niche account seed before domain-scoped people search.',
     });
 
-  return { contacts };
-});
+    const seedRows: any[] = seed.extractedLists.results.get();
+
+    // Draft 2: add cheap notebook logic downstream of the source call. Reruns can
+    // improve account normalization, scoring, and export columns without rebuying
+    // Exa because `semantic_account_seed` stayed stable.
+    const contacts = await ctx
+      .map('company_first_contacts', seedRows)
+      .step('account', toAccount)
+      .step('account_fit', (row: any) => scoreAccountFit(row.account))
+      // Draft 3: add paid fanout only after fit is visible. `when` skips the
+      // provider call unless the cheap step proved the row is worth spending on.
+      .step(
+        'people_search',
+        when(
+          (row: any) => row.account_fit?.status === 'fit',
+          async (row: any, rowCtx: any) => {
+            const people = await rowCtx.tools.execute({
+              id: 'domain_people_search',
+              tool: 'apollo_people_search',
+              input: {
+                q_organization_domains_list: [row.account.domain],
+                person_titles: input.roles ?? [
+                  'founder',
+                  'ceo',
+                  'head of marketing',
+                  'vp marketing',
+                ],
+                per_page: 3,
+              },
+              description: 'Find persona contacts at a sourced company domain.',
+            });
+            return pickBestPerson(people.extractedLists.people.get());
+          },
+        ),
+      )
+      .step('work_email', async (row: any, rowCtx: any) => {
+        const person = row.people_search;
+        if (person?.status !== 'found')
+          return missing(
+            person?.miss_reason ??
+              row.account_fit?.miss_reason ??
+              'no_matching_person',
+            'people_search',
+          );
+        if (
+          person.current_domain &&
+          person.current_domain !== row.account.domain
+        ) {
+          return {
+            email: null,
+            source: 'domain_check',
+            status: 'missing',
+            miss_reason: 'out_of_seed_domain',
+          };
+        }
+
+        // Keep paid finder ids stable. Add new scoring/export steps later without
+        // rebuying successful email lookups.
+        const first = await rowCtx.tools.execute({
+          id: 'email_primary',
+          tool: 'dropleads_email_finder',
+          input: {
+            first_name: person.first_name,
+            last_name: person.last_name,
+            company_domain: row.account.domain,
+          },
+          description: 'Primary work email finder for fitted person/domain.',
+        });
+        const firstEmail = first.extractedValues.email.get();
+        if (firstEmail)
+          return {
+            email: firstEmail,
+            source: 'dropleads_email_finder',
+            status: 'found',
+          };
+
+        const second = await rowCtx.tools.execute({
+          id: 'email_fallback',
+          tool: 'hunter_email_finder',
+          input: {
+            first_name: person.first_name,
+            last_name: person.last_name,
+            domain: row.account.domain,
+          },
+          description:
+            'Fallback work email finder only for still-missing rows.',
+        });
+        const secondEmail = second.extractedValues.email.get();
+        return secondEmail
+          ? {
+              email: secondEmail,
+              source: 'hunter_email_finder',
+              status: 'found',
+            }
+          : {
+              email: null,
+              source: 'email_finder',
+              status: 'missing',
+              miss_reason: 'email_not_found',
+            };
+      })
+      .step('email', (row: any) => row.work_email?.email ?? null)
+      .step(
+        'source',
+        (row: any) => row.work_email?.source ?? 'company_first_contacts',
+      )
+      .step(
+        'status',
+        (row: any) =>
+          row.work_email?.status ??
+          row.people_search?.status ??
+          row.account_fit?.status ??
+          'missing',
+      )
+      .step(
+        'miss_reason',
+        (row: any) =>
+          row.work_email?.miss_reason ??
+          row.people_search?.miss_reason ??
+          row.account_fit?.miss_reason ??
+          null,
+      )
+      .run({
+        key: (row: any) => cleanDomain(row.url),
+        description:
+          'One idempotent row per sourced account domain; reruns can add new steps without rebuying completed provider work.',
+      });
+
+    return { contacts };
+  },
+);
 ```
 
-Map steps can be pure computation or provider calls. Use tool steps only when the row needs external data; use pure steps for shaping, gating, scoring, and export. Step outputs nest under the step name: after `.step('leader', ...)`, read `row.leader?.email`, not `row.email`. Object-returning steps export as `step.field` columns. If the user needs clean `email` or `name` columns, make the final step return those exact flat fields.
+Map steps can be pure computation or provider calls. Use tool steps only when the row needs external data; use pure steps for shaping, gating, scoring, and final scalar columns. Step outputs live on the row under the step name: after `.step('email', ...)`, read `row.email`. Object-returning steps export as `step.field` columns, so prefer scalar steps named for the requested output columns (`email`, `phone`, `status`, `miss_reason`) instead of an `export_row` cleanup object.
 
 `ctx.map` is a builder, not an array mapper. The value returned by `.run()` is a `PlayDataset` export handle; do not call `.find`, `.map`, `.filter`, spread it, index it, or cast it to `any` to build a second map. Put enrichment and final export columns in one map when possible.
 
@@ -619,20 +946,20 @@ Map steps can be pure computation or provider calls. Use tool steps only when th
 
 - **Console Panning** — running one-off executes and visually harvesting rendered output. Correction: move any useful provider call into the scratchpad `.play.ts` immediately.
 - **Unstable Paid IDs** — renaming source, enrichment, or map step IDs while editing cheap downstream logic. Correction: keep paid step IDs stable; only rename to intentionally invalidate/rebuy.
-- **Spend-Blind Fanout** — mapping paid enrichment over noisy rows without calculating the multiplier. Correction: dedupe/filter/score first; estimate rows * providers * fallback legs.
+- **Spend-Blind Fanout** — mapping paid enrichment over noisy rows without calculating the multiplier. Correction: dedupe/filter/score first; estimate rows _ providers _ fallback legs.
 - **Same-Source Thrashing** — repeatedly tweaking one paid provider query to chase count. Correction: after one source-shape fix, branch, relax downstream filters, or export misses.
 - **Getter Archaeology** — writing `?.get?.() ?? raw?.result?.data` style code. Correction: call declared getters directly; if a getter is missing, repair metadata or choose a tool that declares the needed getter.
 - **Validation As Discovery** — using email/phone validators to find channels. Correction: validators only check known emails/phones; use finder tags for discovery.
 - **People-First Category Drift** — searching people before account fit is established for company-scoped tasks. Correction: seed companies/domains first, then search/enrich people inside that set.
 - **Domain Search Confusion** — treating domain search as named-person email finding. Correction: domain search discovers domains/patterns; email finders find person emails.
 - **Silent Null Collapse** — dropping rows or blanking fields without explanation. Correction: emit `status`, `source`, and `miss_reason`.
-- **Raw Export Leakage** — shipping nested provider objects or provider-shaped column names. Correction: project to flat user-facing columns with evidence and provenance.
+- **Raw Export Leakage** — shipping nested provider objects or provider-shaped column names. Correction: return compact scalar map steps named for the user-facing columns, with evidence and provenance.
 
 ## Export Contract
 
 If the user asked for CSV/export, make the final rows an exportable dataset: return rows from `ctx.map(...).run`, not a plain array.
 
-Final CSVs must use user-facing columns, not provider-shaped aliases. Contact deliverables use the requested `name` or `contact_name`, plus `title`, `linkedin_url`, `email`, `source`, `status`, and `miss_reason`. Category/account deliverables include `category` or `<vertical>_category` even when source taxonomy is also exported as `industry`.
+Final CSVs must use user-facing columns, not provider-shaped aliases. Contact deliverables use the requested `name` or `contact_name`, plus `title`, `linkedin_url`, `email`, `source`, `status`, and `miss_reason`. Category/account deliverables include `category` or `<vertical>_category` even when source taxonomy is also exported as `industry`. Make those columns first-class map steps when possible; do not add a final `export_row` object just to flatten data the row already has.
 
 Do not return full provider objects from map steps at scale. Extract compact scalars inside the step and return only fields needed downstream.
 
