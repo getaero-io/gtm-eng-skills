@@ -1,11 +1,12 @@
 # Account Org Chart Builder
 
-Build an interactive HTML org chart for account mapping - find decision makers, map reporting structures, and identify warm intro paths.
+Build an interactive HTML org chart for account mapping — find decision makers, map reporting structures, identify the buying committee, and surface warm intro paths.
 
 ## When to use
 
 - User asks to "map an account" or "build an org chart"
 - User wants to find "who reports to X" or "decision makers at Y"
+- User wants to map the **buying committee / buying group / decision-making unit** (economic buyer, champion, technical evaluator, blocker)
 - User has a warm connection and wants to find paths through the org
 
 ## Inputs
@@ -17,14 +18,34 @@ One of:
 
 If only a name is given with no company context, ask before proceeding.
 
+## Two modes — pick before you start
+
+The waterfall below defaults to **company-wide mapping** (domain → every employee). But a lot of requests are actually **person-centric** ("build a 2-up / 2-down around this person"). They need different handling, and confusing them wastes credits and produces a worse chart.
+
+| Signal in the request | Mode | What changes |
+|---|---|---|
+| "map the GTM org at Acme", "who are the decision makers at Acme", a bare domain | **company-wide** | Run the full Section 2 waterfall. Hierarchy is inferred org-wide from title tiers. |
+| "build an org chart around Jane Doe", "Jane's manager and her reports", a single LinkedIn URL/person | **person-centric** | Do NOT run the full company waterfall — at a 100k-person enterprise it floods you with thousands of irrelevant people. Use the focused flow in **§2-person** below. |
+
+**Why this matters:** the company-wide waterfall is built to maximize coverage. Person-centric work needs the opposite — a tight neighborhood around one node. Running the wrong mode is the single most common way this recipe disappoints.
+
+### The hard truth about reporting chains
+
+No data source Deepline can reach — Apollo, PDL, Dropleads, Apify, the `linkedin_scraper` family, or Sales Navigator — exposes a real "reports to" / manager field. LinkedIn does not publish reporting chains, and neither does Sales Nav (it improves *who you can find*, not *who reports to whom*). So **every reporting edge in any org chart this recipe produces is inferred, not retrieved.**
+
+That means:
+- The names, titles, LinkedIn URLs, and emails can be high-confidence (they come from real lookups).
+- The *edges between them* are a best guess from title tier + team + location + tenure overlap. At a small startup this guess is usually right. At a 100k-person enterprise it can be ~10-20% confident, because dozens of same-title managers exist in the same city.
+- **Be honest about this in the output.** Put a confidence badge on every inferred edge and a one-line disclaimer ("reporting lines inferred from title/team/location — not from LinkedIn data"). Never present an inferred chain as if it were verified. A rep who trusts a wrong chain and name-drops the wrong manager on a call burns the account.
+
 ## Quick reference
 
 | Step | What | Source | Cost |
 |------|------|--------|------|
-| 1 | Resolve target | `leadmagic_profile_search` or `person_enrichment_from_email_waterfall` | 1 credit |
+| 1 | Resolve target | `leadmagic_profile_search` or `prebuilt/person-linkedin-to-email` | 1 credit |
 | 2a | Deepline Native search | `deepline_native_search_contact` (4 title tiers) | $0.04/req |
 | 2b | Dropleads search | `dropleads_search_people` | FREE |
-| 2c | Apify LinkedIn scrape | `apimaestro/linkedin-company-employees-scraper-no-cookies` | ~$0.25 |
+| 2c | Apify LinkedIn scrape | `apify_run_actor_sync` w/ `harvestapi/linkedin-company-employees` | ~$0.25 |
 | 2d | Apollo paid search | `apollo_people_search_paid` (2 pages) | ~$5 |
 | 2e | PDL gap-fill (optional) | `peopledatalabs_person_search` CXO+VP only | ~$2-11 |
 | 3 | Classify + infer | Title-based seniority + tenure + recency signals + Claude reasoning | 0 |
@@ -55,12 +76,38 @@ deepline enrich --input seed.csv --in-place \
 **If name + company given:**
 Create seed CSV with columns: `name`, `company_name`, `domain`. If no domain, resolve with exa_search as above.
 
+### §2-person. Person-centric flow (2-up / 2-down around one person)
+
+Use this instead of the company-wide waterfall when the request centers on one individual. The goal is a tight neighborhood, not a roster.
+
+1. **Resolve and verify the anchor.** Confirm the person currently works where the request claims — scrape their live profile with `apify_run_actor_sync` + `apimaestro/linkedin-profile-detail` (`{"username":"<handle>"}`) and read the `experience[]` entry with `is_current: true`. This is the same live-verification pattern that catches stale data (a cached source may show a company they left months ago). Capture their exact team/sub-function, title, location, and tenure — these are your matching signals for the rest of the flow.
+
+2. **Find ±1 / ±2 candidates by constrained search, not full-company scrape.** Search for people at the same company filtered to the anchor's function + location + the adjacent title tiers:
+   - **+1 (manager):** one tier up, same team, same metro. e.g. anchor is "Principal Systems Engineer, San Diego" → search "Systems Engineering Manager" / "Senior Manager SE" at that company in San Diego.
+   - **+2 (director):** two tiers up, same function.
+   - **−1 (reports):** one tier down, same team + a shared specialty signal if you have one (e.g. same sub-discipline).
+
+   Use `dropleads_search_people` (free) and `deepline_native_search_contact` with title filters first; fall back to `exa_search` / Google-style queries for enterprises that index poorly. Keep each search scoped — you want ~3-8 candidates per tier, not hundreds.
+
+   **Resolving a candidate's LinkedIn URL from a name:** don't reach for `leadmagic_profile_search` (it costs ~$0.034/result and is for the *reverse* direction — hydrating a profile you already have the URL for). For name → LinkedIn URL, use the **Serper → Apify validate** pattern from the sibling [`linkedin-url-lookup`](linkedin-url-lookup.md) recipe: `serper_google_search` (~$0.002/result) with a `site:linkedin.com/in` query, then validate the top hit with an Apify profile scrape and a mandatory name-match gate. That pattern hits ~74% validated match (vs Exa's 23%) and ~10x cheaper than LeadMagic — and the name-validation gate matters, because ~26% of raw Serper lookups return the wrong person. Or just call the canonical play `prebuilt/person-to-linkedin` (aliases `name_to_linkedin_url_waterfall`, `name-to-linkedin-url`), which wraps this waterfall.
+
+3. **Rank the inferred edges, don't assert them.** For each candidate, score the likelihood they're the actual manager/report using the Manager prediction scoring table below (seniority gap + team match + geo + experience delta + tenure overlap). Surface the top 1-2 per tier *with their score shown as a confidence badge*. When several same-title managers tie (common at big enterprises), show them as parallel candidates rather than picking one — the rep can disambiguate.
+
+4. **Enrich the neighborhood.** Run emails/phones only on the final shortlist via the `prebuilt/person-linkedin-to-email` play (alias `person_linkedin_to_email_waterfall`) — verified providers like Prospeo. Watch for non-obvious corporate domains (e.g. Northrop Grumman is `@ngc.com`, not `@northropgrumman.com`); take the domain from the enrichment result, don't assume it.
+
+5. **Render** the same HTML chart as §4, but centered on the anchor with the inferred edges badged by confidence and the §"hard truth" disclaimer shown prominently.
+
+**Honest expectation:** emails and LinkedIn URLs from this flow are solid; the reporting edges at a large enterprise are a ranked guess (~10-20% on any single edge). That's the ceiling of title+geo inference without privileged data — set the rep's expectation accordingly rather than over-claiming.
+
 ### 2. Find ALL employees (cost-optimal waterfall)
+
+> Company-wide mode only. For a single-person 2-up/2-down, use **§2-person** above instead — running this full waterfall on a 100k-employee company buries the one neighborhood you care about.
 
 Run sources cheapest-first. Each step deduplicates against prior results - only net-new people advance.
 
+Use a descriptive, task-named working directory under `deepline/data/` so the user can find the outputs later — not a timestamped or random path:
 ```bash
-WORK_DIR="output/orgchart/$(date +%Y%m%d-%H%M%S)"
+WORK_DIR="deepline/data/${COMPANY_SLUG}-orgchart"   # e.g. deepline/data/ramp-orgchart
 mkdir -p "$WORK_DIR"
 echo "company_domain,company_name" > "$WORK_DIR/accounts.csv"
 echo "\"$DOMAIN\",\"$COMPANY\"" >> "$WORK_DIR/accounts.csv"
@@ -86,17 +133,15 @@ deepline enrich --input "$WORK_DIR/accounts.csv" --output "$WORK_DIR/dropleads.c
 ```
 Expected: +60-80 net new.
 
-**Source 3: Apify LinkedIn scrape (~$0.25)**
+**Source 3: LinkedIn employee scrape (~$0.25)**
 
-First resolve the LinkedIn company slug:
+Prefer the prebuilt play over a hand-rolled actor call — it resolves the company's LinkedIn page from the domain and runs the current company-employees actor for you, so you don't manage actor ids or input shapes:
 ```bash
-deepline tools execute exa_search --payload '{"query":"COMPANY_NAME LinkedIn company page site:linkedin.com/company","numResults":1,"type":"auto"}'
+deepline plays run prebuilt/company-domain-to-linkedin-employees --input '{"domain":"DOMAIN","max_items":500}' --watch
 ```
-Then scrape employees:
-```bash
-deepline tools execute apify_run_actor_sync --payload '{"actorId":"apimaestro/linkedin-company-employees-scraper-no-cookies","input":{"identifier":"https://www.linkedin.com/company/SLUG/","max_employees":500}}'
-```
-Results use `fullname` (not `fullName`), `headline` (not `title`), `profile_url`. Expected: +15-25 net new.
+Pilot with a small `max_items` first, then export rows with `deepline runs export <run-id> --out "$WORK_DIR/li-employees.csv"`. Expected: +15-25 net new.
+
+> If you genuinely need a raw actor call (e.g. a different roster actor), the current company-roster actor is `harvestapi/linkedin-company-employees` (input: `companyLinkedinUrls` string[] required, optional `maxItems`/`profileDepth`), and the per-profile actor is `apimaestro/linkedin-profile-detail` (input `{"username":"<handle>"}`, returns an `experience[]` array where the live role has `is_current: true` — the cleanest "where do they work today" signal). Actor ids and input keys drift; confirm with `deepline tools describe apify_run_actor_sync` (its `apifyKnownActors` list) before relying on any of them.
 
 **Source 4: Apollo paid search (~$5)**
 ```bash
@@ -192,6 +237,27 @@ For each team/department:
 
 This tells the rep: if Sales has 35% new hires, the org chart you're looking at is probably 30-60 days stale for that team — re-verify before a big send.
 
+### 3c. Map the buying committee (what makes the chart actually sell)
+
+A static org chart of titles ages out in under 90 days and rarely tells a rep who to call. What closes deals is a **buying-committee map**: the cluster of people involved in a purchase, each tagged with their *role in the deal*, not just their title. Modern B2B deals involve ~6-10 core stakeholders (Gartner) and win rates roughly triple when a rep maps 6+ supporters. So after classifying seniority, take the extra step of assigning committee roles.
+
+**Title → committee-role mapping.** Titles are a starting signal, not proof — assign a role to each relevant contact, then verify behavior where you can (a "champion" is defined by behavior, not title):
+
+| Role | Maps from these titles | Why they matter |
+|---|---|---|
+| **Economic buyer** | CFO, VP Finance, CRO, GM/BU owner, P&L-owning Director; for smaller deals the owning-function VP | Approves the spend. Not always the most senior person. |
+| **Champion** | RevOps/Sales Ops, Enablement, Demand Gen lead, the Director closest to the pain | Sells internally for you — the single highest-value contact. Title matters least here. |
+| **Technical buyer / evaluator** | VP/Director Engineering, Architect, Director of IT, CISO, Data Privacy Officer | Can kill the deal on technical/security/integration grounds. |
+| **Blocker / final authority** | CISO, Head of Compliance, General Counsel, Procurement/Vendor Mgmt | Quiet, risk-driven veto. Surface early. |
+| **End user / influencer** | ICs in the owning function; Staff/Principal/Senior Architect | Adoption sign-off and peer consensus. |
+| **Executive sponsor** | Relevant C-suite/SVP (CRO, CMO, CTO, CEO) | Ties the purchase to strategy. |
+
+This is the MEDDPICC spine extended for committees. Example: a security sale where the **CISO champions**, the **CFO is economic buyer**, the **CTO evaluates**, and the **CEO sponsors** — four titles, four roles, one deal.
+
+**Signals that reveal who's actually on the committee** (beyond title): open **job postings** (who owns the function + current tooling pain), **recent exec hires/promotions** (new budget + mandate to switch — a trigger event), **technographics ownership** (BuiltWith-style data + who lists the tool on LinkedIn = the real technical evaluator), and **content/intent engagement**. The highest-quality signal of all is a discovery-call mention ("who else is involved, who signs, who could quietly stop this") — note in the output where the rep should confirm the committee by asking.
+
+**Reflect this in the chart (§4):** tag each contact with **role + stance (champion / neutral / detractor) + influence (high/low)**, not just title; mark **warm-intro access paths** (shared connections, existing customers, mutual investors); and push the rep to **multi-thread 3-5 contacts** across functions rather than single-threading the most senior name — "when your champion leaves, you should have two other people who'll take your call."
+
 ### 4. Generate HTML org chart
 
 **Design system (avoid AI slop):**
@@ -217,7 +283,7 @@ This tells the rep: if Sales has 35% new hires, the org chart you're looking at 
 - Jargon badges like "ZoomInfo Likely"
 - Hero metrics layout with identical cards
 
-Save to `output/orgchart/{company}-{date}.html`.
+Save to `deepline/data/{company-slug}-orgchart/{company}-orgchart.html` (same descriptive working dir as the data, so the chart and its backing CSVs live together and the user can find them).
 
 ## Priority scoring
 

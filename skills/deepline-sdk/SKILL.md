@@ -25,9 +25,9 @@ Good:
 
 ```bash
 deepline health --json && deepline auth status --json && deepline billing balance --json
-deepline plays list --origin prebuilt --json
-deepline plays grep email --origin prebuilt --json
-deepline tools grep "email finder" --categories email_finder --json
+deepline plays search email --json
+deepline plays search "company contact" --json
+deepline tools list --categories email_finder --json
 deepline tools describe dropleads_email_finder --json
 ```
 
@@ -236,7 +236,7 @@ deepline plays check phone-flow.play.ts
 If the task starts from search instead of rows, bind the source provider and let bootstrap write TODO comments for the provider-specific query/filter inputs inside the generated play:
 
 ```bash
-deepline plays grep "<goal words>" --origin prebuilt --compact --json
+deepline plays grep "<goal words>" --compact --json
 deepline tools grep "<source capability>" --categories people_search --json
 deepline plays bootstrap people-email \
   --from provider:<people-search-tool-id> \
@@ -319,7 +319,7 @@ deepline plays run email-waterfall-validated.play.ts --input '{"limit":5}' --wat
 Drop to lower-level play routing only when bootstrap cannot express the start entity or route:
 
 ```bash
-deepline plays grep "<goal words>" --origin prebuilt --compact --json
+deepline plays grep "<goal words>" --compact --json
 deepline plays describe prebuilt/<chosen-play> --json
 deepline plays get prebuilt/<chosen-play> --source --out ./scratchpad.play.ts
 deepline plays check ./scratchpad.play.ts
@@ -338,21 +338,20 @@ Need verified emails -> email waterfall first, verifier after recovery as a sepa
 ```
 
 ```bash
-deepline plays list --origin prebuilt --json
-deepline plays grep email --origin prebuilt --json
-deepline plays grep phone --origin prebuilt --json
-deepline plays grep "company contact persona" --origin prebuilt --json
+deepline plays search email --json
+deepline plays search phone --json
+deepline plays search "company contact persona" --json
 deepline plays describe prebuilt/<play-name> --json
 deepline plays run prebuilt/<play-name> --input '{...}' --watch
 ```
 
-Prefer `origin: "prebuilt"` results unless you intentionally want an org-owned scratchpad. Always run `plays describe` before choosing or rejecting a play; retrieval aliases are intentionally broad and can return adjacent jobs.
+Prefer `prebuilt/...` play references from search results unless you intentionally want an org-owned scratchpad. Always run `plays describe` before choosing or rejecting a play; retrieval aliases are intentionally broad and can return adjacent jobs.
 
 For a normal GTM task, the first commands should look like this:
 
 ```bash
 deepline health --json && deepline auth status --json && deepline billing balance --json
-deepline plays list --origin prebuilt --json
+deepline plays search "company contact" --json
 deepline plays describe prebuilt/company-to-contact --json
 ```
 
