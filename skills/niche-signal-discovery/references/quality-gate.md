@@ -64,6 +64,7 @@ for r in rows:
 ```
 
 **Red flags for false positives:**
+
 - Domain is a subdomain of the target company (blog.target.com)
 - Domain belongs to a well-known AI/tech company but the "customer" is a different firm (domain resolution failed)
 - Company appears in competitor case studies, not target's own customer list

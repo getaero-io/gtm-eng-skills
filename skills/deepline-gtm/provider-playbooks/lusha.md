@@ -34,6 +34,7 @@ Enriches a person by LinkedIn URL (preferred), email, or name+company. Returns e
 ```
 
 Optional flags:
+
 - `reveal_emails: true` — include email addresses in response (default: true)
 - `reveal_phones: true` — include phone numbers (default: true)
 - `signals: true` — include intent signal data

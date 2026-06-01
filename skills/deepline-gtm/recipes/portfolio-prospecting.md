@@ -1,6 +1,6 @@
 ---
 name: portfolio-prospecting
-description: "Find companies backed by a specific investor or accelerator, then find contacts and build personalized outbound."
+description: 'Find companies backed by a specific investor or accelerator, then find contacts and build personalized outbound.'
 ---
 
 # Portfolio/VC Prospecting

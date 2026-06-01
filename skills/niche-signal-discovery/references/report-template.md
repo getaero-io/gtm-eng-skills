@@ -30,26 +30,26 @@ Two tables with visual lift bars. Sort positive signals by lift descending, anti
 
 **Lift → Strength Bar scale:**
 
-| Lift | Bar |
-|------|-----|
-| ≥10x | 🟩🟩🟩🟩🟩🟩 |
-| ≥4x | 🟩🟩🟩🟩🟩 |
-| ≥2.5x | 🟩🟩🟩🟩 |
-| ≥2.0x | 🟩🟩🟩 |
-| ≥1.5x | 🟩🟩 |
-| ≥1.0x | 🟩 |
-| ≥0.4x | 🟥🟥 |
-| ≥0.25x | 🟥🟥🟥 |
-| ≥0.15x | 🟥🟥🟥🟥 |
-| ≥0.07x | 🟥🟥🟥🟥🟥 |
+| Lift   | Bar          |
+| ------ | ------------ |
+| ≥10x   | 🟩🟩🟩🟩🟩🟩 |
+| ≥4x    | 🟩🟩🟩🟩🟩   |
+| ≥2.5x  | 🟩🟩🟩🟩     |
+| ≥2.0x  | 🟩🟩🟩       |
+| ≥1.5x  | 🟩🟩         |
+| ≥1.0x  | 🟩           |
+| ≥0.4x  | 🟥🟥         |
+| ≥0.25x | 🟥🟥🟥       |
+| ≥0.15x | 🟥🟥🟥🟥     |
+| ≥0.07x | 🟥🟥🟥🟥🟥   |
 | <0.07x | 🟥🟥🟥🟥🟥🟥 |
 
 **✅ Positive Fit Signals** — Top 10–15, sorted by lift descending:
 
 ```markdown
-| Signal | Lift | Strength | Source | What to Look For |
-|--------|------|----------|--------|------------------|
-| [signal name] | [X.Xx] | [bar] | 🌐 Website / 💼 Jobs / 💻 Tech | [1-sentence: what to check and what it means] |
+| Signal        | Lift   | Strength | Source                         | What to Look For                              |
+| ------------- | ------ | -------- | ------------------------------ | --------------------------------------------- |
+| [signal name] | [X.Xx] | [bar]    | 🌐 Website / 💼 Jobs / 💻 Tech | [1-sentence: what to check and what it means] |
 ```
 
 Source icons: `🌐 Website` = found in website content · `💼 Jobs` = found in job listings · `💻 Tech` = tech stack detection
@@ -57,8 +57,8 @@ Source icons: `🌐 Website` = found in website content · `💼 Jobs` = found i
 **🚫 Anti-Fit Signals** — All signals with lift < 0.5x:
 
 ```markdown
-| Signal | Lift | Risk | Why |
-|--------|------|------|-----|
+| Signal        | Lift   | Risk  | Why                                                                         |
+| ------------- | ------ | ----- | --------------------------------------------------------------------------- |
 | [signal name] | [0.Xx] | [bar] | [root cause: existing solution / build culture / procurement freeze / etc.] |
 ```
 
@@ -69,24 +69,24 @@ Pre-built, click-ready search links for each buyer type.
 **People Searches (find the buyers):**
 
 ```markdown
-| Who You're Finding | Why They're the Buyer | Apollo Link |
-|--------------------|----------------------|-------------|
+| Who You're Finding          | Why They're the Buyer                                 | Apollo Link             |
+| --------------------------- | ----------------------------------------------------- | ----------------------- |
 | [Title 1, Title 2, Title 3] | [Signal lift + one-line reason they own the decision] | [Open in Apollo ↗](URL) |
 ```
 
 **Company Searches (find the accounts):**
 
 ```markdown
-| What You're Finding | Signal It Represents | Apollo Link |
-|--------------------|---------------------|-------------|
+| What You're Finding             | Signal It Represents | Apollo Link             |
+| ------------------------------- | -------------------- | ----------------------- |
 | [Company type + keyword filter] | [Signal name + lift] | [Open in Apollo ↗](URL) |
 ```
 
 **Google Search Operators (verify a specific company before outreach):**
 
 ```markdown
-| What to Check | Google Operator | Positive Result Looks Like |
-|---------------|----------------|---------------------------|
+| What to Check | Google Operator               | Positive Result Looks Like    |
+| ------------- | ----------------------------- | ----------------------------- |
 | [Signal name] | `site:domain.com "[keyword]"` | [What a positive match means] |
 ```
 
@@ -125,9 +125,9 @@ Use `qOrganizationKeywordTags[]` for keyword-based company filtering — this se
 One row per key persona. Pull title patterns and pain points from job hiring signals + keyword analysis. Include 3–5 personas covering: primary decision-maker, economic buyer, technical evaluator, champion.
 
 ```markdown
-| Persona | Title Pattern | Pain Point | Signal to Reference | Apollo Search |
-|---------|--------------|------------|---------------------|---------------|
-| [Name] | [Title 1, Title 2, Title 3] | [Core pain point] | [Top signal + lift + where to find it] | [Search ↗](URL) |
+| Persona | Title Pattern               | Pain Point        | Signal to Reference                    | Apollo Search   |
+| ------- | --------------------------- | ----------------- | -------------------------------------- | --------------- |
+| [Name]  | [Title 1, Title 2, Title 3] | [Core pain point] | [Top signal + lift + where to find it] | [Search ↗](URL) |
 ```
 
 ### 0.5 Lead Scoring Cheatsheet
@@ -135,22 +135,22 @@ One row per key persona. Pull title patterns and pain points from job hiring sig
 Condensed scoring model — score any prospect in under 2 minutes.
 
 ```markdown
-| Signal | Points | How to Check |
-|--------|--------|--------------|
-| [Top positive signal] | +[N] | `site:domain.com "[keyword]"` OR Apollo tech/jobs |
-| ... (8–12 positive signals total) | | |
-| [Top anti-fit signal] | −[N] | [How to check] |
-| ... (4–6 anti-fit signals total) | | |
+| Signal                            | Points | How to Check                                      |
+| --------------------------------- | ------ | ------------------------------------------------- |
+| [Top positive signal]             | +[N]   | `site:domain.com "[keyword]"` OR Apollo tech/jobs |
+| ... (8–12 positive signals total) |        |                                                   |
+| [Top anti-fit signal]             | −[N]   | [How to check]                                    |
+| ... (4–6 anti-fit signals total)  |        |                                                   |
 ```
 
 Score tiers:
 
 ```markdown
-| Score | Tier | Action |
-|-------|------|--------|
+| Score  | Tier      | Action                                                               |
+| ------ | --------- | -------------------------------------------------------------------- |
 | 60–100 | 🟢 Tier 1 | Immediate — personalized sequence referencing their specific signals |
-| 35–59 | 🟡 Tier 2 | Trigger-based — sequence on funding, industry news, or hiring event |
-| <35 | 🔴 Tier 3 | Nurture or skip — likely not a fit today |
+| 35–59  | 🟡 Tier 2 | Trigger-based — sequence on funding, industry news, or hiring event  |
+| <35    | 🔴 Tier 3 | Nurture or skip — likely not a fit today                             |
 ```
 
 ---
@@ -174,14 +174,17 @@ Score tiers:
 **Format:** 2-3 direct sentences profiling best-fit customers. Include top 3 differentiating signals with lift values.
 
 **REQUIRED: Add prospective target companies** (not in dataset) that match the ICP profile:
+
 - List 4-6 concrete companies that fit the profile but aren't current customers
 - Include: company name, size, specific signals (hiring roles, tech stack, pain points mentioned)
 - Shows what the ICP looks like in the wild
 
 **Example:**
+
 > {{Target}}'s buyers are mid-size companies (100-1000 employees) scaling {{domain}} operations. Top signals: hiring {{domain}}-related roles (3-5x lift), using {niche tools} (2-4x lift), mentioning "{buyer pain point}" (3-6x lift).
 >
 > **Companies that fit this profile but aren't customers yet:**
+>
 > - {Company A} ({{size}} employees) — {specific signal 1}, {specific signal 2}
 > - {Company B} ({{size}} employees) — {specific signal 1}, {specific signal 2}
 
@@ -190,6 +193,7 @@ Score tiers:
 ### Dataset Caveat (if applicable)
 
 If the dataset has limitations, add a caveat subsection. Common caveats:
+
 - Lookalike companies used as Won (they haven't actually purchased — signals are inferred fit, not validated)
 - Small sample size (<20 won or <10 lost)
 - Uneven group sizes (e.g., 8 won + 32 lost)
@@ -200,16 +204,19 @@ If the dataset has limitations, add a caveat subsection. Common caveats:
 ## Section 2: Website Keyword Differential
 
 Methodology note at the top:
+
 > Substring matching across multi-page website content for {{won_n}} won and {{lost_n}} lost companies. Lift uses Laplace smoothing: `((won + 0.5) / (won_total + 1)) / ((lost + 0.5) / (lost_total + 1))`. **Bold** = lift > 2x.
 
 ### Subsections by category (2.1, 2.2, etc.)
 
 Table format:
+
 ```markdown
 | Keyword | Won (n=X) | Lost (n=Y) | Lift | Interpretation |
 ```
 
 **Quality rules:**
+
 - Raw counts always: `15% (6)` not just `15%`
 - Sample sizes in headers: `Won (n=37)`, `Lost (n=18)`
 - **Bold** lift > 2x only
@@ -220,16 +227,20 @@ Table format:
 After each table, add a blockquote with **exact quotes** and **linked sources** for the top 3 keywords. The analysis script outputs `evidence` objects with `company`, `source_type`, `quote`, `url`, and `page_title` or `job_title`.
 
 Format evidence as:
+
 ```markdown
 > **Evidence — "keyword1":**
+>
 > - [company1.com](url) (page title): "...exact quote with keyword in context..."
 > - [company2.com](url) (job: "Job Title"): "...exact quote from job listing..."
 >
 > **"keyword2":**
+>
 > - [company3.com](url) (page title): "...exact quote..."
 ```
 
 Each evidence entry must include:
+
 1. **Company domain** as a link to the source URL
 2. **Source context** — page title for websites, job title for listings
 3. **Exact quote** — the ±40 char snippet around the keyword match from the raw text
@@ -238,6 +249,7 @@ Each evidence entry must include:
 ### Sales-Specific Keywords: Source Breakdown
 
 For sales-specific keywords, add a **Source** column showing where matches came from:
+
 ```markdown
 | Keyword | Won (n=X) | Lost (n=Y) | Lift | Source (website / jobs / both) | Interpretation |
 ```
@@ -247,6 +259,7 @@ Source format: `3w / 20j / 2both` (3 from website only, 20 from job descriptions
 ### Tech Stack Keywords: Niche Tool Mentions
 
 Search for specific SaaS tools (not generic keywords like "cloud" or "security"). Group by category:
+
 - Sales & Revenue Tools
 - Data & Analytics Tools
 - Customer Success & Support
@@ -254,16 +267,19 @@ Search for specific SaaS tools (not generic keywords like "cloud" or "security")
 - Anti-Fit Tech Stack
 
 ### Anti-Fit Keywords
+
 Separate table for keywords with lift < 0.5x.
 
 ---
 
 ## Section 3: Structured Signal Categories
+
 GTM motion indicators, infrastructure maturity tables with Won%, Lost%, and interpretation.
 
 ---
 
 ## Section 4: Job Hiring Signals
+
 Role prevalence in won companies. If lost companies lack job data, present won-only with note.
 
 ---
@@ -271,10 +287,13 @@ Role prevalence in won companies. If lost companies lack job data, present won-o
 ## Section 5: Anti-Fit Signals & Competitive Tool Users
 
 ### Anti-Fit Signals Table
+
 Website content anti-signals table for keywords with lift < 0.5x that indicate structural misfit.
 
 ### Structural Anti-Fit Patterns
+
 Patterns indicating the company is not a fit:
+
 - Selling the same product category (competitor, not buyer)
 - No job listings in 12+ months (not growing/hiring)
 - Consumer-focused business model (if target sells B2B)
@@ -285,15 +304,16 @@ Patterns indicating the company is not a fit:
 **DO NOT exclude companies using competitor tools.** Instead, create a separate prospecting segment:
 
 ```markdown
-| Company Segment | Count | Approach |
-|-----------------|-------|----------|
+| Company Segment      | Count          | Approach                                   |
+| -------------------- | -------------- | ------------------------------------------ |
 | Using [Competitor A] | N (X% of lost) | Displacement messaging, comparison content |
-| Using [Competitor B] | N (X% of lost) | Migration case studies |
+| Using [Competitor B] | N (X% of lost) | Migration case studies                     |
 ```
 
 ### Red Flag Checklist
 
 Deprioritize if 2+ present (excluding competitive tool usage):
+
 - ✅ Selling the same product (competitor)
 - ⚠️ No relevant job listings in 12 months
 - ⚠️ <50 employees
@@ -302,7 +322,9 @@ Deprioritize if 2+ present (excluding competitive tool usage):
 ---
 
 ## Section 6: Composite Lead Scoring Model
+
 0-100 point model organized in 3 tiers:
+
 - Tier 1: Core Fit (0-40 points) — regulatory, compliance, or structural signals
 - Tier 2: Sophistication (0-30 points) — fraud/risk/product maturity signals
 - Tier 3: Developer / Integration Fit (0-30 points) — API-first, tech stack signals
@@ -314,7 +336,9 @@ Include scoring examples from the dataset (2 won, 2 lost with full point breakdo
 ---
 
 ## Section 7: Niche First-Party Signals to Pull
+
 Actionable checklist grouped by priority:
+
 - Highest-value (pull for every prospect)
 - High-value (pull for Tier 1-2)
 - Enrichment signals (context for personalization)
@@ -322,6 +346,7 @@ Actionable checklist grouped by priority:
 ---
 
 ## Section 8: Won vs Lost Comparison
+
 Side-by-side archetype profiles with concrete examples from the dataset.
 
 ---
@@ -331,6 +356,7 @@ Side-by-side archetype profiles with concrete examples from the dataset.
 4-step targeting guide: Build list → Enrich → Score → Personalize.
 
 Include personalization hooks for each top signal:
+
 ```
 • Regulatory trigger: "Noticed [Company] has [signal] — companies at this maturity typically [pain point]..."
 • Tech stack signal: "Saw [Company] uses [tool] — teams running [tool] often face [specific friction]..."

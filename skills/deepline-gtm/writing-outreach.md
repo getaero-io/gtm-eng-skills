@@ -44,20 +44,25 @@ Example `icp.md` starter:
 
 ```markdown
 # ICP
+
 ## Best-fit companies
+
 - B2B SaaS, 200-5000 employees, multi-product GTM team
 - Uses modern data stack and CRM-based workflows
 
 ## Best-fit personas
+
 - VP/Head/Director in Marketing, RevOps, Sales Ops, GTM Ops
 - Owns pipeline quality, segmentation, scoring, or campaign orchestration
 
 ## Core pains
+
 - Slow GTM iteration due to analyst/engineering dependency
 - Low trust in black-box scoring
 - Weak signal-to-action workflow for reps
 
 ## Disqualifiers
+
 - <20 employees
 - Pure B2C motion
 - No clear sales/marketing operations function
@@ -143,6 +148,7 @@ deepline enrich --input enriched.csv --in-place \
 ```
 
 Notes:
+
 - `{{company_research}}` is the safe form for AI prompts when the prior column came from `deeplineagent`.
 - If you need a single field from prior research for deterministic template logic, extract it into its own scalar column with `run_javascript` first, then reference that scalar column in later steps.
 - Inside `run_javascript`, use `row["company_research"]` or `row.company_research`. Do not use `{{row.company_research}}`; `row` is only available inside the JS code.

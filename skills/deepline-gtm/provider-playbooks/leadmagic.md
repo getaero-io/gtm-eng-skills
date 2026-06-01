@@ -8,6 +8,7 @@ Use LeadMagic as a contact-resolution, verification, and intent layer.
 - If LeadMagic profile or phone quality is noisy on pilot rows, switch to quality-first enrichment (`crustdata_person_enrichment`, `peopledatalabs_enrich_contact`) before scaling.
 
 Operational pattern:
+
 1. Run 1-row pilots for identity + email candidates.
 2. Validate with `leadmagic_email_validation` on every candidate.
 3. Keep fallback chains explicit in your `--with-waterfall` order.
@@ -22,5 +23,6 @@ deepline enrich --input contacts.csv --output contacts.csv.out.csv \
 ```
 
 Related docs:
+
 - [leadmagic_email_validation reference](https://code.deepline.com/tools/leadmagic_email_validation)
 - [leadmagic_email_finder reference](https://code.deepline.com/tools/leadmagic_email_finder)

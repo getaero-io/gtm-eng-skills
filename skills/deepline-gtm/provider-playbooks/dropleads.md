@@ -21,20 +21,20 @@ All Dropleads filters nest under the `filters` object. Pagination nests under `p
     "companyDomains": ["microsoft.com"],
     "jobTitles": ["CTO", "VP Engineering"],
     "seniority": ["C-Level", "VP", "Director"],
-    "personalCountries": {"include": ["United States"]}
+    "personalCountries": { "include": ["United States"] }
   },
-  "pagination": {"page": 1, "limit": 25}
+  "pagination": { "page": 1, "limit": 25 }
 }
 ```
 
 **Quick reference — correct filter keys:**
 
-| Filter | Correct key | Why |
-|--------|------------|-----|
-| Company | `filters.companyDomains` | Exact domain match for known accounts. Prefer this when you already have domains; do not rely on people-search results to discover a complete account-domain list. `companyNames` does fuzzy substring matching — "Microsoft" pulls in unrelated businesses. |
-| Country | `filters.personalCountries.include` | Array inside a nested object. |
-| Seniority | `filters.seniority` | Exact values only: `C-Level`, `VP`, `Director`, `Manager`, `Senior`, `Entry`, `Intern`. |
-| Industry | `filters.industries` | Exact strings from Dropleads. Pilot with a broad search first when unsure. |
+| Filter    | Correct key                         | Why                                                                                                                                                                                                                                                          |
+| --------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Company   | `filters.companyDomains`            | Exact domain match for known accounts. Prefer this when you already have domains; do not rely on people-search results to discover a complete account-domain list. `companyNames` does fuzzy substring matching — "Microsoft" pulls in unrelated businesses. |
+| Country   | `filters.personalCountries.include` | Array inside a nested object.                                                                                                                                                                                                                                |
+| Seniority | `filters.seniority`                 | Exact values only: `C-Level`, `VP`, `Director`, `Manager`, `Senior`, `Entry`, `Intern`.                                                                                                                                                                      |
+| Industry  | `filters.industries`                | Exact strings from Dropleads. Pilot with a broad search first when unsure.                                                                                                                                                                                   |
 
 ### Geo filters are best-effort, not verified
 

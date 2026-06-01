@@ -1,6 +1,6 @@
 ---
 name: workflow-hello-world
-description: "Create a cloud Deepline workflow that runs on a recurring cron schedule or via webhook, inspect it, and validate trigger behavior end to end."
+description: 'Create a cloud Deepline workflow that runs on a recurring cron schedule or via webhook, inspect it, and validate trigger behavior end to end.'
 ---
 
 # Cloud Workflow Triggers
@@ -21,17 +21,17 @@ Create a real Deepline cloud workflow with `deepline workflows apply`, trigger i
 
 ## What NOT to do
 
-| Anti-pattern | What happens | Why it fails |
-|-------------|-------------|-------------|
-| Start with a big provider-heavy workflow | You debug triggers, providers, auth, and output shape all at once | First prove the cloud trigger surface with tiny `run_javascript` steps |
-| Push large CSV parsing, XLSX handling, or dependency-heavy JS through default cloud `run_javascript` | The QuickJS cloud runtime hits tight memory/time limits and fails on heavier ETL | For complex cloud workflow compute, set `payload.runInSandbox = true` so `run_javascript` executes in the Daytona sandbox runtime instead |
-| Put `row.input.*`, `{{first_name}}`, or CSV fields into a cron workflow | `workflows apply` fails or the run has no useful input | Scheduled workflows must be self-contained because nothing calls them with external row data |
-| Omit `trigger_tool` or `trigger_id` on a webhook workflow | Validation rejects the workflow | Webhook triggers require a concrete tool and trigger id binding |
-| Treat webhook payload fields as top-level in JS | Your code reads empty values | Workflow calls/webhooks deliver user payload under `row.input` |
-| Read prior step output as `row.previous_alias.some_field` | Later steps see `undefined` | Local tool output is wrapped, so read `row.previous_alias.output.body.some_field` |
-| Build the parent fanout workflow before the child workflow works on its own | You cannot tell whether failures come from child logic or dispatch | First make the child workflow callable directly and verify one good run |
-| Assume `triggerWorkflow(...)` waits for child results | The parent finishes without child outputs in-line | `triggerWorkflow(...)` is async fanout; inspect child runs separately |
-| Ask the user for ICP/search criteria again after they already referenced an existing campaign or search | You lose momentum and ignore recoverable state that already exists | Inspect the current campaign, workflow, and search definition first; only ask for missing targeting inputs if nothing reusable exists |
+| Anti-pattern                                                                                            | What happens                                                                     | Why it fails                                                                                                                              |
+| ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Start with a big provider-heavy workflow                                                                | You debug triggers, providers, auth, and output shape all at once                | First prove the cloud trigger surface with tiny `run_javascript` steps                                                                    |
+| Push large CSV parsing, XLSX handling, or dependency-heavy JS through default cloud `run_javascript`    | The QuickJS cloud runtime hits tight memory/time limits and fails on heavier ETL | For complex cloud workflow compute, set `payload.runInSandbox = true` so `run_javascript` executes in the Daytona sandbox runtime instead |
+| Put `row.input.*`, `{{first_name}}`, or CSV fields into a cron workflow                                 | `workflows apply` fails or the run has no useful input                           | Scheduled workflows must be self-contained because nothing calls them with external row data                                              |
+| Omit `trigger_tool` or `trigger_id` on a webhook workflow                                               | Validation rejects the workflow                                                  | Webhook triggers require a concrete tool and trigger id binding                                                                           |
+| Treat webhook payload fields as top-level in JS                                                         | Your code reads empty values                                                     | Workflow calls/webhooks deliver user payload under `row.input`                                                                            |
+| Read prior step output as `row.previous_alias.some_field`                                               | Later steps see `undefined`                                                      | Local tool output is wrapped, so read `row.previous_alias.output.body.some_field`                                                         |
+| Build the parent fanout workflow before the child workflow works on its own                             | You cannot tell whether failures come from child logic or dispatch               | First make the child workflow callable directly and verify one good run                                                                   |
+| Assume `triggerWorkflow(...)` waits for child results                                                   | The parent finishes without child outputs in-line                                | `triggerWorkflow(...)` is async fanout; inspect child runs separately                                                                     |
+| Ask the user for ICP/search criteria again after they already referenced an existing campaign or search | You lose momentum and ignore recoverable state that already exists               | Inspect the current campaign, workflow, and search definition first; only ask for missing targeting inputs if nothing reusable exists     |
 
 ## Steps
 
@@ -106,10 +106,11 @@ deepline workflows tail --workflow-id <WORKFLOW_ID> --run-id <RUN_ID> --interval
 
 **Output:** You see the scheduled run progress and final output.
 **Checkpoint:** Confirm:
+
 - `build_payload.output.body.source = "cron"`
 - `inspect.output.body.ok = true`
 - `inspect.output.body.preview = "Scheduled workflow fired"`
-**Fallback:** If no run appears yet, check the next scheduled time from `workflows get` and wait for that window.
+  **Fallback:** If no run appears yet, check the next scheduled time from `workflows get` and wait for that window.
 
 ### Step 4: Create a webhook cloud workflow - deliver
 
@@ -181,10 +182,11 @@ deepline workflows tail --workflow-id <WEBHOOK_WORKFLOW_ID> --run-id <RUN_ID> --
 
 **Output:** A webhook-triggered run with the normalized payload.
 **Checkpoint:** Confirm:
+
 - `normalize_input.output.body.source = "webhook"`
 - `normalize_input.output.body.company = "Rippling"`
 - `inspect.output.body.preview = "signup:Rippling"`
-**Fallback:** If no run appears, fetch the workflow again and confirm you posted to the exact `webhook_url`.
+  **Fallback:** If no run appears, fetch the workflow again and confirm you posted to the exact `webhook_url`.
 
 ### Step 6: Validate lifecycle controls for cloud triggers - inspect
 
@@ -209,6 +211,7 @@ deepline workflows list
 Before you try any fanout, inspect any existing campaign/search state, then create the single child workflow that does the real unit of work. Prove it directly with a webhook or API trigger and one tiny payload.
 
 If the user already named a destination system or workflow target, inspect that state before asking questions. Examples:
+
 - Existing Instantly campaign: fetch the campaign, confirm the target list/campaign id, and verify whether the expected lead is already present.
 - Existing workflow: fetch it and inspect trigger type, status, and payload shape.
 - Existing search or source definition: inspect the saved filters before asking for a brand new ICP.
@@ -258,6 +261,7 @@ curl -X POST "<CHILD_WEBHOOK_URL>" \
 Once the child workflow works alone, create the parent workflow that loops over records and enqueues child workflows with `triggerWorkflow(...)` inside `run_javascript`.
 
 `triggerWorkflow(...)` is the correct helper for workflow fanout from JS:
+
 - Pass a workflow name string: `triggerWorkflow("linkedin_post_to_reactors", {...})`
 - Or pass an options object with `workflow_name` / `workflow_id`
 - The call is async and queues child workflows without waiting for their results
@@ -269,10 +273,11 @@ const posts = Array.isArray(row.posts?.data) ? row.posts.data : [];
 let queued = 0;
 
 for (const post of posts) {
-  const postUrl = typeof post.linkedinUrl === 'string' ? post.linkedinUrl.trim() : '';
+  const postUrl =
+    typeof post.linkedinUrl === 'string' ? post.linkedinUrl.trim() : '';
   if (!postUrl) continue;
 
-  triggerWorkflow("linkedin_post_to_reactors", {
+  triggerWorkflow('linkedin_post_to_reactors', {
     profile_url: row.profile_url,
     post_url: postUrl,
     post_id: post.id ?? null,
@@ -285,6 +290,7 @@ return { total_posts: posts.length, queued_posts: queued };
 ```
 
 Rules:
+
 - Keep parent fanout logic focused on selecting items and dispatching child workflows
 - Keep child workflows responsible for the heavy lifting
 - When the destination already exists, wire the parent to that known destination instead of inventing a new campaign or asking for new ids
@@ -299,11 +305,13 @@ Rules:
 Once the trigger shape is proven, move real logic into the workflow. For cron, keep it self-contained. For webhook, expect dynamic payload under `row.input`.
 
 Good cron examples:
+
 - Daily account research
 - Recurring syncs
 - Scheduled outbound list refreshes
 
 Good webhook examples:
+
 - Inbound signup enrichment
 - CRM event processing
 - External automation fan-in
@@ -325,13 +333,13 @@ deepline workflows delete --workflow-id <WEBHOOK_WORKFLOW_ID>
 
 ## Gotchas
 
-| Gotcha | What happens | Fix |
-|--------|-------------|-----|
-| You try to make a cron workflow depend on request payload | Scheduled runs have no external payload | Keep cron logic self-contained |
-| You forget `trigger_tool` or `trigger_id` on webhook workflows | `workflows apply` rejects the config | Set both fields explicitly in the trigger object |
-| You read webhook data from `row.company` instead of `row.input.company` | Your step sees empty values | Read inbound payload from `row.input` |
-| You inspect only `workflows list` after firing a webhook | You miss the actual step payloads | Use `workflows runs`, `workflows run`, or `workflows tail` |
-| You disable a workflow and expect webhook or cron delivery to continue | Triggers stop firing | Re-enable the workflow first |
-| You use invalid cron syntax | Validation fails before save | Use standard 5-field cron syntax like `0 9 * * 1-5` |
-| You put all scraping + parsing + fanout + enrichment into one workflow first | Debugging becomes opaque immediately | First validate the child workflow alone, then add parent fanout |
-| You expect `triggerWorkflow(...)` to return child output to the parent step | The parent has only its own return value | Return dispatch metadata from the parent and inspect child runs separately |
+| Gotcha                                                                       | What happens                             | Fix                                                                        |
+| ---------------------------------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------- |
+| You try to make a cron workflow depend on request payload                    | Scheduled runs have no external payload  | Keep cron logic self-contained                                             |
+| You forget `trigger_tool` or `trigger_id` on webhook workflows               | `workflows apply` rejects the config     | Set both fields explicitly in the trigger object                           |
+| You read webhook data from `row.company` instead of `row.input.company`      | Your step sees empty values              | Read inbound payload from `row.input`                                      |
+| You inspect only `workflows list` after firing a webhook                     | You miss the actual step payloads        | Use `workflows runs`, `workflows run`, or `workflows tail`                 |
+| You disable a workflow and expect webhook or cron delivery to continue       | Triggers stop firing                     | Re-enable the workflow first                                               |
+| You use invalid cron syntax                                                  | Validation fails before save             | Use standard 5-field cron syntax like `0 9 * * 1-5`                        |
+| You put all scraping + parsing + fanout + enrichment into one workflow first | Debugging becomes opaque immediately     | First validate the child workflow alone, then add parent fanout            |
+| You expect `triggerWorkflow(...)` to return child output to the parent step  | The parent has only its own return value | Return dispatch metadata from the parent and inspect child runs separately |

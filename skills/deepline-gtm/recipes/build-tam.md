@@ -1,6 +1,6 @@
 ---
 name: build-tam
-description: "Build a Total Addressable Market list by sourcing accounts and contacts from providers like Apollo, Crustdata, and PDL."
+description: 'Build a Total Addressable Market list by sourcing accounts and contacts from providers like Apollo, Crustdata, and PDL.'
 ---
 
 # Provider-Led Account And Contact Sourcing
@@ -15,6 +15,7 @@ This skill now follows the same documentation pattern as `deepline-gtm`.
 ## Where to use this
 
 Use this skill for requests like:
+
 - "we sourced 935K leads and need the last 65K by end of week"
 - "we exhausted most strategies and need new lead-sourcing channels"
 - "use Deepline + Clay together to finish remaining contact coverage"

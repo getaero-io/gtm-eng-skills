@@ -10,16 +10,16 @@ AI Ark provides company search, people search, reverse lookup, mobile phone find
 
 ## Credit Costs
 
-| Operation | Cost | Unit |
-|-----------|------|------|
-| Company Search | 0.1 | per result |
-| People Search | 0.5 | per result |
-| Reverse People Lookup | 0.5 | per request |
-| Mobile Phone Finder | 5.0 | per request |
-| Export People (with Email) | ~0.5 | per email found |
-| Personality Analysis | TBD | coming soon |
-| Email Finder | ~0.5 | per email found |
-| Polling / Statistics / Results | 0 | free |
+| Operation                      | Cost | Unit            |
+| ------------------------------ | ---- | --------------- |
+| Company Search                 | 0.1  | per result      |
+| People Search                  | 0.5  | per result      |
+| Reverse People Lookup          | 0.5  | per request     |
+| Mobile Phone Finder            | 5.0  | per request     |
+| Export People (with Email)     | ~0.5 | per email found |
+| Personality Analysis           | TBD  | coming soon     |
+| Email Finder                   | ~0.5 | per email found |
+| Polling / Statistics / Results | 0    | free            |
 
 ## Filter Structure (CRITICAL)
 
@@ -140,11 +140,13 @@ String filters use arrays directly in `include`/`exclude`:
 ### Email Finding (two paths)
 
 **Path A — Export People (recommended for bulk verified email pulls):**
+
 1. `ai_ark_export_people` with filters + optional webhook → returns `trackId`.
 2. Poll `ai_ark_export_statistics` until `state: "DONE"`.
 3. Fetch results via `ai_ark_export_results` (paginated).
 
 **Path B — Find Emails from Search:**
+
 1. Run `ai_ark_people_search` first → response includes a `trackId`.
 2. `ai_ark_find_emails` with that `trackId` and a `webhook` URL (single-use, expires in 6 hours).
 3. Poll `ai_ark_email_finder_statistics` until `state: "DONE"`.

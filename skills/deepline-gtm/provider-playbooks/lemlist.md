@@ -16,58 +16,65 @@ Use Lemlist for multi-channel outbound campaigns (email + LinkedIn). Full campai
 ## Quick Reference
 
 ### Campaigns
+
 ```bash
-deepline tools execute lemlist_list_campaigns --payload '{}' 
-deepline tools execute lemlist_create_campaign --payload '{"name":"My Campaign"}' 
-deepline tools execute lemlist_pause_campaign --payload '{"campaign_id":"cam_abc123"}' 
-deepline tools execute lemlist_update_campaign --payload '{"campaign_id":"cam_abc123","name":"New Name"}' 
-deepline tools execute lemlist_get_campaign_stats --payload '{"campaign_id":"cam_abc123"}' 
+deepline tools execute lemlist_list_campaigns --payload '{}'
+deepline tools execute lemlist_create_campaign --payload '{"name":"My Campaign"}'
+deepline tools execute lemlist_pause_campaign --payload '{"campaign_id":"cam_abc123"}'
+deepline tools execute lemlist_update_campaign --payload '{"campaign_id":"cam_abc123","name":"New Name"}'
+deepline tools execute lemlist_get_campaign_stats --payload '{"campaign_id":"cam_abc123"}'
 ```
 
 ### Sequences
+
 ```bash
-deepline tools execute lemlist_get_campaign_sequences --payload '{"campaign_id":"cam_abc123"}' 
-deepline tools execute lemlist_add_sequence_step --payload '{"sequence_id":"seq_abc","type":"linkedinInvite","message":"Hi!","delay":0}' 
-deepline tools execute lemlist_update_sequence_step --payload '{"sequence_id":"seq_abc","step_id":"stp_xyz","type":"linkedinSend","delay":2}' 
-deepline tools execute lemlist_delete_sequence_step --payload '{"sequence_id":"seq_abc","step_id":"stp_xyz"}' 
+deepline tools execute lemlist_get_campaign_sequences --payload '{"campaign_id":"cam_abc123"}'
+deepline tools execute lemlist_add_sequence_step --payload '{"sequence_id":"seq_abc","type":"linkedinInvite","message":"Hi!","delay":0}'
+deepline tools execute lemlist_update_sequence_step --payload '{"sequence_id":"seq_abc","step_id":"stp_xyz","type":"linkedinSend","delay":2}'
+deepline tools execute lemlist_delete_sequence_step --payload '{"sequence_id":"seq_abc","step_id":"stp_xyz"}'
 ```
 
 ### Leads
+
 ```bash
-deepline tools execute lemlist_add_to_campaign --payload '{"campaign_id":"cam_abc","contacts":[{"email":"ada@example.com","first_name":"Ada","last_name":"Lovelace"}]}' 
-deepline tools execute lemlist_export_campaign_leads --payload '{"campaign_id":"cam_abc","state":"interested"}' 
-deepline tools execute lemlist_pause_lead --payload '{"lead_id":"lea_abc"}' 
-deepline tools execute lemlist_resume_lead --payload '{"lead_id":"lea_abc"}' 
-deepline tools execute lemlist_mark_lead_interested --payload '{"lead_id_or_email":"ada@example.com"}' 
+deepline tools execute lemlist_add_to_campaign --payload '{"campaign_id":"cam_abc","contacts":[{"email":"ada@example.com","first_name":"Ada","last_name":"Lovelace"}]}'
+deepline tools execute lemlist_export_campaign_leads --payload '{"campaign_id":"cam_abc","state":"interested"}'
+deepline tools execute lemlist_pause_lead --payload '{"lead_id":"lea_abc"}'
+deepline tools execute lemlist_resume_lead --payload '{"lead_id":"lea_abc"}'
+deepline tools execute lemlist_mark_lead_interested --payload '{"lead_id_or_email":"ada@example.com"}'
 ```
 
 ### Activities
+
 ```bash
-deepline tools execute lemlist_get_activities --payload '{"campaign_id":"cam_abc","type":"emailsReplied","limit":50}' 
+deepline tools execute lemlist_get_activities --payload '{"campaign_id":"cam_abc","type":"emailsReplied","limit":50}'
 ```
 
 ### Inbox
+
 ```bash
-deepline tools execute lemlist_list_inbox --payload '{"user_id":"usr_abc"}' 
-deepline tools execute lemlist_get_inbox_thread --payload '{"contact_id":"ctc_abc"}' 
-deepline tools execute lemlist_send_email --payload '{"send_user_id":"usr_abc","send_user_email":"me@co.com","send_user_mailbox_id":"mbx_abc","contact_id":"ctc_abc","lead_id":"lea_abc","subject":"Follow up","message":"<p>Hi!</p>"}' 
-deepline tools execute lemlist_send_linkedin_message --payload '{"send_user_id":"usr_abc","lead_id":"lea_abc","contact_id":"ctc_abc","message":"Thanks for connecting!"}' 
+deepline tools execute lemlist_list_inbox --payload '{"user_id":"usr_abc"}'
+deepline tools execute lemlist_get_inbox_thread --payload '{"contact_id":"ctc_abc"}'
+deepline tools execute lemlist_send_email --payload '{"send_user_id":"usr_abc","send_user_email":"me@co.com","send_user_mailbox_id":"mbx_abc","contact_id":"ctc_abc","lead_id":"lea_abc","subject":"Follow up","message":"<p>Hi!</p>"}'
+deepline tools execute lemlist_send_linkedin_message --payload '{"send_user_id":"usr_abc","lead_id":"lea_abc","contact_id":"ctc_abc","message":"Thanks for connecting!"}'
 ```
 
 ### Unsubscribes
+
 ```bash
-deepline tools execute lemlist_list_unsubscribed_variables --payload '{"limit":50}' 
-deepline tools execute lemlist_unsubscribe_variable --payload '{"value":"bounce@example.com"}' 
-deepline tools execute lemlist_resubscribe_variable --payload '{"value":"bounce@example.com"}' 
-deepline tools execute lemlist_export_unsubscribed_variables --payload '{}' 
-deepline tools execute lemlist_get_unsubscribe_by_email --payload '{"email":"bounce@example.com"}' 
+deepline tools execute lemlist_list_unsubscribed_variables --payload '{"limit":50}'
+deepline tools execute lemlist_unsubscribe_variable --payload '{"value":"bounce@example.com"}'
+deepline tools execute lemlist_resubscribe_variable --payload '{"value":"bounce@example.com"}'
+deepline tools execute lemlist_export_unsubscribed_variables --payload '{}'
+deepline tools execute lemlist_get_unsubscribe_by_email --payload '{"email":"bounce@example.com"}'
 ```
 
 ### Webhooks
+
 ```bash
-deepline tools execute lemlist_add_webhook --payload '{"target_url":"https://hooks.example.com/lemlist","type":"emailsReplied"}' 
-deepline tools execute lemlist_get_webhooks --payload '{}' 
-deepline tools execute lemlist_delete_webhook --payload '{"hook_id":"hoo_abc123"}' 
+deepline tools execute lemlist_add_webhook --payload '{"target_url":"https://hooks.example.com/lemlist","type":"emailsReplied"}'
+deepline tools execute lemlist_get_webhooks --payload '{}'
+deepline tools execute lemlist_delete_webhook --payload '{"hook_id":"hoo_abc123"}'
 ```
 
 ## Response Shape Contract

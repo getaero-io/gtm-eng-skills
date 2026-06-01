@@ -52,11 +52,11 @@ Company search shape gotcha (critical):
 - Recommended extractor pattern:
 
 ```javascript
-const q = (row["Company"] || "").trim().toLowerCase();
-const d = row["apollo_company"]?.result?.data || {};
+const q = (row['Company'] || '').trim().toLowerCase();
+const d = row['apollo_company']?.result?.data || {};
 const orgs = d.organizations || [];
 const match =
-  orgs.find((x) => (x?.name || "").trim().toLowerCase() === q) ||
+  orgs.find((x) => (x?.name || '').trim().toLowerCase() === q) ||
   orgs[0] ||
   null;
 if (!match) return null;

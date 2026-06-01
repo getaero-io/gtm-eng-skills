@@ -3,12 +3,14 @@
 ## Decision Framework
 
 **Use TheirStack when:**
+
 - Crustdata is unavailable or rate-limited
 - You need tech-stack-driven company discovery (TheirStack's core strength)
 - You need job posting data as a hiring intent signal
 - You need to enrich a known company's tech stack
 
 **Prefer Crustdata when:**
+
 - You need person/contact enrichment (TheirStack has no people data)
 - You need PersonDB search
 

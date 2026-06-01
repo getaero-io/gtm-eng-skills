@@ -36,6 +36,7 @@ Don't proceed until intent is clear. If the user is vague on edge cases, propose
 ### Schema
 
 **WorkflowApplyInput** (what you pass to `deepline workflows apply`):
+
 ```
 {
   name: string                    # Required. Workflow name.
@@ -57,6 +58,7 @@ Don't proceed until intent is clear. If the user is vague on edge cases, propose
 ```
 
 **Command** (a single workflow step):
+
 ```
 {
   alias: string                   # Unique name. Referenced by downstream steps.
@@ -69,6 +71,7 @@ Don't proceed until intent is clear. If the user is vague on edge cases, propose
 ```
 
 **Waterfall block** (parallel candidates with convergence):
+
 ```
 {
   with_waterfall: string          # Group name for convergence tracking.
@@ -85,6 +88,7 @@ Steps execute **sequentially** by default. Each step's output is available to al
 **Waterfall blocks** are the exception: commands within a waterfall execute as parallel candidates. Once `min_results` commands succeed, remaining candidates are skipped. Results merge into `outputs[group_name]`.
 
 **Placeholder resolution:**
+
 - `{{input.field}}` — from the workflow call input or webhook payload
 - `{{alias.result.field}}` — from a previous step's result (in payload templates)
 - `{{alias.result.field}}` — from a previous step's result (enrichment tools return data inside the result envelope)
@@ -97,6 +101,7 @@ Steps execute **sequentially** by default. Each step's output is available to al
 QuickJS runtime. No imports, no async/await, no fetch. Limits: 2s timeout, 16MB memory.
 
 Available globals:
+
 - `row` — all previous step outputs keyed by alias, plus original input
 - `input` — original workflow call input
 - `context` — alias for row
@@ -106,11 +111,11 @@ Available globals:
 
 ### Triggers
 
-| Type | How it fires | Input | Constraints |
-|------|-------------|-------|-------------|
-| `webhook` | External HTTP POST to generated URL | POST body as `{{input.*}}` | Needs `trigger_tool` and `trigger_id` for tool-bound webhooks |
-| `cron` | Scheduled via cron expression | None | Cannot reference `{{input.*}}`. Must be self-contained. |
-| `api` | Manual via `deepline workflows call` | Call payload as `{{input.*}}` | On-demand only |
+| Type      | How it fires                         | Input                         | Constraints                                                   |
+| --------- | ------------------------------------ | ----------------------------- | ------------------------------------------------------------- |
+| `webhook` | External HTTP POST to generated URL  | POST body as `{{input.*}}`    | Needs `trigger_tool` and `trigger_id` for tool-bound webhooks |
+| `cron`    | Scheduled via cron expression        | None                          | Cannot reference `{{input.*}}`. Must be self-contained.       |
+| `api`     | Manual via `deepline workflows call` | Call payload as `{{input.*}}` | On-demand only                                                |
 
 ---
 
@@ -119,27 +124,34 @@ Available globals:
 Before writing a spec, research what's available. Don't hardcode tool IDs or assume schemas — always verify.
 
 ### Existing workflows
+
 ```bash
 deepline workflows list --json          # See what's already built
 deepline workflows get --workflow-id <ID> --json  # Study step patterns
 ```
+
 Look for patterns to reuse: similar enrichment chains, scoring logic, persist patterns.
 
 ### Available tools
+
 ```bash
 deepline tools search "<what you need>"   # e.g. "enrich company", "send email", "scrape website"
 deepline tools get <tool_id>              # Check exact input schema and description
 ```
+
 Search by capability, not by provider name. The tool catalog has 800+ tools — there's likely one for what you need. Waterfall plays (multi-provider enrichment) show up in search results alongside single-provider tools.
 
 ### Database state
+
 ```bash
 deepline customer-db query --sql "SELECT table_name FROM information_schema.tables WHERE table_schema = 'demo_crm'"
 deepline customer-db query --sql "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'my_table'"
 ```
+
 Understand what tables exist before defining new ones or writing to existing ones.
 
 ### Existing specs
+
 Check `docs/` for any workflow spec documents. These contain the business logic, expected behavior, and reference configurations that the workflow should implement.
 
 ---
@@ -156,9 +168,11 @@ Save the spec to `docs/` before implementing. The spec is the source of truth �
 # Workflow: <name>
 
 ## Overview
+
 One paragraph: what this workflow does, why it exists, what business outcome it produces.
 
 ## Trigger
+
 - **Type:** webhook | cron | api
 - **Source:** Where events originate (form submission, reply webhook, scheduled poll, etc.)
 - **Input schema:**
@@ -169,6 +183,7 @@ One paragraph: what this workflow does, why it exists, what business outcome it 
 ## Steps
 
 ### Step 1: <alias>
+
 - **Tool:** `<tool_id>` (discovered via `deepline tools search`)
 - **Purpose:** One line — what this step accomplishes.
 - **Inputs:**
@@ -185,6 +200,7 @@ One paragraph: what this workflow does, why it exists, what business outcome it 
 (Repeat for each step.)
 
 ## Data Flow
+
 ```
 input → validate → enrich → score → route → persist
          ↓           ↓        ↓       ↓        ↓
@@ -195,20 +211,23 @@ input → validate → enrich → score → route → persist
 ## Expectations
 
 ### Happy path
-| Input | Step | Expected Output | Assertion |
-|-------|------|-----------------|-----------|
-| VP Sales at CPG co, valid email | score | icp_score >= 60 | qualified |
-| same lead | route | actions include create_deal | deal flagged |
+
+| Input                           | Step  | Expected Output             | Assertion    |
+| ------------------------------- | ----- | --------------------------- | ------------ |
+| VP Sales at CPG co, valid email | score | icp_score >= 60             | qualified    |
+| same lead                       | route | actions include create_deal | deal flagged |
 
 ### Edge cases
-| Input | Step | Expected Output | Assertion |
-|-------|------|-----------------|-----------|
-| missing email | validate | skip: true | skipped early |
-| enrichment returns empty | score | fallback score based on input only | graceful degradation |
-| all waterfall providers fail | enrich | empty result, workflow continues | no crash |
-| duplicate lead (already processed) | persist | upsert, not duplicate row | idempotent |
+
+| Input                              | Step     | Expected Output                    | Assertion            |
+| ---------------------------------- | -------- | ---------------------------------- | -------------------- |
+| missing email                      | validate | skip: true                         | skipped early        |
+| enrichment returns empty           | score    | fallback score based on input only | graceful degradation |
+| all waterfall providers fail       | enrich   | empty result, workflow continues   | no crash             |
+| duplicate lead (already processed) | persist  | upsert, not duplicate row          | idempotent           |
 
 ## Database Schema
+
 ```sql
 CREATE TABLE IF NOT EXISTS demo_crm.my_results (
   id TEXT PRIMARY KEY,
@@ -225,7 +244,7 @@ CREATE TABLE IF NOT EXISTS demo_crm.my_results (
 - For enrichment, note whether you're using a waterfall play or single provider, and why.
 - For `ai_inference`, include the prompt template and expected response shape.
 - Mark steps as "dry-run" (produces plan but doesn't execute) or "live" (actually writes/sends).
-- Explain the *why* behind scoring rules, conditions, and routing logic — not just the *what*.
+- Explain the _why_ behind scoring rules, conditions, and routing logic — not just the _what_.
 - Edge case expectations are required, not optional. Cover at minimum: missing required field, empty enrichment, conditional branch both ways, duplicate/idempotent handling.
 
 ---
@@ -243,6 +262,7 @@ The artifact also provides ground truth data for parity testing. After standard 
 Translate the spec into a `deepline workflows apply` payload.
 
 ### Payload structure
+
 ```json
 {
   "name": "my_workflow",
@@ -269,6 +289,7 @@ Translate the spec into a `deepline workflows apply` payload.
 ### Waterfall blocks
 
 When you need multiple providers to attempt the same enrichment:
+
 ```json
 {
   "with_waterfall": "company_data",
@@ -279,11 +300,13 @@ When you need multiple providers to attempt the same enrichment:
   ]
 }
 ```
+
 First to return valid data wins. Cannot nest waterfalls inside waterfalls.
 
 ### Conditional steps
 
 Use `run_javascript` to gate a step on a previous result:
+
 ```json
 {
   "alias": "qualified_gate",
@@ -297,27 +320,43 @@ Use `run_javascript` to gate a step on a previous result:
 ### Child workflow dispatch
 
 Inside `run_javascript`, trigger other workflows:
+
 ```javascript
 const rows = row.find_new?.result?.rows || [];
-rows.forEach(r => triggerWorkflow('my_workflow', { lead_id: r.id }));
+rows.forEach((r) => triggerWorkflow('my_workflow', { lead_id: r.id }));
 return { dispatched: rows.length };
 ```
 
 ### Common patterns
 
 **Poll + dispatch** — a cron companion that finds new records and triggers the main workflow per-record:
+
 ```json
 {
   "name": "my_workflow_poll",
-  "config": { "version": 1, "commands": [
-    { "alias": "find_new", "tool": "query_customer_db", "payload": { "sql": "SELECT * FROM my_table WHERE processed = false LIMIT 10" } },
-    { "alias": "dispatch", "tool": "run_javascript", "payload": { "code": "..." } }
-  ]},
+  "config": {
+    "version": 1,
+    "commands": [
+      {
+        "alias": "find_new",
+        "tool": "query_customer_db",
+        "payload": {
+          "sql": "SELECT * FROM my_table WHERE processed = false LIMIT 10"
+        }
+      },
+      {
+        "alias": "dispatch",
+        "tool": "run_javascript",
+        "payload": { "code": "..." }
+      }
+    ]
+  },
   "trigger": { "type": "cron", "cron": "*/15 * * * *" }
 }
 ```
 
 **Execution modes** — test workflows without side effects or external calls:
+
 ```bash
 # smoke_test: fixture data for enrichment, side-effect tools skipped
 deepline workflows call --workflow-name my_workflow --payload '{"email":"test@acme.com"}' --mode smoke_test
@@ -325,9 +364,11 @@ deepline workflows call --workflow-name my_workflow --payload '{"email":"test@ac
 # dry_run: real APIs for enrichment, side-effect tools skipped
 deepline workflows call --workflow-name my_workflow --payload '{"email":"test@acme.com"}' --mode dry_run
 ```
+
 Tools classified as side effects (writes to CRM, messaging, campaigns, persistence, LLM inference) are automatically skipped. Skipped steps return `{ __skipped: true, tool, payload }` for inspection — use this to verify prompt construction, payload shapes, and routing logic without external calls. The side-effect registry is in `src/lib/workflows/execution-mode.ts`.
 
 **Disabled steps** — temporarily skip individual steps without changing workflow logic:
+
 ```json
 {
   "alias": "create_company",
@@ -336,9 +377,11 @@ Tools classified as side effects (writes to CRM, messaging, campaigns, persisten
   "payload": { ... }
 }
 ```
+
 Set `disabled: true` on any command to skip it at runtime. The step appears in the UI grayed out with a "Disabled" badge but remains in the workflow config. Use this during initial live runs to protect systems of record — disable CRM writes, campaign additions, or other hard-to-reverse side effects while validating that enrichment, scoring, and routing logic work correctly with real data. Once confident, remove the `disabled` flag and re-publish. This is more granular than `dry_run` mode (which skips ALL side-effect tools) — disabled lets you selectively control which steps run.
 
 **Enrichment → score → classify** — enrich first, score with JS, confirm with LLM:
+
 ```
 enrich_contact → enrich_company → score (run_javascript) → classify (ai_inference) → route → persist
 ```
@@ -348,12 +391,15 @@ enrich_contact → enrich_company → score (run_javascript) → classify (ai_in
 ## Deploy & Verify
 
 ### Deploy
+
 ```bash
 deepline workflows apply --payload '<JSON>' --json
 ```
+
 Check the response for `validation.status` — should be `"valid"`. If `"schema_drift"`, a tool reference couldn't be resolved. Run `deepline tools get <tool_id>` to verify the tool exists.
 
 ### Test call
+
 ```bash
 # Smoke test first (fixture data, no side effects, no API keys needed)
 deepline workflows call --workflow-name my_workflow --payload '{...}' --mode smoke_test --json
@@ -366,12 +412,15 @@ deepline workflows call --workflow-name my_workflow --payload '{...}' --json
 ```
 
 ### Check run
+
 ```bash
 deepline workflows runs --workflow-id <WF_ID> --run-id <RUN_ID> --json
 ```
+
 Inspect per-step status and outputs. Steps skipped by execution mode show `missed` with reason `smoke_test: side_effect tool skipped` or `dry_run: side_effect tool skipped`.
 
 ### Check DB outputs
+
 ```bash
 deepline customer-db query --sql "SELECT * FROM demo_crm.my_results ORDER BY created_at DESC LIMIT 5"
 ```
@@ -379,6 +428,7 @@ deepline customer-db query --sql "SELECT * FROM demo_crm.my_results ORDER BY cre
 ### Validate against expectations
 
 Walk through the spec's expectations table:
+
 1. **Happy path**: run with a representative input. Compare each step's actual output to expected.
 2. **Edge cases**: run with each edge case input. Verify the workflow handles it per spec (skip, fallback, no crash).
 3. **Idempotency**: run the same input twice. Verify upsert behavior, no duplicate rows.

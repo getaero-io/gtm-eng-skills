@@ -24,6 +24,7 @@ Forager has 850M+ B2B person records and is especially strong for verified mobil
 
 Use `forager_person_detail_lookup` to enrich a known person by `person_id` or `linkedin_public_identifier`.
 Use `forager_person_detail_reverse_lookup_by_email` when you already know a work/personal email and want to resolve the person.
+
 - Use `forager_person_detail_reverse_lookup_by_phone_number` when you already know a phone number and want to resolve the person.
 - Use `forager_website_detail_lookup` for technographic enrichment on a specific domain.
 - API docs: https://docs.forager.ai/openapi/api_keys

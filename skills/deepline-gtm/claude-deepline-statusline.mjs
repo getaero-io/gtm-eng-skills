@@ -8,8 +8,16 @@ const MAX_TRANSCRIPT_BYTES = 1024 * 1024;
 const MAX_RUNNING_SHOWN = 2;
 const BACKEND_STATUS_TTL_MS = 15000;
 const ACTIVE_PERSIST_MS = 45_000;
-const STATE_PATH = path.join(os.homedir(), '.claude', 'deepline-statusline-state.json');
-const USER_CMD_PATH = path.join(os.homedir(), '.claude', 'statusline-user-command.txt');
+const STATE_PATH = path.join(
+  os.homedir(),
+  '.claude',
+  'deepline-statusline-state.json',
+);
+const USER_CMD_PATH = path.join(
+  os.homedir(),
+  '.claude',
+  'statusline-user-command.txt',
+);
 
 const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 const BACKEND_PULSE = ['●', '◉'];
@@ -181,21 +189,32 @@ function classifyCommand(command) {
   if (!command) return 'running';
   if (/\b(deepline|dl)\s+enrich\b/.test(command)) return 'enrich';
   if (/\b(deepline|dl)\s+tools\s+get\b/.test(command)) return 'tools_get';
-  if (/\b(deepline|dl)\s+tools\s+execute\b/.test(command)) return 'tools_execute';
-  if (/\b(deepline|dl)\s+tools\s+(search|list)\b/.test(command)) return 'tools_search';
+  if (/\b(deepline|dl)\s+tools\s+execute\b/.test(command))
+    return 'tools_execute';
+  if (/\b(deepline|dl)\s+tools\s+(search|list)\b/.test(command))
+    return 'tools_search';
   if (/\b(deepline|dl)\s+csv\s+--execute_cells\b/.test(command)) return 'csv';
   return 'running';
 }
 
 function isTrackableMode(mode) {
-  return mode === 'enrich' || mode === 'tools_get' || mode === 'tools_execute' || mode === 'tools_search' || mode === 'csv' || mode === 'running';
+  return (
+    mode === 'enrich' ||
+    mode === 'tools_get' ||
+    mode === 'tools_execute' ||
+    mode === 'tools_search' ||
+    mode === 'csv' ||
+    mode === 'running'
+  );
 }
 
 function shouldUseCachedBackendOnly(command) {
   if (!command) return false;
-  return /\b(deepline|dl)\s+backend\b/.test(command) ||
+  return (
+    /\b(deepline|dl)\s+backend\b/.test(command) ||
     /\b(deepline|dl)\s+csv\s+render\b/.test(command) ||
-    /\b(deepline|dl)\s+csv\s+--execute_cells\b/.test(command);
+    /\b(deepline|dl)\s+csv\s+--execute_cells\b/.test(command)
+  );
 }
 
 function parseRowCount(command) {
@@ -257,7 +276,10 @@ function extractPayloadPreview(command) {
   if (!raw) return '';
   const nextFlag = raw.search(/\s--[a-zA-Z0-9_-]+/);
   if (nextFlag > 0) raw = raw.slice(0, nextFlag).trim();
-  if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) {
+  if (
+    (raw.startsWith('"') && raw.endsWith('"')) ||
+    (raw.startsWith("'") && raw.endsWith("'"))
+  ) {
     raw = raw.slice(1, -1).trim();
   }
   return truncateText(raw.replace(/\s+/g, ' '), 18);
@@ -270,13 +292,20 @@ function extractPayloadQuery(command) {
   if (!raw) return '';
   const nextFlag = raw.search(/\s--[a-zA-Z0-9_-]+/);
   if (nextFlag > 0) raw = raw.slice(0, nextFlag).trim();
-  if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) {
+  if (
+    (raw.startsWith('"') && raw.endsWith('"')) ||
+    (raw.startsWith("'") && raw.endsWith("'"))
+  ) {
     raw = raw.slice(1, -1).trim();
   }
 
   try {
     const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object' && typeof parsed.query === 'string') {
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      typeof parsed.query === 'string'
+    ) {
       return truncateText(parsed.query.replace(/\s+/g, ' ').trim(), 48);
     }
   } catch {
@@ -291,9 +320,12 @@ function extractPayloadQuery(command) {
 }
 
 function getProviderLabel(toolId) {
-  const prefixes = Object.keys(PROVIDER_LABELS).sort((a, b) => b.length - a.length);
+  const prefixes = Object.keys(PROVIDER_LABELS).sort(
+    (a, b) => b.length - a.length,
+  );
   for (const prefix of prefixes) {
-    if (toolId === prefix || toolId.startsWith(`${prefix}_`)) return PROVIDER_LABELS[prefix];
+    if (toolId === prefix || toolId.startsWith(`${prefix}_`))
+      return PROVIDER_LABELS[prefix];
   }
   return null;
 }
@@ -308,24 +340,41 @@ function titleCaseWords(text) {
 
 function labelAction(actionRaw) {
   const action = actionRaw.toLowerCase();
-  if (action.includes('linkedin') && action.includes('post')) return 'LinkedIn Posts';
-  if (action.includes('job') || action.includes('hiring')) return 'Job Listings';
-  if (action.includes('comment') && action.includes('filter')) return 'Comment Filtering';
-  if (action.includes('comment') && action.includes('search')) return 'Comment Search';
+  if (action.includes('linkedin') && action.includes('post'))
+    return 'LinkedIn Posts';
+  if (action.includes('job') || action.includes('hiring'))
+    return 'Job Listings';
+  if (action.includes('comment') && action.includes('filter'))
+    return 'Comment Filtering';
+  if (action.includes('comment') && action.includes('search'))
+    return 'Comment Search';
   if (action.includes('tam')) return 'TAM Analysis';
-  if (action.includes('people') && action.includes('search')) return 'People Search';
-  if (action.includes('company') && action.includes('search')) return 'Company Search';
-  if (action.includes('email') && (action.includes('finder') || action.includes('find'))) return 'Email Finder';
-  if (action.includes('verify') || action.includes('validation')) return 'Verification';
+  if (action.includes('people') && action.includes('search'))
+    return 'People Search';
+  if (action.includes('company') && action.includes('search'))
+    return 'Company Search';
+  if (
+    action.includes('email') &&
+    (action.includes('finder') || action.includes('find'))
+  )
+    return 'Email Finder';
+  if (action.includes('verify') || action.includes('validation'))
+    return 'Verification';
   return null;
 }
 
 function formatToolName(toolId) {
   const provider = getProviderLabel(toolId);
-  const prefixes = Object.keys(PROVIDER_LABELS).sort((a, b) => b.length - a.length);
+  const prefixes = Object.keys(PROVIDER_LABELS).sort(
+    (a, b) => b.length - a.length,
+  );
   if (provider) {
-    const prefix = prefixes.find((p) => toolId === p || toolId.startsWith(`${p}_`));
-    const actionRaw = prefix ? toolId.slice(prefix.length).replace(/^_+/, '') : toolId;
+    const prefix = prefixes.find(
+      (p) => toolId === p || toolId.startsWith(`${p}_`),
+    );
+    const actionRaw = prefix
+      ? toolId.slice(prefix.length).replace(/^_+/, '')
+      : toolId;
     if (!actionRaw) return provider;
     const clean = actionRaw
       .replace(/_search$/, ' search')
@@ -347,7 +396,9 @@ function shortToolTarget(toolId) {
 }
 
 function summarizeProviders(toolIds) {
-  const names = [...new Set(toolIds.map((id) => getProviderLabel(id)).filter(Boolean))];
+  const names = [
+    ...new Set(toolIds.map((id) => getProviderLabel(id)).filter(Boolean)),
+  ];
   return names.join(', ');
 }
 
@@ -367,21 +418,47 @@ function explainCommand(command) {
   const payloadQuery = extractPayloadQuery(command);
 
   if (mode === 'enrich') {
-    if (rows && csv) return { detail: `Enriching ${rows} rows (${csv})`, current: '', providers: '' };
-    if (rows) return { detail: `Enriching ${rows} rows`, current: '', providers: '' };
+    if (rows && csv)
+      return {
+        detail: `Enriching ${rows} rows (${csv})`,
+        current: '',
+        providers: '',
+      };
+    if (rows)
+      return { detail: `Enriching ${rows} rows`, current: '', providers: '' };
     return { detail: 'Enriching rows', current: '', providers: '' };
   }
 
   if (mode === 'tools_get') {
     const target = extractToolsGetTarget(command);
-    return { detail: `Learning ${shortToolTarget(target)}`, current: '', providers: '' };
+    return {
+      detail: `Learning ${shortToolTarget(target)}`,
+      current: '',
+      providers: '',
+    };
   }
 
   if (mode === 'tools_execute') {
-    if (payloadQuery && primaryLabel) return { detail: `${primaryLabel}: ${payloadQuery}`, current: '', providers: '' };
-    if (primaryLabel && payload) return { detail: `${primaryLabel}: ${payload}`, current: '', providers: '' };
-    if (primaryLabel) return { detail: `Running ${primaryLabel}`, current: '', providers: '' };
-    if (payload) return { detail: `Calling ${target} with ${payload}`, current: '', providers: '' };
+    if (payloadQuery && primaryLabel)
+      return {
+        detail: `${primaryLabel}: ${payloadQuery}`,
+        current: '',
+        providers: '',
+      };
+    if (primaryLabel && payload)
+      return {
+        detail: `${primaryLabel}: ${payload}`,
+        current: '',
+        providers: '',
+      };
+    if (primaryLabel)
+      return { detail: `Running ${primaryLabel}`, current: '', providers: '' };
+    if (payload)
+      return {
+        detail: `Calling ${target} with ${payload}`,
+        current: '',
+        providers: '',
+      };
     return { detail: `Calling ${target}`, current: '', providers: '' };
   }
 
@@ -390,7 +467,11 @@ function explainCommand(command) {
   }
 
   if (mode === 'csv') {
-    return { detail: rows ? `Running CSV (${rows} rows)` : 'Running CSV', current: '', providers: '' };
+    return {
+      detail: rows ? `Running CSV (${rows} rows)` : 'Running CSV',
+      current: '',
+      providers: '',
+    };
   }
 
   return { detail: '', current: '', providers: '' };
@@ -400,10 +481,17 @@ function loadState() {
   try {
     const raw = fs.readFileSync(STATE_PATH, 'utf8');
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return { sessions: {}, backend: {} };
+    if (!parsed || typeof parsed !== 'object')
+      return { sessions: {}, backend: {} };
     return {
-      sessions: parsed.sessions && typeof parsed.sessions === 'object' ? parsed.sessions : {},
-      backend: parsed.backend && typeof parsed.backend === 'object' ? parsed.backend : {},
+      sessions:
+        parsed.sessions && typeof parsed.sessions === 'object'
+          ? parsed.sessions
+          : {},
+      backend:
+        parsed.backend && typeof parsed.backend === 'object'
+          ? parsed.backend
+          : {},
     };
   } catch {
     return { sessions: {}, backend: {} };
@@ -420,7 +508,9 @@ function saveState(state) {
 }
 
 function nextSpinnerFrame(sessionState) {
-  const index = Number.isFinite(sessionState?.spinner_index) ? sessionState.spinner_index : 0;
+  const index = Number.isFinite(sessionState?.spinner_index)
+    ? sessionState.spinner_index
+    : 0;
   const next = (index + 1) % SPINNER_FRAMES.length;
   sessionState.spinner_index = next;
   return SPINNER_FRAMES[next];
@@ -447,7 +537,12 @@ function parseBackendUpFromText(text) {
       section = 'render';
       continue;
     }
-    if (/^[a-z][a-z0-9 _-]*:/i.test(line) && !/^status:/i.test(line) && !/^api url:/i.test(line) && !/^url:/i.test(line)) {
+    if (
+      /^[a-z][a-z0-9 _-]*:/i.test(line) &&
+      !/^status:/i.test(line) &&
+      !/^api url:/i.test(line) &&
+      !/^url:/i.test(line)
+    ) {
       section = '';
     }
 
@@ -471,9 +566,15 @@ function parseBackendUpFromText(text) {
 
   const lower = text.toLowerCase();
   if (!backendStatus) {
-    if (lower.includes('"backend":{"running":true') || lower.includes('"backend":{"status":"running"')) {
+    if (
+      lower.includes('"backend":{"running":true') ||
+      lower.includes('"backend":{"status":"running"')
+    ) {
       backendStatus = 'running';
-    } else if (lower.includes('"backend":{"running":false') || lower.includes('"backend":{"status":"stopped"')) {
+    } else if (
+      lower.includes('"backend":{"running":false') ||
+      lower.includes('"backend":{"status":"stopped"')
+    ) {
       backendStatus = 'stopped';
     }
   }
@@ -483,11 +584,21 @@ function parseBackendUpFromText(text) {
     up = backendStatus.includes('running') || backendStatus.includes('healthy');
   } else if (lower.includes('backend') && lower.includes('running')) {
     up = true;
-  } else if (lower.includes('backend') && (lower.includes('stopped') || lower.includes('not running') || lower.includes('down'))) {
+  } else if (
+    lower.includes('backend') &&
+    (lower.includes('stopped') ||
+      lower.includes('not running') ||
+      lower.includes('down'))
+  ) {
     up = false;
   }
 
-  if (!renderUrl && renderStatus && renderStatus.includes('running') && backendApiUrl) {
+  if (
+    !renderUrl &&
+    renderStatus &&
+    renderStatus.includes('running') &&
+    backendApiUrl
+  ) {
     renderUrl = backendApiUrl;
   }
 
@@ -511,10 +622,16 @@ function parseBackendUpFromJson(output) {
       up = s.includes('running') || s.includes('healthy');
     }
 
-    const renderStatus = String(parsed?.render?.status || parsed?.render_status || '').toLowerCase();
-    let renderUrl = String(parsed?.render?.url || parsed?.render_url || parsed?.csv_render_url || '').trim();
+    const renderStatus = String(
+      parsed?.render?.status || parsed?.render_status || '',
+    ).toLowerCase();
+    let renderUrl = String(
+      parsed?.render?.url || parsed?.render_url || parsed?.csv_render_url || '',
+    ).trim();
     if (!renderUrl && renderStatus.includes('running')) {
-      renderUrl = String(parsed?.backend?.api_url || parsed?.api_url || '').trim();
+      renderUrl = String(
+        parsed?.backend?.api_url || parsed?.api_url || '',
+      ).trim();
     }
 
     return { up, renderUrl };
@@ -543,7 +660,9 @@ function getBackendStatus(state, opts = {}) {
     return {
       up: typeof cached.up === 'boolean' ? cached.up : null,
       renderUrl: cached.renderUrl || '',
-      checked_at_ms: Number.isFinite(cached.checked_at_ms) ? cached.checked_at_ms : 0,
+      checked_at_ms: Number.isFinite(cached.checked_at_ms)
+        ? cached.checked_at_ms
+        : 0,
     };
   }
 
@@ -586,27 +705,44 @@ function buildActiveFromTranscript(lines, fallbackCommand) {
 
     if (entry?.type === 'user') {
       for (const result of getToolResultsFromMessage(entry.message)) {
-        if (typeof result?.tool_use_id === 'string') pending.delete(result.tool_use_id);
+        if (typeof result?.tool_use_id === 'string')
+          pending.delete(result.tool_use_id);
       }
     }
   }
 
-  const active = [...pending.values()].filter((toolUse) => isDeeplineToolUse(toolUse));
+  const active = [...pending.values()].filter((toolUse) =>
+    isDeeplineToolUse(toolUse),
+  );
   if (active.length > 0) {
-    const latestCmd = extractToolUseCommand(active[active.length - 1]) || fallbackCommand || '';
+    const latestCmd =
+      extractToolUseCommand(active[active.length - 1]) || fallbackCommand || '';
     if (!isTrackableMode(classifyCommand(latestCmd))) return null;
     const explained = explainCommand(latestCmd);
-    const runningIds = [...new Set(active.flatMap((toolUse) => extractExecutedTools(extractToolUseCommand(toolUse))))];
-    const currentFallback = runningIds.slice(0, MAX_RUNNING_SHOWN).map((id) => formatToolName(id)).join(', ');
+    const runningIds = [
+      ...new Set(
+        active.flatMap((toolUse) =>
+          extractExecutedTools(extractToolUseCommand(toolUse)),
+        ),
+      ),
+    ];
+    const currentFallback = runningIds
+      .slice(0, MAX_RUNNING_SHOWN)
+      .map((id) => formatToolName(id))
+      .join(', ');
     return {
       detail: explained.detail,
       current: explained.current || currentFallback,
       providers: explained.providers || summarizeProviders(runningIds),
-      summary: explained.current || explained.detail || currentFallback || 'workflow',
+      summary:
+        explained.current || explained.detail || currentFallback || 'workflow',
     };
   }
 
-  const fallback = fallbackCommand || extractToolUseCommand(deeplineHistory[deeplineHistory.length - 1]) || '';
+  const fallback =
+    fallbackCommand ||
+    extractToolUseCommand(deeplineHistory[deeplineHistory.length - 1]) ||
+    '';
   if (!fallback || !isDeeplineCommand(fallback)) return null;
   if (!isTrackableMode(classifyCommand(fallback))) return null;
 
@@ -616,7 +752,11 @@ function buildActiveFromTranscript(lines, fallbackCommand) {
       detail: explained.detail,
       current: explained.current,
       providers: explained.providers,
-      summary: explained.current || explained.detail || explained.providers || 'workflow',
+      summary:
+        explained.current ||
+        explained.detail ||
+        explained.providers ||
+        'workflow',
     };
   }
 
@@ -672,8 +812,10 @@ async function main() {
   }
 
   const fallbackCommand = typeof data?.command === 'string' ? data.command : '';
-  const transcriptPath = typeof data?.transcript_path === 'string' ? data.transcript_path : '';
-  const sessionId = typeof data?.session_id === 'string' ? data.session_id : 'default';
+  const transcriptPath =
+    typeof data?.transcript_path === 'string' ? data.transcript_path : '';
+  const sessionId =
+    typeof data?.session_id === 'string' ? data.session_id : 'default';
 
   const state = loadState();
   const sessionState = state.sessions[sessionId] || {
@@ -702,12 +844,27 @@ async function main() {
     sessionState.active_started_ms = Date.now();
     state.sessions[sessionId] = sessionState;
     saveState(state);
-    const activeThinking = latestThinking ? `Thinking: ${truncateText(latestThinking, 56)}` : '';
-    dlOutput = renderActiveLine(frame, activeStatus, backendStatus, frameIndex, activeThinking);
+    const activeThinking = latestThinking
+      ? `Thinking: ${truncateText(latestThinking, 56)}`
+      : '';
+    dlOutput = renderActiveLine(
+      frame,
+      activeStatus,
+      backendStatus,
+      frameIndex,
+      activeThinking,
+    );
   } else {
     const now = Date.now();
-    const lastActiveMs = Number.isFinite(sessionState.active_started_ms) ? sessionState.active_started_ms : 0;
-    if (sessionState.was_active && lastActiveMs && now - lastActiveMs < ACTIVE_PERSIST_MS && sessionState.active_summary) {
+    const lastActiveMs = Number.isFinite(sessionState.active_started_ms)
+      ? sessionState.active_started_ms
+      : 0;
+    if (
+      sessionState.was_active &&
+      lastActiveMs &&
+      now - lastActiveMs < ACTIVE_PERSIST_MS &&
+      sessionState.active_summary
+    ) {
       sessionState.was_active = true;
       state.sessions[sessionId] = sessionState;
       saveState(state);
@@ -717,8 +874,16 @@ async function main() {
         providers: '',
         summary: sessionState.active_summary,
       };
-      const activeThinking = latestThinking ? `Thinking: ${truncateText(latestThinking, 56)}` : '';
-      dlOutput = renderActiveLine(frame, persisted, backendStatus, frameIndex, activeThinking);
+      const activeThinking = latestThinking
+        ? `Thinking: ${truncateText(latestThinking, 56)}`
+        : '';
+      dlOutput = renderActiveLine(
+        frame,
+        persisted,
+        backendStatus,
+        frameIndex,
+        activeThinking,
+      );
     } else {
       if (sessionState.was_active && sessionState.active_summary) {
         sessionState.last_ran = sessionState.active_summary;

@@ -2,13 +2,13 @@
 
 ## Operation Selection
 
-| Goal | Operation |
-| ------ | ----------- |
-| Find contacts at a company | `prospector` |
-| Enrich a single contact | `enrich_contact` |
-| Look up phone numbers | `enrich_phone` |
-| Enrich a company record | `enrich_company` |
-| Detect job changes (preferred) | `job_change` |
+| Goal                                      | Operation        |
+| ----------------------------------------- | ---------------- |
+| Find contacts at a company                | `prospector`     |
+| Enrich a single contact                   | `enrich_contact` |
+| Look up phone numbers                     | `enrich_phone`   |
+| Enrich a company record                   | `enrich_company` |
+| Detect job changes (preferred)            | `job_change`     |
 | LinkedIn lookup — dropleads fallback only | `search_contact` |
 
 ## Provider Positioning

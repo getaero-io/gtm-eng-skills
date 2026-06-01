@@ -1,6 +1,6 @@
 ---
 name: linkedin-url-lookup
-description: "Resolve LinkedIn profile URLs from name + company with strict identity validation to avoid false positives."
+description: 'Resolve LinkedIn profile URLs from name + company with strict identity validation to avoid false positives.'
 ---
 
 # LinkedIn URL Lookup
@@ -148,11 +148,13 @@ Common variants: Mike/Michael, Bob/Robert, Bill/William, Liz/Elizabeth, Alex/Ale
 After scraping, compare profile name to source name. **Null out any URL where first+last don't match.** 26% of serper lookups returned wrong people in a 253-person test without this gate.
 
 Rules:
+
 - Last name: exact or substring (handles hyphenated, but not single-char abbreviations)
 - First name: exact, 3+ char prefix, nickname, or quoted nickname in profile (e.g., `Yerachmiel 'Rocky' Katz`)
 - Normalize accents (`Rodríguez`->`Rodriguez`) and strip punctuation/emoji before comparing
 
 Validation script and eval fixtures:
+
 ```bash
 python3 scripts/validate-linkedin-names.py --fixtures scripts/fixtures_name_validation.json
 # 52 test cases, thresholds: precision >= 0.95, recall >= 0.85
@@ -160,10 +162,10 @@ python3 scripts/validate-linkedin-names.py --fixtures scripts/fixtures_name_vali
 
 ## Tested actors
 
-| Actor | Use | Input field | Cost |
-|-------|-----|-------------|------|
-| `harvestapi/linkedin-profile-scraper` | Profile scrape | `urls` (array) | $0.004/profile ($4/1k), $0.01 with email | 6.3M runs, 100% 30d, 4.8 rating. Returns `firstName`, `lastName`, `headline`, `experience`, `education`, parsed `location`. |
-| `harvestapi/linkedin-profile-posts` | Posts scrape | `targetUrls` (array), `maxPosts` (int) | $0.002/post (so $0.04/profile at maxPosts=20) | 6.2M runs, 100% 30d. Rejects `profileUrls` and `postedLimit`. |
+| Actor                                 | Use            | Input field                            | Cost                                          |
+| ------------------------------------- | -------------- | -------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `harvestapi/linkedin-profile-scraper` | Profile scrape | `urls` (array)                         | $0.004/profile ($4/1k), $0.01 with email      | 6.3M runs, 100% 30d, 4.8 rating. Returns `firstName`, `lastName`, `headline`, `experience`, `education`, parsed `location`. |
+| `harvestapi/linkedin-profile-posts`   | Posts scrape   | `targetUrls` (array), `maxPosts` (int) | $0.002/post (so $0.04/profile at maxPosts=20) | 6.2M runs, 100% 30d. Rejects `profileUrls` and `postedLimit`.                                                               |
 
 `dev_fusion/Linkedin-Profile-Scraper` has higher weighted reviews (596 vs 114) but returned empty data in testing. `data-slayer/linkedin-profile-scraper` has no reviews. Stick with `harvestapi`.
 

@@ -22,6 +22,7 @@ Use Smartlead for outbound email campaign management. Full lifecycle from campai
 ## Quick Reference
 
 ### Campaigns
+
 ```bash
 deepline tools execute smartlead_list_campaigns --payload '{}'
 deepline tools execute smartlead_create_campaign --payload '{"name":"Insurance Brokerage - Book Assessment"}'
@@ -32,6 +33,7 @@ deepline tools execute smartlead_delete_campaign --payload '{"campaign_id":12345
 ```
 
 ### Leads
+
 ```bash
 deepline tools execute smartlead_push_to_campaign --payload '{"campaign_id":"12345678","lead_list":[{"email":"jane@example.com","first_name":"Jane","last_name":"Lovelace","company_name":"Acme Corp","custom_fields":{"tag":"demo"}}]}'
 deepline tools execute smartlead_list_campaign_leads --payload '{"campaign_id":12345678,"offset":0,"limit":100}'
@@ -44,18 +46,21 @@ deepline tools execute smartlead_export_campaign_leads --payload '{"campaign_id"
 ```
 
 ### Sequences
+
 ```bash
 deepline tools execute smartlead_fetch_campaign_sequences --payload '{"campaign_id":12345678}'
 deepline tools execute smartlead_save_campaign_sequences --payload '{"campaign_id":12345678,"sequences":[{"seq_number":1,"seq_delay_details":{"delay_in_days":0},"seq_variants":[{"email_body":"<p>Hello Ada</p>","variant_label":"A","subject":"Quick question"}]},{"seq_number":2,"seq_delay_details":{"delay_in_days":3},"seq_variants":[{"email_body":"<p>Following up</p>","variant_label":"A","subject":"Re: Quick question"}]}]}'
 ```
 
 ### Schedule and Settings
+
 ```bash
 deepline tools execute smartlead_update_campaign_schedule --payload '{"campaign_id":12345678,"timezone":"America/New_York","days_of_the_week":[1,2,3,4,5],"start_hour":"09:00","end_hour":"17:00","min_time_btw_emails":5,"max_new_leads_per_day":20}'
 deepline tools execute smartlead_update_campaign_settings --payload '{"campaign_id":12345678,"track_settings":["DONT_TRACK_EMAIL_OPEN"],"stop_lead_settings":"REPLY_TO_AN_EMAIL"}'
 ```
 
 ### Analytics
+
 ```bash
 deepline tools execute smartlead_get_campaign_stats --payload '{"campaign_id":12345678}'
 deepline tools execute smartlead_get_campaign_analytics --payload '{"campaign_id":12345678}'
@@ -64,6 +69,7 @@ deepline tools execute smartlead_get_lead_statistics --payload '{"campaign_id":1
 ```
 
 ### Email Accounts
+
 ```bash
 deepline tools execute smartlead_list_email_accounts --payload '{}'
 deepline tools execute smartlead_add_campaign_email_account --payload '{"campaign_id":12345678,"email_account_ids":[1,2,3]}'
@@ -72,6 +78,7 @@ deepline tools execute smartlead_update_email_account_warmup --payload '{"email_
 ```
 
 ### Webhooks
+
 ```bash
 deepline tools execute smartlead_upsert_campaign_webhook --payload '{"campaign_id":12345678,"webhook":{"name":"Reply Tracker","webhook_url":"https://hooks.example.com/sl","event_types":["EMAIL_REPLY","LEAD_UNSUBSCRIBED"]}}'
 deepline tools execute smartlead_fetch_campaign_webhooks --payload '{"campaign_id":12345678}'
@@ -79,18 +86,21 @@ deepline tools execute smartlead_delete_campaign_webhook --payload '{"campaign_i
 ```
 
 ### Block List
+
 ```bash
 deepline tools execute smartlead_add_domain_block_list --payload '{"domain_block_list":["competitor.com","spam@bad.org"]}'
 deepline tools execute smartlead_get_block_list --payload '{"limit":50,"filter_email_or_domain":"example.com"}'
 ```
 
 ### Smart Delivery
+
 ```bash
 deepline tools execute smartlead_get_delivery_test --payload '{"test_id":1}'
 # smartlead_create_delivery_test and smartlead_get_delivery_score are disabled pending live contract verification.
 ```
 
 ### Smart Senders (Domains)
+
 ```bash
 deepline tools execute smartlead_search_domain --payload '{"domain_name":"example.com","vendor_id":1}'
 # smartlead_add_domain and smartlead_verify_domain are disabled pending live contract verification.
@@ -98,6 +108,7 @@ deepline tools execute smartlead_auto_generate_mailboxes --payload '{"vendor_id"
 ```
 
 ### Generic API Request
+
 ```bash
 deepline tools execute smartlead_api_request --payload '{"method":"GET","endpoint":"/v1/campaigns"}'
 ```

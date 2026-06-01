@@ -20,7 +20,7 @@ The fix is a layered check.
 
 ## Always ask the user first
 
-Before running any dedupe, ask explicitly: *"Do you have an existing customer list, CRM export, or past outbound list I should dedupe the prospect output against? A CSV with a `domain` column and optionally a `name` column is enough."* If they say no, note it as a caveat in the final report. **Don't silently skip the dedupe** — a downstream user reading the prospect section deserves to know whether one was applied.
+Before running any dedupe, ask explicitly: _"Do you have an existing customer list, CRM export, or past outbound list I should dedupe the prospect output against? A CSV with a `domain` column and optionally a `name` column is enough."_ If they say no, note it as a caveat in the final report. **Don't silently skip the dedupe** — a downstream user reading the prospect section deserves to know whether one was applied.
 
 ## Usage
 
@@ -58,12 +58,12 @@ Each row in the output carries a `dedupe_match` field — empty for actionable, 
 
 Even after dedupe, the "already in CRM" bucket often contains accounts still worth outbound, just with a different wedge or timing. Prefer to categorize:
 
-| Category | Treatment |
-|---|---|
-| **Net-new** (not in existing list) | Standard outbound. |
-| **Already in CRM, no opps ever** | Effectively net-new from an activity perspective; surface with a note. |
+| Category                                             | Treatment                                                                     |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Net-new** (not in existing list)                   | Standard outbound.                                                            |
+| **Already in CRM, no opps ever**                     | Effectively net-new from an activity perspective; surface with a note.        |
 | **Previously lost / rejected, no active engagement** | Fresh outbound wedge. Flag the previous loss reason so the AE can address it. |
-| **Active open opportunity** | Exclude — don't step on an active sales cycle. |
-| **Current customer** | Exclude from net-new; expansion is a different motion. |
+| **Active open opportunity**                          | Exclude — don't step on an active sales cycle.                                |
+| **Current customer**                                 | Exclude from net-new; expansion is a different motion.                        |
 
 This categorization requires some signal from the existing list beyond "do they show up" — if the user's list has columns like `opp_count`, `open_count`, `won_count`, `last_opp_date`, use them. If it doesn't, just split into "net-new" vs "already known" and flag the latter for manual triage.

@@ -26,6 +26,7 @@ Starts an async enrichment job and polls until finished. Accepts any LinkedIn UR
 ```
 
 For phones + emails:
+
 ```json
 {
   "linkedin_url": "https://www.linkedin.com/in/johndoe",
@@ -34,6 +35,7 @@ For phones + emails:
 ```
 
 Name + company fallback:
+
 ```json
 {
   "first_name": "John",
@@ -68,12 +70,12 @@ Typical flow: search → get LinkedIn URLs → feed into `wiza_reveal_person` to
 
 ## Enrichment levels
 
-| Level | Returns |
-|---|---|
-| `none` | Profile data only (1 credit) |
-| `partial` | Emails only (2 credits) |
-| `phone` | Phone numbers only (5 credits) |
-| `full` | Emails + phones (7 credits) |
+| Level     | Returns                        |
+| --------- | ------------------------------ |
+| `none`    | Profile data only (1 credit)   |
+| `partial` | Emails only (2 credits)        |
+| `phone`   | Phone numbers only (5 credits) |
+| `full`    | Emails + phones (7 credits)    |
 
 ## Anti-patterns
 

@@ -21,8 +21,16 @@ Use CrustData for structured discovery and enrichment with recall-first filterin
 
 ```json
 [
-  {"filter_type": "employee_metrics.latest_count", "type": ">", "value": "100"},
-  {"filter_type": "employee_metrics.latest_count", "type": "<", "value": "500"}
+  {
+    "filter_type": "employee_metrics.latest_count",
+    "type": ">",
+    "value": "100"
+  },
+  {
+    "filter_type": "employee_metrics.latest_count",
+    "type": "<",
+    "value": "500"
+  }
 ]
 ```
 

@@ -13,12 +13,14 @@ Default to discovery/search here. The moment the work becomes per-row enrichment
 Use a list-building/search subagent when discovery is genuinely multi-provider and non-trivial. Tell subagents to read this file. Only use the parent agent inline for small, obvious lookups.
 
 Subagent output contract:
+
 - return a seed CSV or structured list only
 - preserve source lineage
 - stop before row-level enrichment
 - recommend the next step
 
 Search-to-enrichment handoff rules:
+
 - stop adding ad-hoc row-level scripts once you have a seed list
 - move per-column work into `deepline enrich --with ...`
 - keep lineage in-sheet with `_metadata`
@@ -27,13 +29,13 @@ Search-to-enrichment handoff rules:
 
 Search plays first, then describe the closest match before running or copying it. A good play works out of the box for the common case and is also the safest template when you need customization.
 
-| If you need | Use this play | Why |
-|---|---|---|
-| Companies filtered by funding round, headcount, HQ, category, or hiring signal | `prebuilt/structured-company-discovery` | Works out of the box for firmographic company lists and hiring evidence. Also provides a template for custom company acquisition plays. |
-| Contacts at known companies by role or seniority | `prebuilt/company-to-contact-by-role-waterfall` | Works out of the box for company-scoped contact discovery. Also provides a template for role ranking and contact filtering. |
-| Company list first, then contacts at each company | Start with `prebuilt/structured-company-discovery`, then compose the company-to-contact play | Keeps company validation separate from people discovery, and gives a clean template for multi-stage acquisition. |
-| Work emails or phones for rows you already have | Stop and use `enriching-and-researching.md` | Existing rows are enrichment work, not company acquisition. |
-| A public source page such as a portfolio, accelerator batch, conference list, or directory | Search for a source-specific play first with `deepline plays search "<source type> company list" --json` | A source-specific play should handle extraction and evidence. If none exists, use tools only to build a new reusable play. |
+| If you need                                                                                | Use this play                                                                                            | Why                                                                                                                                     |
+| ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Companies filtered by funding round, headcount, HQ, category, or hiring signal             | `prebuilt/structured-company-discovery`                                                                  | Works out of the box for firmographic company lists and hiring evidence. Also provides a template for custom company acquisition plays. |
+| Contacts at known companies by role or seniority                                           | `prebuilt/company-to-contact-by-role-waterfall`                                                          | Works out of the box for company-scoped contact discovery. Also provides a template for role ranking and contact filtering.             |
+| Company list first, then contacts at each company                                          | Start with `prebuilt/structured-company-discovery`, then compose the company-to-contact play             | Keeps company validation separate from people discovery, and gives a clean template for multi-stage acquisition.                        |
+| Work emails or phones for rows you already have                                            | Stop and use `enriching-and-researching.md`                                                              | Existing rows are enrichment work, not company acquisition.                                                                             |
+| A public source page such as a portfolio, accelerator batch, conference list, or directory | Search for a source-specific play first with `deepline plays search "<source type> company list" --json` | A source-specific play should handle extraction and evidence. If none exists, use tools only to build a new reusable play.              |
 
 If no play fits, run `deepline tools search` only to find the missing source or provider contract, then put that provider call into a scratchpad play before scaling. Do not keep the final workflow as loose `tools execute` calls.
 
@@ -71,15 +73,16 @@ Tools are the live provider catalog. Plays are the workflow surface. Use tools t
 
 ## Discovery workflow
 
-| Step | What to do | Why |
-|---|---|---|
-| 0 | Check if the data already exists or has a known source URL | Avoid unnecessary provider calls |
-| 1 | Search and describe the closest play | Prefer reusable workflows over loose provider calls |
-| 2 | Run the play if the input contract fits | Use the out-of-box path first |
-| 3 | Copy/edit the play if only one stage needs customization | Keep a working template and avoid provider thrash |
-| 4 | Use `tools search/describe` only for missing provider contracts | Raw tools are inputs to a custom play, not the final workflow |
+| Step | What to do                                                      | Why                                                           |
+| ---- | --------------------------------------------------------------- | ------------------------------------------------------------- |
+| 0    | Check if the data already exists or has a known source URL      | Avoid unnecessary provider calls                              |
+| 1    | Search and describe the closest play                            | Prefer reusable workflows over loose provider calls           |
+| 2    | Run the play if the input contract fits                         | Use the out-of-box path first                                 |
+| 3    | Copy/edit the play if only one stage needs customization        | Keep a working template and avoid provider thrash             |
+| 4    | Use `tools search/describe` only for missing provider contracts | Raw tools are inputs to a custom play, not the final workflow |
 
 Anti-patterns:
+
 - **jumping to people-search first** — searching for "GTM Engineer at YC startup" via `exa_people_search` or `dropleads_search_people` before having a company list. Find companies first, then find people at each.
 - reconstructing a known directory with repeated search queries
 - firing all providers in parallel before routing
@@ -89,16 +92,16 @@ Anti-patterns:
 
 ## Scenario table
 
-| Scenario | Read Section |
-|---|---|
-| Sizing an audience or validating market volume | `Search audiences` |
-| Companies matching a crisp ICP (funding, headcount, geo, vertical) | `Structured company search` |
-| Pulling from a known URL — portfolio, directory, registry, LinkedIn/Reddit/X, conference, filing | `Known-source extraction` |
-| Contacts for a CSV or existing company list (row-based) | Stop — route to `enriching-and-researching.md` |
-| Contacts for a few companies named in the prompt | `People search at known companies` |
-| Companies hiring for a role or function | `Hiring-qualified search` |
-| LinkedIn URL or company page recovery | `URL recovery` |
-| Niche path the default routes don't cover | `Tool discovery` (top of doc) |
+| Scenario                                                                                         | Read Section                                   |
+| ------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| Sizing an audience or validating market volume                                                   | `Search audiences`                             |
+| Companies matching a crisp ICP (funding, headcount, geo, vertical)                               | `Structured company search`                    |
+| Pulling from a known URL — portfolio, directory, registry, LinkedIn/Reddit/X, conference, filing | `Known-source extraction`                      |
+| Contacts for a CSV or existing company list (row-based)                                          | Stop — route to `enriching-and-researching.md` |
+| Contacts for a few companies named in the prompt                                                 | `People search at known companies`             |
+| Companies hiring for a role or function                                                          | `Hiring-qualified search`                      |
+| LinkedIn URL or company page recovery                                                            | `URL recovery`                                 |
+| Niche path the default routes don't cover                                                        | `Tool discovery` (top of doc)                  |
 
 ## Search audiences
 
@@ -149,6 +152,7 @@ deepline tools execute hunter_email_count --payload '{"domain":"stripe.com"}'
 ## Structured company search
 
 Use this section when the user has a crisp ICP, such as:
+
 - funding stage
 - headcount range
 - geography
@@ -157,6 +161,7 @@ Use this section when the user has a crisp ICP, such as:
 - hiring proxy or company maturity
 
 Recommended course of action:
+
 1. Describe `prebuilt/structured-company-discovery` and compare its input fields to the prompt.
 2. Run it directly when the fit is clean.
 3. Copy/edit it when the user needs a different source, filter, scoring rule, or output shape.
@@ -176,6 +181,7 @@ deepline plays run ./target-company-list.play.ts --input '{"target_count":25}' -
 ```
 
 Structured company search is the wrong choice when:
+
 - the user gave you a known source page
 - the target is too fuzzy/conceptual for structured filters
 - you need semantic discovery first, not a precise market pull
@@ -187,6 +193,7 @@ Use when the value lives on a public page you can fetch directly — VC portfoli
 Rule: if you have the URL, scrape it directly. Use search only to find the URL when the source itself is unknown. Prefer official pages over reconstructed lists. For investor-backed targeting ("companies backed by a16z", "YC W26"), official portfolio pages beat structured search.
 
 Source-type routing:
+
 - **Static HTML pages, registries, official filings** → `curl` or `WebFetch` (free).
 - **JS-rendered portfolios, directories, job boards** → `parallel_extract` (~1 cr).
 - **Source-specific platforms (LinkedIn, Reddit, X, Similarweb)** → Apify actors. See [`portfolio-prospecting.md`](recipes/portfolio-prospecting.md) for investor/accelerator flow.
@@ -210,6 +217,7 @@ For LinkedIn URL recovery itself (not scraping after you have the URL), use `URL
 Use this section when the user already has target companies and needs candidate contacts or role owners.
 
 Recommended course of action:
+
 1. Use broad function keywords plus seniority.
 2. Prefer company domains over company names when you know them.
 3. For tiny startups, switch away from classic people DBs sooner.
@@ -260,6 +268,7 @@ For <500-employee companies, narrow title filters often return 0; use broad keyw
 Use this section when the user wants companies that are actively hiring for a specific role or likely need a specific function.
 
 Recommended course of action:
+
 1. Discover the plausible company set first. If companies come from a known portfolio or accelerator (YC, a16z, etc.), extract the portfolio first via `Known-source extraction` — you'll get domains for free and skip domain-resolution.
 2. Then qualify that set with hiring evidence.
 3. Use public-job or semantic evidence only when structured hiring coverage is thin.
@@ -282,6 +291,7 @@ deepline tools execute exa_search --payload '{"query":"site:ycombinator.com \"GT
 Use this section when you already know the company or person identity and need the URL.
 
 Recommended course of action:
+
 1. Use a highly specific query.
 2. Include company and role context for people.
 3. Leave null when the identity is not specific enough.
@@ -301,37 +311,37 @@ deepline tools execute serper_google_search --payload '{"query":"\"Jane Smith\" 
 
 ## Convergence rules
 
-| Rule | Guidance |
-|---|---|
-| Filter, don't restart | Filter out bad matches and supplement gaps instead of restarting discovery |
-| Stop at good enough | If you have about 80% of the target after filtering, ship it |
-| Extract from search responses | Use provider-returned firmographics directly instead of re-enriching them |
+| Rule                          | Guidance                                                                   |
+| ----------------------------- | -------------------------------------------------------------------------- |
+| Filter, don't restart         | Filter out bad matches and supplement gaps instead of restarting discovery |
+| Stop at good enough           | If you have about 80% of the target after filtering, ship it               |
+| Extract from search responses | Use provider-returned firmographics directly instead of re-enriching them  |
 
 ## Provider reference
 
-| Tool | Best for | Server-side filters | Cost | Gotchas |
-|---|---|---|---|---|
-| `curl` / `parallel_extract` / `WebFetch` | Data at known URLs: VC portfolios, accelerator directories, job boards, team pages, conference speaker lists | URL + optional CSS/objective | free (`curl`) or ~1 cr (`parallel_extract`) | Use `curl` for static HTML, `parallel_extract` for JS-rendered pages. A single fetch returns the complete dataset — search tools return fragments requiring 10+ calls to piece together. |
-| `crustdata_companydb_search` | Company lists with ICP constraints (funding, headcount, geography, industry) | funding stage, headcount range, hq_country, crunchbase_categories, linkedin_industries, employee growth, investor | ~1 cr/search | `hq_country` = ISO 3-letter codes (`USA` not `United States`) — silent empty on wrong format. Use `crunchbase_categories` for niche verticals (Fraud Detection, Identity Management), not `linkedin_industries` (too broad). Response includes headcount + funding — don't re-enrich with `deeplineagent` for data already present. `employee_metrics.growth_6m_percent` is a free hiring proxy. |
-| `crustdata_companydb_autocomplete` | Get canonical filter values before searching | — | free | Always run before `companydb_search` for fields like `crunchbase_categories`, `linkedin_industries`, `last_funding_round_type`. Requires non-empty `query` (≥1 char). |
-| `crustdata_job_listings` | Hiring signals at known companies | company domains | ~0.4 cr/result | Batch domains in one call. Spotty coverage on <200 emp companies — only ~25% have listings. No server-side title filter — filter client-side. |
-| `crustdata_people_search` | LinkedIn-oriented person discovery | company domain, title keywords | ~1 cr | — |
-| `exa_search` | Concept-driven company/people discovery, gap-filling | semantic query only (no ICP filters) | ~5 cr with contents | Returns unfiltered results — expect to discard 30-50%. `category:"company"` incompatible with `includeDomains`/`includeText`. |
-| `exa_people_search` | Contacts at small startups (<50 emp) | query string | ~0.1 cr/result | Returns structured entities. Use via `deepline enrich`. |
-| `exa_research` | Deep multi-source synthesis | outputSchema, multi-query | ~10 cr | Slow. Use for research, not list building. |
-| `dropleads_search_people` | People discovery + segmentation with structured filters | job titles, seniority, headcount, geography, keywords | free | Near-zero coverage for <50 emp startups. `keywords` must be split: `["GTM","Engineer"]` not `["GTM Engineer"]`. |
-| `dropleads_get_lead_count` | Sizing before full pull | same as search_people | free | — |
-| `serper_google_search` | URL discovery, `site:` scoped searches | query string | low-cost | Defaults `gl=us` and `hl=en`. Keyword soup without `site:` = noisy. Use `site:` + quoted phrases for precision. |
-| `parallel_search` | Broad discovery when you don't know which domains hold the data | objective string | ~1 cr | Lower precision than domain-scoped search. |
-| `parallel_extract` | URL-bound extraction, JS-rendered pages | URLs + objective | ~1 cr | Slow. Good for portfolio pages, job boards. |
-| `apollo_people_search` | People fallback when dropleads returns 0 | title, domain, location | ~0.2 cr | Mixed quality. Fallback only. |
-| `apollo_people_search_paid` | Large company contact pull with email | domain, title keywords | 1 cr/result | Expensive. Good coverage for large cos. |
-| `hunter_email_finder` | Email finding in waterfall | domain, first/last name | ~0.3 cr | Poor coverage for <50 emp companies. |
-| `peopledatalabs_company_search` | SQL-based company search | SQL (industry, size, funding, location) | expensive | Last resort. Exhaust others first. |
-| `crustdata_person_enrichment` | LinkedIn profile enrichment | LinkedIn URL | ~1 cr | — |
-| `apify_run_actor_sync` | LinkedIn scraping (profiles, company employees) | actor-specific | varies | Structured data, faster than `deeplineagent` for source-specific scraping. |
-| `adyntel_facebook_ad_search` | Meta keyword-based ad search | keyword | ~1 cr | Additional channel coverage. |
-| `deeplineagent` | Tool-backed fallback research and ambiguity resolution | prompt + row context | varies | Use only after direct discovery paths fail or when you need guided synthesis over web findings. Ask for structured output with `jsonSchema`. |
+| Tool                                     | Best for                                                                                                     | Server-side filters                                                                                               | Cost                                        | Gotchas                                                                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `curl` / `parallel_extract` / `WebFetch` | Data at known URLs: VC portfolios, accelerator directories, job boards, team pages, conference speaker lists | URL + optional CSS/objective                                                                                      | free (`curl`) or ~1 cr (`parallel_extract`) | Use `curl` for static HTML, `parallel_extract` for JS-rendered pages. A single fetch returns the complete dataset — search tools return fragments requiring 10+ calls to piece together.                                                                                                                                                                                                         |
+| `crustdata_companydb_search`             | Company lists with ICP constraints (funding, headcount, geography, industry)                                 | funding stage, headcount range, hq_country, crunchbase_categories, linkedin_industries, employee growth, investor | ~1 cr/search                                | `hq_country` = ISO 3-letter codes (`USA` not `United States`) — silent empty on wrong format. Use `crunchbase_categories` for niche verticals (Fraud Detection, Identity Management), not `linkedin_industries` (too broad). Response includes headcount + funding — don't re-enrich with `deeplineagent` for data already present. `employee_metrics.growth_6m_percent` is a free hiring proxy. |
+| `crustdata_companydb_autocomplete`       | Get canonical filter values before searching                                                                 | —                                                                                                                 | free                                        | Always run before `companydb_search` for fields like `crunchbase_categories`, `linkedin_industries`, `last_funding_round_type`. Requires non-empty `query` (≥1 char).                                                                                                                                                                                                                            |
+| `crustdata_job_listings`                 | Hiring signals at known companies                                                                            | company domains                                                                                                   | ~0.4 cr/result                              | Batch domains in one call. Spotty coverage on <200 emp companies — only ~25% have listings. No server-side title filter — filter client-side.                                                                                                                                                                                                                                                    |
+| `crustdata_people_search`                | LinkedIn-oriented person discovery                                                                           | company domain, title keywords                                                                                    | ~1 cr                                       | —                                                                                                                                                                                                                                                                                                                                                                                                |
+| `exa_search`                             | Concept-driven company/people discovery, gap-filling                                                         | semantic query only (no ICP filters)                                                                              | ~5 cr with contents                         | Returns unfiltered results — expect to discard 30-50%. `category:"company"` incompatible with `includeDomains`/`includeText`.                                                                                                                                                                                                                                                                    |
+| `exa_people_search`                      | Contacts at small startups (<50 emp)                                                                         | query string                                                                                                      | ~0.1 cr/result                              | Returns structured entities. Use via `deepline enrich`.                                                                                                                                                                                                                                                                                                                                          |
+| `exa_research`                           | Deep multi-source synthesis                                                                                  | outputSchema, multi-query                                                                                         | ~10 cr                                      | Slow. Use for research, not list building.                                                                                                                                                                                                                                                                                                                                                       |
+| `dropleads_search_people`                | People discovery + segmentation with structured filters                                                      | job titles, seniority, headcount, geography, keywords                                                             | free                                        | Near-zero coverage for <50 emp startups. `keywords` must be split: `["GTM","Engineer"]` not `["GTM Engineer"]`.                                                                                                                                                                                                                                                                                  |
+| `dropleads_get_lead_count`               | Sizing before full pull                                                                                      | same as search_people                                                                                             | free                                        | —                                                                                                                                                                                                                                                                                                                                                                                                |
+| `serper_google_search`                   | URL discovery, `site:` scoped searches                                                                       | query string                                                                                                      | low-cost                                    | Defaults `gl=us` and `hl=en`. Keyword soup without `site:` = noisy. Use `site:` + quoted phrases for precision.                                                                                                                                                                                                                                                                                  |
+| `parallel_search`                        | Broad discovery when you don't know which domains hold the data                                              | objective string                                                                                                  | ~1 cr                                       | Lower precision than domain-scoped search.                                                                                                                                                                                                                                                                                                                                                       |
+| `parallel_extract`                       | URL-bound extraction, JS-rendered pages                                                                      | URLs + objective                                                                                                  | ~1 cr                                       | Slow. Good for portfolio pages, job boards.                                                                                                                                                                                                                                                                                                                                                      |
+| `apollo_people_search`                   | People fallback when dropleads returns 0                                                                     | title, domain, location                                                                                           | ~0.2 cr                                     | Mixed quality. Fallback only.                                                                                                                                                                                                                                                                                                                                                                    |
+| `apollo_people_search_paid`              | Large company contact pull with email                                                                        | domain, title keywords                                                                                            | 1 cr/result                                 | Expensive. Good coverage for large cos.                                                                                                                                                                                                                                                                                                                                                          |
+| `hunter_email_finder`                    | Email finding in waterfall                                                                                   | domain, first/last name                                                                                           | ~0.3 cr                                     | Poor coverage for <50 emp companies.                                                                                                                                                                                                                                                                                                                                                             |
+| `peopledatalabs_company_search`          | SQL-based company search                                                                                     | SQL (industry, size, funding, location)                                                                           | expensive                                   | Last resort. Exhaust others first.                                                                                                                                                                                                                                                                                                                                                               |
+| `crustdata_person_enrichment`            | LinkedIn profile enrichment                                                                                  | LinkedIn URL                                                                                                      | ~1 cr                                       | —                                                                                                                                                                                                                                                                                                                                                                                                |
+| `apify_run_actor_sync`                   | LinkedIn scraping (profiles, company employees)                                                              | actor-specific                                                                                                    | varies                                      | Structured data, faster than `deeplineagent` for source-specific scraping.                                                                                                                                                                                                                                                                                                                       |
+| `adyntel_facebook_ad_search`             | Meta keyword-based ad search                                                                                 | keyword                                                                                                           | ~1 cr                                       | Additional channel coverage.                                                                                                                                                                                                                                                                                                                                                                     |
+| `deeplineagent`                          | Tool-backed fallback research and ambiguity resolution                                                       | prompt + row context                                                                                              | varies                                      | Use only after direct discovery paths fail or when you need guided synthesis over web findings. Ask for structured output with `jsonSchema`.                                                                                                                                                                                                                                                     |
 
 ## Subagent orchestration
 
@@ -345,12 +355,12 @@ When the `deepline-list-builder` subagent is available, use it to fan out search
 
 Pick the right tool based on what you have and what you need:
 
-| Tool | Cost | Input needed | Returns | Best for | Limitation |
-|---|---|---|---|---|---|
-| `exa_people_search` | 0.1 cr/result | company name + role keyword | Structured entities: name, title, LinkedIn, work history | Any company size, especially small startups | Finds *associated* people, not guaranteed exact role match |
-| `dropleads_search_people` | free | company domain or keyword filters | Name, title, email (sometimes), company | Mid/large companies (>50 employees) | Near-zero coverage for tiny startups (<50 people) |
-| `deeplineagent` | varies | company name/domain | Structured if you pass `jsonSchema` | Fallback when providers return 0 | Slower than direct providers; use only after the normal search path is exhausted |
-| `apollo_people_search_paid` | 1 cr/result | domain, title keywords | Name, title, email, LinkedIn | Large companies with good Apollo coverage | Expensive, poor for small startups |
+| Tool                        | Cost          | Input needed                      | Returns                                                  | Best for                                    | Limitation                                                                       |
+| --------------------------- | ------------- | --------------------------------- | -------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------- |
+| `exa_people_search`         | 0.1 cr/result | company name + role keyword       | Structured entities: name, title, LinkedIn, work history | Any company size, especially small startups | Finds _associated_ people, not guaranteed exact role match                       |
+| `dropleads_search_people`   | free          | company domain or keyword filters | Name, title, email (sometimes), company                  | Mid/large companies (>50 employees)         | Near-zero coverage for tiny startups (<50 people)                                |
+| `deeplineagent`             | varies        | company name/domain               | Structured if you pass `jsonSchema`                      | Fallback when providers return 0            | Slower than direct providers; use only after the normal search path is exhausted |
+| `apollo_people_search_paid` | 1 cr/result   | domain, title keywords            | Name, title, email, LinkedIn                             | Large companies with good Apollo coverage   | Expensive, poor for small startups                                               |
 
 **Default: `exa_people_search` via `deepline enrich`.** Returns structured person entities (name, title, LinkedIn, work history) — no parsing needed. Works across company sizes.
 
@@ -366,6 +376,7 @@ deepline enrich --input seed.csv --in-place --rows 0:1 \
 ### Serper Google Search
 
 **Query structuring:**
+
 - `site:` scoping to an authoritative domain is the highest-signal pattern -- use it whenever you know where the data lives.
   - `site:ycombinator.com` -- YC company/job data.
   - `site:crunchbase.com` -- funding and firmographic lookup.
@@ -394,6 +405,7 @@ deepline enrich --input leads.csv --in-place --rows 0:1 \
 Dropleads note: keep title filters broad (`jobTitles`) and allow seniority to do the heavy lifting.
 
 **Dropleads query gotchas:**
+
 - `keywords`: multi-word strings return 0 -- use `["GTM","engineer"]` not `["GTM Engineer"]`.
 - `jobTitles`: substring match, OR'd. Niche titles work (`"GTM Engineer"` = ~20 results).
 - `jobTitlesExactMatch`: no observable effect -- ignore it.
@@ -406,6 +418,7 @@ Dropleads note: keep title filters broad (`jobTitles`) and allow seniority to do
 **Always read the crustdata integration docs (`src/lib/integrations/crustdata/`) before building filter payloads.** Filter field names, valid enum values, and operator behavior are non-obvious -- guessing wastes rounds.
 
 **Key rules:**
+
 - Run `crustdata_companydb_autocomplete` for any field where you don't know the exact canonical value. Autocomplete requires a non-empty `query` string (at least 1 character).
 - `employee_metrics.latest_count` is valid for `sorts` but NOT as a `filter_type` -- use `employee_count_range` (string enum like `"51-200"`, `"201-500"`) for headcount filters.
 - **`hq_country` uses ISO 3-letter codes**: `USA`, `GBR`, `IND`, `DEU`, etc. — NOT full country names. Passing `"United States"` returns 0 results with no error (silent failure).
@@ -447,10 +460,12 @@ Exa is a semantic web index -- it finds pages by meaning, not just keywords.
 **Query rules:** Write natural-language descriptions, not keyword soup (`"B2B SaaS companies that sell sales automation tools"` not `"SaaS B2B sales tools 2025"`). Use `type: "neural"` (default) for concept-driven queries, `"deep"` with `additionalQueries` for broad coverage. Use `startPublishedDate`/`endPublishedDate` for recency. Use `contents.summary` for per-result LLM summaries, `contents.highlights` for snippets.
 
 **Critical: `category` vs `includeDomains` -- NOT interchangeable:**
-- `category: "company"` / `"people"` uses Exa's entity index. **`includeDomains`, `excludeDomains`, `includeText`, `excludeText` are NOT supported with `category`** -- throws an error. Use for "companies that *are* X" (concept-driven), NOT "companies that *have* X" (attribute-based).
+
+- `category: "company"` / `"people"` uses Exa's entity index. **`includeDomains`, `excludeDomains`, `includeText`, `excludeText` are NOT supported with `category`** -- throws an error. Use for "companies that _are_ X" (concept-driven), NOT "companies that _have_ X" (attribute-based).
 - `includeDomains` / `excludeDomains` -- scope a regular web search (no category) to specific sites.
 
 **"Companies that hire X role" -- use `includeDomains` on job boards, NOT `category:"company"`:**
+
 ```bash
 deepline tools execute exa_search --payload '{"query":"GTM engineer job opening at Y Combinator startup","numResults":15,"type":"neural","includeDomains":["ycombinator.com"],"contents":{"highlights":{"numSentences":2,"highlightsPerUrl":1}}}'
 ```
@@ -481,22 +496,22 @@ Use this section when the job is coverage completion -- you already have target 
 
 Use these when you want fast sizing before doing the full list pull.
 
-| Provider | Tool | Command |
-|---|---|---|
-| Apollo | `apollo_search_people` | `deepline tools execute apollo_search_people --payload '{"page":1,"per_page":1}'` |
-| Apollo | `apollo_people_search_paid` | `deepline tools execute apollo_people_search_paid --payload '{"q_keywords":"sales","per_page":1,"page":1}'` |
-| Dropleads | `dropleads_get_lead_count` | `deepline tools execute dropleads_get_lead_count --payload '{"filters":{"jobTitles":["CEO"],"industries":["Technology"]}}'` |
-| Dropleads | `dropleads_search_people` | `deepline tools execute dropleads_search_people --payload '{"filters":{"jobTitles":["VP Sales"],"industries":["Technology"]},"pagination":{"page":1,"limit":1}}'` |
-| Forager | `forager_organization_search_totals` | `deepline tools execute forager_organization_search_totals --payload '{"industries":[1]}'` |
-| Forager | `forager_job_search_totals` | `deepline tools execute forager_job_search_totals --payload '{"title":"\"Sales Engineer\""}'` |
-| Forager | `forager_person_role_search_totals` | `deepline tools execute forager_person_role_search_totals --payload '{"role_title":"\"Software Engineer\""}'` |
-| Icypeas | `icypeas_count_people` | `deepline tools execute icypeas_count_people --payload '{"query":{"currentJobTitle":{"include":["CTO"]}}}'` |
-| Prospeo | `prospeo_search_person` | `deepline tools execute prospeo_search_person --payload '{"person_job_title":{"include":["VP Sales"]},"page":1}'` |
-| Prospeo | `prospeo_search_company` | `deepline tools execute prospeo_search_company --payload '{"company":{"names":{"include":["Intercom"]},"websites":{"include":["intercom.com"]}},"page":1}'` |
-| Hunter | `hunter_email_count` | `deepline tools execute hunter_email_count --payload '{"domain":"stripe.com"}'` |
-| Hunter | `hunter_discover` | `deepline tools execute hunter_discover --payload '{"query":"B2B SaaS companies","limit":1}'` |
-| People Data Labs | `peopledatalabs_person_search` | `deepline tools execute peopledatalabs_person_search --payload '{"query":{"bool":{"must":[{"term":{"location_country":"United States"}},{"term":{"job_title_role":"marketing"}}]}},"size":1}'` |
-| CrustData | `crustdata_people_search` | `deepline tools execute crustdata_people_search --payload '{"companyDomain":"notion.so","titleKeywords":["VP","Head"],"limit":1}'` |
+| Provider         | Tool                                 | Command                                                                                                                                                                                        |
+| ---------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Apollo           | `apollo_search_people`               | `deepline tools execute apollo_search_people --payload '{"page":1,"per_page":1}'`                                                                                                              |
+| Apollo           | `apollo_people_search_paid`          | `deepline tools execute apollo_people_search_paid --payload '{"q_keywords":"sales","per_page":1,"page":1}'`                                                                                    |
+| Dropleads        | `dropleads_get_lead_count`           | `deepline tools execute dropleads_get_lead_count --payload '{"filters":{"jobTitles":["CEO"],"industries":["Technology"]}}'`                                                                    |
+| Dropleads        | `dropleads_search_people`            | `deepline tools execute dropleads_search_people --payload '{"filters":{"jobTitles":["VP Sales"],"industries":["Technology"]},"pagination":{"page":1,"limit":1}}'`                              |
+| Forager          | `forager_organization_search_totals` | `deepline tools execute forager_organization_search_totals --payload '{"industries":[1]}'`                                                                                                     |
+| Forager          | `forager_job_search_totals`          | `deepline tools execute forager_job_search_totals --payload '{"title":"\"Sales Engineer\""}'`                                                                                                  |
+| Forager          | `forager_person_role_search_totals`  | `deepline tools execute forager_person_role_search_totals --payload '{"role_title":"\"Software Engineer\""}'`                                                                                  |
+| Icypeas          | `icypeas_count_people`               | `deepline tools execute icypeas_count_people --payload '{"query":{"currentJobTitle":{"include":["CTO"]}}}'`                                                                                    |
+| Prospeo          | `prospeo_search_person`              | `deepline tools execute prospeo_search_person --payload '{"person_job_title":{"include":["VP Sales"]},"page":1}'`                                                                              |
+| Prospeo          | `prospeo_search_company`             | `deepline tools execute prospeo_search_company --payload '{"company":{"names":{"include":["Intercom"]},"websites":{"include":["intercom.com"]}},"page":1}'`                                    |
+| Hunter           | `hunter_email_count`                 | `deepline tools execute hunter_email_count --payload '{"domain":"stripe.com"}'`                                                                                                                |
+| Hunter           | `hunter_discover`                    | `deepline tools execute hunter_discover --payload '{"query":"B2B SaaS companies","limit":1}'`                                                                                                  |
+| People Data Labs | `peopledatalabs_person_search`       | `deepline tools execute peopledatalabs_person_search --payload '{"query":{"bool":{"must":[{"term":{"location_country":"United States"}},{"term":{"job_title_role":"marketing"}}]}},"size":1}'` |
+| CrustData        | `crustdata_people_search`            | `deepline tools execute crustdata_people_search --payload '{"companyDomain":"notion.so","titleKeywords":["VP","Head"],"limit":1}'`                                                             |
 
 Notes: Some providers need an actual page pull (small `limit`/`per_page`) instead of dedicated count tools. CrustData `companydb_search`/`persondb_search` don't surface reliable totals -- use for retrieval, not sizing. Always compare `total_count`/`total` with your filter set and stop early when a slice suffices.
 

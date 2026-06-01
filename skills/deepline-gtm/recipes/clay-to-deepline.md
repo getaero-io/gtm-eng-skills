@@ -1,17 +1,17 @@
 ---
 name: clay-to-deepline
-description: "Convert a Clay table configuration into local Deepline scripts. Handles extraction (MCP or script), documentation, action mapping, script generation, and parity validation against Clay ground truth."
+description: 'Convert a Clay table configuration into local Deepline scripts. Handles extraction (MCP or script), documentation, action mapping, script generation, and parity validation against Clay ground truth.'
 ---
 
 # Clay → Deepline Migration
 
 ## Choosing your migration target
 
-| Signal in Clay table | Target | Why |
-|---|---|---|
-| Batch rows, no triggers, one-time or manual re-runs | **Enrich migration** (this recipe) | `deepline enrich` scripts, run locally |
+| Signal in Clay table                                                    | Target                                                                                                  | Why                                                 |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Batch rows, no triggers, one-time or manual re-runs                     | **Enrich migration** (this recipe)                                                                      | `deepline enrich` scripts, run locally              |
 | Webhook trigger, row routing (`route-row`), CRM writes, campaign pushes | **Cloud workflow migration** → see [cloud-workflow-builder.md](../references/cloud-workflow-builder.md) | `deepline workflows apply`, deployed + event-driven |
-| Hybrid: batch enrichment + downstream push to CRM/campaign | **Enrich migration first**, then a **cloud workflow** for the push | Split at the enrichment boundary |
+| Hybrid: batch enrichment + downstream push to CRM/campaign              | **Enrich migration first**, then a **cloud workflow** for the push                                      | Split at the enrichment boundary                    |
 
 Most Clay tables are enrich migrations. This recipe covers that path end-to-end.
 
@@ -33,10 +33,10 @@ Produce before writing any scripts. Get user confirmation before Phase 2.
 
 ### 2.1 — Table Summary
 
-| # | Column Name | Clay Action | Tool/Model | Output Type | Notes |
-|---|---|---|---|---|---|
-| 1 | `record_id` | built-in | — | string | |
-| … | | | | | |
+| #   | Column Name | Clay Action | Tool/Model | Output Type | Notes |
+| --- | ----------- | ----------- | ---------- | ----------- | ----- |
+| 1   | `record_id` | built-in    | —          | string      |       |
+| …   |             |             |            |             |       |
 
 ### 2.2 — Dependency Graph (Mermaid)
 
@@ -98,12 +98,12 @@ for col in d['portableSchema']['columns']:
 
 Check actual cell values across 3+ records before counting AI passes:
 
-| Cell value | Meaning | How to replicate |
-|---|---|---|
-| `NO_CELL` | Action never fired | Build from scratch |
+| Cell value                              | Meaning                      | How to replicate               |
+| --------------------------------------- | ---------------------------- | ------------------------------ |
+| `NO_CELL`                               | Action never fired           | Build from scratch             |
 | `"Status Code: 200"` / `{"status":200}` | HTTP/webhook action — NOT AI | `run_javascript` fetch or stub |
-| `""` (empty string) | Disabled or unfired | Treat as NO_CELL |
-| Varied generation-shaped text | Actual AI output | `deeplineagent` |
+| `""` (empty string)                     | Disabled or unfired          | Treat as NO_CELL               |
+| Varied generation-shaped text           | Actual AI output             | `deeplineagent`                |
 
 ---
 
@@ -168,12 +168,12 @@ clay_curl() {
 
 ### Clay API Endpoints
 
-| What you need | Correct endpoint | Notes |
-|---|---|---|
-| All record IDs | `GET /v3/tables/{TABLE_ID}/views/{VIEW_ID}/records/ids` | View ID required — without it returns `NotFound` |
-| View ID | `GET /v3/tables/{TABLE_ID}` → `.table.firstViewId` | Always fetch dynamically |
-| Fetch records | `POST /v3/tables/{TABLE_ID}/bulk-fetch-records` | Body: `{"recordIds": [...], "includeExternalContentFieldIds": []}` |
-| Response format | `{"results": [{id, cells, ...}]}` | Key is `results`; record ID is `.id` (not `.recordId`) |
+| What you need   | Correct endpoint                                        | Notes                                                              |
+| --------------- | ------------------------------------------------------- | ------------------------------------------------------------------ |
+| All record IDs  | `GET /v3/tables/{TABLE_ID}/views/{VIEW_ID}/records/ids` | View ID required — without it returns `NotFound`                   |
+| View ID         | `GET /v3/tables/{TABLE_ID}` → `.table.firstViewId`      | Always fetch dynamically                                           |
+| Fetch records   | `POST /v3/tables/{TABLE_ID}/bulk-fetch-records`         | Body: `{"recordIds": [...], "includeExternalContentFieldIds": []}` |
+| Response format | `{"results": [{id, cells, ...}]}`                       | Key is `results`; record ID is `.id` (not `.recordId`)             |
 
 ### Execution Ordering
 
@@ -195,11 +195,11 @@ Stage 7:  Export
 
 Indices assigned in declaration order, 0-indexed. Track explicitly in comments:
 
-| Index range | Source |
-|---|---|
-| 0 … (seed cols - 1) | Seed CSV columns |
-| seed_count | First `--with` column |
-| last_declared + 1 | First `--in-place` column |
+| Index range         | Source                    |
+| ------------------- | ------------------------- |
+| 0 … (seed cols - 1) | Seed CSV columns          |
+| seed_count          | First `--with` column     |
+| last_declared + 1   | First `--in-place` column |
 
 ### Waiting Strategy
 
@@ -261,13 +261,13 @@ Never hand-build JSON with embedded JS in bash strings.
 
 ### Common Failure Modes
 
-| Symptom | Cause | Fix |
-|---|---|---|
-| Validation on empty string | `perm_fln` not executed before `valid_fln` | Execute JS first (Stage 2), then add validation |
-| Merge returns null | Merge inputs not executed | Ensure Stage 4 completes before Stage 5 |
-| `{{col}}` empty in prompt | Column declared but not executed | Run `--execute_cells` first |
-| Wrong column index | `--in-place` shifted indices | Re-count from seed CSV length |
-| Fallback CSV has duplicates | `filter_missing` after `--in-place` | Filter BEFORE adding schema cols |
+| Symptom                     | Cause                                      | Fix                                             |
+| --------------------------- | ------------------------------------------ | ----------------------------------------------- |
+| Validation on empty string  | `perm_fln` not executed before `valid_fln` | Execute JS first (Stage 2), then add validation |
+| Merge returns null          | Merge inputs not executed                  | Ensure Stage 4 completes before Stage 5         |
+| `{{col}}` empty in prompt   | Column declared but not executed           | Run `--execute_cells` first                     |
+| Wrong column index          | `--in-place` shifted indices               | Re-count from seed CSV length                   |
+| Fallback CSV has duplicates | `filter_missing` after `--in-place`        | Filter BEFORE adding schema cols                |
 
 ---
 
@@ -283,27 +283,27 @@ deepline tools get <candidate_tool_id>            # inspect candidate
 # if nothing found → deeplineagent fallback
 ```
 
-| You see in Clay | Search query | Likely result |
-|---|---|---|
-| `enrich-person-with-*` | `"person enrich linkedin"` | `leadmagic_profile_search` |
-| `find-email-*` | `"email finder"` | `hunter_email_finder`, `leadmagic_email_finder` |
-| `verify-email-*` | `"email verify validate"` | `leadmagic_email_validation` |
-| `company-*` | `"company enrich"` | `apollo_enrich_company` |
-| `add-to-campaign-*` | `"add leads campaign"` | `instantly_add_to_campaign` |
+| You see in Clay        | Search query               | Likely result                                   |
+| ---------------------- | -------------------------- | ----------------------------------------------- |
+| `enrich-person-with-*` | `"person enrich linkedin"` | `leadmagic_profile_search`                      |
+| `find-email-*`         | `"email finder"`           | `hunter_email_finder`, `leadmagic_email_finder` |
+| `verify-email-*`       | `"email verify validate"`  | `leadmagic_email_validation`                    |
+| `company-*`            | `"company enrich"`         | `apollo_enrich_company`                         |
+| `add-to-campaign-*`    | `"add leads campaign"`     | `instantly_add_to_campaign`                     |
 
 ### Summary Table
 
-| Clay action | Deepline tool |
-|---|---|
-| Email waterfall + `validate-email` | `name_and_domain_to_email_waterfall` + `perm_fln` + `leadmagic_email_validation` |
-| `enrich-person-with-mixrank-v2` | `leadmagic_profile_search` → `crustdata_person_enrichment` |
-| `chat-gpt-schema-mapper` | `deeplineagent` with `jsonSchema` |
-| `use-ai` (no web) | `deeplineagent` |
-| `use-ai` (claygent + web) | Binary search optimizer — see §5 |
-| `octave-qualify-person` | `deeplineagent` + `jsonSchema` ICP scorer |
-| `add-lead-to-campaign` | `instantly_add_to_campaign` or `smartlead_api_request` |
-| `route-row` | **Not replicable.** Produce filtered output CSV per destination. |
-| `find-lists-of-companies-with-mixrank-source` | `apollo_company_search` + optional `prospeo_enrich_company` |
+| Clay action                                   | Deepline tool                                                                    |
+| --------------------------------------------- | -------------------------------------------------------------------------------- |
+| Email waterfall + `validate-email`            | `name_and_domain_to_email_waterfall` + `perm_fln` + `leadmagic_email_validation` |
+| `enrich-person-with-mixrank-v2`               | `leadmagic_profile_search` → `crustdata_person_enrichment`                       |
+| `chat-gpt-schema-mapper`                      | `deeplineagent` with `jsonSchema`                                                |
+| `use-ai` (no web)                             | `deeplineagent`                                                                  |
+| `use-ai` (claygent + web)                     | Binary search optimizer — see §5                                                 |
+| `octave-qualify-person`                       | `deeplineagent` + `jsonSchema` ICP scorer                                        |
+| `add-lead-to-campaign`                        | `instantly_add_to_campaign` or `smartlead_api_request`                           |
+| `route-row`                                   | **Not replicable.** Produce filtered output CSV per destination.                 |
+| `find-lists-of-companies-with-mixrank-source` | `apollo_company_search` + optional `prospeo_enrich_company`                      |
 
 ---
 
@@ -349,20 +349,20 @@ Expected failure rate: ~15%.
 
 ### Known Failure Modes
 
-| Failure | Example | Fix |
-|---|---|---|
-| Name collision | `onit.com` → wrong company | Quote `co_name`; add domain |
-| No indexed source | `ziphq.com` | Fall back to Crunchbase + LinkedIn |
+| Failure           | Example                         | Fix                                                      |
+| ----------------- | ------------------------------- | -------------------------------------------------------- |
+| Name collision    | `onit.com` → wrong company      | Quote `co_name`; add domain                              |
+| No indexed source | `ziphq.com`                     | Fall back to Crunchbase + LinkedIn                       |
 | URL contamination | Deep-read returns wrong company | Use `_extract_primary_source_url(company_domain=domain)` |
 
 ### Adapting Search Angles
 
-| Use case | Angle A | Angle B | Angle C |
-|---|---|---|---|
-| GTM strategy | 10-K / IR | Product launches | New segments |
-| Signal detection | Tech stack / jobs | Engineering blog | Conference talks |
-| Competitor research | Pricing pages | G2/Capterra reviews | Exec interviews |
-| Private company | Crunchbase / funding | Newsroom | Founder blog |
+| Use case            | Angle A              | Angle B             | Angle C          |
+| ------------------- | -------------------- | ------------------- | ---------------- |
+| GTM strategy        | 10-K / IR            | Product launches    | New segments     |
+| Signal detection    | Tech stack / jobs    | Engineering blog    | Conference talks |
+| Competitor research | Pricing pages        | G2/Capterra reviews | Exec interviews  |
+| Private company     | Crunchbase / funding | Newsroom            | Founder blog     |
 
 ---
 
@@ -378,12 +378,12 @@ Clay-specific patterns. For general Deepline patterns (email plays, interpolatio
 
 ### Email Match Rate
 
-| Format | % of Clay emails |
-|---|---|
-| `fn.ln@domain` | 63% |
-| `fln@domain` | 19% |
-| `fn@domain` | 3% |
-| Provider waterfall only | ~12% |
+| Format                  | % of Clay emails |
+| ----------------------- | ---------------- |
+| `fn.ln@domain`          | 63%              |
+| `fln@domain`            | 19%              |
+| `fn@domain`             | 3%               |
+| Provider waterfall only | ~12%             |
 
 Use `name_and_domain_to_email_waterfall` as primary play. Accept `valid`, `valid_catch_all`, AND `catch_all` from validation (NOT `unknown`).
 
@@ -407,19 +407,19 @@ Always use `clay_curl` wrapper. Get `VIEW_ID` from `.table.firstViewId`. Parse w
 
 Base thresholds (shared with [cloud-workflow-migrations.md](../references/cloud-workflow-migrations.md#parity-thresholds)):
 
-| Field type | Threshold |
-|---|---|
-| Deterministic (formulas, fetch, scoring) | 100% exact match |
-| LLM classification | ≥90% exact match on unambiguous cases |
-| LLM generation | Tone and intent match (manual review) |
+| Field type                               | Threshold                             |
+| ---------------------------------------- | ------------------------------------- |
+| Deterministic (formulas, fetch, scoring) | 100% exact match                      |
+| LLM classification                       | ≥90% exact match on unambiguous cases |
+| LLM generation                           | Tone and intent match (manual review) |
 
 Clay-specific extensions:
 
-| Field type | Threshold |
-|---|---|
-| Email (`work_email`) | DL found rate ≥95% of Clay found rate |
-| Structured (`deeplineagent` + `jsonSchema`) | All schema fields populated in 100% of rows |
-| Web research | `is_failed_research()` False on ≥85% of rows |
+| Field type                                  | Threshold                                    |
+| ------------------------------------------- | -------------------------------------------- |
+| Email (`work_email`)                        | DL found rate ≥95% of Clay found rate        |
+| Structured (`deeplineagent` + `jsonSchema`) | All schema fields populated in 100% of rows  |
+| Web research                                | `is_failed_research()` False on ≥85% of rows |
 
 ### Running the Comparison
 

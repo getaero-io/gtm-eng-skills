@@ -1,6 +1,6 @@
 ---
 name: deepline-feedback
-description: "Send feedback or bug reports to the Deepline team, including session transcript and environment info."
+description: 'Send feedback or bug reports to the Deepline team, including session transcript and environment info.'
 disable-model-invocation: false
 ---
 
@@ -15,6 +15,7 @@ Send feedback or a bug report to the Deepline team.
 2. **Confirm.** Use AskUserQuestion with a question like:
 
    > This report will include:
+   >
    > - Your feedback: {feedback text}
    > - Environment info (auto-collected)
    > - Current session transcript
@@ -24,6 +25,7 @@ Send feedback or a bug report to the Deepline team.
    Options: "Send it" / "Cancel".
 
 3. **If confirmed**, run:
+
    ```
    deepline provide-feedback --text "{feedback text}" --json
    deepline session send --current-session --json

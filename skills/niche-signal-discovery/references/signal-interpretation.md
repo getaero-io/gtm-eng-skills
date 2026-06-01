@@ -30,6 +30,7 @@ Not all tech signals are equal. Consider whether the technology **correlates** w
 ## Rule 4: Source Context Matters
 
 Same keyword means different things depending on WHERE it appears:
+
 - **Product/features page:** Company SELLS this capability → competitor signal
 - **Careers/jobs page:** Company NEEDS this capability → buyer signal
 - **Blog/case study:** Could be either — evaluate if they're writing as vendor or sharing operational experience
@@ -38,19 +39,22 @@ Same keyword means different things depending on WHERE it appears:
 ## Rule 5: n=1 Signals Need Verification
 
 A signal appearing in only 1 won company with 0 lost companies produces mathematically high lift but is statistically unreliable. From actual runs:
+
 - n=1 signals with 10x lift scored higher than n=4 signals with 3x lift under the original formula
 - After correction: weight n=1 signals at 0.3x, n=2 at 0.6x, n=3+ at 1.0x
 
-**Application:** Flag n=1 signals in reports with "*(single company — verify)*". Never use n=1 signals as Tier 1 scoring criteria.
+**Application:** Flag n=1 signals in reports with "_(single company — verify)_". Never use n=1 signals as Tier 1 scoring criteria.
 
 ## Rule 6: Website Signals Fail for Back-Office Tools
 
 For B2B infrastructure tools (AR automation, billing, compliance, HR), buyers don't publish their pain on public websites. From actual analyses:
+
 - 0 of 7 verified customers had AR-related website signals
 - All "accounts receivable" signals came from false positives (vendors, not buyers)
 - Verified customers (e.g., wholesale distributors, manufacturers, enterprise brands) talk about their own products, not back-office operations
 
 **Application:** For back-office tool verticals, deprioritize website keyword signals. Instead rely on:
+
 1. Job listings (hiring AR Manager, Collections Specialist = active pain + budget)
 2. Tech stack signals (NetSuite, Salesforce, Stripe in job descriptions)
 3. Business model indicators (B2B invoicing, wholesale distribution)
@@ -61,6 +65,7 @@ For B2B infrastructure tools (AR automation, billing, compliance, HR), buyers do
 From actual analyses: 80% of lost companies were disqualifiable using just 3 anti-fit signals (shopper, checkout, cancel). Identifying non-buyers early prevents wasted outreach.
 
 **Application:** Always generate a dedicated anti-fit section. Key anti-fit patterns:
+
 - Consumer signals (shopper, checkout, cart, debit card) → B2C, not B2B
 - Retention/churn language → consumer subscription, not enterprise
 - Product category language on product pages → competitor, not buyer
@@ -69,6 +74,7 @@ From actual analyses: 80% of lost companies were disqualifiable using just 3 ant
 ## Applying These Rules in Reports
 
 When writing the interpretation column:
+
 1. State what the signal indicates about the prospect's operations
 2. Explain WHY it matters for the specific target company
 3. Flag ambiguous signals (e.g., "Note: some companies mention this as vendors, not buyers")

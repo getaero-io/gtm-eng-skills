@@ -7,4 +7,3 @@ Use these tools for LinkedIn Matched Audiences list-upload workflows.
 - Contact lists work best at 10,000+ rows. Company lists work best at 1,000+ companies.
 - After creating a list-upload segment, LinkedIn recommends a short delay before attaching the uploaded CSV.
 - Monitor `destination_status` on the returned audience object and expect long processing times.
-

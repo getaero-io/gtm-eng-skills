@@ -6,11 +6,11 @@
 
 Trestle returns `activity_score` (0–100) which tells you whether a line is active or disconnected — IPQS phone validation does not. Activity score is the most useful signal for filtering stale numbers before cold outreach.
 
-| Scenario | Use |
-|---|---|
-| Validate a phone after enrichment | `trestle_phone_validation` |
-| Verify phone belongs to a specific person (name match) | `trestle_real_contact` |
-| IPQS phone validate | Last resort only — no activity score |
+| Scenario                                               | Use                                  |
+| ------------------------------------------------------ | ------------------------------------ |
+| Validate a phone after enrichment                      | `trestle_phone_validation`           |
+| Verify phone belongs to a specific person (name match) | `trestle_real_contact`               |
+| IPQS phone validate                                    | Last resort only — no activity score |
 
 ## Email validation: use LeadMagic instead
 

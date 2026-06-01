@@ -43,9 +43,11 @@ most reliable. Prefer those over plain company-name searches.
 ### `datagma_find_email`
 
 Use for:
+
 - verified work-email lookup from name + company context
 
 Best inputs:
+
 - `firstName` + `lastName` + `company`
 - or `fullName` + `company`
 - optionally `linkedInSlug` when you have the company LinkedIn slug
@@ -53,42 +55,51 @@ Best inputs:
 ### `datagma_full_enrichment`
 
 Use for:
+
 - person or company enrichment
 - firmographics plus person details in one pass
 - real-time phone/email/company expansion
 
 Best inputs:
+
 - `data` set to a LinkedIn URL or professional email
 - `fullName` or `firstName` + `lastName` only when paired with `data`
 
 Important:
+
 - `phoneFull=true` should be reserved for cases where you do not already have
   a social profile or email, matching Datagma’s docs guidance.
 
 ### `datagma_job_change_detection`
 
 Use for:
+
 - validating whether a contact is still at the same company
 
 Best inputs:
+
 - `fullName` + `companyName`
 - add `jobTitle` when the contact name may be ambiguous
 
 ### `datagma_find_people`
 
 Use for:
+
 - prospecting inside one company by role title
 
 Best inputs:
+
 - `currentJobTitle`
 - plus one of `linkedinId`, `domain`, or `currentCompanies`
 
 ### `datagma_search_phone_numbers`
 
 Use for:
+
 - direct mobile-number search from an email or profile URL
 
 Best inputs:
+
 - both `email` and `username` when you have them
 - Datagma explicitly recommends passing both together when possible
 

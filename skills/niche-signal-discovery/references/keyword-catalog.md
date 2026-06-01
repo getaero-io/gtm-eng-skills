@@ -19,17 +19,44 @@ Each key is a category name, each value is a list of keyword strings.
 ```json
 {
   "business_model": [
-    "contact sales", "plan", "enterprise", "pricing", "demo",
-    "request a demo", "subscription", "free trial", "annual", "monthly"
+    "contact sales",
+    "plan",
+    "enterprise",
+    "pricing",
+    "demo",
+    "request a demo",
+    "subscription",
+    "free trial",
+    "annual",
+    "monthly"
   ],
   "product_integration": [
-    "integrat", "workflow", "api", "connect", "customiz", "automat",
-    "personaliz", "sync", "sdk", "webhook", "platform"
+    "integrat",
+    "workflow",
+    "api",
+    "connect",
+    "customiz",
+    "automat",
+    "personaliz",
+    "sync",
+    "sdk",
+    "webhook",
+    "platform"
   ],
   "company_maturity": [
-    "compliance", "secur", "leader", "efficien", "case stud",
-    "newsroom", "gartner", "forrester", "training", "resource",
-    "soc 2", "gdpr", "iso"
+    "compliance",
+    "secur",
+    "leader",
+    "efficien",
+    "case stud",
+    "newsroom",
+    "gartner",
+    "forrester",
+    "training",
+    "resource",
+    "soc 2",
+    "gdpr",
+    "iso"
   ]
 }
 ```
@@ -37,6 +64,7 @@ Each key is a category name, each value is a list of keyword strings.
 ### Vertical-Specific Categories (generate per target)
 
 **Category types:**
+
 - **Product category terms** — What does the target sell? (e.g., "creative ops", "AR automation", "sales engagement")
 - **Buyer pain points** — What problems does the buyer have? (e.g., "manual invoicing", "fragmented tools", "pipeline visibility")
 - **Anti-fit signals** — Competitor names, wrong business model indicators
@@ -44,70 +72,104 @@ Each key is a category name, each value is a list of keyword strings.
 ### Multi-Vertical Examples
 
 **Creative Ops / DAM Tools** (e.g., Bynder, Widen, Brandfolder):
+
 ```json
 {
   "creative_operations": [
-    "creative ops", "creative operations", "asset management", "DAM",
-    "content library", "brand guidelines", "creative workflow"
+    "creative ops",
+    "creative operations",
+    "asset management",
+    "DAM",
+    "content library",
+    "brand guidelines",
+    "creative workflow"
   ],
   "buyer_pain_points": [
-    "fragmented tools", "content discovery", "version control",
-    "creative approval", "asset organization", "brand consistency"
+    "fragmented tools",
+    "content discovery",
+    "version control",
+    "creative approval",
+    "asset organization",
+    "brand consistency"
   ],
-  "anti_fit": [
-    "bynder", "widen", "brandfolder", "canto", "dam platform"
-  ]
+  "anti_fit": ["bynder", "widen", "brandfolder", "canto", "dam platform"]
 }
 ```
 
 **AR Automation / Finance Tools** (e.g., Tesorio, HighRadius):
+
 ```json
 {
   "finance_operations": [
-    "accounts receivable", "collections", "dunning", "DSO",
-    "invoice", "payment", "cash flow", "ar automation"
+    "accounts receivable",
+    "collections",
+    "dunning",
+    "DSO",
+    "invoice",
+    "payment",
+    "cash flow",
+    "ar automation"
   ],
   "buyer_pain_points": [
-    "manual invoicing", "payment delays", "late payments",
-    "cash application", "reconciliation", "aging report"
+    "manual invoicing",
+    "payment delays",
+    "late payments",
+    "cash application",
+    "reconciliation",
+    "aging report"
   ],
-  "anti_fit": [
-    "highradius", "tesorio", "invoiced", "ar automation platform"
-  ]
+  "anti_fit": ["highradius", "tesorio", "invoiced", "ar automation platform"]
 }
 ```
 
 **Sales Engagement Tools** (e.g., Outreach, SalesLoft):
+
 ```json
 {
   "sales_operations": [
-    "crm", "salesforce", "prospect", "productiv",
-    "onboard", "sequenc", "outbound", "pipeline", "quota"
+    "crm",
+    "salesforce",
+    "prospect",
+    "productiv",
+    "onboard",
+    "sequenc",
+    "outbound",
+    "pipeline",
+    "quota"
   ],
   "buyer_pain_points": [
-    "manual outreach", "email tracking", "cadence management",
-    "activity logging", "pipeline visibility"
+    "manual outreach",
+    "email tracking",
+    "cadence management",
+    "activity logging",
+    "pipeline visibility"
   ],
-  "anti_fit": [
-    "outreach", "salesloft", "apollo", "sales engagement platform"
-  ]
+  "anti_fit": ["outreach", "salesloft", "apollo", "sales engagement platform"]
 }
 ```
 
 **Developer Tools** (e.g., LaunchDarkly, Vercel):
+
 ```json
 {
   "developer_operations": [
-    "feature flag", "deployment", "ci/cd", "dev experience",
-    "build time", "developer productivity", "infrastructure"
+    "feature flag",
+    "deployment",
+    "ci/cd",
+    "dev experience",
+    "build time",
+    "developer productivity",
+    "infrastructure"
   ],
   "buyer_pain_points": [
-    "slow builds", "deploy risk", "rollback", "canary deploy",
-    "environment management", "developer friction"
+    "slow builds",
+    "deploy risk",
+    "rollback",
+    "canary deploy",
+    "environment management",
+    "developer friction"
   ],
-  "anti_fit": [
-    "launchdarkly", "vercel", "netlify", "feature flag platform"
-  ]
+  "anti_fit": ["launchdarkly", "vercel", "netlify", "feature flag platform"]
 }
 ```
 
@@ -116,6 +178,7 @@ Each key is a category name, each value is a list of keyword strings.
 **1. Product category keywords** — `deeplineagent` prompt: "Research the terminology and keywords buyers and vendors use for {target product category}."
 
 Example for creative ops:
+
 ```bash
 deeplineagent: "Research creative operations terminology, DAM phrases, and asset management keywords."
 ```
@@ -123,6 +186,7 @@ deeplineagent: "Research creative operations terminology, DAM phrases, and asset
 **2. Buyer pain point keywords** — `deeplineagent` prompt: "Research the challenges, problems, and pain points for {buyer persona}."
 
 Example for creative teams:
+
 ```bash
 deeplineagent: "Research the workflow challenges and pain points for creative teams and marketing teams."
 ```
@@ -138,86 +202,56 @@ Each key is a tool category, each value is a list of tool names to search for. *
 ### Multi-Vertical Examples
 
 **Creative / Marketing Tools Stack** (for DAM, creative ops tools):
+
 ```json
 {
   "creative_design": [
-    "figma", "sketch", "adobe creative cloud", "canva", "invision"
+    "figma",
+    "sketch",
+    "adobe creative cloud",
+    "canva",
+    "invision"
   ],
-  "marketing_ops": [
-    "hubspot", "marketo", "contentful", "wordpress", "webflow"
-  ],
-  "project_management": [
-    "monday.com", "asana", "jira", "clickup", "notion"
-  ],
-  "video_production": [
-    "frame.io", "vimeo", "wistia", "loom"
-  ],
-  "anti_fit_tech": [
-    "bynder", "widen", "brandfolder"
-  ]
+  "marketing_ops": ["hubspot", "marketo", "contentful", "wordpress", "webflow"],
+  "project_management": ["monday.com", "asana", "jira", "clickup", "notion"],
+  "video_production": ["frame.io", "vimeo", "wistia", "loom"],
+  "anti_fit_tech": ["bynder", "widen", "brandfolder"]
 }
 ```
 
 **Finance / AR Tools Stack** (for AR automation, billing tools):
+
 ```json
 {
-  "erp_accounting": [
-    "netsuite", "quickbooks", "xero", "sage intacct"
-  ],
-  "crm_billing": [
-    "salesforce", "hubspot", "chargebee", "stripe billing"
-  ],
-  "payment_processing": [
-    "stripe", "ach", "paypal", "adyen"
-  ],
-  "reporting_bi": [
-    "tableau", "looker", "power bi", "metabase"
-  ],
-  "anti_fit_tech": [
-    "highradius", "tesorio", "invoiced"
-  ]
+  "erp_accounting": ["netsuite", "quickbooks", "xero", "sage intacct"],
+  "crm_billing": ["salesforce", "hubspot", "chargebee", "stripe billing"],
+  "payment_processing": ["stripe", "ach", "paypal", "adyen"],
+  "reporting_bi": ["tableau", "looker", "power bi", "metabase"],
+  "anti_fit_tech": ["highradius", "tesorio", "invoiced"]
 }
 ```
 
 **Sales Tools Stack** (for sales engagement, revenue tools):
+
 ```json
 {
-  "crm": [
-    "salesforce", "hubspot", "pipedrive"
-  ],
-  "sales_engagement": [
-    "outreach", "salesloft", "apollo", "lemlist"
-  ],
-  "conversation_intelligence": [
-    "gong", "chorus", "clari"
-  ],
-  "prospecting": [
-    "zoominfo", "apollo", "clearbit", "lusha"
-  ],
-  "anti_fit_tech": [
-    "outreach", "salesloft", "sales engagement"
-  ]
+  "crm": ["salesforce", "hubspot", "pipedrive"],
+  "sales_engagement": ["outreach", "salesloft", "apollo", "lemlist"],
+  "conversation_intelligence": ["gong", "chorus", "clari"],
+  "prospecting": ["zoominfo", "apollo", "clearbit", "lusha"],
+  "anti_fit_tech": ["outreach", "salesloft", "sales engagement"]
 }
 ```
 
 **Developer Tools Stack** (for dev tools, infrastructure):
+
 ```json
 {
-  "cloud_infra": [
-    "aws", "gcp", "azure", "vercel", "netlify"
-  ],
-  "ci_cd": [
-    "github actions", "gitlab ci", "circle ci", "jenkins"
-  ],
-  "monitoring": [
-    "datadog", "new relic", "pagerduty", "sentry"
-  ],
-  "feature_flags": [
-    "launchdarkly", "split", "optimizely"
-  ],
-  "anti_fit_tech": [
-    "launchdarkly", "vercel", "feature flag"
-  ]
+  "cloud_infra": ["aws", "gcp", "azure", "vercel", "netlify"],
+  "ci_cd": ["github actions", "gitlab ci", "circle ci", "jenkins"],
+  "monitoring": ["datadog", "new relic", "pagerduty", "sentry"],
+  "feature_flags": ["launchdarkly", "split", "optimizely"],
+  "anti_fit_tech": ["launchdarkly", "vercel", "feature flag"]
 }
 ```
 
@@ -226,6 +260,7 @@ Each key is a tool category, each value is a list of tool names to search for. *
 **1. Tech stack discovery** — From Step 0.5 `deeplineagent` research: "What tools are common in the {buyer persona} software stack?"
 
 Example for creative teams:
+
 ```bash
 deeplineagent: "Research the common software tools and tech stack for creative teams and marketing teams."
 deeplineagent: "Research the tools, integrations, and workflows common to creative operations teams using Figma or Adobe."
@@ -238,6 +273,7 @@ deeplineagent: "Research the tools, integrations, and workflows common to creati
 ### Anti-Fit Tech
 
 Include tools that signal the prospect is NOT a good buyer:
+
 - **Competing products** — Bynder/Widen for DAM tools, Outreach/SalesLoft for sales tools
 - **Wrong business model** — Shopify for B2B tools (indicates B2C e-commerce)
 - **Substitute solutions** — Tools that solve the same problem differently
@@ -249,11 +285,24 @@ Each key is a role category, each value is a list of substrings to match against
 ### Multi-Vertical Examples
 
 **Creative / Marketing Roles** (for DAM, creative ops tools):
+
 ```json
 {
-  "creative_leadership": ["creative director", "head of creative", "vp creative"],
-  "content_management": ["content manager", "content director", "brand manager"],
-  "creative_ops": ["creative operations", "creative ops manager", "brand operations"],
+  "creative_leadership": [
+    "creative director",
+    "head of creative",
+    "vp creative"
+  ],
+  "content_management": [
+    "content manager",
+    "content director",
+    "brand manager"
+  ],
+  "creative_ops": [
+    "creative operations",
+    "creative ops manager",
+    "brand operations"
+  ],
   "marketing_ops": ["marketing operations", "marops", "marketing ops manager"],
   "design": ["product designer", "brand designer", "visual designer"],
   "marketing_general": ["marketing manager", "demand gen", "growth marketing"]
@@ -261,33 +310,59 @@ Each key is a role category, each value is a list of substrings to match against
 ```
 
 **Finance / Accounting Roles** (for AR automation, billing tools):
+
 ```json
 {
   "finance_leadership": ["cfo", "vp finance", "head of finance"],
-  "ar_collections": ["accounts receivable", "ar manager", "collections manager"],
+  "ar_collections": [
+    "accounts receivable",
+    "ar manager",
+    "collections manager"
+  ],
   "accounting": ["accountant", "controller", "staff accountant"],
-  "billing_ops": ["billing manager", "billing operations", "revenue operations"],
+  "billing_ops": [
+    "billing manager",
+    "billing operations",
+    "revenue operations"
+  ],
   "treasury": ["treasury", "cash management", "financial analyst"]
 }
 ```
 
 **Sales Roles** (for sales engagement, revenue tools):
+
 ```json
 {
   "sales_leadership": ["cro", "vp sales", "head of sales"],
   "ae": ["account executive", "ae ", "sales executive"],
-  "sdr_bdr": ["sdr", "bdr", "sales development", "business development representative"],
-  "sales_ops": ["sales operations", "sales ops", "revenue operations", "revops"],
+  "sdr_bdr": [
+    "sdr",
+    "bdr",
+    "sales development",
+    "business development representative"
+  ],
+  "sales_ops": [
+    "sales operations",
+    "sales ops",
+    "revenue operations",
+    "revops"
+  ],
   "enablement": ["enablement", "sales enablement"],
   "customer_success": ["customer success", "cs manager", "csm"]
 }
 ```
 
 **Engineering / Product Roles** (for dev tools, infrastructure):
+
 ```json
 {
   "engineering_leadership": ["cto", "vp engineering", "head of engineering"],
-  "platform_infra": ["platform engineer", "infrastructure engineer", "devops", "sre"],
+  "platform_infra": [
+    "platform engineer",
+    "infrastructure engineer",
+    "devops",
+    "sre"
+  ],
   "backend": ["backend engineer", "software engineer", "full stack"],
   "frontend": ["frontend engineer", "web developer"],
   "product": ["product manager", "product lead", "product design"]
@@ -299,6 +374,7 @@ Each key is a role category, each value is a list of substrings to match against
 **1. Job role discovery** — From Step 0.5 `deeplineagent` research: "What job titles, roles, and responsibilities are common for {buyer persona}?"
 
 Example for creative teams:
+
 ```bash
 deeplineagent: "Research creative operations job titles, including creative director and content manager variants."
 deeplineagent: "Research companies hiring for creative operations or brand manager roles and extract common title variants."
@@ -311,12 +387,14 @@ deeplineagent: "Research companies hiring for creative operations or brand manag
 ### Customizing Job Roles for Verticals
 
 **Buyer persona determines roles:**
+
 - Creative/marketing tools → creative director, content manager, brand manager
 - Finance tools → CFO, AR manager, controller, accountant
 - Sales tools → CRO, AE, SDR, RevOps
 - Dev tools → CTO, platform engineer, DevOps, SRE
 
 **Always include:**
+
 - Leadership roles (decision makers)
 - IC roles (day-to-day users)
 - Ops roles (implementation/process owners)
@@ -346,6 +424,7 @@ deeplineagent: "Research companies hiring for creative operations or brand manag
 ### Migration Opportunity Keywords (NOT Anti-Fit)
 
 Competitor TOOL names (Bynder, Widen, Outreach, HighRadius, etc.) indicate companies currently using those tools. These are:
+
 - Valid prospecting targets (migration/replacement opportunity)
 - Lower priority than greenfield accounts
 - Require different messaging (displacement vs. new adoption)

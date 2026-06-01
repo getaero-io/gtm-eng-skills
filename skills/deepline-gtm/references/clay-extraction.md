@@ -1,6 +1,6 @@
 ---
 name: clay-extraction
-description: "How to extract Clay table configs via MCP or script. Read only when the user needs to extract from Clay — skip if they already provide an extract JSON."
+description: 'How to extract Clay table configs via MCP or script. Read only when the user needs to extract from Clay — skip if they already provide an extract JSON.'
 ---
 
 # Clay Table Extraction
@@ -9,10 +9,10 @@ Use `scripts/clay-extract.py` (bundled at `.skills/deepline-gtm/scripts/clay-ext
 
 ## Two extraction paths
 
-| Path | When | Steps |
-|---|---|---|
-| **Claude-in-Chrome MCP** | Running inside Claude Code with the extension | Zero steps — use `javascript_tool` with `fetch(url, {credentials: 'include'})` directly from the authenticated browser session |
-| **`clay-extract.py` script** | Standalone, CI, or no MCP | One-time cURL paste for auth, then zero-step extraction |
+| Path                         | When                                          | Steps                                                                                                                          |
+| ---------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Claude-in-Chrome MCP**     | Running inside Claude Code with the extension | Zero steps — use `javascript_tool` with `fetch(url, {credentials: 'include'})` directly from the authenticated browser session |
+| **`clay-extract.py` script** | Standalone, CI, or no MCP                     | One-time cURL paste for auth, then zero-step extraction                                                                        |
 
 ## Script setup (one-time)
 
@@ -73,14 +73,14 @@ Output goes to `tmp/clay_extract_<table_name>.json`. Never overwrites existing f
 
 ## Key Clay API endpoints (undocumented, reverse-engineered)
 
-| Endpoint | Method | Returns |
-|---|---|---|
-| `/v3/tables/{TABLE_ID}` | GET | Full table config: fields, typeSettings, prompts, action bindings |
-| `/v3/tables/{TABLE_ID}/views/{VIEW_ID}/table-schema-v2` | GET | Schema tree + example records (up to ~66 rows) |
-| `/v3/workbooks/{WB_ID}/tables` | GET | List of tables in a workbook `[{id, name, ...}]` |
-| `/v3/workspaces/{WS_ID}/resources_v2/` | POST | Top-level workspace resources (folders, workbooks) |
-| `/v3/tables/{TABLE_ID}/views/{VIEW_ID}/records/ids` | GET | All record IDs (for full data pull) |
-| `/v3/tables/{TABLE_ID}/bulk-fetch-records` | POST | Full cell data for specific record IDs |
+| Endpoint                                                | Method | Returns                                                           |
+| ------------------------------------------------------- | ------ | ----------------------------------------------------------------- |
+| `/v3/tables/{TABLE_ID}`                                 | GET    | Full table config: fields, typeSettings, prompts, action bindings |
+| `/v3/tables/{TABLE_ID}/views/{VIEW_ID}/table-schema-v2` | GET    | Schema tree + example records (up to ~66 rows)                    |
+| `/v3/workbooks/{WB_ID}/tables`                          | GET    | List of tables in a workbook `[{id, name, ...}]`                  |
+| `/v3/workspaces/{WS_ID}/resources_v2/`                  | POST   | Top-level workspace resources (folders, workbooks)                |
+| `/v3/tables/{TABLE_ID}/views/{VIEW_ID}/records/ids`     | GET    | All record IDs (for full data pull)                               |
+| `/v3/tables/{TABLE_ID}/bulk-fetch-records`              | POST   | Full cell data for specific record IDs                            |
 
 All require `Cookie: claysession=...` + `origin: https://app.clay.com` headers.
 
@@ -102,9 +102,13 @@ When Claude-in-Chrome MCP is available, skip the script:
 3. `javascript_tool` with `credentials: 'include'`:
    ```javascript
    fetch('https://api.clay.com/v3/tables/{TABLE_ID}', {
-     headers: { 'accept': 'application/json' },
-     credentials: 'include'
-   }).then(r => r.json()).then(data => { window.__clayConfig = data; });
+     headers: { accept: 'application/json' },
+     credentials: 'include',
+   })
+     .then((r) => r.json())
+     .then((data) => {
+       window.__clayConfig = data;
+     });
    ```
 4. Read result, download as JSON blob
 
@@ -116,15 +120,16 @@ When the user provides data directly (not via extraction), these are the possibl
 
 **Priority: HAR > ClayMate Lite > clay-extract.py output > bulk-fetch-records > schema JSON > user description.**
 
-| Input type | Key fields |
-|---|---|
-| **HAR file** | `bulk-fetch-records` responses with rendered formula cell values — richest |
-| **ClayMate Lite export** | `.tableSchema` + `.portableSchema` (full prompts even when `bulkFetchRecords` is null) |
-| **clay-extract.py output** | `.fields[].typeSettings.inputsBinding` for prompts; `.exampleRecords` for samples |
-| **Schema JSON** | Field names, IDs, action types. No cell values or prompts |
-| **User description** | Weakest — must approximate everything |
+| Input type                 | Key fields                                                                             |
+| -------------------------- | -------------------------------------------------------------------------------------- |
+| **HAR file**               | `bulk-fetch-records` responses with rendered formula cell values — richest             |
+| **ClayMate Lite export**   | `.tableSchema` + `.portableSchema` (full prompts even when `bulkFetchRecords` is null) |
+| **clay-extract.py output** | `.fields[].typeSettings.inputsBinding` for prompts; `.exampleRecords` for samples      |
+| **Schema JSON**            | Field names, IDs, action types. No cell values or prompts                              |
+| **User description**       | Weakest — must approximate everything                                                  |
 
 **When `bulkFetchRecords` is null:** Fall back to `portableSchema`:
+
 - Prompts: `.portableSchema.columns[].typeSettings.inputsBinding` → `{name: "prompt"}` → `.formulaText`
 - JSON schemas: `{name: "answerSchemaType"}` → `.formulaMap.jsonSchema` (double-escaped — `JSON.parse` twice)
 - Conditional run: `.typeSettings.conditionalRunFormulaText`
