@@ -17,7 +17,7 @@ Build a notebook, not a masterpiece. Start with a probe. Checkpoint what costs m
 
 Run Deepline commands as direct commands. Do not add shell helpers around them.
 Do not search parent repos or unrelated worktrees for old `*.play.ts` scratch files.
-When an eval or user asks for an output file, write it directly with the
+When the user asks for an output file, write it directly with the
 editor/write tool using the exact requested path. Do not first call write with
 placeholder arguments, and do not use shell redirection to create the file.
 
@@ -163,19 +163,19 @@ Run details:
 deepline runs get <run-id> --json --full
 ```
 
-## Judgment Tests
+## Judgment Checks
 
-- **Fast Route Test** — if the user asks only for route selection or a smoke check, do not audit every provider. Use a few live `plays search` / `tools search` calls, choose the route family, and write a concise route memo. Do not include provider catalogs, tables, or a full getter inventory unless the user asked for that depth.
-- **Rerun Test** — if the next change is filtering, scoring, getter usage, placeholder cleanup, or export shape, should provider calls rerun? Usually no. Move that work downstream in the scratchpad play.
-- **Pilot Test** — before scaling, can you name the getter, expected row shape, response size, likely cost multiplier, and failure mode?
-- **Getter Contract Test** — if `tools describe` declares a getter, call it directly. Optional-chain payload archaeology is a smell.
-- **Spend Multiplication Test** — before row-level enrichment, can you estimate `input rows * paid calls per row * fallback legs`?
-- **Limit Test** — before `ctx.map`, did you cap source rows and people-per-account based on the pilot response size?
-- **Source-Fit Test** — for account-scoped contacts, can every contact point back to a sourced account/domain with fit evidence?
-- **Branch Test** — are you adding a genuinely different source hypothesis, or just thrashing the same paid query?
-- **Validation Test** — are validators checking known emails/phones rather than being used as finders?
-- **Domain Search Test** — are domain-search tools being treated as domain/company discovery, not named-person email finding?
-- **Scratchpad Deletion Test** — if you deleted the play and kept only final rows, what expensive knowledge would disappear?
+- **Fast Route Check** — if the user asks only for route selection or a smoke check, do not audit every provider. Use a few live `plays search` / `tools search` calls, choose the route family, and write a concise route memo. Prefer live tags/categories and described contracts over hardcoded provider names because providers, getters, pricing, and fallback fit change over time. Do not include provider catalogs, tables, or a full getter inventory unless the user asked for that depth.
+- **Rerun Check** — if the next change is filtering, scoring, getter usage, placeholder cleanup, or export shape, should provider calls rerun? Usually no. Move that work downstream in the scratchpad play.
+- **Pilot Check** — before scaling, can you name the getter, expected row shape, response size, likely cost multiplier, and failure mode?
+- **Getter Contract Check** — if `tools describe` declares a getter, call it directly. Optional-chain payload archaeology is a smell.
+- **Spend Multiplication Check** — before row-level enrichment, can you estimate `input rows * paid calls per row * fallback legs`?
+- **Limit Check** — before `ctx.map`, did you cap source rows and people-per-account based on the pilot response size?
+- **Source-Fit Check** — for account-scoped contacts, can every contact point back to a sourced account/domain with fit evidence?
+- **Branch Check** — are you adding a genuinely different source hypothesis, or just thrashing the same paid query?
+- **Validation Check** — are validators checking known emails/phones rather than being used as finders?
+- **Domain Search Check** — are domain-search tools being treated as domain/company discovery, not named-person email finding?
+- **Scratchpad Deletion Check** — if you deleted the play and kept only final rows, what expensive knowledge would disappear?
 
 ## Prebuilt Plays Before Manual Providers
 
@@ -184,6 +184,8 @@ Plays before tools. Prebuilt plays are waterfalls: they already encode provider 
 ### First 90 Seconds
 
 Do not spend the opening of a GTM task auditing providers. Pick the nearest prebuilt play route, write or copy the smallest scratchpad, then let `plays check` and a tiny watched run tell you what is actually wrong.
+
+For user prompts that already say to proceed without approval, keep the opening deterministic. Do not describe a remembered `prebuilt/...` ref unless it appears in the route table or in a fresh `plays search` / `plays grep --json` result. Read the input shape, preflight, write the smallest play that matches the discovered route contract, run `plays check`, run a bounded watched pass, then export. Do not place the play under `data/`; if the CSV lives under `data/`, call `ctx.csv('data/<file>.csv')` from the root play file.
 
 For common GTM requests, the first commands are:
 
@@ -224,11 +226,12 @@ flag also works and is often clearer while editing: `people-email --email ...`,
 For known people/contact rows, pick the finder route that matches the requested
 channel. Use a prebuilt play when it exists; bootstrap will wrap it with
 `ctx.runPlay(...)` and leave row-to-input TODO comments in the generated file.
+When the task needs multiple channels, discover or describe each route, then write one wrapper play with one row map and one stable child-play key per channel. Do not spend parallel calls guessing route names.
 
 ```bash
 deepline plays bootstrap people-phone \
   --from csv:data/contacts.csv \
-  --using play:prebuilt/person-to-phone \
+  --using play:<phone-play-ref> \
   --limit 5 > phone-flow.play.ts
 deepline plays check phone-flow.play.ts
 ```
@@ -345,7 +348,7 @@ deepline plays describe prebuilt/<play-name> --json
 deepline plays run prebuilt/<play-name> --input '{...}' --watch
 ```
 
-Prefer `prebuilt/...` play references from search results unless you intentionally want an org-owned scratchpad. Always run `plays describe` before choosing or rejecting a play; retrieval aliases are intentionally broad and can return adjacent jobs.
+Prefer `prebuilt/...` play references from search results unless you intentionally want an org-owned scratchpad. Do not guess exact `prebuilt/...` names from memory: discover with `plays search` / `plays grep --json`, then describe and run only refs returned by discovery or listed in the route table below. Always run `plays describe` before choosing or rejecting a play; retrieval aliases are intentionally broad and can return adjacent jobs.
 
 For a normal GTM task, the first commands should look like this:
 
@@ -363,7 +366,7 @@ deepline tools grep "people search title seniority linkedin" --categories people
 deepline tools describe <tool-id> --json
 ```
 
-For custom or local `.play.ts` files, always run `deepline plays check <file.play.ts>` before `deepline plays run`. Static check is cheaper than discovering TypeScript, bundling, or getter-shape errors during a watched run. `deepline play run` / `deepline plays run` may return after starting the run unless `--watch` is present. For eval and deliverable work, run with `--watch` so success or failure is observed before continuing. After a watched run fails, inspect the run with the exact `runs get` command printed by the CLI; do not infer success from a returned `runId`.
+For custom or local `.play.ts` files, always run `deepline plays check <file.play.ts>` before `deepline plays run`. Static check is cheaper than discovering TypeScript, bundling, or getter-shape errors during a watched run. `deepline play run` / `deepline plays run` may return after starting the run unless `--watch` is present. For deliverable work, run with `--watch` so success or failure is observed before continuing. After a watched run fails, inspect the run with the exact `runs get` command printed by the CLI; do not infer success from a returned `runId`.
 
 These are play routes, not provider tools. The table is compiled from the current generated play catalog so route selection stays current as plays are added or removed.
 
@@ -417,21 +420,18 @@ Keep each child play call behind a stable key just like a provider call. The key
 
 Use `ctx.runPlay<TOutput>(...)` when you want a prebuilt play as one stage inside your scratchpad. This keeps the prebuilt waterfall reusable while letting you add cheap downstream validation, gating, and flat user-facing columns in your own play.
 
-When composing a prebuilt play over rows, adapt row shape before the child play call. Do not key or call the child play from raw CSV/table headers unless those headers already match the described input schema. Build a small explicit adapter object, then key and call from that object.
+When composing a prebuilt play over rows, adapt row shape before the child play call. Do not key or call the child play from raw CSV/table headers unless those headers already match the described input schema. Use lazy dataset `.filter(...)`, `.slice(...)`, `.take(...)`, and `.map(...)` for cheap row shaping before `ctx.map(...)`; put paid enrichment, final export columns, and row receipts inside `ctx.map(...)`.
 
 ```text
-const contacts = rawRows.map((row) => ({
-  first_name: row.first_name ?? row.FIRST_NAME ?? row.firstName ?? '',
-  last_name: row.last_name ?? row.LAST_NAME ?? row.lastName ?? '',
-  domain: row.domain ?? row.DOMAIN ?? row.company_domain ?? '',
-  company_name: row.company_name ?? row.COMPANY ?? row.company ?? '',
-  linkedin_url: row.linkedin_url ?? row.LINKEDIN_URL ?? row.linkedin ?? '',
-}));
-
-const validContacts = contacts.filter((row) => row.first_name && row.last_name && row.domain);
+const rawRows = await ctx.csv('data/leads.csv');
 
 const rows = await ctx
-  .map('contact_email_rows', validContacts)
+  .map('contact_email_rows', rawRows)
+  .step('first_name', (row) => row.first_name ?? row.FIRST_NAME ?? row.firstName ?? '')
+  .step('last_name', (row) => row.last_name ?? row.LAST_NAME ?? row.lastName ?? '')
+  .step('domain', (row) => row.domain ?? row.DOMAIN ?? row.company_domain ?? '')
+  .step('company_name', (row) => row.company_name ?? row.COMPANY ?? row.company ?? '')
+  .step('linkedin_url', (row) => row.linkedin_url ?? row.LINKEDIN_URL ?? row.linkedin ?? '')
   .step('email', async (row, rowCtx) => {
     const result = await rowCtx.runPlay<{ email: string | null }>(
       'name_domain_email',
@@ -448,10 +448,12 @@ const rows = await ctx
     return result.email ?? null;
   })
   .run({
-    key: (row) => `${row.first_name}:${row.last_name}:${row.domain}`,
+    key: (row, index) => row.linkedin_url || row.email || `${row.first_name}:${row.last_name}:${row.domain}:${index}`,
     description: 'One reusable child play call per adapted contact.',
   });
 ```
+
+For CSV/table workflows, row map keys must be unique and stable across pilot and full runs. Prefer a natural immutable id (`linkedin_url`, existing email, external id) plus the row index fallback: `key: (row, index) => row.linkedin_url || row.email || \`\${cleanDomain(row.company_domain)}:\${index}\``. Do not key only on person/domain fields unless you have checked they are unique; duplicate or widened pilot/full keys can collide during persisted row writes.
 
 For one-off composition:
 
@@ -500,7 +502,7 @@ const contacts = await ctx
   .step('status', (row) => (row.email ? 'found' : 'missing'))
   .step('miss_reason', (row) => (row.email ? null : 'email_not_found'))
   .run({
-    key: (row) => `${row.first_name}:${row.last_name}:${row.domain}`,
+    key: (row, index) => row.linkedin_url || row.email || `${row.first_name}:${row.last_name}:${row.domain}:${index}`,
     description: 'One reusable child play call per contact identity.',
   });
 ```
@@ -529,7 +531,7 @@ Prebuilt route rejected:
 - Custom route: <provider tools and why they are necessary>
 ```
 
-For CSV-backed prebuilt plays, keep the CSV path relative to the eval/project working directory so the SDK can stage the file for the worker:
+For CSV-backed prebuilt plays, keep the CSV path relative to the project working directory so the SDK can stage the file for the worker:
 
 ```bash
 deepline plays describe prebuilt/name-and-domain-to-email-waterfall-batch --json
@@ -939,7 +941,7 @@ export default definePlay(
 
 Map steps can be pure computation or provider calls. Use tool steps only when the row needs external data; use pure steps for shaping, gating, scoring, and final scalar columns. Step outputs live on the row under the step name: after `.step('email', ...)`, read `row.email`. Object-returning steps export as `step.field` columns, so prefer scalar steps named for the requested output columns (`email`, `phone`, `status`, `miss_reason`) instead of an `export_row` cleanup object.
 
-`ctx.map` is a builder, not an array mapper. The value returned by `.run()` is a `PlayDataset` export handle; do not call `.find`, `.map`, `.filter`, spread it, index it, or cast it to `any` to build a second map. Put enrichment and final export columns in one map when possible.
+`ctx.map` is the paid row-work builder. The value returned by `.run()` is a `PlayDataset` export handle. Use lazy dataset transforms only for cheap row shaping; put enrichment and final export columns in one `ctx.map(...)` when possible.
 
 ## Anti-Patterns
 
