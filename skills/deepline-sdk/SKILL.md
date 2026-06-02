@@ -60,7 +60,7 @@ Use these terms consistently.
 - **Scratchpad play** — the local `.play.ts` file where paid provider work becomes replayable state, not disposable console output. A scratchpad is always a play, not a loose CLI transcript or notes file.
 - **Notebook** — the play as a learning surface. It can contain tiny runs, inspection comments, pure scoring steps, gates, and export projections because each rerun preserves useful knowledge.
 - **Probe** — the smallest useful run: usually 1-2 rows, one source, one getter, one hypothesis. A probe is allowed to be incomplete; its job is to make the next edit less speculative.
-- **Checkpoint** — a stable `ctx.tools.execute`, `ctx.runPlay`, or `ctx.map(...).step(...)` id that turns paid or slow work into reusable state. If a rerun should not rebuy it, checkpoint it.
+- **Checkpoint** — a stable `ctx.tools.execute`, `ctx.runPlay`, or `ctx.dataset(...).withColumn(...)` id that turns paid or slow work into reusable state. If a rerun should not rebuy it, checkpoint it.
 - **Gate** — a pure step that decides whether paid fanout is allowed: domain match, title fit, category evidence, placeholder filter, max rows, max fallback legs, or balance floor.
 - **Ladder** — the scale path: 1 row -> 5 rows -> 25 rows -> full. Do not jump from unknown shape to full fanout unless a prebuilt play exactly covers a tiny input.
 - **Receipt** — row-level evidence that explains why a result is trustworthy: source, provider/play, getter used, fit evidence, status, and miss reason.
@@ -122,7 +122,7 @@ Plan before paid scale:
 
 Then ask for approval to continue unless the user already gave a budget or the run stays within a tiny pilot. This is not ceremony: it prevents a broad people search from buying candidates that never survive title, domain, or email checks.
 
-Inside the play, put response-size gates before `ctx.map`. First source calls can return far more rows than the user asked for. After the pilot reveals shape and counts, add cheap pure steps or source `limit`/`size`/`numResults` fields so mapped enrichment only sees a bounded candidate set.
+Inside the play, put response-size gates before `ctx.dataset`. First source calls can return far more rows than the user asked for. After the pilot reveals shape and counts, add cheap pure columns or source `limit`/`size`/`numResults` fields so mapped enrichment only sees a bounded candidate set.
 
 ```text
 const source = await ctx.tools.execute({
@@ -149,9 +149,9 @@ if (estimatedPeopleCalls > Number(input.max_people_calls ?? 50)) {
 }
 
 const contacts = await ctx
-  .map('bounded_people_search', accounts)
+  .dataset('bounded_people_search', accounts)
   // paid row-level work starts only after the account set is bounded
-  .step('people_search', async (row, rowCtx) => { /* ... */ })
+  .withColumn('people_search', async (row, rowCtx) => { /* ... */ })
   .run({ key: (row) => row.domain });
 ```
 
@@ -170,7 +170,7 @@ deepline runs get <run-id> --json --full
 - **Pilot Check** — before scaling, can you name the getter, expected row shape, response size, likely cost multiplier, and failure mode?
 - **Getter Contract Check** — if `tools describe` declares a getter, call it directly. Optional-chain payload archaeology is a smell.
 - **Spend Multiplication Check** — before row-level enrichment, can you estimate `input rows * paid calls per row * fallback legs`?
-- **Limit Check** — before `ctx.map`, did you cap source rows and people-per-account based on the pilot response size?
+- **Limit Check** — before `ctx.dataset`, did you cap source rows and people-per-account based on the pilot response size?
 - **Source-Fit Check** — for account-scoped contacts, can every contact point back to a sourced account/domain with fit evidence?
 - **Branch Check** — are you adding a genuinely different source hypothesis, or just thrashing the same paid query?
 - **Validation Check** — are validators checking known emails/phones rather than being used as finders?
@@ -270,7 +270,7 @@ deepline plays check account-contacts.play.ts
 For a company-to-contact-to-phone route, use the phone route explicitly. If you
 want custom phone providers instead of a prebuilt phone play, pass finder tools
 from the `phone_finder` category; multiple providers become an ordered
-waterfall guarded by `when(...)`.
+waterfall guarded by `runIf(...)`.
 
 ```bash
 deepline plays bootstrap company-people-phone \
@@ -412,7 +412,7 @@ These are play routes, not provider tools. The table is compiled from the curren
 | Person Name Domain To Personal Email | `person_name_domain_to_personal_email` | `first_name`, `last_name`, `domain`; optional: `company_name`, `email`, `linkedin_url` | Generated play that resolves person personal email from first name, last name, and domain. Provider paths are selected from typed capability metadata and capped at four provider hops. |
 | Person Name Domain To Phone | `person_name_domain_to_phone` | `first_name`, `last_name`, `domain`; optional: `company_name`, `email`, `linkedin_url` | Generated play that resolves person phone from first name, last name, and domain. Provider paths are selected from typed capability metadata and capped at four provider hops. |
 
-Prebuilt plays are not tools. In the CLI, call them with `deepline plays run`. Inside a scratchpad play, compose them with `ctx.runPlay(key, playRef, input, { description })`; inside `ctx.map`, use the row context: `rowCtx.runPlay(...)`.
+Prebuilt plays are not tools. In the CLI, call them with `deepline plays run`. Inside a scratchpad play, compose them with `ctx.runPlay(key, playRef, input, { description })`; inside `ctx.dataset`, use the row context: `rowCtx.runPlay(...)`.
 
 Keep each child play call behind a stable key just like a provider call. The key is scoped to the parent run and row, so reruns can reuse completed child work.
 
@@ -420,19 +420,19 @@ Keep each child play call behind a stable key just like a provider call. The key
 
 Use `ctx.runPlay<TOutput>(...)` when you want a prebuilt play as one stage inside your scratchpad. This keeps the prebuilt waterfall reusable while letting you add cheap downstream validation, gating, and flat user-facing columns in your own play.
 
-When composing a prebuilt play over rows, adapt row shape before the child play call. Do not key or call the child play from raw CSV/table headers unless those headers already match the described input schema. Use lazy dataset `.filter(...)`, `.slice(...)`, `.take(...)`, and `.map(...)` for cheap row shaping before `ctx.map(...)`; put paid enrichment, final export columns, and row receipts inside `ctx.map(...)`.
+When composing a prebuilt play over rows, adapt row shape before the child play call. Do not key or call the child play from raw CSV/table headers unless those headers already match the described input schema. Use lazy dataset `.filter(...)`, `.slice(...)`, `.take(...)`, and `.map(...)` for cheap row shaping before `ctx.dataset(...)`; put paid enrichment, final export columns, and row receipts inside `ctx.dataset(...)`.
 
 ```text
 const rawRows = await ctx.csv('data/leads.csv');
 
 const rows = await ctx
-  .map('contact_email_rows', rawRows)
-  .step('first_name', (row) => row.first_name ?? row.FIRST_NAME ?? row.firstName ?? '')
-  .step('last_name', (row) => row.last_name ?? row.LAST_NAME ?? row.lastName ?? '')
-  .step('domain', (row) => row.domain ?? row.DOMAIN ?? row.company_domain ?? '')
-  .step('company_name', (row) => row.company_name ?? row.COMPANY ?? row.company ?? '')
-  .step('linkedin_url', (row) => row.linkedin_url ?? row.LINKEDIN_URL ?? row.linkedin ?? '')
-  .step('email', async (row, rowCtx) => {
+  .dataset('contact_email_rows', rawRows)
+  .withColumn('first_name', (row) => row.first_name ?? row.FIRST_NAME ?? row.firstName ?? '')
+  .withColumn('last_name', (row) => row.last_name ?? row.LAST_NAME ?? row.lastName ?? '')
+  .withColumn('domain', (row) => row.domain ?? row.DOMAIN ?? row.company_domain ?? '')
+  .withColumn('company_name', (row) => row.company_name ?? row.COMPANY ?? row.company ?? '')
+  .withColumn('linkedin_url', (row) => row.linkedin_url ?? row.LINKEDIN_URL ?? row.linkedin ?? '')
+  .withColumn('email', async (row, rowCtx) => {
     const result = await rowCtx.runPlay<{ email: string | null }>(
       'name_domain_email',
       'prebuilt/name-and-domain-to-email-waterfall',
@@ -453,7 +453,7 @@ const rows = await ctx
   });
 ```
 
-For CSV/table workflows, row map keys must be unique and stable across pilot and full runs. Prefer a natural immutable id (`linkedin_url`, existing email, external id) plus the row index fallback: `key: (row, index) => row.linkedin_url || row.email || \`\${cleanDomain(row.company_domain)}:\${index}\``. Do not key only on person/domain fields unless you have checked they are unique; duplicate or widened pilot/full keys can collide during persisted row writes.
+For CSV/table workflows, row dataset keys must be unique and stable across pilot and full runs. Prefer a natural immutable id (`linkedin_url`, existing email, external id) plus the row index fallback: `key: (row, index) => row.linkedin_url || row.email || \`\${cleanDomain(row.company_domain)}:\${index}\``. Do not key only on person/domain fields unless you have checked they are unique; duplicate or widened pilot/full keys can collide during persisted row writes.
 
 For one-off composition:
 
@@ -480,8 +480,8 @@ Use row-scoped child plays inside maps for bulk enrichment:
 
 ```text
 const contacts = await ctx
-  .map('contact_email_rows', rows)
-  .step('email', async (row, rowCtx) => {
+  .dataset('contact_email_rows', rows)
+  .withColumn('email', async (row, rowCtx) => {
     const result = await rowCtx.runPlay<{ email: string | null }>(
       'name_domain_email',
       'prebuilt/name-and-domain-to-email-waterfall',
@@ -498,9 +498,9 @@ const contacts = await ctx
     );
     return result.email ?? null;
   })
-  .step('source', () => 'prebuilt/name-and-domain-to-email-waterfall')
-  .step('status', (row) => (row.email ? 'found' : 'missing'))
-  .step('miss_reason', (row) => (row.email ? null : 'email_not_found'))
+  .withColumn('source', () => 'prebuilt/name-and-domain-to-email-waterfall')
+  .withColumn('status', (row) => (row.email ? 'found' : 'missing'))
+  .withColumn('miss_reason', (row) => (row.email ? null : 'email_not_found'))
   .run({
     key: (row, index) => row.linkedin_url || row.email || `${row.first_name}:${row.last_name}:${row.domain}:${index}`,
     description: 'One reusable child play call per contact identity.',
@@ -626,11 +626,11 @@ Before editing a play, identify whether the change is upstream paid source work,
 - Probe free/count first, then `limit: 1-3`.
 - Once a probe returns useful rows or a plausible count, move that call into a play with a stable `id`.
 - In plays, `ctx.tools.execute` shape is `{ id, tool, input, description }`; provider request fields go inside `input`, not beside it.
-- Not every play step should execute a tool. Use pure `.step(...)` stages for normalization, scoring, fit checks, placeholder cleanup, fanout estimates, and final export projection.
+- Not every play step should execute a tool. Use pure `.withColumn(...)` stages for normalization, scoring, fit checks, placeholder cleanup, fanout estimates, and final export projection.
 - The first play version should copy the exact probe payload that worked. Do not make filters fancier inside the play.
 - A pilot is not complete until you have verified row shape, declared getters, null semantics, status fields, provider errors, and the fanout shape.
 - No mapped paid enrichment until the code contains or logs the estimated fanout: candidate rows _ paid providers _ fallback legs.
-- If a map step's logic changes but row keys and inputs stay the same, change that step `id` before the next run. This includes placeholder filtering, exception handling, getter-path fixes, scoring, and export-shape changes.
+- If a dataset column's logic changes but row keys and inputs stay the same, change that step `id` before the next run. This includes placeholder filtering, exception handling, getter-path fixes, scoring, and export-shape changes.
 - After one source-shape correction to the same provider, stop tuning that provider for count. Add a disjoint branch, relax downstream filters, or export partials with miss reasons.
 
 ## Source Patterns
@@ -716,7 +716,7 @@ const companyHeadcount = (r: any) =>
 Company-first contact scratchpad with row keys. Write it iteratively, but keep the final file runnable:
 
 ```typescript
-import { definePlay, when } from 'deepline';
+import { definePlay, runIf } from 'deepline';
 
 const compact = (o: Record<string, any>) =>
   Object.fromEntries(
@@ -812,14 +812,14 @@ export default definePlay(
     // improve account normalization, scoring, and export columns without rebuying
     // Exa because `semantic_account_seed` stayed stable.
     const contacts = await ctx
-      .map('company_first_contacts', seedRows)
-      .step('account', toAccount)
-      .step('account_fit', (row: any) => scoreAccountFit(row.account))
-      // Draft 3: add paid fanout only after fit is visible. `when` skips the
+      .dataset('company_first_contacts', seedRows)
+      .withColumn('account', toAccount)
+      .withColumn('account_fit', (row: any) => scoreAccountFit(row.account))
+      // Draft 3: add paid fanout only after fit is visible. `runIf` skips the
       // provider call unless the cheap step proved the row is worth spending on.
-      .step(
+      .withColumn(
         'people_search',
-        when(
+        runIf(
           (row: any) => row.account_fit?.status === 'fit',
           async (row: any, rowCtx: any) => {
             const people = await rowCtx.tools.execute({
@@ -841,7 +841,7 @@ export default definePlay(
           },
         ),
       )
-      .step('work_email', async (row: any, rowCtx: any) => {
+      .withColumn('work_email', async (row: any, rowCtx: any) => {
         const person = row.people_search;
         if (person?.status !== 'found')
           return missing(
@@ -907,12 +907,12 @@ export default definePlay(
               miss_reason: 'email_not_found',
             };
       })
-      .step('email', (row: any) => row.work_email?.email ?? null)
-      .step(
+      .withColumn('email', (row: any) => row.work_email?.email ?? null)
+      .withColumn(
         'source',
         (row: any) => row.work_email?.source ?? 'company_first_contacts',
       )
-      .step(
+      .withColumn(
         'status',
         (row: any) =>
           row.work_email?.status ??
@@ -920,7 +920,7 @@ export default definePlay(
           row.account_fit?.status ??
           'missing',
       )
-      .step(
+      .withColumn(
         'miss_reason',
         (row: any) =>
           row.work_email?.miss_reason ??
@@ -939,14 +939,14 @@ export default definePlay(
 );
 ```
 
-Map steps can be pure computation or provider calls. Use tool steps only when the row needs external data; use pure steps for shaping, gating, scoring, and final scalar columns. Step outputs live on the row under the step name: after `.step('email', ...)`, read `row.email`. Object-returning steps export as `step.field` columns, so prefer scalar steps named for the requested output columns (`email`, `phone`, `status`, `miss_reason`) instead of an `export_row` cleanup object.
+Dataset columns can be pure computation or provider calls. Use tool-backed columns only when the row needs external data; use pure columns for shaping, gating, scoring, and final scalar columns. Column outputs live on the row under the column name: after `.withColumn('email', ...)`, read `row.email`. Object-returning columns export as `column.field` columns, so prefer scalar columns named for the requested output columns (`email`, `phone`, `status`, `miss_reason`) instead of an `export_row` cleanup object.
 
-`ctx.map` is the paid row-work builder. The value returned by `.run()` is a `PlayDataset` export handle. Use lazy dataset transforms only for cheap row shaping; put enrichment and final export columns in one `ctx.map(...)` when possible.
+`ctx.dataset` is the paid row-work builder. The value returned by `.run()` is a `PlayDataset` export handle. Use lazy dataset transforms only for cheap row shaping; put enrichment and final export columns in one `ctx.dataset(...)` when possible.
 
 ## Anti-Patterns
 
 - **Console Panning** — running one-off executes and visually harvesting rendered output. Correction: move any useful provider call into the scratchpad `.play.ts` immediately.
-- **Unstable Paid IDs** — renaming source, enrichment, or map step IDs while editing cheap downstream logic. Correction: keep paid step IDs stable; only rename to intentionally invalidate/rebuy.
+- **Unstable Paid IDs** — renaming source, enrichment, or dataset column IDs while editing cheap downstream logic. Correction: keep paid step IDs stable; only rename to intentionally invalidate/rebuy.
 - **Spend-Blind Fanout** — mapping paid enrichment over noisy rows without calculating the multiplier. Correction: dedupe/filter/score first; estimate rows _ providers _ fallback legs.
 - **Same-Source Thrashing** — repeatedly tweaking one paid provider query to chase count. Correction: after one source-shape fix, branch, relax downstream filters, or export misses.
 - **Getter Archaeology** — writing `?.get?.() ?? raw?.result?.data` style code. Correction: call declared getters directly; if a getter is missing, repair metadata or choose a tool that declares the needed getter.
@@ -954,15 +954,15 @@ Map steps can be pure computation or provider calls. Use tool steps only when th
 - **People-First Category Drift** — searching people before account fit is established for company-scoped tasks. Correction: seed companies/domains first, then search/enrich people inside that set.
 - **Domain Search Confusion** — treating domain search as named-person email finding. Correction: domain search discovers domains/patterns; email finders find person emails.
 - **Silent Null Collapse** — dropping rows or blanking fields without explanation. Correction: emit `status`, `source`, and `miss_reason`.
-- **Raw Export Leakage** — shipping nested provider objects or provider-shaped column names. Correction: return compact scalar map steps named for the user-facing columns, with evidence and provenance.
+- **Raw Export Leakage** — shipping nested provider objects or provider-shaped column names. Correction: return compact scalar dataset columns named for the user-facing columns, with evidence and provenance.
 
 ## Export Contract
 
-If the user asked for CSV/export, make the final rows an exportable dataset: return rows from `ctx.map(...).run`, not a plain array.
+If the user asked for CSV/export, make the final rows an exportable dataset: return rows from `ctx.dataset(...).run`, not a plain array.
 
-Final CSVs must use user-facing columns, not provider-shaped aliases. Contact deliverables use the requested `name` or `contact_name`, plus `title`, `linkedin_url`, `email`, `source`, `status`, and `miss_reason`. Category/account deliverables include `category` or `<vertical>_category` even when source taxonomy is also exported as `industry`. Make those columns first-class map steps when possible; do not add a final `export_row` object just to flatten data the row already has.
+Final CSVs must use user-facing columns, not provider-shaped aliases. Contact deliverables use the requested `name` or `contact_name`, plus `title`, `linkedin_url`, `email`, `source`, `status`, and `miss_reason`. Category/account deliverables include `category` or `<vertical>_category` even when source taxonomy is also exported as `industry`. Make those columns first-class dataset columns when possible; do not add a final `export_row` object just to flatten data the row already has.
 
-Do not return full provider objects from map steps at scale. Extract compact scalars inside the step and return only fields needed downstream.
+Do not return full provider objects from dataset columns at scale. Extract compact scalars inside the column and return only fields needed downstream.
 
 ## Final Self-Review
 
