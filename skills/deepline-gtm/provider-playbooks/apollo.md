@@ -79,7 +79,7 @@ Obfuscated last-name handling (for email pattern workflows):
 - Detect redacted/obfuscated last names early (for example: `S****`, `K.`, `-`, `N/A`, `redacted`, masked punctuation-heavy strings).
 - Treat `last_name_obfuscated` from `apollo_search_people` as non-authoritative for name-based email finding.
 - Do not pass obfuscated last names into `leadmagic_email_finder` or pattern generators.
-- Required bridge step: `apollo_search_people` -> `apollo_people_match` (by Apollo `id`) -> use `person.last_name` for name-dependent flows.
+- Required bridge step for id-only lookups: `apollo_search_people` -> `apollo_bulk_people_enrichment` with `details: [{ id }]` -> use the returned full-name fields for name-dependent flows.
 - If last name is obfuscated, do not rely on `first.last` / `first.lastInitial` / `firstInitial.lastInitial` patterns as primary candidates.
 - Prefer fallback order: direct provider email fields and enrichment lookups first (Apollo/person enrichment/LinkedIn-based enrichment), then emit pattern candidates only when confidence is acceptable.
 - Persist deterministic flags for downstream branching, for example `last_name_obfuscated=true` and `name_quality=low|medium|high`.
