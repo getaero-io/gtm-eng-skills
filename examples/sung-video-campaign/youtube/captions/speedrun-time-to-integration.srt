@@ -1,0 +1,388 @@
+1
+00:00:00,000 --> 00:00:04,560
+Hey, if you're watching this, you work in sales as either a growth engineer, a GTM engineer,
+
+2
+00:00:04,560 --> 00:00:09,840
+and you're trying to build an email campaign based off some, you know, trends and product
+
+3
+00:00:09,840 --> 00:00:14,000
+analytics that you've been noticing that's stored within Snowflake.
+
+4
+00:00:14,000 --> 00:00:17,400
+But you realize that there's, you know, a couple problems here.
+
+5
+00:00:17,400 --> 00:00:21,400
+One is things are not, you know, quite synced between this and my CRM.
+
+6
+00:00:21,400 --> 00:00:22,400
+In this case, it's Adio.
+
+7
+00:00:22,400 --> 00:00:24,000
+It could be Salesforce in your case.
+
+8
+00:00:24,000 --> 00:00:28,020
+And then also my campaign tool called Instantly.
+
+9
+00:00:28,020 --> 00:00:31,980
+And I think to myself, like, yeah, you know, for maybe 20 users, I can just like shuffle
+
+10
+00:00:31,980 --> 00:00:35,580
+some CSVs around and like eyeball data quality and move on with my life.
+
+11
+00:00:35,580 --> 00:00:36,940
+But let's say I have a million plus users.
+
+12
+00:00:36,940 --> 00:00:41,020
+That's not going to be very kind of repeatable and realistic and very error prone.
+
+13
+00:00:41,020 --> 00:00:45,100
+And I don't want to do a bunch of like Excel V look-a-backer bets either.
+
+14
+00:00:45,100 --> 00:00:49,260
+And also if I use like Claude plus like MCP, it doesn't necessarily have the guardrails
+
+15
+00:00:49,260 --> 00:00:51,980
+and permission scopings, you know, that I want.
+
+16
+00:00:51,980 --> 00:00:56,260
+And so what would it look like to make that feel really easy and smooth, you know, in
+
+17
+00:00:56,260 --> 00:00:57,260
+deep line?
+
+18
+00:00:57,260 --> 00:01:01,580
+Well, let me just show you, you know, I'm just going to copy and paste a prompt that
+
+19
+00:01:01,580 --> 00:01:03,460
+already exists over here.
+
+20
+00:01:03,460 --> 00:01:07,340
+And essentially what I want to do with this fictional kind of problem scenario is this.
+
+21
+00:01:07,340 --> 00:01:11,540
+One, I have a bunch of power users that are using a tool called Pulse and I want them
+
+22
+00:01:11,540 --> 00:01:14,900
+to get to use our new AI tool that we're trying to sell them called Spark.
+
+23
+00:01:14,900 --> 00:01:20,220
+And so what I want them to do is, hey, I want you to look at this cohort analytics table
+
+24
+00:01:20,220 --> 00:01:22,260
+within Snowflake.
+
+25
+00:01:22,260 --> 00:01:25,580
+And then I want you to sync that and create attributes within Adio.
+
+26
+00:01:25,580 --> 00:01:29,640
+And then based off that, I want you to create an email campaign and instantly and then
+
+27
+00:01:29,640 --> 00:01:32,940
+offer them 100 and free credits to incentivize them to try it out.
+
+28
+00:01:32,940 --> 00:01:36,460
+And then they just, you know, have a natural momentum from there.
+
+29
+00:01:36,460 --> 00:01:41,980
+You notice over here, it just launched what's it called a local process so that we can track
+
+30
+00:01:41,980 --> 00:01:43,780
+the work along the way, right?
+
+31
+00:01:43,780 --> 00:01:48,060
+From that plain English prompt is able to see, hey, I'm going to do all these things,
+
+32
+00:01:48,060 --> 00:01:53,500
+inspect Snowflake, you know, pilot Adio, create the instantly campaign, move on with our lives,
+
+33
+00:01:53,500 --> 00:01:54,500
+right?
+
+34
+00:01:54,500 --> 00:01:55,500
+And then it's running.
+
+35
+00:01:55,500 --> 00:01:59,780
+I want to show you like, hey, how exactly does DeepLine, you know, integrate safely
+
+36
+00:01:59,780 --> 00:02:01,500
+and clearly with all these different things?
+
+37
+00:02:01,500 --> 00:02:08,820
+If it's not, you know, basic MCP, well, they built their own, you know, API integrations.
+
+38
+00:02:08,820 --> 00:02:10,220
+Step one, let's just go with Adio.
+
+39
+00:02:10,220 --> 00:02:13,580
+Over here, let's say I want to, you know, there's managed sync, but let's say I want
+
+40
+00:02:13,580 --> 00:02:16,180
+to reconnect because I'm connecting for the first time.
+
+41
+00:02:16,180 --> 00:02:19,460
+It's going to look and feel something like this, where it's going to say, hey, these
+
+42
+00:02:19,460 --> 00:02:22,600
+are all the permissions that's going to give you, we're going to give you a quick warning
+
+43
+00:02:22,600 --> 00:02:26,440
+given that, you know, it's an early stage product and move on with there.
+
+44
+00:02:26,440 --> 00:02:32,000
+For now, I'm going to cancel because, you know, I don't need to reconnect anything.
+
+45
+00:02:32,000 --> 00:02:37,880
+Now let me show you Snowflake, where assuming I already have a user scope to DeepLine with
+
+46
+00:02:37,880 --> 00:02:41,360
+some like basic Snowflake SQL commands, all I have to do is copy and paste, you know,
+
+47
+00:02:41,360 --> 00:02:42,360
+some basic information.
+
+48
+00:02:42,360 --> 00:02:48,320
+This is like account identifier, you know, the warehouse and the database, etc., right?
+
+49
+00:02:48,320 --> 00:02:52,480
+And then lastly is the instantly API key.
+
+50
+00:02:52,480 --> 00:02:56,440
+And all I have to do is just copy and paste API key source from instantly and just move
+
+51
+00:02:56,440 --> 00:02:57,440
+on with my life.
+
+52
+00:02:57,440 --> 00:02:58,640
+And that's it, right?
+
+53
+00:02:58,640 --> 00:03:05,640
+No kind of belabored rituals and MCP acrobatics, just hey, like tried and true robust API integrations
+
+54
+00:03:05,640 --> 00:03:08,040
+and move on with their lives, okay?
+
+55
+00:03:08,040 --> 00:03:11,520
+And now let's go back to how DeepLine is running right now.
+
+56
+00:03:11,520 --> 00:03:12,520
+Okay.
+
+57
+00:03:12,720 --> 00:03:16,400
+So it was over here.
+
+58
+00:03:16,400 --> 00:03:21,560
+DeepLine prompted me to, you know, ask some clarifying questions, which is totally great.
+
+59
+00:03:21,560 --> 00:03:24,560
+And so over here, yep, all six recommended.
+
+60
+00:03:24,560 --> 00:03:26,720
+Yep, I'm going to draft.
+
+61
+00:03:26,720 --> 00:03:33,080
+I don't want to activate immediately for the campaign.
+
+62
+00:03:33,080 --> 00:03:35,080
+Which variant?
+
+63
+00:03:35,080 --> 00:03:39,960
+Yeah, let's do this.
+
+64
+00:03:40,960 --> 00:03:45,040
+Yep, let's do that.
+
+65
+00:03:45,040 --> 00:03:49,840
+Submit those answers and then have DeepLine keep trucking along.
+
+66
+00:03:49,840 --> 00:03:54,000
+All right, cool, then it prompted me again.
+
+67
+00:03:54,000 --> 00:03:56,640
+Let's do it.
+
+68
+00:03:56,640 --> 00:03:59,480
+Now it's all done.
+
+69
+00:03:59,480 --> 00:04:00,480
+Let's gut check.
+
+70
+00:04:00,480 --> 00:04:02,760
+Hey, did this do all the things I wanted to do?
+
+71
+00:04:02,760 --> 00:04:05,720
+Let's start from the end and go backwards.
+
+72
+00:04:05,720 --> 00:04:06,920
+We're going to go to instantly.
+
+73
+00:04:06,920 --> 00:04:08,440
+Let's refresh this page.
+
+74
+00:04:08,440 --> 00:04:09,920
+Do I see a campaign?
+
+75
+00:04:09,920 --> 00:04:12,400
+Ooh, what do I see here?
+
+76
+00:04:12,400 --> 00:04:17,120
+I'm going to see leads, yep, it looks like these, it looks like I got six leads.
+
+77
+00:04:17,120 --> 00:04:19,160
+Okay, I'll double check that later.
+
+78
+00:04:19,160 --> 00:04:21,640
+Got sequences and bam, I got some email copying.
+
+79
+00:04:21,640 --> 00:04:24,280
+That looks what I expect it to look like.
+
+80
+00:04:24,280 --> 00:04:29,400
+And then now I'm going to mess off, hey, did the instantly source the data correctly?
+
+81
+00:04:29,400 --> 00:04:33,360
+You know, let's go over here and then even gut check, hey, you know, pulse power, no
+
+82
+00:04:33,360 --> 00:04:36,980
+spark is one of the users, you know, that's what row six.
+
+83
+00:04:36,980 --> 00:04:42,220
+Just like this guy over here and then let's actually add an attribute over here.
+
+84
+00:04:42,220 --> 00:04:46,800
+You'll notice, hey, we have some net new columns that we can add to this.
+
+85
+00:04:46,800 --> 00:04:52,140
+And so I'm going to go here, I'm going to add life cycle segment and bam, just like
+
+86
+00:04:52,140 --> 00:04:53,140
+that.
+
+87
+00:04:53,140 --> 00:04:56,180
+I got one, two, three, four, five, six and yeah, just like that.
+
+88
+00:04:56,180 --> 00:05:00,860
+I didn't have to think through the idiosyncrasies and nuances of, hey, how do I properly connect
+
+89
+00:05:00,860 --> 00:05:06,340
+to snowflake, to adio and to instantly with all the permission scoping without having
+
+90
+00:05:06,340 --> 00:05:11,860
+to configure MCPs or learn the APIs because deep line abstracted all that for me.
+
+91
+00:05:11,860 --> 00:05:18,540
+And so in summation, this is a speed run to integrating all your GTM tools with deep line
+
+92
+00:05:18,540 --> 00:05:22,140
+with the cloud code and moving on with your life because you're bragging rights isn't
+
+93
+00:05:22,140 --> 00:05:24,820
+about, hey, how cool my stitch together code is.
+
+94
+00:05:24,820 --> 00:05:28,900
+Your bragging rights are, hey, I was able to create a repeatable, auditable system that
+
+95
+00:05:28,900 --> 00:05:29,900
+just works.
+
+96
+00:05:29,900 --> 00:05:30,900
+Have fun, y'all.
+
+97
+00:05:30,900 --> 00:05:30,920
+Bye.
+

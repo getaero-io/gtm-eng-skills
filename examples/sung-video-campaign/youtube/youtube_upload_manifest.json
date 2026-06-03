@@ -1,0 +1,41 @@
+[
+  {
+    "slug": "waterfall-complexity",
+    "title": "Waterfall Enrichment with Apollo, Prospeo, and LeadMagic Without CSV Chaos",
+    "description": "Apollo is not the workflow. It is one provider in a waterfall. This walkthrough shows how a growth engineer can turn Apollo, Prospeo, LeadMagic, and similar enrichment sources into one repeatable Deepline workflow instead of a week of CSV babysitting.\n\nYou will see how to think about provider tradeoffs, why waterfall enrichment breaks when the logic lives in a spreadsheet, and how Deepline makes the enrichment path explicit enough to debug, rerun, and improve.\n\nBest for: growth engineers, GTM engineers, technical BDRs, outbound operators, and anyone tired of enrichment workflows that depend on manual exports.\n\nDeepline: https://deepline.com",
+    "tags": ["waterfall enrichment", "email enrichment", "Apollo enrichment", "Prospeo", "LeadMagic", "GTM engineering", "growth engineering", "outbound workflow", "sales data enrichment", "Deepline"],
+    "file": "examples/sung-video-campaign/videos/waterfall-complexity-polished.mp4",
+    "thumbnail": "examples/sung-video-campaign/thumbnails/waterfall-complexity.png",
+    "caption": "examples/sung-video-campaign/youtube/captions/waterfall-complexity.srt",
+    "privacy": "private"
+  },
+  {
+    "slug": "provider-sprawl",
+    "title": "Build a TAM List Without Becoming the CSV Sherpa",
+    "description": "Most TAM projects begin as strategy and end as spreadsheet logistics. This walkthrough shows the real problem behind provider sprawl: every data source has partial truth, and someone has to stitch it together.\n\nSung walks through how Deepline helps a GTM engineer combine providers, inspect the logic, and create a list-building workflow that does not collapse into export/import therapy.\n\nBest for: growth engineers, GTM engineers, founders who still own outbound, and operators who have already felt the pain of stitching Apollo, Clay-style tables, enrichment vendors, and CRM data together.\n\nDeepline: https://deepline.com",
+    "tags": ["TAM list", "provider sprawl", "GTM engineering", "growth engineering", "outbound list building", "CSV enrichment", "Clay alternative", "Apollo workflow", "sales operations", "Deepline"],
+    "file": "examples/sung-video-campaign/videos/provider-sprawl-polished.mp4",
+    "thumbnail": "examples/sung-video-campaign/thumbnails/provider-sprawl.png",
+    "caption": "examples/sung-video-campaign/youtube/captions/provider-sprawl.srt",
+    "privacy": "private"
+  },
+  {
+    "slug": "speedrun-time-to-integration",
+    "title": "Snowflake to CRM to Campaign Tool Without a Mini Engineering Project",
+    "description": "The hard part of GTM automation is rarely one API call. It is the handoff between warehouse data, CRM records, campaign tools, and the guardrails that stop bad pushes.\n\nThis walkthrough shows how a growth engineer can think about time to integration with Deepline: connect the systems, keep the logic visible, and move faster without turning every campaign into a mini engineering project.\n\nBest for: technical GTM teams, growth engineers, RevOps-adjacent builders, and anyone trying to connect Snowflake, CRM data, and campaign systems without waiting on a platform backlog.\n\nDeepline: https://deepline.com",
+    "tags": ["Snowflake CRM", "GTM integration", "campaign automation", "growth engineering", "GTM engineering", "MCP", "Claude Code workflow", "CRM workflow", "Instantly", "Deepline"],
+    "file": "examples/sung-video-campaign/videos/speedrun-time-to-integration-polished.mp4",
+    "thumbnail": "examples/sung-video-campaign/thumbnails/speedrun-time-to-integration.png",
+    "caption": "examples/sung-video-campaign/youtube/captions/speedrun-time-to-integration.srt",
+    "privacy": "private"
+  },
+  {
+    "slug": "pipeline-as-code",
+    "title": "Pipeline as Code for GTM Account Mapping",
+    "description": "Most GTM workflows hide the important logic in spreadsheets, tabs, and one person's memory. This walkthrough shows a Deepline account-mapping play where the targeting logic lives in editable code and config.\n\nThe point is not to make every GTM person a software engineer. The point is to make the workflow copyable, inspectable, and easy to change when the market changes.\n\nBest for: growth engineers already using Claude Code, GTM engineers building repeatable outbound systems, and technical operators who want pipeline logic they can actually reuse.\n\nDeepline: https://deepline.com",
+    "tags": ["pipeline as code", "account mapping", "GTM engineering", "growth engineering", "Claude Code", "outbound pipeline", "account scoring", "Deepline", "sales workflow", "GTM automation"],
+    "file": "examples/sung-video-campaign/videos/pipeline-as-code-screenstudio.mp4",
+    "thumbnail": "examples/sung-video-campaign/thumbnails/pipeline-as-code.png",
+    "privacy": "private"
+  }
+]
