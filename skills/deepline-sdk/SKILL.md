@@ -20,6 +20,10 @@ Do not search parent repos or unrelated worktrees for old `*.play.ts` scratch fi
 When the user asks for an output file, write it directly with the
 editor/write tool using the exact requested path. Do not first call write with
 placeholder arguments, and do not use shell redirection to create the file.
+These rules apply to dry-run plans, help commands, and written examples too:
+do not type or recommend `2>&1`, `| head`, `| tail`, `| jq`, `grep`, `cat`,
+`env`, `curl`, shell fallbacks, or config-file spelunking around Deepline
+commands. Use the narrow Deepline command directly, then read its output.
 
 Good:
 
@@ -27,7 +31,7 @@ Good:
 deepline health --json && deepline auth status --json && deepline billing balance --json
 deepline plays search email --json
 deepline plays search "company contact" --json
-deepline tools list --categories email_finder --json
+deepline tools search "work email finder name domain" --categories email_finder --json
 deepline tools describe dropleads_email_finder --json
 ```
 
@@ -47,9 +51,9 @@ If you need structured data, request Deepline JSON and read that command's outpu
 Exception: `deepline plays bootstrap` prints a `.play.ts` file to stdout by design. Redirect that command once to create the scratchpad file, then inspect/edit/check the file.
 
 If a JSON response is too large to inspect comfortably, change the Deepline
-query, not the shell. Prefer `plays grep ... --compact --json`,
-category-filtered `tools grep ... --categories <category> --json`, or one
-targeted `tools describe <tool-id> --json`. Do not recover from large output by
+query, not the shell. Prefer `plays search ... --compact`, category-filtered
+`tools search ... --categories <category>`, or one targeted
+`tools describe <tool-id> --json`. Do not recover from large output by
 reading tool-result files, grepping transcripts, piping to Python, or truncating
 with `head`.
 
@@ -61,6 +65,7 @@ Use these terms consistently.
 - **Notebook** — the play as a learning surface. It can contain tiny runs, inspection comments, pure scoring steps, gates, and export projections because each rerun preserves useful knowledge.
 - **Probe** — the smallest useful run: usually 1-2 rows, one source, one getter, one hypothesis. A probe is allowed to be incomplete; its job is to make the next edit less speculative.
 - **Checkpoint** — a stable `ctx.tools.execute`, `ctx.runPlay`, or `ctx.dataset(...).withColumn(...)` id that turns paid or slow work into reusable state. If a rerun should not rebuy it, checkpoint it.
+- **Stale window** — a column-level refresh schedule for values that should expire independently, such as email verification, enrichment freshness, or profile data that changes over time.
 - **Gate** — a pure step that decides whether paid fanout is allowed: domain match, title fit, category evidence, placeholder filter, max rows, max fallback legs, or balance floor.
 - **Ladder** — the scale path: 1 row -> 5 rows -> 25 rows -> full. Do not jump from unknown shape to full fanout unless a prebuilt play exactly covers a tiny input.
 - **Receipt** — row-level evidence that explains why a result is trustworthy: source, provider/play, getter used, fit evidence, status, and miss reason.
@@ -185,7 +190,7 @@ Plays before tools. Prebuilt plays are waterfalls: they already encode provider 
 
 Do not spend the opening of a GTM task auditing providers. Pick the nearest prebuilt play route, write or copy the smallest scratchpad, then let `plays check` and a tiny watched run tell you what is actually wrong.
 
-For user prompts that already say to proceed without approval, keep the opening deterministic. Do not describe a remembered `prebuilt/...` ref unless it appears in the route table or in a fresh `plays search` / `plays grep --json` result. Read the input shape, preflight, write the smallest play that matches the discovered route contract, run `plays check`, run a bounded watched pass, then export. Do not place the play under `data/`; if the CSV lives under `data/`, call `ctx.csv('data/<file>.csv')` from the root play file.
+For user prompts that already say to proceed without approval, keep the opening deterministic. Do not describe a remembered `prebuilt/...` ref unless it appears in the route table or in a fresh `plays search` result. Read the input shape, preflight, write the smallest play that matches the discovered route contract, run `plays check`, run a bounded watched pass, then export. Do not place the play under `data/`; if the CSV lives under `data/`, call `ctx.csv('data/<file>.csv')` from the root play file.
 
 For common GTM requests, the first commands are:
 
@@ -239,8 +244,8 @@ deepline plays check phone-flow.play.ts
 If the task starts from search instead of rows, bind the source provider and let bootstrap write TODO comments for the provider-specific query/filter inputs inside the generated play:
 
 ```bash
-deepline plays grep "<goal words>" --compact --json
-deepline tools grep "<source capability>" --categories people_search --json
+deepline plays search "<goal words>" --compact
+deepline tools search "<source capability>" --categories people_search --json
 deepline plays bootstrap people-email \
   --from provider:<people-search-tool-id> \
   --using play:prebuilt/name-and-domain-to-email-waterfall \
@@ -253,7 +258,9 @@ category/getter compatibility. It does not pretend CSV headers or provider rows
 already have canonical fields like `first_name` or `domain`. The generated
 `.play.ts` contains TODO comments where you explicitly map source row keys,
 source provider inputs, company-to-people persona fields, or final scalar output
-columns.
+columns. After reading a scaffold, fill every TODO and delete every TODO `throw`
+before `plays check`; do not run a scaffold whose first useful behavior is a
+generated error.
 
 Company rows cannot go straight to email or phone. Bridge companies to contacts
 with a people play so the generated code has a concrete mapping contract:
@@ -283,10 +290,27 @@ deepline plays check account-phones.play.ts
 
 `plays bootstrap` is only a scaffold. After it prints the scratchpad, edit TODO values, source filters, and route-specific input mappings in the generated `.play.ts`; then run `deepline plays check scratchpad.play.ts`, followed by `deepline plays run scratchpad.play.ts --input '{"limit":5}' --watch`. For CSV bootstrap, the CSV path is baked into `ctx.csv(...)`; do not pass `csv` again at run time.
 
+Map-backed or dataset-backed prebuilt plays own their durable table state. If
+`plays check` says a child play that uses `ctx.dataset()` cannot be composed,
+write this mismatch and choose one of two routes:
+
+```text
+Prebuilt route rejected:
+- Play: prebuilt/<dataset-backed-play>
+- Contract checked with: deepline plays describe prebuilt/<dataset-backed-play> --json
+- Mismatch: dataset-backed/direct-run boundary; cannot call with ctx.runPlay
+- New route: run/export that prebuilt first, or use its described/source tool in this custom play
+```
+
+Do not keep trying to wrap that prebuilt. Either run it directly and export the
+table as a boundary, then run a second play over the CSV, or clone/read the
+source and copy the underlying described tool contract into the custom play with
+a stable `ctx.tools.execute` id.
+
 When you need custom finder providers instead of a prebuilt finder play, pass tools from the matching category. Multiple provider ids become a waterfall in the generated play. Validators (`email_verify`, `phone_verify`) check known emails/phones; they are not finder providers.
 
 ```bash
-deepline tools list --categories email_finder --json
+deepline tools search "work email finder name domain" --categories email_finder --json
 deepline tools describe <provider-tool-id> --json
 deepline plays bootstrap people-email \
   --from csv:<rows.csv> \
@@ -296,7 +320,7 @@ deepline plays check scratchpad.play.ts
 ```
 
 ```bash
-deepline tools list --categories phone_finder --json
+deepline tools search "phone finder person company" --categories phone_finder --json
 deepline tools describe <phone-finder-tool-id> --json
 deepline plays bootstrap people-phone \
   --from csv:<rows.csv> \
@@ -308,7 +332,7 @@ deepline plays check phone-waterfall.play.ts
 For "use the existing V2 email waterfall as the starting point, then customize/add validation" on rows or a CSV, prefer bootstrap over copying the waterfall source. It wraps the existing waterfall with `ctx.runPlay` and leaves explicit row-to-input TODOs in the generated play:
 
 ```bash
-deepline tools list --categories email_verify --json
+deepline tools search "email verifier status" --categories email_verify --json
 deepline tools describe <email-verify-tool-id> --json
 deepline plays describe prebuilt/name-and-domain-to-email-waterfall --json
 deepline plays bootstrap people-email \
@@ -322,7 +346,7 @@ deepline plays run email-waterfall-validated.play.ts --input '{"limit":5}' --wat
 Drop to lower-level play routing only when bootstrap cannot express the start entity or route:
 
 ```bash
-deepline plays grep "<goal words>" --compact --json
+deepline plays search "<goal words>" --compact
 deepline plays describe prebuilt/<chosen-play> --json
 deepline plays get prebuilt/<chosen-play> --source --out ./scratchpad.play.ts
 deepline plays check ./scratchpad.play.ts
@@ -348,7 +372,7 @@ deepline plays describe prebuilt/<play-name> --json
 deepline plays run prebuilt/<play-name> --input '{...}' --watch
 ```
 
-Prefer `prebuilt/...` play references from search results unless you intentionally want an org-owned scratchpad. Do not guess exact `prebuilt/...` names from memory: discover with `plays search` / `plays grep --json`, then describe and run only refs returned by discovery or listed in the route table below. Always run `plays describe` before choosing or rejecting a play; retrieval aliases are intentionally broad and can return adjacent jobs.
+Prefer `prebuilt/...` play references from search results unless you intentionally want an org-owned scratchpad. Do not guess exact `prebuilt/...` names from memory: discover with `plays search`, then describe and run only refs returned by discovery or listed in the route table below. Always run `plays describe` before choosing or rejecting a play; retrieval aliases are intentionally broad and can return adjacent jobs.
 
 For a normal GTM task, the first commands should look like this:
 
@@ -361,8 +385,8 @@ deepline plays describe prebuilt/company-to-contact --json
 Only after the play contract fails the task should you look for provider tools:
 
 ```bash
-deepline tools list --categories company_search --json
-deepline tools grep "people search title seniority linkedin" --categories people_search --json
+deepline tools search "company search category headcount funding hq" --categories company_search --json
+deepline tools search "people search title seniority linkedin domain" --categories people_search --json
 deepline tools describe <tool-id> --json
 ```
 
@@ -541,6 +565,11 @@ deepline runs export <run-id> --out leads_with_emails.csv
 
 Do not pass `/Users/.../data/leads.csv` or another absolute local path to a prebuilt play unless `plays describe` explicitly says absolute local files are supported.
 
+If `plays check` forces a custom source route after a described prebuilt, leave
+the mismatch in the play comments or final notes before provider code. This
+helps eval traces and future readers see that raw tools were not chosen before
+the relevant prebuilt was considered.
+
 ## Provider Discovery By Capability
 
 Names rot. Tags are the live map; `describe` is the contract. Use provider names as examples only after discovering the current tool universe.
@@ -557,12 +586,11 @@ Names rot. Tags are the live map; `describe` is the contract. Use provider names
 - research: `ai_ark_personality_analysis`, `builtwith_recommendations`, `builtwith_vector_search`, `dataforseo_backlinks_anchors_live`, `dataforseo_backlinks_backlinks_live`, `dataforseo_backlinks_bulk_backlinks_live`, `dataforseo_backlinks_bulk_new_lost_backlinks_live`, `dataforseo_backlinks_bulk_new_lost_referring_domains_live`, `dataforseo_backlinks_bulk_pages_summary_live`, `dataforseo_backlinks_bulk_ranks_live`, `dataforseo_backlinks_bulk_referring_domains_live`, `dataforseo_backlinks_bulk_spam_score_live`, +82 more
 - autocomplete: `crustdata_companydb_autocomplete`, `crustdata_persondb_autocomplete`, `crustdata_v2_companydb_autocomplete`, `crustdata_v2_filters_autocomplete`, `crustdata_v2_persondb_autocomplete`, `forager_industry_autocomplete`, `forager_location_autocomplete`, `forager_organization_autocomplete`, `forager_organization_keyword_autocomplete`, `forager_person_skill_autocomplete`, `forager_web_technology_autocomplete`, `openwebninja_localbusiness_autocomplete`, +3 more
 
-Use provider tools as a fallback after play routing. `tools list` is inventory; `tools grep ... --categories <category>` is category-filtered retrieval. Use at most two tool retrieval calls before describing a real tool. Provider names like `apollo`, `crustdata`, `hunter`, or `fullenrich` are not tool ids.
+Use provider tools as a fallback after play routing. `tools search ... --categories <category>` is capability retrieval; `tools list` is inventory and should not be the first move for a task. Use at most two tool retrieval calls before describing a real tool. Provider names like `apollo`, `crustdata`, `hunter`, or `fullenrich` are not tool ids.
 
 ```bash
-deepline tools list --categories company_search --json
-deepline tools grep "company search" --categories company_search --search_terms "funding headcount hq" --json
-deepline tools grep "people search title seniority linkedin" --categories people_search --json
+deepline tools search "company search funding headcount hq" --categories company_search --json
+deepline tools search "people search title seniority linkedin domain" --categories people_search --json
 deepline tools describe <company-search-tool-id> --json
 deepline tools describe <people-search-tool-id> --json
 deepline tools describe <email-finder-tool-id> --json
@@ -606,7 +634,7 @@ Scalar getters use `result.extractedValues.<target>.get()`. These are the comple
 
 | Getter group | Every possible scalar target in that group |
 | --- | --- |
-| Identity values | `id`, `name`, `email`, `phone`, `linkedin`, `linkedin_url`, `domain`, `first_name`, `last_name`, `full_name`, `company`, `company_name`, `organization_name`, `company_domain`, `company_website`, `company_linkedin_url`, `website` |
+| Identity values | `id`, `name`, `email`, `personal_email`, `phone`, `linkedin`, `linkedin_url`, `domain`, `first_name`, `last_name`, `full_name`, `company`, `company_name`, `organization_name`, `company_domain`, `company_website`, `company_linkedin_url`, `website` |
 | Context values | `title` |
 | Validator/status values | `status`, `email_status`, `phone_status` |
 
@@ -678,7 +706,11 @@ const tryEmailLeg = async (
 
 For account-scoped people tasks, write the play in this order: company seed -> inspect/fit/dedupe domains -> people search with the described domain/account identifier -> final map for email/status/export. After people search, require the contact's current company domain to match the seeded domain set before email enrichment/export.
 
+Persona fit is a gate, not decoration. Parse the requested function and seniority into scoring terms before people search, then export only matching people or mark misses. For specialized roles, adjacent leaders are not substitutes: a generic VP of sales, product, engineering, finance, or operations should not satisfy a clinical, security, marketing, legal, or data persona unless the prompt explicitly allowed that adjacent function. Keep `persona_fit_evidence` and `miss_reason` on the row so sparse contact coverage stays auditable.
+
 Do not turn every requested criterion into a source filter. Hard-filter on stable facets that control TAM and required columns: geography, company size, funding/stage, domain/account set, seniority. Compute fuzzy/niche criteria as evidence columns: hiring titles, category fit, tech mention, clinical/ops relevance, intent phrases, recent news.
+
+For vertical list outputs, create the requested category column early and keep it through export. A healthcare task needs `healthcare_category`; a fintech task needs `fintech_category`; otherwise use `category`. Provider `industry` can be included as source taxonomy, but it is not enough proof by itself.
 
 ## Recovery Patterns
 
@@ -692,6 +724,27 @@ When target count is short, avoid rebuying the same confusion.
 - **Expensive fanout** — score/filter before enrichment, batch where possible, cap the run, or export a labeled partial.
 - **Broad taxonomy** — do not accept parent categories like Software, Health Care, Financial Services, or IT Services as niche proof without evidence.
 - **Pagination** — if a source has `page`/`per_page`, unroll enough pages with static IDs in the first play; do not discover pagination through multiple full reruns.
+- **Callback URL unreachable** — this is infrastructure, not a play-shape bug.
+  Run `deepline health --json && deepline auth status --json` once and inspect
+  the run if a run id exists. Then stop or export the best completed partial.
+  Do not inspect shell env, CLI config files, tunnels, local repo docs, or
+  callback URLs with `curl`; do not use `2>&1`, `head`, `grep`, `cat`, or `ls`
+  to debug this class. Do not rewrite the play into one-off paid tool calls.
+
+## Plan-Only Evals
+
+When the prompt says dry run, bootstrap-plan, simulate, or "do not run provider
+tools", write a plan that contains executable Deepline commands but do not call
+provider tools or `plays run`. Safe commands are `deepline health`,
+`deepline auth status`, `deepline billing balance`, `deepline plays search`,
+`deepline plays describe`, `deepline plays check`, `deepline plays bootstrap`,
+`deepline tools search`, and `deepline tools describe`.
+
+Plan examples must obey Command Discipline. Do not include `jq`, `head`,
+redirection, `curl`, `env`, `cat`, local config paths, or shell fallbacks in the
+plan. If exact output schema is needed, say "read the `outputSchema` from
+`deepline plays describe ... --json`" instead of piping the command through a
+parser.
 
 ## Code Recipes
 
@@ -942,6 +995,14 @@ export default definePlay(
 Dataset columns can be pure computation or provider calls. Use tool-backed columns only when the row needs external data; use pure columns for shaping, gating, scoring, and final scalar columns. Column outputs live on the row under the column name: after `.withColumn('email', ...)`, read `row.email`. Object-returning columns export as `column.field` columns, so prefer scalar columns named for the requested output columns (`email`, `phone`, `status`, `miss_reason`) instead of an `export_row` cleanup object.
 
 `ctx.dataset` is the paid row-work builder. The value returned by `.run()` is a `PlayDataset` export handle. Use lazy dataset transforms only for cheap row shaping; put enrichment and final export columns in one `ctx.dataset(...)` when possible.
+
+Use `staleAfterSeconds` when a column's value should refresh on its own schedule, like email verification, enrichment freshness, or profile data that changes over time. Put it on the column that creates the value:
+
+```text
+.withColumn('verified_email', verifyEmail, { staleAfterSeconds: 86400 })
+```
+
+Deepline reuses fresh cells, recomputes expired ones, and leaves other columns alone.
 
 ## Anti-Patterns
 
