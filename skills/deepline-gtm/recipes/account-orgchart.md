@@ -144,13 +144,14 @@ Expected: +60-80 net new.
 
 **Source 3: LinkedIn employee scrape (~$0.25)**
 
-Prefer the prebuilt play over a hand-rolled actor call — it resolves the company's LinkedIn page from the domain and runs the current company-employees actor for you, so you don't manage actor ids or input shapes:
+Prefer `deepline enrich` for repeatable roster enrichment and use a direct actor call only as a probe. Resolve the company's LinkedIn page from the domain first, then run the current company-employees actor after confirming the contract:
 
 ```bash
-deepline plays run prebuilt/company-domain-to-linkedin-employees --input '{"domain":"DOMAIN","max_items":500}' --watch
+deepline tools describe apify_run_actor_sync
+deepline tools execute apify_run_actor_sync --payload '{"actorId":"harvestapi/linkedin-company-employees","input":{"companyLinkedinUrls":["LINKEDIN_COMPANY_URL"],"maxItems":25},"timeoutMs":300000}'
 ```
 
-Pilot with a small `max_items` first, then export rows with `deepline runs export <run-id> --out "$WORK_DIR/li-employees.csv"`. Expected: +15-25 net new.
+Pilot with a small `maxItems` first, then write the final roster into `"$WORK_DIR/li-employees.csv"` or add it as an enrichment pass. Expected: +15-25 net new.
 
 > If you genuinely need a raw actor call (e.g. a different roster actor), the current company-roster actor is `harvestapi/linkedin-company-employees` (input: `companyLinkedinUrls` string[] required, optional `maxItems`/`profileDepth`), and the per-profile actor is `apimaestro/linkedin-profile-detail` (input `{"username":"<handle>"}`, returns an `experience[]` array where the live role has `is_current: true` — the cleanest "where do they work today" signal). Actor ids and input keys drift; confirm with `deepline tools describe apify_run_actor_sync` (its `apifyKnownActors` list) before relying on any of them.
 
