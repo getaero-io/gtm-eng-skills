@@ -334,7 +334,7 @@ deepline billing limit    # Show the current monthly billing cap
 ```
 
 When credits at zero, link to https://code.deepline.com/dashboard/billing to top up.
-10 credits == $1
+10 credits == 1 USD
 
 ## 5) Provider routing (high level)
 

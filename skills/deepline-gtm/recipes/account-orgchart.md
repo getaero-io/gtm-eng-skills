@@ -45,15 +45,15 @@ That means:
 | Step | What                    | Source                                                              | Cost      |
 | ---- | ----------------------- | ------------------------------------------------------------------- | --------- |
 | 1    | Resolve target          | `leadmagic_profile_search` or `prebuilt/person-linkedin-to-email`   | 1 credit  |
-| 2a   | Deepline Native search  | `deepline_native_search_contact` (4 title tiers)                    | $0.04/req |
+| 2a   | Deepline Native search  | `deepline_native_search_contact` (4 title tiers)                    | 0.04 USD/req |
 | 2b   | Dropleads search        | `dropleads_search_people`                                           | FREE      |
-| 2c   | Apify LinkedIn scrape   | `apify_run_actor_sync` w/ `harvestapi/linkedin-company-employees`   | ~$0.25    |
-| 2d   | Apollo paid search      | `apollo_people_search_paid` (2 pages)                               | ~$5       |
-| 2e   | PDL gap-fill (optional) | `peopledatalabs_person_search` CXO+VP only                          | ~$2-11    |
+| 2c   | Apify LinkedIn scrape   | `apify_run_actor_sync` w/ `harvestapi/linkedin-company-employees`   | ~0.25 USD |
+| 2d   | Apollo paid search      | `apollo_people_search_paid` (2 pages)                               | ~5 USD |
+| 2e   | PDL gap-fill (optional) | `peopledatalabs_person_search` CXO+VP only                          | ~2-11 USD |
 | 3    | Classify + infer        | Title-based seniority + tenure + recency signals + Claude reasoning | 0         |
 | 4    | Generate output         | HTML org chart file                                                 | 0         |
 
-Typical run: 150-250 people found, ~$7-16 total, 3-8 minutes.
+Typical run: 150-250 people found, ~7-16 USD total, 3-8 minutes.
 
 **Cost-optimal order:** Free first (DN + Dropleads), then cheap (Apify), then paid (Apollo), then surgical (PDL for missing execs only). Each step deduplicates against prior results.
 
@@ -93,7 +93,7 @@ Use this instead of the company-wide waterfall when the request centers on one i
 
    Use `dropleads_search_people` (free) and `deepline_native_search_contact` with title filters first; fall back to `exa_search` / Google-style queries for enterprises that index poorly. Keep each search scoped — you want ~3-8 candidates per tier, not hundreds.
 
-   **Resolving a candidate's LinkedIn URL from a name:** don't reach for `leadmagic_profile_search` (it costs ~$0.034/result and is for the _reverse_ direction — hydrating a profile you already have the URL for). For name → LinkedIn URL, use the **Serper → Apify validate** pattern from the sibling [`linkedin-url-lookup`](linkedin-url-lookup.md) recipe: `serper_google_search` (~$0.002/result) with a `site:linkedin.com/in` query, then validate the top hit with an Apify profile scrape and a mandatory name-match gate. That pattern hits ~74% validated match (vs Exa's 23%) and ~10x cheaper than LeadMagic — and the name-validation gate matters, because ~26% of raw Serper lookups return the wrong person. Or just call the canonical play `prebuilt/person-to-linkedin` (aliases `name_to_linkedin_url_waterfall`, `name-to-linkedin-url`), which wraps this waterfall.
+   **Resolving a candidate's LinkedIn URL from a name:** don't reach for `leadmagic_profile_search` (it costs ~0.034 USD/result and is for the _reverse_ direction — hydrating a profile you already have the URL for). For name → LinkedIn URL, use the **Serper → Apify validate** pattern from the sibling [`linkedin-url-lookup`](linkedin-url-lookup.md) recipe: `serper_google_search` (~0.002 USD/result) with a `site:linkedin.com/in` query, then validate the top hit with an Apify profile scrape and a mandatory name-match gate. That pattern hits ~74% validated match (vs Exa's 23%) and ~10x cheaper than LeadMagic — and the name-validation gate matters, because ~26% of raw Serper lookups return the wrong person. Or just call the canonical play `prebuilt/person-to-linkedin` (aliases `name_to_linkedin_url_waterfall`, `name-to-linkedin-url`), which wraps this waterfall.
 
 3. **Rank the inferred edges, don't assert them.** For each candidate, score the likelihood they're the actual manager/report using the Manager prediction scoring table below (seniority gap + team match + geo + experience delta + tenure overlap). Surface the top 1-2 per tier _with their score shown as a confidence badge_. When several same-title managers tie (common at big enterprises), show them as parallel candidates rather than picking one — the rep can disambiguate.
 
@@ -118,7 +118,7 @@ echo "company_domain,company_name" > "$WORK_DIR/accounts.csv"
 echo "\"$DOMAIN\",\"$COMPANY\"" >> "$WORK_DIR/accounts.csv"
 ```
 
-**Source 1: Deepline Native ($0.04/request)**
+**Source 1: Deepline Native (0.04 USD/request)**
 
 ```bash
 deepline enrich --input "$WORK_DIR/accounts.csv" --output "$WORK_DIR/dn-csuite.csv" \
@@ -142,7 +142,7 @@ deepline enrich --input "$WORK_DIR/accounts.csv" --output "$WORK_DIR/dropleads.c
 
 Expected: +60-80 net new.
 
-**Source 3: LinkedIn employee scrape (~$0.25)**
+**Source 3: LinkedIn employee scrape (~0.25 USD)**
 
 Prefer `deepline enrich` for repeatable roster enrichment and use a direct actor call only as a probe. Resolve the company's LinkedIn page from the domain first, then run the current company-employees actor after confirming the contract:
 
@@ -155,7 +155,7 @@ Pilot with a small `maxItems` first, then write the final roster into `"$WORK_DI
 
 > If you genuinely need a raw actor call (e.g. a different roster actor), the current company-roster actor is `harvestapi/linkedin-company-employees` (input: `companyLinkedinUrls` string[] required, optional `maxItems`/`profileDepth`), and the per-profile actor is `apimaestro/linkedin-profile-detail` (input `{"username":"<handle>"}`, returns an `experience[]` array where the live role has `is_current: true` — the cleanest "where do they work today" signal). Actor ids and input keys drift; confirm with `deepline tools describe apify_run_actor_sync` (its `apifyKnownActors` list) before relying on any of them.
 
-**Source 4: Apollo paid search (~$5)**
+**Source 4: Apollo paid search (~5 USD)**
 
 ```bash
 deepline tools execute apollo_people_search_paid --payload '{"q_organization_domains_list":["DOMAIN"],"per_page":100,"page":1}'
@@ -172,7 +172,7 @@ After building initial hierarchy, identify gaps (e.g., "5 Sales Directors but no
 deepline tools execute peopledatalabs_person_search --payload '{"size":30,"sql":"SELECT * FROM person WHERE job_company_website = \"DOMAIN\" AND (job_title_levels = \"cxo\" OR job_title_levels = \"vp\")"}'
 ```
 
-PDL costs 3.92 credits/result. Pull CXO+VP only (~29 people, ~$11) then dedupe.
+PDL costs 3.92 credits/result. Pull CXO+VP only (~29 people, ~11 USD) then dedupe.
 
 Merge all results, deduplicate by slugified name.
 

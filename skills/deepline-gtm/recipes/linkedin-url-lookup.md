@@ -164,8 +164,8 @@ python3 scripts/validate-linkedin-names.py --fixtures scripts/fixtures_name_vali
 
 | Actor                                 | Use            | Input field                            | Cost                                          |
 | ------------------------------------- | -------------- | -------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `harvestapi/linkedin-profile-scraper` | Profile scrape | `urls` (array)                         | $0.004/profile ($4/1k), $0.01 with email      | 6.3M runs, 100% 30d, 4.8 rating. Returns `firstName`, `lastName`, `headline`, `experience`, `education`, parsed `location`. |
-| `harvestapi/linkedin-profile-posts`   | Posts scrape   | `targetUrls` (array), `maxPosts` (int) | $0.002/post (so $0.04/profile at maxPosts=20) | 6.2M runs, 100% 30d. Rejects `profileUrls` and `postedLimit`.                                                               |
+| `harvestapi/linkedin-profile-scraper` | Profile scrape | `urls` (array)                         | 0.004 USD/profile (4 USD/1k), 0.01 USD with email | 6.3M runs, 100% 30d, 4.8 rating. Returns `firstName`, `lastName`, `headline`, `experience`, `education`, parsed `location`. |
+| `harvestapi/linkedin-profile-posts`   | Posts scrape   | `targetUrls` (array), `maxPosts` (int) | 0.002 USD/post (so 0.04 USD/profile at maxPosts=20) | 6.2M runs, 100% 30d. Rejects `profileUrls` and `postedLimit`.                                                               |
 
 `dev_fusion/Linkedin-Profile-Scraper` has higher weighted reviews (596 vs 114) but returned empty data in testing. `data-slayer/linkedin-profile-scraper` has no reviews. Stick with `harvestapi`.
 
