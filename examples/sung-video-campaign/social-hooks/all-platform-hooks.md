@@ -105,13 +105,14 @@ Core conversation: TAM builds break because every tool owns one step and nobody 
 
 ### X hooks
 
-1. A lot of GTM engineering is just being a CSV Sherpa.
+1. A lot of GTM engineering is just babysitting CSVs.
 
-Apollo export to Google Sheets.
-Upload that CSV into Clay.
-Export again into MillionVerifier.
-Import the clean rows into HubSpot.
-Upload the final campaign list into Instantly or Smartlead.
+Export leads from Apollo.
+Upload into Clay.
+Export to MillionVerifier.
+Download valids.
+Import into HubSpot.
+Upload into Instantly or Smartlead.
 
 Then someone asks "how did we build this list?"
 
@@ -153,7 +154,7 @@ Every tool can make sense.
 
 The weak point is the handoff between them.
 
-That is what Sung's Provider Sprawl walkthrough gets right. The enemy is not any one vendor. The enemy is the process living in CSVs and memory.
+That is what Sung's Provider Sprawl walkthrough gets right. The annoying part is not any one vendor. The operator becomes the integration layer.
 
 2. "CSV Sherpa" is the best description I have heard for a surprising amount of GTM work.
 
@@ -170,7 +171,7 @@ That can work once.
 
 It does not work as an operating model.
 
-The next version of GTM tooling has to own the run, not just one cell in the table.
+The next version of GTM tooling has to own the run, not just one more dashboard.
 
 ### Threads hooks
 

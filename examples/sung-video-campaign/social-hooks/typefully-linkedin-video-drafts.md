@@ -18,3 +18,4 @@ These are LinkedIn-only drafts with native video attached. The raw Screen Studio
 - Link previews: hidden, because the native video is the main attachment.
 - Blog links point to `https://deepline.com/blog/...`.
 - Provider Sprawl copy was updated on 2026-06-05 after `/last30days` research. The tool chain now uses observed stacks: Apollo/Clay, Prospeo, MillionVerifier/Listman, HubSpot/Salesforce, n8n/Make/Zapier/Activepieces, Instantly/Smartlead.
+- All three LinkedIn video drafts were humanized on 2026-06-05 to remove generic AI/marketing phrasing while preserving the concrete GTM handoffs and pain points.

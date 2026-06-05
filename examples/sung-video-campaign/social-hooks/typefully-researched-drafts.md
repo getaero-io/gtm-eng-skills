@@ -49,19 +49,23 @@ LinkedIn:
 
 Apollo is useful.
 
-Apollo is not the workflow.
+It is also where the work starts, not where it ends.
 
-The workflow is what happens after Apollo gives you partial coverage and the team still needs a real list.
+The annoying part is the accounts Apollo does not cover, the emails that come back stale, the paid providers you do not want to fire blindly, and the CSV you still have to hand to sales without wrecking deliverability.
 
-Now you need provider fallback, cost approval, verification, and a clean output someone can trust enough to put into a campaign.
+Most teams handle that with a tab, a Slack thread, and one operator who knows the rules.
 
-That is the part most GTM teams hide in a spreadsheet, a Slack thread, and one person's memory.
+Sung's waterfall walkthrough shows the less cursed version: preview the run, approve paid enrichment, see which provider verified the email, then export a list with receipts.
 
-Sung's waterfall video is good because it shows the boring part directly: Deepline previews the run, asks before the paid enrichment, shows which provider verified the email, and returns the CSV.
+That sounds boring. It should.
 
-The interesting part is not "AI found an email."
+Enrichment only gets expensive when the boring parts are invisible.
 
-The interesting part is that the workflow has receipts.
+The hook is not "AI found an email."
+
+The hook is "I can explain why this email is in the campaign."
+
+Blog: https://deepline.com/blog/waterfall-enrichment-workflow-engineering
 
 Threads:
 
@@ -179,29 +183,34 @@ And the whole room looks at the spreadsheet like it killed a man.
 
 LinkedIn:
 
-"CSV Sherpa" is the best phrase in Sung's provider sprawl video.
+A lot of GTM engineering is just babysitting CSVs.
 
-Because that is what a lot of GTM engineering has become.
-
-Move the file here.
-Add a column.
-Export again.
-Upload to MillionVerifier.
+Export leads from Apollo.
+Upload into Clay.
+Export to MillionVerifier or Listman.
 Download valids.
-Import to HubSpot.
-Export again.
-Upload into Instantly or Smartlead.
-Hope nothing broke.
+Import into HubSpot or Salesforce.
+Upload into Instantly, Smartlead, or Saleshandy.
 
-That can work once.
+Then someone asks, "why is this account in the campaign?"
 
-It does not work as an operating model.
+Everyone stares at the spreadsheet like it has a confession to make.
 
-The sharper question is not "which provider has the data?"
+That is provider sprawl.
 
-The sharper question is "where does the run get explained?"
+Not "too many tools" in the abstract. The stupid part is that every handoff creates a little memory leak: which file was latest, which rows got verified, which CRM fields got overwritten, which list made it into the sequencer.
 
-If the answer is "in three CSVs and the mind of the operator," you do not have a system yet.
+Each tool can be fine. Apollo is fine. Clay is fine. HubSpot is fine. Instantly is fine.
+
+The operator is the integration layer.
+
+That works until the operator goes on PTO, or until you try to rerun the same play two weeks later and the only artifact is a file called final_final_cleaned_v3.csv.
+
+Sung calls this the CSV Sherpa problem. It lands because it is not really a metaphor if you have done the job.
+
+If your TAM build only works because one person remembers which export got uploaded where, you do not have a system.
+
+You have a ritual with better vendors.
 
 Threads:
 
@@ -225,7 +234,7 @@ The problem is the haunted hallway between them where CSVs go to become "pipelin
 
 LinkedIn:
 
-The problem is usually not Apollo.
+The problem usually is not Apollo.
 
 Or Clay.
 Or HubSpot.
@@ -241,9 +250,9 @@ That is where the TAM build turns into a ritual:
 
 export from Apollo, upload into Clay, export again for MillionVerifier, import clean rows into HubSpot or Salesforce, then upload the final CSV into Instantly or Smartlead and pray the field mapping survived.
 
-Sung's Provider Sprawl walkthrough is useful because it does not pretend the world needs one more database.
+Sung's Provider Sprawl walkthrough is useful because it does not pretend the world needs one more dashboard.
 
-It shows the actual problem: no one owns the run.
+It shows the part people quietly hate: no one owns the run.
 
 Threads:
 
@@ -580,30 +589,31 @@ Video: https://www.youtube.com/watch?v=qecZWS4DerQ
 
 LinkedIn:
 
-"Pipeline as code" sounds more intense than it is.
+"Pipeline as code" sounds like something a founder would put on a slide and immediately make worse.
 
-The practical version is simple:
+The plain English version is this:
 
-Can we rerun this account mapping workflow next week without rebuilding it from vibes, Slack messages, and an ancient CSV named final_FINAL.csv?
+Can we run the same account mapping play next week without reconstructing it from Slack messages, CRM filters, and a spreadsheet named final_FINAL.csv?
 
-That is the actual bar.
+That is the bar.
 
-GTM teams do not need more religious arguments about no-code versus code.
+Not no-code vs code. Not "everyone needs to be an engineer."
 
-They need workflows where the logic is visible:
+Just: where does the logic live?
 
-- which accounts qualify
-- which signals matter
-- which contacts get pulled
-- which fields get written
-- which campaign gets drafted
-- what changed since last time
+Which accounts qualify?
+Which signal mattered?
+Which contact got pulled?
+Which field got written?
+What changed since last run?
 
-If that logic is invisible, the workflow is fragile.
+If the answer is "ask the person who built the sheet," you have a staffing dependency, not a workflow.
 
-If it is inspectable, the team can improve it.
+Sung's walkthrough works because it treats GTM logic like something worth keeping in a place people can read, edit, and rerun.
 
-Video: https://www.youtube.com/watch?v=qecZWS4DerQ
+Your ICP should not live in one operator's head.
+
+Neither should the reason an account made the campaign.
 
 Blog: https://deepline.com/blog/pipeline-as-code-account-mapping
 
