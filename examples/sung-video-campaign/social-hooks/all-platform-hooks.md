@@ -108,10 +108,10 @@ Core conversation: TAM builds break because every tool owns one step and nobody 
 1. A lot of GTM engineering is just being a CSV Sherpa.
 
 Apollo export to Google Sheets.
-Sheets to Clay.
-Clay to MillionVerifier.
-Clean rows to HubSpot.
-Campaign to Instantly or Smartlead.
+Upload that CSV into Clay.
+Export again into MillionVerifier.
+Import the clean rows into HubSpot.
+Upload the final campaign list into Instantly or Smartlead.
 
 Then someone asks "how did we build this list?"
 

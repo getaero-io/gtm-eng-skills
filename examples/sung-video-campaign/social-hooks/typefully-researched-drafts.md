@@ -168,10 +168,10 @@ X:
 A lot of GTM engineering is just being a CSV Sherpa.
 
 Apollo export to Google Sheets.
-Sheets to Clay.
-Clay to MillionVerifier or Listman.
-Clean rows to HubSpot or Salesforce.
-Campaign to Instantly or Smartlead.
+Upload that CSV into Clay.
+Export again into MillionVerifier or Listman.
+Import the clean rows into HubSpot or Salesforce.
+Upload the final campaign list into Instantly or Smartlead.
 
 Then someone asks, "why is this account in the campaign?"
 
@@ -186,10 +186,11 @@ Because that is what a lot of GTM engineering has become.
 Move the file here.
 Add a column.
 Export again.
-Verify in MillionVerifier.
-Patch the CRM.
+Upload to MillionVerifier.
+Download valids.
+Import to HubSpot.
 Export again.
-Import into Instantly or Smartlead.
+Upload into Instantly or Smartlead.
 Hope nothing broke.
 
 That can work once.
@@ -238,7 +239,7 @@ The problem is the space between them.
 
 That is where the TAM build turns into a ritual:
 
-export from Apollo, enrich in Clay or Prospeo, verify in MillionVerifier, patch HubSpot or Salesforce, then push the final list into Instantly or Smartlead and pray the field mapping survived.
+export from Apollo, upload into Clay, export again for MillionVerifier, import clean rows into HubSpot or Salesforce, then upload the final CSV into Instantly or Smartlead and pray the field mapping survived.
 
 Sung's Provider Sprawl walkthrough is useful because it does not pretend the world needs one more database.
 
