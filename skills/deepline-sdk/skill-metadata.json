@@ -1,0 +1,25 @@
+{
+  "title": "Deepline SDK Dense V3 Bootstrap",
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Deepline SDK Dense V3 Bootstrap",
+      "tags": ["sdk", "gtm", "plays", "v2"],
+      "providers": []
+    }
+  },
+  "prefixes": {
+    "references/": {
+      "kind": "reference",
+      "title": "Dense V3 JTBD References",
+      "tags": ["gtm", "tam", "contacts", "workflow"],
+      "providers": []
+    }
+  },
+  "default_document": {
+    "kind": "other",
+    "title": "Document",
+    "tags": [],
+    "providers": []
+  }
+}
