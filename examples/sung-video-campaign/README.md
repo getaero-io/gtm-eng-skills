@@ -21,6 +21,14 @@ This folder packages the Sung walkthroughs for review, YouTube upload, and blog/
 | Speedrun Time to Integration | `videos/speedrun-time-to-integration-polished.mp4` | `thumbnails/speedrun-time-to-integration.png` | `blog-posts/snowflake-crm-campaign-workflow.md` |
 | Pipeline as Code | `videos/pipeline-as-code-screenstudio.mp4` | `thumbnails/pipeline-as-code.png` | `blog-posts/pipeline-as-code-account-mapping.md` |
 
+## Social Drafts
+
+Updated Typefully/source social copy lives in `social-hooks/`.
+
+- `social-hooks/typefully-researched-drafts.md`: final source of truth with YouTube draft URLs and Deepline blog URLs.
+- `social-hooks/typefully-draft-links.md`: existing Typefully draft IDs plus live API blocker note.
+- `social-hooks/all-platform-hooks.md`: X, LinkedIn, and Threads hook bank.
+
 ## YouTube Draft Upload Status
 
 The upload script publishes private drafts by default.
