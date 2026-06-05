@@ -1,0 +1,10 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Deepline Analytics",
+      "tags": ["analytics", "snowflake", "semantic-layer", "revops"],
+      "providers": ["snowflake"]
+    }
+  }
+}
