@@ -27,6 +27,7 @@ Updated Typefully/source social copy lives in `social-hooks/`.
 
 - `social-hooks/typefully-researched-drafts.md`: final source of truth with YouTube draft URLs and Deepline blog URLs.
 - `social-hooks/typefully-draft-links.md`: existing Typefully draft IDs plus live API blocker note.
+- `social-hooks/typefully-linkedin-video-drafts.md`: LinkedIn-only Typefully drafts with native video attached.
 - `social-hooks/all-platform-hooks.md`: X, LinkedIn, and Threads hook bank.
 
 ## YouTube Draft Upload Status
