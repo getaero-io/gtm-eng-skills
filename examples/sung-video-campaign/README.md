@@ -25,6 +25,8 @@ This folder packages the Sung walkthroughs for review, YouTube upload, and blog/
 
 The upload script publishes private drafts by default.
 
+Current readiness check: `youtube/youtube_upload_ready_check.md`.
+
 | Video | Status | URL |
 | --- | --- | --- |
 | Waterfall Complexity | Uploaded private draft; on-brand thumbnail set; description uses `deepline.com`; captions skipped due OAuth scope. | `https://www.youtube.com/watch?v=OBgolIUXLhQ` |
