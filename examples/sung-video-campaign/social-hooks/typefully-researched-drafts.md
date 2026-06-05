@@ -167,11 +167,11 @@ X:
 
 A lot of GTM engineering is just being a CSV Sherpa.
 
-Apollo to Crustdata.
-Crustdata to Clay.
-Clay to Claude.
-Claude to enrichment.
-Enrichment to Instantly.
+Apollo export to Google Sheets.
+Sheets to Clay.
+Clay to MillionVerifier or Listman.
+Clean rows to HubSpot or Salesforce.
+Campaign to Instantly or Smartlead.
 
 Then someone asks, "why is this account in the campaign?"
 
@@ -186,10 +186,10 @@ Because that is what a lot of GTM engineering has become.
 Move the file here.
 Add a column.
 Export again.
-Paste into Claude.
-Run a score.
+Verify in MillionVerifier.
+Patch the CRM.
 Export again.
-Import into Instantly.
+Import into Instantly or Smartlead.
 Hope nothing broke.
 
 That can work once.
@@ -216,7 +216,7 @@ The problem is not Apollo.
 
 Or Clay.
 
-Or Crustdata.
+Or HubSpot.
 
 Or Claude.
 
@@ -227,9 +227,10 @@ LinkedIn:
 The problem is usually not Apollo.
 
 Or Clay.
-Or Crustdata.
+Or HubSpot.
 Or Claude.
 Or Instantly.
+Or Smartlead.
 
 Each tool can make sense on its own.
 
@@ -237,7 +238,7 @@ The problem is the space between them.
 
 That is where the TAM build turns into a ritual:
 
-export here, enrich there, score over there, personalize somewhere else, then push the final CSV and pray the field mapping survived.
+export from Apollo, enrich in Clay or Prospeo, verify in MillionVerifier, patch HubSpot or Salesforce, then push the final list into Instantly or Smartlead and pray the field mapping survived.
 
 Sung's Provider Sprawl walkthrough is useful because it does not pretend the world needs one more database.
 

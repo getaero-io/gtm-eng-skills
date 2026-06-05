@@ -107,11 +107,11 @@ Core conversation: TAM builds break because every tool owns one step and nobody 
 
 1. A lot of GTM engineering is just being a CSV Sherpa.
 
-Apollo to Crustdata.
-Crustdata to Clay.
-Clay to Claude.
-Claude to enrichment.
-Enrichment to Instantly.
+Apollo export to Google Sheets.
+Sheets to Clay.
+Clay to MillionVerifier.
+Clean rows to HubSpot.
+Campaign to Instantly or Smartlead.
 
 Then someone asks "how did we build this list?"
 
@@ -121,7 +121,7 @@ Silence.
 
 Or Clay.
 
-Or Crustdata.
+Or HubSpot.
 
 The problem is the space between them.
 
@@ -142,12 +142,12 @@ The request sounds simple:
 Then reality shows up:
 
 - Apollo for the first pull
-- Crustdata for company signals
-- Clay for enrichment
-- Claude Code for scoring
-- Prospeo or LeadMagic for email
-- Salesforce or Attio for CRM
-- Instantly for the campaign
+- Clay for enrichment and personalization
+- MillionVerifier or Listman for verification
+- Prospeo plugged into HubSpot or Salesforce for on-the-fly enrichment
+- n8n, Make, Zapier, or Activepieces for glue
+- HubSpot or Salesforce for the CRM
+- Instantly or Smartlead for the campaign
 
 Every tool can make sense.
 
