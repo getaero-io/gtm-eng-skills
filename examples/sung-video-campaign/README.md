@@ -11,6 +11,7 @@ This folder packages the Sung walkthroughs for review, YouTube upload, and blog/
   - Provider Sprawl: `https://screen.studio/share/ZdbnwTVR`
   - Speedrun Time to Integration: `https://screen.studio/share/9jg1eUgz`
   - Pipeline as Code: `https://screen.studio/share/3snYuVcd`
+  - Glue Code is Brittle and Tedious: `https://drive.google.com/file/d/17kNL62Rf_EC--jTO2Ds4BwZRQxKM0IfY/view`
 
 ## Publishable Videos
 
@@ -20,6 +21,7 @@ This folder packages the Sung walkthroughs for review, YouTube upload, and blog/
 | Provider Sprawl | `videos/provider-sprawl-polished.mp4` | `thumbnails/provider-sprawl.png` | `blog-posts/provider-sprawl-gtm-workflows.md` |
 | Speedrun Time to Integration | `videos/speedrun-time-to-integration-polished.mp4` | `thumbnails/speedrun-time-to-integration.png` | `blog-posts/snowflake-crm-campaign-workflow.md` |
 | Pipeline as Code | `videos/pipeline-as-code-screenstudio.mp4` | `thumbnails/pipeline-as-code.png` | `blog-posts/pipeline-as-code-account-mapping.md` |
+| Glue Code is Brittle and Tedious | `videos/glue-code-is-brittle-and-tedious.mp4` | TBD | `blog-posts/glue-code-gtm-workflows.md` |
 
 ## Social Drafts
 
@@ -61,6 +63,8 @@ Sung attached `account-mapping.play.ts` in Slack as file ID `F0B7GKWU0F7`. The S
 ## Caption Status
 
 SRT captions for the three polished Drive videos are included in `youtube/captions/`. Uploading captions requires a broader YouTube OAuth scope than the current local token has. The videos were still uploaded as private drafts with titles, descriptions, tags, and thumbnails.
+
+The Glue Code raw export is tracked, but transcription is blocked until the Drive file can be downloaded locally. The placeholder transcript and failed download attempts are recorded in `transcripts/glue-code-is-brittle-and-tedious.md`.
 
 ## Commands
 
