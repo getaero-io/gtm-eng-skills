@@ -37,6 +37,20 @@ Sung walks through integration as a GTM workflow:
 
 The message is not "everyone should code more." It is "the people closest to the GTM problem need workflows they can inspect and change."
 
+## The Snowflake PQL Version
+
+The clearest version of this play is product-qualified lead activation:
+
+1. Use Snowflake to find accounts with real product usage.
+2. Use dbt to make the PQL definition repeatable.
+3. Use CRM context to avoid bad pushes.
+4. Draft the campaign in Instantly, Smartlead, or the team's activation tool.
+5. Keep the whole run inspectable so the operator can explain why every record moved.
+
+This is the Mixmax lesson in a cleaner implementation shape: product usage signals become propensity scores, reps spend more time on high-fit accounts, and the workflow reallocates attention away from accounts that were never likely to convert.
+
+The useful artifact is not another dashboard. It is the query and workflow that make the next run boring.
+
 ## Where Teams Get Stuck
 
 Teams usually lose time in the handoff:
@@ -60,6 +74,23 @@ A better workflow makes the path explicit:
 
 That gives growth engineers speed without turning them into a shadow platform team.
 
+## Steal The PQL Workflow
+
+Want the implementation version?
+
+We packaged the Snowflake query, dbt model, and Deepline/Aero workflow play behind this walkthrough. It uses a Mixmax-inspired PQL pattern: product usage signals, account fit, CRM context, and campaign guardrails in one rerunnable workflow.
+
+Lead magnet options:
+
+- Get the Snowflake PQL query.
+- Copy the dbt model.
+- Use the CRM-to-campaign workflow play.
+- Ask Deepline to adapt it to your warehouse and campaign tool.
+
+Lead magnet file: `lead-magnets/snowflake-pql-campaign-playbook.md`
+
+Notion share page: `https://app.notion.com/p/Snowflake-PQL-to-Campaign-Playbook-377da8d1d8eb8128b1bde0d84216bf2a`
+
 ## Search Terms to Own
 
 - Snowflake CRM campaign workflow
@@ -68,7 +99,13 @@ That gives growth engineers speed without turning them into a shadow platform te
 - CRM to campaign tool
 - Claude Code GTM workflow
 - MCP GTM workflow
+- Snowflake PQL query
+- dbt PQL model
+- product qualified lead workflow
+- Snowflake to Instantly workflow
 
 ## Suggested CTA
 
 The best GTM teams are not waiting for every integration. They are making the workflow visible enough to move fast without breaking the customer system.
+
+Comment `PQL` for the Snowflake query, dbt model, and workflow play.

@@ -361,6 +361,25 @@ That is the difference between a hack and a system.
 
 Sung's Speedrun video is basically this exact line: product data in Snowflake, lifecycle attributes in Attio, campaign in Instantly, all through a run you can inspect.
 
+The lead magnet version is the PQL play:
+
+Snowflake query -> dbt model -> CRM guardrails -> campaign draft.
+
+I used the Mixmax-style definition: product usage signals become propensity scores, then reps spend time on high-fit accounts instead of whatever row happened to make it into a spreadsheet.
+
+The useful artifact is not the video.
+
+It is the query behind the video.
+
+Lead magnet options:
+
+- Snowflake PQL query
+- dbt model
+- CRM-to-campaign workflow play
+- version you can adapt to your warehouse
+
+Comment PQL and I will send it.
+
 Threads:
 
 For 20 users, CSVs are fine.

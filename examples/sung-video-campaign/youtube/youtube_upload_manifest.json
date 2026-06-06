@@ -12,7 +12,7 @@
   {
     "slug": "provider-sprawl",
     "title": "Build a TAM List Without Becoming the CSV Sherpa",
-    "description": "Most TAM projects begin as strategy and end as spreadsheet logistics. This walkthrough shows the real problem behind provider sprawl: every data source has partial truth, and someone has to stitch it together.\n\nSung walks through how Deepline helps a GTM engineer combine providers, inspect the logic, and create a list-building workflow that does not collapse into export/import therapy.\n\nBest for: growth engineers, GTM engineers, founders who still own outbound, and operators who have already felt the pain of stitching Apollo, Clay-style tables, enrichment vendors, and CRM data together.\n\nDeepline: https://deepline.com",
+    "description": "Most TAM projects begin as strategy and end as spreadsheet logistics. Provider sprawl shows up when every data source has partial truth, and someone has to stitch it together.\n\nSung walks through how Deepline helps a GTM engineer combine providers, inspect the logic, and create a list-building workflow that does not collapse into export/import therapy.\n\nBest for: growth engineers, GTM engineers, founders who still own outbound, and operators who have already felt the pain of stitching Apollo, Clay-style tables, enrichment vendors, and CRM data together.\n\nDeepline: https://deepline.com",
     "tags": ["TAM list", "provider sprawl", "GTM engineering", "growth engineering", "outbound list building", "CSV enrichment", "Clay alternative", "Apollo workflow", "sales operations", "Deepline"],
     "file": "examples/sung-video-campaign/videos/provider-sprawl-polished.mp4",
     "thumbnail": "examples/sung-video-campaign/thumbnails/provider-sprawl.png",
