@@ -29,10 +29,11 @@ Updated Typefully/source social copy lives in `social-hooks/`.
 - `social-hooks/typefully-draft-links.md`: existing Typefully draft IDs plus live API blocker note.
 - `social-hooks/typefully-linkedin-video-drafts.md`: LinkedIn-only Typefully drafts with native video attached.
 - `social-hooks/all-platform-hooks.md`: X, LinkedIn, and Threads hook bank.
+- `social-hooks/snowflake-lead-magnet-drafts.md`: X and LinkedIn launch drafts for the Snowflake PQL setup guide.
 
 ## Lead Magnets
 
-- `lead-magnets/snowflake-pql-campaign-playbook.md`: Snowflake PQL query, dbt model, and Deepline/Aero workflow play for the Speedrun Time to Integration post. Notion share page: `https://app.notion.com/p/Snowflake-PQL-to-Campaign-Playbook-377da8d1d8eb8128b1bde0d84216bf2a`.
+- `lead-magnets/snowflake-pql-campaign-playbook.md`: setup guide with Snowflake PQL query, dbt model, PLG/GTM workflow examples, and Deepline/Aero workflow play for the Speedrun Time to Integration post. Notion share page: `https://app.notion.com/p/Snowflake-PQL-to-Campaign-Playbook-377da8d1d8eb8128b1bde0d84216bf2a`.
 
 ## YouTube Draft Upload Status
 

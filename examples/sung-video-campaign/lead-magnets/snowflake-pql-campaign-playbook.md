@@ -16,10 +16,159 @@ This is the implementation version of the Snowflake speedrun video.
 
 The reader gets:
 
+- A setup guide for turning product usage into GTM actions.
 - A Snowflake query that turns product usage into a PQL queue.
 - A dbt model they can adapt inside their own warehouse.
 - A Deepline/Aero workflow play that syncs the right records to CRM and drafts a campaign.
 - The guardrails that keep this from becoming another CSV upload ritual.
+
+## Who This Is For
+
+This is for the person who gets asked some version of:
+
+> Can we take the product usage data in Snowflake, figure out which accounts sales should touch, and get the campaign drafted without waiting on engineering?
+
+Usually that person is a growth engineer, GTM engineer, technical RevOps person, data-savvy growth lead, or founder who still owns the weird parts of outbound.
+
+The guide assumes you have:
+
+- Product usage events in Snowflake, BigQuery, Redshift, or another warehouse.
+- A CRM such as Salesforce, HubSpot, or Attio.
+- A campaign tool such as Instantly, Smartlead, Outreach, Salesloft, or HubSpot sequences.
+- A rough idea of which product actions signal buying intent.
+
+You do not need a perfect data model. You do need enough discipline to avoid turning every workflow into `final_final_pql_list_v4.csv`.
+
+## The Setup In Plain English
+
+The workflow has five parts:
+
+1. **Define the signal.** Decide which product events suggest sales readiness.
+2. **Score the account.** Combine usage, fit, CRM context, and suppression logic.
+3. **Materialize the model.** Put the definition in dbt so it can rerun.
+4. **Inspect the run.** Preview who will move, why, and what will be blocked.
+5. **Draft the action.** Update CRM context and create a campaign draft, not a live blast.
+
+The important part is not that the agent can connect to Snowflake.
+
+The important part is that the workflow can answer:
+
+```text
+Why is this account in the campaign?
+What data caused it to move?
+What did we suppress?
+Who approved the run?
+Can we rerun this next week?
+```
+
+## Step 1: Pick The PQL Motion
+
+Do not start with a universal score. Start with one GTM motion.
+
+Good first motions:
+
+- Trial users who did the setup work but never booked a meeting.
+- Free workspaces showing team adoption.
+- Accounts with high usage but stale CRM activity.
+- Product users at accounts already owned by sales.
+- Expansion accounts where usage changed before renewal.
+
+Bad first motions:
+
+- "Score every account in the database."
+- "Tell sales who to call."
+- "Find all intent."
+- "Use AI to rank pipeline."
+
+Those are too broad. You will spend the whole project arguing about the score instead of shipping the workflow.
+
+## Step 2: Map Product Events To Buying Signals
+
+Start with product events that imply effort, collaboration, or readiness.
+
+Example event map:
+
+| Product event | Why it matters | Example score |
+| --- | --- | --- |
+| `created_sequence` | User is trying to operationalize outbound | +25 |
+| `connected_calendar` | Setup work completed | +15 |
+| `invited_team_member` | Account is spreading beyond one user | +15 |
+| `used_ai_assistant` | User is trying to automate work | +10 |
+| `exported_contacts` | User is activating data | +20 |
+| `connected_crm` | Account is close to GTM workflow value | +25 |
+| `created_api_key` | Technical buyer is integrating | +20 |
+| `ran_workflow_successfully` | User reached the product's useful moment | +30 |
+
+The weights are not sacred. They are a starting point.
+
+The better question is:
+
+```text
+Which events would make a rep say, "I know why I am reaching out"?
+```
+
+## Step 3: Add Fit And CRM Context
+
+Usage alone gets noisy fast.
+
+A student hammering the product for a weekend can look more active than a quiet enterprise account with one buyer doing serious setup.
+
+Add fit and CRM context:
+
+```text
+fit signals:
+- company domain
+- employee count
+- industry
+- target segment
+- existing customer status
+- open opportunity status
+- account owner
+
+crm context:
+- lifecycle stage
+- last sales activity
+- last sequence date
+- open opportunity count
+- customer flag
+- suppression status
+```
+
+This is the difference between a PQL and a product activity report.
+
+## Step 4: Decide The Action Before You Score
+
+Every score needs an action.
+
+If the action is unclear, the score will become dashboard furniture.
+
+Example actions:
+
+| PQL stage | Action |
+| --- | --- |
+| `sales_ready` | Draft rep-owned outbound campaign |
+| `watchlist` | Add to Slack digest or CRM task queue |
+| `expansion_signal` | Alert account owner with usage context |
+| `implementation_risk` | Notify CS before renewal |
+| `no_sales_action` | Keep in model, do not sync to campaign |
+
+The campaign draft is only one option. Sometimes the right action is a Slack alert, CRM note, account owner task, or suppression.
+
+## Step 5: Build The Guardrails First
+
+Do this before writing clever scoring logic.
+
+Minimum guardrails:
+
+- Block customers from outbound campaigns unless the motion is expansion.
+- Block accounts with open opportunities.
+- Block unsubscribed or bounced contacts.
+- Require account owner on sales-routed records.
+- Keep new campaigns in draft mode.
+- Show a 10-record sample before approval.
+- Log which rows were moved, blocked, and updated.
+
+If these are missing, the workflow is not production-ready. It is just a faster CSV.
 
 ## Mixmax-Inspired PQL Definition
 
@@ -40,6 +189,38 @@ Public proof points from existing Deepline/Aero positioning:
 - 40% of prior rep activity was going to wrong or low-fit accounts.
 
 Do not present the query below as Mixmax's exact production model. Present it as the implementation template for teams trying to operationalize the same idea.
+
+## Implementation Checklist
+
+Use this before you run the play:
+
+```text
+warehouse:
+[ ] Product events table exists
+[ ] Workspace/account table exists
+[ ] Domains are normalized
+[ ] Event timestamps are reliable
+[ ] dbt can materialize the model
+
+crm:
+[ ] Account owner field exists
+[ ] Lifecycle stage is trustworthy enough
+[ ] Open opportunity flag is available
+[ ] Customer suppression can be checked
+[ ] Contact email status is available
+
+campaign:
+[ ] Campaign tool can create draft lists
+[ ] Suppression list is connected
+[ ] Sequence stays in draft mode
+[ ] Owner can approve before launch
+
+ops:
+[ ] Run summary is stored
+[ ] Blocked records are visible
+[ ] Sample rows are reviewed
+[ ] Someone owns follow-up
+```
 
 ## Assumed Tables
 
@@ -362,6 +543,263 @@ Before pushing live:
 - Did the campaign stay in draft mode?
 - Can a rep see why the account is a PQL?
 - Can you rerun the workflow next week without rebuilding the spreadsheet?
+
+## PLG + GTM Engineering Workflow Examples
+
+Use these as examples when adapting the playbook. The pattern is the same: warehouse signal, CRM context, guardrail, action.
+
+### 1. Trial Setup Completed, No Sales Touch
+
+Signal:
+
+```text
+connected_crm = true
+created_first_workflow = true
+active_users_14d >= 2
+last_sales_activity_at is null or older than 14 days
+```
+
+Action:
+
+```text
+Create CRM task for owner.
+Draft a two-email sequence.
+Mention the setup milestone, not generic "checking in."
+```
+
+Guardrail:
+
+```text
+Block if account has open opportunity or is already customer.
+```
+
+### 2. Free Workspace With Team Adoption
+
+Signal:
+
+```text
+invited_teammates_14d >= 2
+active_users_14d >= 3
+workspace_age_days < 45
+```
+
+Action:
+
+```text
+Route to growth AE or founder-led sales queue.
+Create Slack alert with workspace domain, user count, and top actions.
+```
+
+Why it works:
+
+```text
+Team adoption usually beats single-user usage as a sales-readiness signal.
+```
+
+### 3. High-Usage Account, Stale CRM
+
+Signal:
+
+```text
+ran_workflow_successfully >= 3
+last_product_activity_at within 7 days
+account_last_activity_at older than 30 days
+```
+
+Action:
+
+```text
+Update CRM with PQL reason.
+Draft rep follow-up.
+Add account to weekly manager review if no touch happens within 3 days.
+```
+
+### 4. Product Champion Changed Jobs
+
+Signal:
+
+```text
+former_power_user_email no longer active
+linkedin_job_change_detected = true
+new_company_domain exists
+```
+
+Action:
+
+```text
+Create account in CRM if missing.
+Draft warm reactivation note.
+Suppress if new company is customer or active opportunity.
+```
+
+### 5. Expansion Signal Before Renewal
+
+Signal:
+
+```text
+usage_up_30d >= 40%
+renewal_date within 90 days
+new_team_members_added >= 2
+```
+
+Action:
+
+```text
+Alert CSM and AE.
+Draft expansion prep note.
+Do not create outbound campaign.
+```
+
+### 6. Usage Drop Before Renewal
+
+Signal:
+
+```text
+usage_down_30d >= 35%
+renewal_date within 120 days
+support_tickets_open > 0
+```
+
+Action:
+
+```text
+Create CS risk task.
+Send Slack alert to account team.
+Add "usage risk" note to CRM.
+```
+
+### 7. Product-Led Inbound Prioritization
+
+Signal:
+
+```text
+new_signup = true
+company_size >= target_threshold
+used_key_feature within 48 hours
+pricing_page_viewed = true
+```
+
+Action:
+
+```text
+Route to rep within same day.
+Draft first-touch email with product action context.
+```
+
+### 8. Integration Intent
+
+Signal:
+
+```text
+created_api_key = true
+viewed_docs >= 3
+connected_warehouse = false
+```
+
+Action:
+
+```text
+Create technical onboarding task.
+Draft email from solutions engineer or founder.
+```
+
+### 9. Failed Workflow Rescue
+
+Signal:
+
+```text
+workflow_failed >= 2
+active_workspace = true
+no_support_ticket = true
+```
+
+Action:
+
+```text
+Create support-led sales assist task.
+Do not route to outbound sequence.
+```
+
+Why it works:
+
+```text
+Some product signals should create help, not sales pressure.
+```
+
+### 10. Dormant High-Fit Account Reactivation
+
+Signal:
+
+```text
+pql_score was high in last 180 days
+no_product_activity_60d = true
+new_external_signal = hiring_or_funding_or_tool_change
+```
+
+Action:
+
+```text
+Draft reactivation campaign.
+Mention the external change and previous product context.
+```
+
+### 11. Multi-Threading Target Account
+
+Signal:
+
+```text
+one active user
+target_account = true
+multiple relevant contacts exist in CRM
+no_open_opportunity = true
+```
+
+Action:
+
+```text
+Draft account-owner task to multi-thread.
+Do not automatically sequence everyone.
+```
+
+### 12. Self-Serve Account Ready For Sales Assist
+
+Signal:
+
+```text
+is_paid = true
+mrr below sales_assist_threshold
+usage_crossed_threshold = true
+team_size_estimate >= target
+```
+
+Action:
+
+```text
+Alert owner.
+Draft expansion-assist note.
+Add account to sales-assist list.
+```
+
+## GTM Engineering Patterns To Reuse
+
+These are the reusable building blocks across the examples:
+
+| Pattern | What it does |
+| --- | --- |
+| `warehouse_signal` | Finds the product, billing, support, or intent signal. |
+| `crm_join` | Adds owner, lifecycle, opportunity, and customer context. |
+| `suppression_check` | Blocks customers, open opps, unsubscribes, bounced contacts, and sensitive accounts. |
+| `rep_context` | Explains why the account moved. |
+| `draft_action` | Creates a campaign, CRM task, Slack alert, or CS note in draft/review mode. |
+| `run_summary` | Logs moved, blocked, updated, and sampled records. |
+
+If you only copy one thing, copy this:
+
+```text
+signal + context + guardrail + draft action + run summary
+```
+
+That is the difference between "we have a score" and "we have a workflow."
 
 ## Social CTA Options
 
