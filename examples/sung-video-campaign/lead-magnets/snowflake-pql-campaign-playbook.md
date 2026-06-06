@@ -371,6 +371,77 @@ Use one depending on platform:
 2. `The useful artifact is not the video. It is the query behind it. I packaged the Snowflake PQL query + dbt model + campaign workflow here.`
 3. `If your PQL definition still lives in a spreadsheet, steal this: Snowflake query, dbt model, CRM guardrails, campaign draft play.`
 
+## Comment And DM Play
+
+Use this when publishing the LinkedIn video. The point is to make the lead magnet easy to request without sounding like a gated ebook from 2014.
+
+### First Comment
+
+```text
+I packaged the implementation version here:
+
+- Snowflake PQL query
+- dbt model
+- CRM guardrails
+- campaign draft workflow
+
+It is not Mixmax's exact production model. It is the template for teams trying to operationalize the same idea: product usage + account fit + CRM context -> rep action.
+
+Comment PQL and I will send the Notion link.
+```
+
+### Public Replies
+
+Use these when someone comments `PQL`, `send`, or anything close:
+
+```text
+Sent. Start with the guardrails section before you copy the query.
+```
+
+```text
+Sent. The query is useful, but the boring part is what keeps the CRM alive: suppressions, owner checks, and draft mode.
+```
+
+```text
+Sent. If you adapt it, swap the product event names first. The scoring weights should come later.
+```
+
+### DM Follow-Up
+
+```text
+Here you go:
+
+https://app.notion.com/p/Snowflake-PQL-to-Campaign-Playbook-377da8d1d8eb8128b1bde0d84216bf2a
+
+I would not copy the scoring weights blindly. Start by mapping your product events, CRM lifecycle fields, suppressions, and campaign tool. The useful part is making the run repeatable enough that a rep can ask "why is this account in the campaign?" and get a real answer.
+```
+
+### Second DM If They Engage
+
+```text
+Curious what your stack is here. Snowflake + Salesforce + Outreach? Snowflake + HubSpot + Smartlead? Something weirder?
+
+The handoff usually changes more than the PQL definition.
+```
+
+### If Someone Pushes Back On PQLs
+
+```text
+Agree with the skepticism. A lot of PQL scoring is just "clicked a button twice" dressed up as intent.
+
+The version I trust has three parts: product usage, account fit, and CRM context. Any one of those alone gets noisy fast.
+```
+
+### Manual Tracking
+
+Track comments in a tiny sheet or CRM note:
+
+```text
+name | profile_url | company | stack_guess | sent_link_at | follow_up_needed | notes
+```
+
+Do not over-automate the first version. The replies are the research.
+
 ## Blog CTA Block
 
 ```markdown

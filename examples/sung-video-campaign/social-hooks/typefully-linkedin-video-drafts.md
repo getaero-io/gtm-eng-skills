@@ -21,3 +21,4 @@ These are LinkedIn-only drafts with native video attached. The raw Screen Studio
 - Provider Sprawl copy was updated on 2026-06-05 after `/last30days` research. The tool chain now uses observed stacks: Apollo/Clay, Prospeo, MillionVerifier/Listman, HubSpot/Salesforce, n8n/Make/Zapier/Activepieces, Instantly/Smartlead.
 - All three LinkedIn video drafts were humanized on 2026-06-05 to remove generic AI/marketing phrasing while preserving the concrete GTM handoffs and pain points.
 - Snowflake was added as the priority draft on 2026-06-06 with the PQL lead magnet CTA and native compressed video attached from `/tmp/typefully_sung_videos/speedrun-time-to-integration-linkedin.mp4`.
+- Snowflake draft internal Typefully comment thread `9b31dc4a-3d39-4be4-91d9-ae05d2e2fbf9` stores the first-comment copy, public reply, and DM handoff for the PQL lead magnet.
