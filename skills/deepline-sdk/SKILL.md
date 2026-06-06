@@ -30,7 +30,7 @@ Names in this skill are starting hints. The CLI is the source of truth: search, 
 5. **Direct only when perfect:** run a prebuilt directly only when `plays describe` already covers start entity, inputs, filters, output, and export with no mapping/custom stage needed.
 6. **Scratchpad by scaffold:** create the local V2 play through bootstrap whenever a route family fits. Hand-author only when bootstrap cannot express the start entity, bridge, or output shape.
 7. **Pilot:** run `plays check` on custom/local plays before `plays run`. For prebuilts, `plays describe` is the contract check; if you cloned/bootstrapped or edited a file, `plays check <file>` is mandatory. Then run a watched 1-3 row pilot and export/inspect the pilot rows.
-8. **Gate:** cap rows, people/account, fallback legs, and spend before paid fanout.
+8. **Economic gate:** cap rows, people/account, fallback legs, and spend before paid fanout. Prefer result-priced or `post_deduct` tools when coverage is uncertain; avoid per-attempt/request/page tools for exploratory fanout unless their quality advantage is clear in the pilot.
 9. **Scale:** show route, pilot result, fanout estimate, stop conditions, and Deepline-visible price. Ask if cost is unknown or beyond pilot.
 10. **Export:** flat user-facing columns with evidence, source, status, and miss_reason. Do not ship nested provider objects.
 11. **Repair by class:** route, contract, getter, row key, credentials, infra callback, timeout. After two same-class failures, change branch or export partials with miss reasons.
@@ -77,6 +77,7 @@ Pilot must show:
 - representative non-null values for the core deliverable, or explicit miss_reason
 - no repeated same-class runtime failure
 - estimated paid calls = source rows * people/account * fallback legs
+- billing shape favors hits/results over attempts where possible
 ```
 
 For hard company-contact asks, run 1-3 and 5-10 row pilots before full scale. If the pilot has empty contact_name/title/LinkedIn coverage, or the requested identity field is only present under a different alias, do not scale the same route yet: export/inspect pilot rows, normalize aliases, change contact/person route, or mark the route rejected. Email can be sparse; missing title/contact identity is a route failure.
@@ -141,7 +142,7 @@ deepline tools search "phone finder person company" --categories phone_finder --
 deepline tools describe <tool-id> --json
 ```
 
-Read live `inputSchema`, cost, `billingMode`, Deepline credits/USD, target getters, list getters, and enum hints. Use at most two tool search calls before describing a real tool. Direct executes before a play are capped at three total, including autocomplete/count/shape probes.
+Read live `inputSchema`, cost, `billingMode`, Deepline credits/USD, pricing model, target getters, list getters, and enum hints. When two providers are plausible and quality is unproven, prefer the one that charges on returned results or successful hits (`post_deduct`) over per-attempt/request/page pricing. Direct executes before a play are capped at three total, including autocomplete/count/shape probes.
 
 Provider routing scar tissue:
 

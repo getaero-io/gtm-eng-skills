@@ -250,6 +250,8 @@ See [enriching-and-researching.md](enriching-and-researching.md) for `deepline c
 - Use smaller sequential commands first.
 - Keep limits low and windows bounded before scaling.
 - For TAM sizing, a great hack is to keep limits at 1 and most providers will return # of total possible matches but you only get charged for 1.
+- Prefer providers and plays that charge on returned results or successful hits when coverage is uncertain. If a provider bills per attempt/request/page, prove quality on a tiny pilot before letting it fan out.
+- Stop after the pilot when the first rows show low usable coverage, wrong-person/company matches, missing getters, or high cost per usable row. Change route/provider order before buying the same failure at full scale.
 - Do not depend on monthly caps as a hard risk control.
 
 ### 4.2.1 Over-provision, then filter — never chase missing rows

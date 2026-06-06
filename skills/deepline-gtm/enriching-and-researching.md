@@ -41,6 +41,7 @@ If a play exists, use it first. Use manual provider chains only when:
 - Plays are the default surface for common enrichment jobs.
 - **Personal vs work emails:** When the user asks for "personal emails", they mean Gmail/Hotmail/Yahoo - NOT work emails. **NEVER** substitute work email providers (Apollo, Hunter, LeadMagic) when personal emails are requested. Use Fullenrich (`contact.personal_emails`) or BetterContact. If one fails, try the other - do not fall back to work email providers.
 - Direct provider tools are preferred for mechanical fields when no play exists.
+- When multiple providers can recover the same mechanical field, prefer the route that bills on returned results or successful hits. Use request-priced, page-priced, or broad AI research passes only after a tiny pilot proves they return usable rows.
 - `run_javascript` is for deterministic transforms, normalization, coalescing, templating, and cheap row-level glue logic.
 - `deeplineagent` is the default AI path for research, synthesis, custom signals, and classification when JS is not enough.
 - Domain lookup / homepage recovery is mechanical. Use `exa_search` with rich context or `serper_google_search`, not `deeplineagent`.
@@ -312,6 +313,7 @@ Why this play:
 Key waterfall rules:
 
 - Always pilot first with `--rows 0:1`, then scale after the shape looks right.
+- Stop after the pilot if the first rows show low usable coverage, wrong-person/company matches, missing getters, or high cost per recovered value. Change provider order or gates before full fanout.
 - Every waterfall step needs its own `extract_js`. Before writing it: run `deepline tools describe <tool>` and prefer the usage guidance's extracted/list accessors. For raw fallbacks, V2 tool output lives at `toolExecutionResult.toolResponse.raw`; only drill into provider-specific nesting when the tool's own payload truly has a nested field. Use `@path/to/file.js` for multi-line or regex-heavy JS — inline JS in `--with` JSON breaks on escapes.
 - Close each waterfall with `--end-waterfall` before starting another one.
 - Do not run email waterfalls without minimum match data: name + company, name + domain, or a strong LinkedIn-seeded identity.

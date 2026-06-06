@@ -22,6 +22,8 @@ People provider order after play routing:
 6. Exa people/search for tiny startups, ambiguous titles, or web-indexed roles.
 7. ContactOut/Icypeas/RocketReach/PDL only when their contract is best remaining fit.
 
+When coverage is uncertain, prefer routes whose described pricing charges on returned contacts or successful hits. Avoid scaling per-attempt/request/page people searches until a small pilot proves current-company match, title coverage, and cost per usable contact.
+
 After people search, require current company/domain match to the seed account before email enrichment/export. Mark `out_of_seed_domain` instead of exporting off-ICP contacts.
 
 ## Contact Pilot Gate
@@ -33,6 +35,7 @@ Probe contact routes on 3-5 representative accounts before scaling.
 - Email is a bonus, not a substitute for identity.
 - If a 1-3 row pilot returns names/LinkedIn but zero titles, inspect/export the pilot and fix projection or route before scale.
 - If fewer than ~40% of pilot rows have credible contact identity, change source mix or contact route before scale.
+- Stop after the pilot when cost per usable contact is high or misses cluster by company size, geography, or title wording. Change provider order or broaden the persona gate before full fanout.
 
 Keep final column names user-facing: `contact_linkedin_url` -> `linkedin_url`, `work_email` -> `email`, `contact_title`/`matched_role` -> `title` only when it contains real title/persona evidence.
 
@@ -62,6 +65,7 @@ Cap contacts per account before email/phone. For account-grain deliverables, kee
 - Name+domain email tools need person fields plus domain/company and must declare `extractedValues.email`.
 - Domain-search tools are not named-person email finders.
 - Validators are not finders; run them after recovery and skip nulls.
+- Prefer finder waterfalls that bill on successful hits over validators, request-priced enrichment, or broad AI research passes. Validate only recovered channels.
 - Person LinkedIn: quoted name + company + role + `site:linkedin.com/in`; validate current employer and name variants.
 - Wrong LinkedIn URLs poison downstream enrichment. Null beats wrong.
 - Phone finder requires strong person anchor; validate known phones with verifier tools after recovery.

@@ -6,6 +6,8 @@ Use this when the user asks to size a market, build an account list, find compan
 
 Use when the user asks "how many", "pull N", "size TAM", or gives a large target. Prefer a count endpoint. Otherwise run the likely retrieval with `limit:1`, `per_page:1`, or `size:1` and read totals/shape before pulling pages.
 
+Economic routing matters before scale. Prefer count/free/preview probes first, then result-priced providers when coverage is uncertain. If a 1-3 row/list pilot shows zero usable companies, wrong taxonomy, missing domains, or high cost per usable row, change source strategy before buying the same miss at full size.
+
 TAM route by deliverable:
 
 - TAM sizing only: count/limit-1 first, then return estimate, assumptions, filter definitions, confidence, and provider caveats. Do not build/export rows unless asked.
@@ -35,7 +37,7 @@ For hard account-list asks, do not build a large custom play around the first so
 
 1. Probe 2-3 plausible company sources with 3-10 row limits.
 2. Normalize source rows to `company_name`, `domain`, category, `company_fit_evidence`, `source`, and `miss_reason`.
-3. Compare company quality, domain quality, category evidence, geographic fit, duplicate rate, and cost.
+3. Compare company quality, domain quality, category evidence, geographic fit, duplicate rate, cost, and billing shape.
 4. Reject broad taxonomy noise before contact fanout.
 5. Bootstrap/scale the winning route.
 

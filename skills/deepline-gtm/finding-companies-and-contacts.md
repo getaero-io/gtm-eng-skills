@@ -77,6 +77,7 @@ After tool discovery, do not jump straight into broad execution. Shortlist 1-2 r
 | 2    | Inspect the schema with `deepline tools get`                    | Avoid guessed field names and bad payloads                    |
 | 3    | Validate enum-like values with autocomplete tools               | Prevent silent empty searches                                 |
 | 4    | Execute a count-like or narrow first pass                       | Cheaply confirm fit before full pull                          |
+| 5    | Prefer result-priced routes when coverage is uncertain          | Avoid paying per miss during exploratory fanout                |
 
 Anti-patterns:
 
@@ -164,6 +165,7 @@ Recommended course of action:
 3. Run a count-like first pass with `limit:1` when appropriate.
 4. Pull more rows than the final target if downstream attrition is expected.
 5. If the exact filter set is unclear, use the tool-discovery pattern above instead of hardcoding a provider guess.
+6. Stop after a tiny pilot when usable rows are sparse, domains are missing, taxonomy is broad, or cost per usable row is high. Change source route before scaling.
 
 ### Free native company search
 
