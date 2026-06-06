@@ -15,20 +15,32 @@ Typefully priority video draft: `https://typefully.com/t/C8IlPMK`
 | LinkedIn | Setup guide launch | 9399814 | https://typefully.com/?d=9399814&a=299886 | https://typefully.com/t/9td9Ovg |
 | LinkedIn | PQL skeptic | 9399815 | https://typefully.com/?d=9399815&a=299886 | https://typefully.com/t/XLJmi6q |
 
-## X Drafts
+## Hook Direction
 
-### X 1: CSV Workplace Injury
+Use this frame for the Snowflake/PQL post:
 
 ```text
-For 20 users, CSVs are fine.
+Product usage is trapped in analytics.
 
-For 1 million users, CSVs become a workplace injury.
+GTM engineering is the work of turning it into something sales can use without turning the CRM into soup.
+```
 
-I made the setup guide for the better version:
+Avoid leading with "lead magnet," "setup guide," or "steal this." Those read like content bait. Lead with the operator problem, then offer the guide as the useful artifact.
 
-Snowflake -> dbt -> CRM guardrails -> campaign draft.
+## X Drafts
 
-Comment PQL and I will send it.
+### X 1: Product Usage Is Trapped
+
+```text
+Product usage is mostly trapped in analytics.
+
+Sales hears about it when someone manually exports a list.
+
+GTM engineering is the layer between those two things:
+
+Snowflake -> dbt -> CRM context -> campaign draft.
+
+I wrote up the workflow. Comment PQL and I will send it.
 ```
 
 ### X 2: PQL Skeptic
@@ -44,7 +56,7 @@ CRM context
 
 Then guardrails before anything touches a campaign.
 
-I wrote the setup guide. Comment PQL.
+I wrote up the GTM engineering version. Comment PQL.
 ```
 
 ### X 3: Agent Finished
@@ -59,27 +71,32 @@ Can the rep see why the account moved?
 
 That is the bar.
 
-I put the Snowflake PQL setup guide together. Comment PQL.
+Product usage is the signal.
+GTM engineering is the workflow.
+
+Comment PQL and I will send the writeup.
 ```
 
 ### X 4: dbt Is Where The Definition Lives
 
 ```text
-If your PQL definition lives in a spreadsheet, sales will eventually stop trusting it.
+If your PQL definition lives in a spreadsheet, sales will stop trusting it.
 
 Put it in dbt.
 
 Then route it through CRM context, suppressions, and draft-mode campaigns.
 
-I wrote the Snowflake setup guide. Comment PQL and I will send it.
+That is the boring GTM engineering work that makes product usage usable.
+
+Comment PQL and I will send the writeup.
 ```
 
 ### X 5: Not Another Dashboard
 
 ```text
-The useful artifact is not another dashboard.
+Product usage does not need another dashboard.
 
-It is a rerunnable workflow:
+It needs a workflow:
 
 warehouse signal
 CRM context
@@ -88,13 +105,15 @@ rep explanation
 campaign draft
 run summary
 
-I packaged the Snowflake PQL guide. Comment PQL.
+That is GTM engineering.
+
+Comment PQL and I will send the Snowflake version.
 ```
 
 ### X 6: Workflow Library
 
 ```text
-I put 12 PLG/GTM workflow examples into the Snowflake PQL guide:
+Product usage + GTM engineering gets interesting when it stops being "score this account" and starts being workflows:
 
 trial setup
 team adoption
@@ -105,7 +124,7 @@ usage drop
 integration intent
 failed workflow rescue
 
-Comment PQL and I will send it.
+I wrote up 12 examples. Comment PQL.
 ```
 
 ### X 7: Rep Question
@@ -119,7 +138,9 @@ If your system cannot answer that, you do not have a PQL workflow.
 
 You have a score with vibes attached.
 
-I wrote the setup guide. Comment PQL.
+Product usage is only useful if GTM can explain it.
+
+Comment PQL and I will send the workflow.
 ```
 
 ### X 8: Mixmax Angle
@@ -133,23 +154,31 @@ Not create one more dashboard.
 Not create one more CSV.
 Not give sales a mystery score.
 
-I made a Snowflake -> dbt -> CRM -> campaign setup guide. Comment PQL.
+That is the GTM engineering job.
+
+Comment PQL and I will send the Snowflake workflow.
 ```
 
 ## LinkedIn Drafts
 
-### LinkedIn 1: Setup Guide Launch
+### LinkedIn 1: Product Usage + GTM Engineering
 
 ```text
-For 20 users, CSVs are fine.
+Product usage is mostly trapped in analytics.
 
-Export from Snowflake. Eyeball the rows. Add a column. Upload to Instantly.
+Sales gets it after someone exports a list, cleans a spreadsheet, maps the CRM fields, and uploads the "good" accounts into a campaign tool.
 
-No one needs to make a religion out of it.
+That is not a product-led motion.
 
-But the same workflow at 1 million users is different.
+That is a person doing integration work by hand.
 
-Now you need:
+The useful question is:
+
+how do you turn product usage into a GTM workflow sales can actually trust?
+
+The answer is not "make a PQL score."
+
+The answer is a workflow:
 
 - product usage signals
 - account fit
@@ -159,13 +188,11 @@ Now you need:
 - draft-mode campaigns
 - a run summary
 
-That is the difference between a hack and a GTM system.
-
-I turned Sung's Snowflake speedrun into a setup guide:
+That is GTM engineering.
 
 Snowflake query -> dbt model -> CRM guardrails -> campaign draft.
 
-It includes 12 PLG + GTM engineering examples:
+I wrote up the Snowflake version with 12 PLG + GTM engineering examples:
 
 - trial setup completed, no sales touch
 - free workspace with team adoption
@@ -181,7 +208,7 @@ The useful artifact is not another dashboard.
 
 It is the workflow that lets a rep ask, "why is this account in my campaign?" and get a real answer.
 
-Comment PQL and I will send the guide.
+Comment PQL and I will send it.
 ```
 
 ### LinkedIn 2: PQL Skeptic
@@ -202,7 +229,7 @@ The version I trust has three parts:
 2. Account fit
 3. CRM context
 
-Then it needs guardrails before anything touches a campaign:
+Then you need GTM engineering before anything touches a campaign:
 
 - block customers
 - block open opportunities
@@ -216,7 +243,7 @@ Otherwise you did not build a PQL workflow.
 
 You built a faster way to annoy sales.
 
-I wrote the setup guide for the Snowflake version:
+I wrote up the Snowflake version:
 
 Snowflake -> dbt -> CRM -> campaign draft.
 

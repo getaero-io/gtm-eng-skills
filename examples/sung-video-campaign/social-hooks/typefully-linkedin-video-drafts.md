@@ -6,7 +6,7 @@ These are LinkedIn-only drafts with native video attached. The raw Screen Studio
 
 | Priority | Video | Draft ID | Typefully private URL | Share URL | Media ID |
 | --- | --- | --- | --- | --- | --- |
-| 0 | Speedrun Time to Integration / Snowflake PQL lead magnet | 9399388 | https://typefully.com/?d=9399388&a=299886 | https://typefully.com/t/C8IlPMK | b6de9a20-38db-4da9-a93a-3c843af40e84 |
+| 0 | Speedrun Time to Integration / product usage + GTM engineering | 9399388 | https://typefully.com/?d=9399388&a=299886 | https://typefully.com/t/C8IlPMK | b6de9a20-38db-4da9-a93a-3c843af40e84 |
 | 1 | Provider Sprawl / CSV Sherpa | 9390521 | https://typefully.com/?d=9390521&a=299886 | https://typefully.com/t/vWZjddO | 5337c944-bfb9-49a6-8346-91e400a31dda |
 | 2 | Waterfall Complexity / Apollo is not the workflow | 9390522 | https://typefully.com/?d=9390522&a=299886 | https://typefully.com/t/WmrwPNZ | 005a805c-ad03-4e19-a795-cb9642d69653 |
 | 3 | Pipeline as Code / repeatable GTM workflows | 9390523 | https://typefully.com/?d=9390523&a=299886 | https://typefully.com/t/F9t9kA3 | 3cf85d23-248a-465a-b34c-637959fe6f34 |
@@ -21,4 +21,4 @@ These are LinkedIn-only drafts with native video attached. The raw Screen Studio
 - Provider Sprawl copy was updated on 2026-06-05 after `/last30days` research. The tool chain now uses observed stacks: Apollo/Clay, Prospeo, MillionVerifier/Listman, HubSpot/Salesforce, n8n/Make/Zapier/Activepieces, Instantly/Smartlead.
 - All three LinkedIn video drafts were humanized on 2026-06-05 to remove generic AI/marketing phrasing while preserving the concrete GTM handoffs and pain points.
 - Snowflake was added as the priority draft on 2026-06-06 with the PQL lead magnet CTA and native compressed video attached from `/tmp/typefully_sung_videos/speedrun-time-to-integration-linkedin.mp4`.
-- Snowflake draft internal Typefully comment thread `9b31dc4a-3d39-4be4-91d9-ae05d2e2fbf9` stores the first-comment copy, public reply, and DM handoff for the PQL lead magnet.
+- Snowflake draft internal Typefully comment thread `a623c6d1-b8a1-428a-b929-c45d87932429` stores the first-comment copy and DM handoff for the PQL lead magnet. The draft was rehung around the `product usage + GTM engineering` hook on 2026-06-06.

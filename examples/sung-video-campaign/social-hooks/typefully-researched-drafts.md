@@ -347,36 +347,49 @@ For 1 million users, CSVs become a workplace injury.
 
 LinkedIn:
 
-For 20 users, CSVs are fine.
+Product usage is mostly trapped in analytics.
 
-Export from Snowflake. Eyeball the rows. Add a column. Upload to Instantly.
+Sales gets it after someone exports a list, cleans a spreadsheet, maps the CRM fields, and uploads the "good" accounts into a campaign tool.
 
-No one needs to make a religion out of it.
+That is not a product-led motion.
 
-But the same workflow at 1 million users is different.
+That is a person doing integration work by hand.
 
-Now you need scoped access, synced CRM attributes, campaign creation, approval steps, and a way to check the result.
+The useful question is:
 
-That is the difference between a hack and a system.
+how do you turn product usage into a GTM workflow sales can actually trust?
 
-Sung's Speedrun video is basically this exact line: product data in Snowflake, lifecycle attributes in Attio, campaign in Instantly, all through a run you can inspect.
+The answer is not "make a PQL score."
 
-The lead magnet version is the PQL play:
+The answer is a workflow:
+
+- product usage signals
+- account fit
+- CRM context
+- customer suppressions
+- owner checks
+- draft-mode campaigns
+- a run summary
+
+That is GTM engineering.
 
 Snowflake query -> dbt model -> CRM guardrails -> campaign draft.
 
-I used the Mixmax-style definition: product usage signals become propensity scores, then reps spend time on high-fit accounts instead of whatever row happened to make it into a spreadsheet.
+I wrote up the Snowflake version with 12 PLG + GTM engineering examples:
 
-The useful artifact is not the video.
+- trial setup completed, no sales touch
+- free workspace with team adoption
+- high usage, stale CRM
+- product champion changed jobs
+- expansion signal before renewal
+- usage drop before renewal
+- integration intent
+- failed workflow rescue
+- dormant high-fit account reactivation
 
-It is the query behind the video.
+The useful artifact is not another dashboard.
 
-Lead magnet options:
-
-- Snowflake PQL query
-- dbt model
-- CRM-to-campaign workflow play
-- version you can adapt to your warehouse
+It is the workflow that lets a rep ask, "why is this account in my campaign?" and get a real answer.
 
 Comment PQL and I will send it.
 
