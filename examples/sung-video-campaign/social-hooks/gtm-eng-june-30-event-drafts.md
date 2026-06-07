@@ -6,15 +6,16 @@ Working facts:
 
 - Date: June 30, 2026
 - Location: NYC
-- Event frame: next GTM Eng session with Ramp
+- Event frame: next GTM Eng session with Ramp, with OpenAI and Notion referenced in the internal GTM + AI workflow frame
 - Theme: how teams run internal GTM + AI workflows
-- Tag Ramp natively on each platform.
+- Tag Ramp, OpenAI, Notion, Julia B, and Bryant natively where possible.
 
 Platform tag notes:
 
-- X: use `@tryramp`
-- LinkedIn: tag `Ramp` natively in composer
-- Threads: tag Ramp natively if the account resolves; otherwise write `Ramp`
+- X: use `@tryramp`, `@OpenAI`, `@NotionHQ`. Julia B and Bryant handles need confirmation before using on X.
+- LinkedIn: tag `Ramp`, `OpenAI`, `Notion`, Julia B, and Bryant natively in composer.
+- Threads: tag Ramp, OpenAI, Notion, Julia B, and Bryant natively if the accounts resolve; otherwise write the names.
+- If Julia B / Bryant exact profiles are ambiguous in composer, leave them as `[tag Julia B]` and `[tag Bryant at OpenAI]` placeholders until confirmed.
 
 ## Core Angle
 
@@ -34,7 +35,7 @@ That is the session frame.
 ### LinkedIn 1: Simple + Direct
 
 ```text
-Hosting the next GTM Eng session on June 30 in NYC with Ramp.
+Hosting the next GTM Eng session on June 30 in NYC with Ramp, OpenAI, and Notion in the room.
 
 The topic: the internal GTM + AI workflows teams are actually running.
 
@@ -51,6 +52,8 @@ More like:
 The useful stuff is usually less flashy and more operational.
 
 If you are building GTM systems, RevOps workflows, AI agents, or anything that sits between data and sales action, come through.
+
+Tag in composer: Ramp, OpenAI, Notion, Julia B, Bryant at OpenAI.
 
 Register here:
 https://luma.com/fx5v8axr
@@ -75,9 +78,9 @@ The real work is:
 - What gets written back?
 - Can we rerun it next week?
 
-We are hosting the next GTM Eng session on June 30 in NYC with Ramp to go deep on the internal workflows teams are actually building.
+We are hosting the next GTM Eng session on June 30 in NYC with Ramp, OpenAI, and Notion to go deep on the internal workflows teams are actually building.
 
-Think Ramp, OpenAI, Notion-style internal GTM + AI flows:
+Think Ramp / OpenAI / Notion-style internal GTM + AI flows:
 
 data -> context -> guardrails -> action.
 
@@ -86,6 +89,8 @@ Not another CSV ritual.
 
 Register:
 https://luma.com/fx5v8axr
+
+Tag in composer: Ramp, OpenAI, Notion, Julia B, Bryant at OpenAI.
 ```
 
 ### LinkedIn 3: Operator Voice
@@ -102,7 +107,7 @@ Post the run summary.
 
 That one workflow is probably more useful than 80% of "AI SDR" demos.
 
-On June 30, we are hosting the next GTM Eng session in NYC with Ramp.
+On June 30, we are hosting the next GTM Eng session in NYC with Ramp, OpenAI, and Notion.
 
 We will talk through the internal GTM + AI flows teams are actually running:
 
@@ -115,12 +120,14 @@ We will talk through the internal GTM + AI flows teams are actually running:
 
 If this is the stuff you are building, register here:
 https://luma.com/fx5v8axr
+
+Tag in composer: Ramp, OpenAI, Notion, Julia B, Bryant at OpenAI.
 ```
 
 ### LinkedIn 4: Short
 
 ```text
-Hosting the next GTM Eng session on June 30 in NYC with Ramp.
+Hosting the next GTM Eng session on June 30 in NYC with Ramp, OpenAI, and Notion.
 
 Theme: internal GTM + AI workflows.
 
@@ -135,6 +142,8 @@ Basically the work between "we have the data" and "sales/CS actually did somethi
 
 Register:
 https://luma.com/fx5v8axr
+
+Tag in composer: Ramp, OpenAI, Notion, Julia B, Bryant at OpenAI.
 ```
 
 ## LinkedIn First Comment
@@ -143,7 +152,7 @@ https://luma.com/fx5v8axr
 Luma link here too:
 https://luma.com/fx5v8axr
 
-Tagging Ramp in the post. Space is limited / approval required.
+Tagging Ramp, OpenAI, Notion, Julia B, and Bryant at OpenAI in the post. Space is limited / approval required.
 ```
 
 ## X Drafts
@@ -151,7 +160,7 @@ Tagging Ramp in the post. Space is limited / approval required.
 ### X 1: Single Post
 
 ```text
-Hosting the next GTM Eng session on 6/30 in NYC with @tryramp.
+Hosting the next GTM Eng session on 6/30 in NYC with @tryramp, @OpenAI, and @NotionHQ.
 
 Theme: internal GTM + AI workflows.
 
@@ -175,7 +184,7 @@ signup -> suppressions -> HubSpot sequence
 product usage -> CRM context -> rep task
 event check-in -> enrichment -> follow-up
 
-Going deep on this in NYC on 6/30 with @tryramp.
+Going deep on this in NYC on 6/30 with @tryramp, @OpenAI, and @NotionHQ.
 
 https://luma.com/fx5v8axr
 ```
@@ -183,7 +192,7 @@ https://luma.com/fx5v8axr
 ### X 3: Thread
 
 ```text
-Hosting the next GTM Eng session on 6/30 in NYC with @tryramp.
+Hosting the next GTM Eng session on 6/30 in NYC with @tryramp, @OpenAI, and @NotionHQ.
 
 The topic: internal GTM + AI workflows.
 ```
@@ -236,7 +245,7 @@ The interesting work is internal GTM flows:
 
 data -> context -> guardrails -> action
 
-Hosting the next GTM Eng session in NYC on 6/30 with @tryramp to dig into this.
+Hosting the next GTM Eng session in NYC on 6/30 with @tryramp, @OpenAI, and @NotionHQ to dig into this.
 
 https://luma.com/fx5v8axr
 ```
@@ -246,7 +255,7 @@ https://luma.com/fx5v8axr
 ### Threads 1
 
 ```text
-Hosting the next GTM Eng session on June 30 in NYC with Ramp.
+Hosting the next GTM Eng session on June 30 in NYC with Ramp, OpenAI, and Notion.
 
 Theme: internal GTM + AI workflows.
 
@@ -274,7 +283,7 @@ Pick the right sequence.
 Write back the source.
 Post the run summary.
 
-That is the stuff we are talking about in NYC on June 30 with Ramp.
+That is the stuff we are talking about in NYC on June 30 with Ramp, OpenAI, and Notion.
 
 https://luma.com/fx5v8axr
 ```
@@ -290,7 +299,7 @@ and
 
 "sales or CS did something useful with it."
 
-Hosting the next session in NYC on 6/30 with Ramp.
+Hosting the next session in NYC on 6/30 with Ramp, OpenAI, and Notion.
 
 We will dig into the internal GTM + AI flows teams are actually running.
 
@@ -307,7 +316,7 @@ https://luma.com/fx5v8axr
 
 ## Avoid
 
-- Do not imply OpenAI or Notion are confirmed hosts unless that is confirmed.
+- Tag OpenAI and Notion, but do not call them co-hosts unless that is confirmed in the event page/composer.
 - Do not make it sound like an AI SDR meetup.
 - Do not lead with "networking event."
 - Do not bury the concrete workflows.
