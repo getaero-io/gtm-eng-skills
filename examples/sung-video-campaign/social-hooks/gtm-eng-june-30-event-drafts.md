@@ -55,8 +55,10 @@ If you are building GTM systems, RevOps workflows, AI agents, or anything that s
 
 Tag in composer: Ramp, OpenAI, Notion, Julia B, Bryant at OpenAI.
 
-Register here:
+Come out on June 30 in NYC:
 https://luma.com/fx5v8axr
+
+Not in NYC? Let us know where we should host our next one in the comments, or come out on June 9 in SF.
 ```
 
 ### LinkedIn 2: Internal Workflows Hook
@@ -87,8 +89,10 @@ data -> context -> guardrails -> action.
 Not another dashboard.
 Not another CSV ritual.
 
-Register:
+Come out on June 30 in NYC:
 https://luma.com/fx5v8axr
+
+Not in NYC? Let us know where we should host our next one in the comments, or come out on June 9 in SF.
 
 Tag in composer: Ramp, OpenAI, Notion, Julia B, Bryant at OpenAI.
 ```
@@ -118,8 +122,10 @@ We will talk through the internal GTM + AI flows teams are actually running:
 - campaign drafts
 - human approval loops
 
-If this is the stuff you are building, register here:
+If this is the stuff you are building, come out on June 30 in NYC:
 https://luma.com/fx5v8axr
+
+Not in NYC? Let us know where we should host our next one in the comments, or come out on June 9 in SF.
 
 Tag in composer: Ramp, OpenAI, Notion, Julia B, Bryant at OpenAI.
 ```
@@ -140,8 +146,10 @@ warehouse signal -> campaign draft
 
 Basically the work between "we have the data" and "sales/CS actually did something useful with it."
 
-Register:
+Come out on June 30 in NYC:
 https://luma.com/fx5v8axr
+
+Not in NYC? Let us know where we should host our next one in the comments, or come out on June 9 in SF.
 
 Tag in composer: Ramp, OpenAI, Notion, Julia B, Bryant at OpenAI.
 ```
@@ -149,8 +157,10 @@ Tag in composer: Ramp, OpenAI, Notion, Julia B, Bryant at OpenAI.
 ## LinkedIn First Comment
 
 ```text
-Luma link here too:
+Luma link for June 30 NYC:
 https://luma.com/fx5v8axr
+
+Not in NYC? Let us know where we should host our next one in the comments, or come out on June 9 in SF.
 
 Tagging Ramp, OpenAI, Notion, Julia B, and Bryant at OpenAI in the post. Space is limited / approval required.
 ```
@@ -169,8 +179,10 @@ usage spike -> CRM task
 event check-in -> follow-up
 warehouse signal -> campaign draft
 
-Register:
+Come out on June 30 in NYC:
 https://luma.com/fx5v8axr
+
+Not in NYC? Let us know where we should host our next one in the comments, or come out on June 9 in SF.
 ```
 
 ### X 2: Better Hook
@@ -187,6 +199,8 @@ event check-in -> enrichment -> follow-up
 Going deep on this in NYC on 6/30 with @tryramp, @OpenAI, and @NotionHQ.
 
 https://luma.com/fx5v8axr
+
+Not in NYC? Tell us where to host the next one in the comments, or come out on June 9 in SF.
 ```
 
 ### X 3: Thread
@@ -232,8 +246,10 @@ personal email signup -> identity review
 ```text
 NYC, 6/30.
 
-Register here:
+Come out on June 30 in NYC:
 https://luma.com/fx5v8axr
+
+Not in NYC? Let us know where we should host our next one in the comments, or come out on June 9 in SF.
 ```
 
 ### X 4: Ramp/OpenAI/Notion Frame
@@ -248,6 +264,8 @@ data -> context -> guardrails -> action
 Hosting the next GTM Eng session in NYC on 6/30 with @tryramp, @OpenAI, and @NotionHQ to dig into this.
 
 https://luma.com/fx5v8axr
+
+Not in NYC? Tell us where to host the next one in the comments, or come out on June 9 in SF.
 ```
 
 ## Threads Drafts
@@ -268,7 +286,10 @@ usage spike -> CRM task
 event check-in -> follow-up
 warehouse signal -> campaign draft
 
+Come out on June 30 in NYC:
 https://luma.com/fx5v8axr
+
+Not in NYC? Let us know where we should host our next one in the comments, or come out on June 9 in SF.
 ```
 
 ### Threads 2
@@ -285,7 +306,10 @@ Post the run summary.
 
 That is the stuff we are talking about in NYC on June 30 with Ramp, OpenAI, and Notion.
 
+Come out on June 30 in NYC:
 https://luma.com/fx5v8axr
+
+Not in NYC? Let us know where we should host our next one in the comments, or come out on June 9 in SF.
 ```
 
 ### Threads 3
@@ -303,7 +327,10 @@ Hosting the next session in NYC on 6/30 with Ramp, OpenAI, and Notion.
 
 We will dig into the internal GTM + AI flows teams are actually running.
 
+Come out on June 30 in NYC:
 https://luma.com/fx5v8axr
+
+Not in NYC? Let us know where we should host our next one in the comments, or come out on June 9 in SF.
 ```
 
 ## Suggested Publishing Order
