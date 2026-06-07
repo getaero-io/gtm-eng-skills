@@ -62,6 +62,21 @@ Who approved the run?
 Can we rerun this next week?
 ```
 
+## Customer Examples This Pattern Comes From
+
+These are the examples to use in the post and comments. They make the guide feel real instead of sounding like another "AI GTM" abstraction.
+
+| Customer pattern | What changed | Number to cite |
+| --- | --- | --- |
+| Mixmax account focus | Rep activity was getting spent on the wrong accounts, so the workflow reallocated attention toward higher-fit accounts | 40% of prior rep activity was on wrong or low-fit accounts; relative win rate improved +53% |
+| Owner.com next-best action | Product and account context fed a ranked playbook instead of another static report | +17% higher lead-to-meeting conversion; ranked plays refreshed every 2-4 hours |
+| Prove account reallocation | High-value accounts with no meaningful activity were surfaced and routed back into rep focus | 5,972 A-tier accounts had no logged meetings in 2 years; ~500 rep hours could be reallocated toward 40-80 new A accounts |
+| Contact and account signal monitoring | First-party signals changed routing and follow-up, not just reporting | +17% lead-to-opportunity conversion lift |
+
+The point is not "PQLs are magic."
+
+The point is that product usage and account context should change the next GTM action.
+
 ## Step 1: Pick The PLG Motion
 
 Do not start with a universal score. Start with one GTM motion.
@@ -203,6 +218,8 @@ Public proof points from existing Deepline/Aero positioning:
 - Mixmax saw a +53% relative win-rate improvement.
 - Focus on high-fit accounts increased by +50%.
 - 40% of prior rep activity was going to wrong or low-fit accounts.
+- Owner.com saw +17% higher lead-to-meeting conversion with prioritized next-best-action workflows.
+- Prove surfaced 5,972 A-tier accounts with no logged meetings in 2 years and a path to reallocate roughly 500 rep hours.
 
 Do not present the query below as Mixmax's exact production model. Present it as the implementation template for teams trying to operationalize the same idea: usage signals should change rep action.
 

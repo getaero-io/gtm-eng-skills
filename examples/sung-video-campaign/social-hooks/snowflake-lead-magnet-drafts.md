@@ -6,12 +6,14 @@ Notion: `https://app.notion.com/p/Snowflake-PQL-to-Campaign-Playbook-377da8d1d8e
 
 Typefully priority video draft: `https://typefully.com/t/C8IlPMK`
 
+Live update note: Snowflake PLG drafts and the priority LinkedIn video draft were updated through the Typefully v2 API on 2026-06-07 with the Mixmax, Owner.com, and Prove proof-point hooks. The Notion guide was also appended with the customer examples and `Comment PLG` handoff.
+
 ## Typefully Drafts Created
 
 | Platform | Draft | Draft ID | Private URL | Share URL |
 | --- | --- | --- | --- | --- |
-| X | Product usage trapped | 9399812 | https://typefully.com/?d=9399812&a=299886 | https://typefully.com/t/m0ONA4y |
-| X | Usage signal skeptic | 9399813 | https://typefully.com/?d=9399813&a=299886 | https://typefully.com/t/EzxfxiK |
+| X | Product usage trapped thread | 9399812 | https://typefully.com/?d=9399812&a=299886 | https://typefully.com/t/m0ONA4y |
+| X | Usage signal skeptic thread | 9399813 | https://typefully.com/?d=9399813&a=299886 | https://typefully.com/t/EzxfxiK |
 | LinkedIn | Product usage + GTM engineering | 9399814 | https://typefully.com/?d=9399814&a=299886 | https://typefully.com/t/9td9Ovg |
 | LinkedIn | Usage signal skeptic | 9399815 | https://typefully.com/?d=9399815&a=299886 | https://typefully.com/t/XLJmi6q |
 
@@ -20,7 +22,27 @@ Typefully priority video draft: `https://typefully.com/t/C8IlPMK`
 Use this frame for the Snowflake/product usage post:
 
 ```text
-Product usage is trapped in analytics.
+You used to need a data engineering team to do this.
+
+I would know. I spent years doing it.
+
+Snowflake product usage -> dbt model -> CRM context -> campaign draft.
+```
+
+Then make it concrete with proof:
+
+```text
+Mixmax: 40% of rep activity was on wrong or low-fit accounts. Reallocated it. Relative win rate improved +53%.
+
+Owner.com: next-best-action workflows drove +17% higher lead-to-meeting conversion.
+
+Prove: 5,972 A-tier accounts had no logged meetings in 2 years. That became a rep focus problem, not another dashboard.
+```
+
+The shorter alternate frame:
+
+```text
+Product usage is mostly trapped in analytics.
 
 GTM engineering is the work of turning it into something sales can use without turning the CRM into soup.
 ```
@@ -32,31 +54,37 @@ Avoid leading with "lead magnet," "setup guide," or "steal this." Those read lik
 ### X 1: Product Usage Is Trapped
 
 ```text
-Product usage is mostly trapped in analytics.
+You used to need a data engineering team to do this.
 
-Sales hears about it when someone manually exports a list.
+I would know. I spent years doing it.
 
-GTM engineering is the layer between those two things:
+Snowflake product usage -> dbt model -> CRM context -> campaign draft.
+```
 
-Snowflake -> dbt -> CRM context -> campaign draft.
+```text
+Mixmax had 40% of rep activity on wrong accounts.
+Reallocated it.
+Relative win rate improved +53%.
 
-I wrote up the workflow. Comment PLG and I will send it.
+I wrote up the PLG workflow. Comment PLG.
 ```
 
 ### X 2: Usage Signal Skeptic
 
 ```text
-Most usage scoring is just "clicked a button twice" dressed up as intent.
+Most usage scoring is "clicked a button twice" dressed up as intent.
 
-The version I trust has 3 parts:
+The version I trust has proof:
+```
 
-product usage
-account fit
-CRM context
+```text
+Owner.com used ranked next-best-action workflows and saw +17% higher lead-to-meeting conversion.
 
-Then guardrails before anything touches a campaign.
+Prove found 5,972 A-tier accounts with no meetings in 2 years.
 
-I wrote up the GTM engineering version. Comment PLG.
+Workflow > score.
+
+Comment PLG.
 ```
 
 ### X 3: Agent Finished
@@ -105,6 +133,11 @@ rep explanation
 campaign draft
 run summary
 
+Prove found 5,972 A-tier accounts with no logged meetings in 2 years.
+
+That is not a dashboard problem.
+That is a routing problem.
+
 That is GTM engineering.
 
 Comment PLG and I will send the Snowflake version.
@@ -150,6 +183,9 @@ The Mixmax lesson:
 
 product usage signals should reallocate rep attention.
 
+40% of activity was going to wrong or low-fit accounts.
+After reallocating, relative win rate improved +53%.
+
 Not create one more dashboard.
 Not create one more CSV.
 Not give sales a mystery score.
@@ -192,7 +228,19 @@ That is GTM engineering.
 
 Snowflake query -> dbt model -> CRM guardrails -> campaign draft.
 
-I wrote up the Snowflake version with 12 PLG + GTM engineering examples:
+You used to need a data engineering team to do this.
+
+I would know. I spent years doing it.
+
+Now GTM engineering tools can get you from raw warehouse data to a guarded workflow in minutes.
+
+The customer examples are the reason this matters:
+
+- Mixmax had 40% of rep activity going to wrong or low-fit accounts. Reallocating that attention improved relative win rate +53%.
+- Owner.com drove +17% higher lead-to-meeting conversion with ranked next-best-action workflows that refreshed every 2-4 hours.
+- Prove surfaced 5,972 A-tier accounts with no logged meetings in 2 years, then turned that into a rep focus workflow instead of another report.
+
+I wrote up the Snowflake version with the PLG + GTM engineering examples:
 
 - trial setup completed, no sales touch
 - free workspace with team adoption
@@ -242,6 +290,18 @@ Then you need GTM engineering before anything touches a campaign:
 Otherwise you did not build a product-led workflow.
 
 You built a faster way to annoy sales.
+
+The version that works is painfully concrete:
+
+Mixmax found 40% of rep activity was pointed at wrong or low-fit accounts.
+
+Owner.com used ranked next-best-action workflows and saw +17% higher lead-to-meeting conversion.
+
+Prove found 5,972 A-tier accounts with no logged meetings in 2 years.
+
+In each case, the win was not "we built a dashboard."
+
+The win was turning signal into routed action.
 
 I wrote up the Snowflake version:
 

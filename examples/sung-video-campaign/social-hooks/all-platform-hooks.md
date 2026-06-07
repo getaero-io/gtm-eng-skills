@@ -246,6 +246,18 @@ Now you need scoped access, synced CRM attributes, campaign creation, approval s
 
 That is the difference between a hack and a system.
 
+You used to need a data engineering team to do this.
+
+I would know. I spent years doing it.
+
+Now GTM engineering tools can take you from raw warehouse data to a guarded workflow in minutes.
+
+The proof points:
+
+- Mixmax had 40% of rep activity on wrong or low-fit accounts. Reallocating it improved relative win rate +53%.
+- Owner.com drove +17% higher lead-to-meeting conversion with ranked next-best-action workflows.
+- Prove surfaced 5,972 A-tier accounts with no logged meetings in 2 years.
+
 I wrote up the workflow:
 
 Snowflake query -> dbt model -> CRM guardrails -> campaign draft.

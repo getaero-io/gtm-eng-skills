@@ -1,8 +1,8 @@
 # Researched Typefully drafts
 
-Updated 2026-06-05 with final Deepline URLs and YouTube draft links.
+Updated 2026-06-07 with final Deepline URLs, YouTube draft links, and the Snowflake PLG proof-point lead magnet framing.
 
-Live Typefully update status: blocked by local `TYPEFULLY_API_KEY` returning HTTP 403. Use this file as the source of truth for the existing Typefully drafts until the key is regenerated.
+Live Typefully update status: Snowflake PLG lead magnet drafts were updated through the Typefully v2 API on 2026-06-07. Older campaign drafts still use this file as source of truth unless their draft links show a later update.
 
 ## Publish links
 
@@ -375,7 +375,19 @@ That is GTM engineering.
 
 Snowflake query -> dbt model -> CRM guardrails -> campaign draft.
 
-I wrote up the Snowflake version with 12 PLG + GTM engineering examples:
+You used to need a data engineering team to do this.
+
+I would know. I spent years doing it.
+
+Now GTM engineering tools can take you from raw warehouse data to a guarded workflow in minutes.
+
+The customer examples are why this matters:
+
+- Mixmax had 40% of rep activity going to wrong or low-fit accounts. Reallocating that attention improved relative win rate +53%.
+- Owner.com drove +17% higher lead-to-meeting conversion with ranked next-best-action workflows that refreshed every 2-4 hours.
+- Prove surfaced 5,972 A-tier accounts with no logged meetings in 2 years, then turned that into a rep focus workflow instead of another report.
+
+I wrote up the Snowflake version with PLG + GTM engineering examples:
 
 - trial setup completed, no sales touch
 - free workspace with team adoption

@@ -51,6 +51,12 @@ Sung's demo is a good example: power users of Pulse are visible in Snowflake, th
 
 This is the Mixmax lesson in a cleaner implementation shape: product usage signals should change rep attention and next action, not create another dashboard nobody trusts.
 
+The proof points are concrete:
+
+- Mixmax had 40% of rep activity pointed at wrong or low-fit accounts. Reallocating that attention improved relative win rate +53%.
+- Owner.com drove +17% higher lead-to-meeting conversion with ranked next-best-action workflows that refreshed every 2-4 hours.
+- Prove surfaced 5,972 A-tier accounts with no logged meetings in 2 years, turning a stale-account report into a rep focus workflow.
+
 The useful artifact is not another dashboard. It is the query and workflow that make the next run boring.
 
 ## Where Teams Get Stuck
