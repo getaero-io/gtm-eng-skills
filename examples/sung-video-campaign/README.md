@@ -35,7 +35,17 @@ Updated Typefully/source social copy lives in `social-hooks/`.
 
 ## Lead Magnets
 
-- `lead-magnets/snowflake-pql-campaign-playbook.md`: setup guide with Snowflake product usage query, dbt model, PLG/GTM workflow examples, and Deepline/Aero workflow play for the Speedrun Time to Integration post. Notion share page: `https://app.notion.com/p/Snowflake-PQL-to-Campaign-Playbook-377da8d1d8eb8128b1bde0d84216bf2a`.
+- `lead-magnets/snowflake-pql-campaign-playbook.md`: setup guide with Snowflake product usage query, dbt model, PLG/GTM workflow examples, and Deepline workflow play for the Speedrun Time to Integration post. Notion share page: `https://app.notion.com/p/Product-Usage-To-GTM-Workflow-Playbook-377da8d1d8eb8128b1bde0d84216bf2a`.
+
+## Diagrams And Sample Workflows
+
+Public-safe Excalidraw diagrams live in `diagrams/`. They intentionally use anonymized workflow names and generic system labels instead of customer names.
+
+- `diagrams/core/`: warehouse-native GTM operating loops.
+- `diagrams/identity/`: personal-email identity resolution, contact enrichment, and champion-change recovery.
+- `diagrams/workflows/`: diagrams paired with sample workflow specs.
+
+Sample workflow specs live in `sample-workflows/`. These are illustrative, not deployed cloud workflows.
 
 ## YouTube Draft Upload Status
 
