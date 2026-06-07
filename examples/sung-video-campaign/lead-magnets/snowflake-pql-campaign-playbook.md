@@ -753,6 +753,32 @@ Research note from the 2026-06-07 PLG scan:
 - The strongest 2026 PLG pattern is hybrid: self-serve adoption first, then sales or CS intervention when usage, fit, admin/security intent, renewal risk, or expansion context says a human should step in.
 - The newer AI/PLG discussion also makes usage caps, onboarding drift, reverse trials, and workflow stickiness more important. Those show up in the added plays for usage limits, activation stalls, SSO/SCIM intent, workflow failure, and automation adoption readiness.
 
+## Simple Workflow Plays
+
+Not every GTM engineering workflow needs a model, a backtest, or a giant warehouse project.
+
+Some of the best first workflows are boring:
+
+| Simple play | Trigger | Action | Guardrail |
+| --- | --- | --- | --- |
+| Add to HubSpot sequence on signup | New signup with work email and no open opportunity | Create or update contact, add lifecycle stage, enroll in onboarding sequence | Suppress customers, unsubscribed contacts, competitors, and active opportunities |
+| Route personal email signup for review | New signup from Gmail, Outlook, iCloud, or Yahoo | Create review task with usage context and possible identity clues | Do not sequence until identity is validated |
+| Slack alert on first successful workflow | User reaches first meaningful product milestone | Post workspace, account, owner, and milestone to the GTM channel | Include owner and suppress low-fit test workspaces |
+| Create CRM task after pricing page + usage | Active workspace visits pricing page | Create owner task with usage summary and pricing signal | Block if pricing page view is the only signal |
+| Add event check-in to follow-up list | Event attendee checks in | Add to HubSpot list or sequence draft with event context | Suppress customers, open opportunities, and unsubscribed contacts |
+| Enrich new inbound form submit | Demo/contact form arrives | Enrich person, company, LinkedIn, title, and account context | Write back only fields with provenance and confidence |
+| Notify owner when usage drops | Customer usage drops below threshold | Create CS task and Slack alert | Do not create sales sequence from a risk signal |
+| Reassign stale high-fit lead | High-fit lead has no activity for 7-14 days | Create manager review task or reroute to queue | Keep ownership change auditable |
+| Add admin/security intent to enterprise queue | User views SSO, SCIM, SOC 2, audit logs, or API docs | Notify solutions/sales owner and draft technical assist note | Require fit or existing account context |
+| Add qualified signup to nurture | Signup is real but not sales-ready | Add to lifecycle nurture sequence | Keep sales-owned records out of nurture automation |
+
+The rule:
+
+```text
+If the workflow writes to a system of record or enrolls a person in a sequence,
+it still needs suppressions, provenance, and a run summary.
+```
+
 ## Implementation Checklist
 
 Use this before you run the play:

@@ -47,6 +47,11 @@ Public-safe Excalidraw diagrams live in `diagrams/`. They intentionally use anon
 
 Sample workflow specs live in `sample-workflows/`. These are illustrative, not deployed cloud workflows.
 
+- `sample-workflows/signup-to-hubspot-sequence.md`: simple signup automation that checks HubSpot state, applies suppressions, and enrolls safe contacts in a sequence.
+- `sample-workflows/product-usage-to-campaign-draft.md`: warehouse usage to draft campaign or rep task.
+- `sample-workflows/personal-email-identity-resolution.md`: personal email signup to verified identity or review queue.
+- `sample-workflows/event-attendee-follow-up.md`: event registration/check-in to follow-up list or draft.
+
 ## YouTube Draft Upload Status
 
 The upload script publishes private drafts by default.
