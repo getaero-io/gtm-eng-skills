@@ -359,7 +359,7 @@ The useful question is:
 
 how do you turn product usage into a GTM workflow sales can actually trust?
 
-The answer is not "make a PQL score."
+The answer is not "make a score."
 
 The answer is a workflow:
 
@@ -391,7 +391,7 @@ The useful artifact is not another dashboard.
 
 It is the workflow that lets a rep ask, "why is this account in my campaign?" and get a real answer.
 
-Comment PQL and I will send it.
+Comment PLG and I will send it.
 
 Threads:
 

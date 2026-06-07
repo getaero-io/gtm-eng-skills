@@ -1,12 +1,12 @@
-# Lead Magnet: Snowflake PQL to Campaign Playbook
+# Lead Magnet: Product Usage To GTM Workflow Playbook
 
 Slug: `snowflake-pql-campaign-playbook`
 
-Offer line: `Steal the Snowflake -> dbt -> CRM -> campaign workflow behind the Sung speedrun. Includes the query, dbt model, and activation play.`
+Offer line: `Turn product usage into GTM workflows without manual exports. Includes the Snowflake query, dbt model, CRM guardrails, and PLG motion examples.`
 
-Primary CTA: `Get the Snowflake PQL playbook`
+Primary CTA: `Get the product usage to GTM workflow playbook`
 
-Secondary CTA: `Comment PQL and I will send the query`
+Secondary CTA: `Comment PLG and I will send the workflow`
 
 Notion share page: `https://app.notion.com/p/Snowflake-PQL-to-Campaign-Playbook-377da8d1d8eb8128b1bde0d84216bf2a`
 
@@ -17,10 +17,11 @@ This is the implementation version of the Snowflake speedrun video.
 The reader gets:
 
 - A setup guide for turning product usage into GTM actions.
-- A Snowflake query that turns product usage into a PQL queue.
+- A Snowflake query that turns product usage into an activation queue.
 - A dbt model they can adapt inside their own warehouse.
 - A Deepline/Aero workflow play that syncs the right records to CRM and drafts a campaign.
 - The guardrails that keep this from becoming another CSV upload ritual.
+- A library of PLG motions across activation, sales-assist, expansion, retention, integration intent, and reactivation.
 
 ## Who This Is For
 
@@ -61,7 +62,7 @@ Who approved the run?
 Can we rerun this next week?
 ```
 
-## Step 1: Pick The PQL Motion
+## Step 1: Pick The PLG Motion
 
 Do not start with a universal score. Start with one GTM motion.
 
@@ -72,6 +73,9 @@ Good first motions:
 - Accounts with high usage but stale CRM activity.
 - Product users at accounts already owned by sales.
 - Expansion accounts where usage changed before renewal.
+- Power users ready for a new product or feature.
+- Accounts hitting usage limits or integration milestones.
+- Customers showing usage risk before renewal.
 
 Bad first motions:
 
@@ -81,6 +85,18 @@ Bad first motions:
 - "Use AI to rank pipeline."
 
 Those are too broad. You will spend the whole project arguing about the score instead of shipping the workflow.
+
+The Sung video is closer to a product-led expansion motion than a narrow PQL motion:
+
+```text
+Power users of Pulse exist in Snowflake.
+The team wants to promote Spark.
+Deepline syncs the relevant attributes into Attio.
+The campaign gets drafted in Instantly.
+The operator answers clarifying questions before launch.
+```
+
+That is the real wedge: product usage should not die in analytics because nobody wants to wire Snowflake, CRM, and a campaign tool together.
 
 ## Step 2: Map Product Events To Buying Signals
 
@@ -134,7 +150,7 @@ crm context:
 - suppression status
 ```
 
-This is the difference between a PQL and a product activity report.
+This is the difference between a GTM workflow and a product activity report.
 
 ## Step 4: Decide The Action Before You Score
 
@@ -144,7 +160,7 @@ If the action is unclear, the score will become dashboard furniture.
 
 Example actions:
 
-| PQL stage | Action |
+| Motion stage | Action |
 | --- | --- |
 | `sales_ready` | Draft rep-owned outbound campaign |
 | `watchlist` | Add to Slack digest or CRM task queue |
@@ -170,11 +186,11 @@ Minimum guardrails:
 
 If these are missing, the workflow is not production-ready. It is just a faster CSV.
 
-## Mixmax-Inspired PQL Definition
+## Product Usage Signal Definition
 
-Use this as the public-safe PQL pattern:
+Use this as the public-safe pattern:
 
-> A PQL is not just "used the product." It is an account or workspace where product usage and account fit predict sales readiness.
+> A product usage signal is not just "used the product." It is a product behavior that should change the next GTM action.
 
 The Mixmax angle:
 
@@ -188,7 +204,35 @@ Public proof points from existing Deepline/Aero positioning:
 - Focus on high-fit accounts increased by +50%.
 - 40% of prior rep activity was going to wrong or low-fit accounts.
 
-Do not present the query below as Mixmax's exact production model. Present it as the implementation template for teams trying to operationalize the same idea.
+Do not present the query below as Mixmax's exact production model. Present it as the implementation template for teams trying to operationalize the same idea: usage signals should change rep action.
+
+## PLG Motions To Cover
+
+Do not make this only about PQLs. PQLs are one routing motion inside a broader PLG operating system.
+
+| Motion | What product usage tells you | GTM action |
+| --- | --- | --- |
+| Activation assist | User did setup work but has not reached the useful moment | In-app nudge, lifecycle email, or CS assist |
+| Sales assist | High-fit account shows serious usage | Rep-owned outreach or account owner task |
+| Team expansion | More users join the workspace | Multi-threading or team plan conversation |
+| Usage-limit upsell | Account repeatedly hits limits | Upgrade prompt or sales-assist campaign |
+| Feature cross-sell | Power users are ready for a new module | Draft targeted campaign with product context |
+| Integration intent | User creates API keys, views docs, or connects warehouse/CRM | Technical onboarding or solutions assist |
+| Renewal risk | Usage drops, support issues rise, or champion disappears | CS risk workflow, not sales spam |
+| Expansion readiness | Usage grows before renewal or across teams | AE/CS expansion task |
+| Reactivation | Dormant high-fit account shows new activity or external signal | Re-engagement campaign |
+| Enterprise routing | Large company reaches meaningful usage | Route to enterprise owner with context |
+
+The point is not to name everything a PQL.
+
+The point is to make product usage operational.
+
+Research note from the 2026-06-07 PLG scan:
+
+- Current PLG/product-led sales writing keeps coming back to sales-assist triggers, not only PQLs.
+- Common triggers include team invites, repeated usage-limit hits, enterprise domain usage, integration setup, activation milestones, pricing-page visits, and expansion behavior.
+- Lifecycle strategy advice is converging on the same idea: product usage should route to self-serve prompts, sales-assist, CS risk workflows, or expansion nudges depending on account context.
+- Sung's transcript matches this broader framing because the demo is a product-led cross-sell/expansion play from Pulse power users to Spark credits, not a generic lead score.
 
 ## Implementation Checklist
 
@@ -474,7 +518,7 @@ Use this as the shareable workflow/play:
 
 ```yaml
 name: snowflake_pql_to_campaign
-goal: Turn warehouse PQLs into a CRM-owned campaign draft without hand-uploading CSVs.
+goal: Turn warehouse product usage signals into CRM-owned GTM actions without hand-uploading CSVs.
 
 inputs:
   snowflake_model: analytics.fct_product_qualified_accounts
@@ -518,7 +562,7 @@ steps:
   - draft_campaign:
       tool: instantly_or_smartlead
       mode: draft
-      list_name: "Snowflake PQLs - {{ run_date }}"
+      list_name: "Snowflake Product Usage Signals - {{ run_date }}"
       suppression:
         - bounced
         - unsubscribed
@@ -541,7 +585,7 @@ Before pushing live:
 - Does every record have a CRM account owner?
 - Are customers and active opportunities suppressed?
 - Did the campaign stay in draft mode?
-- Can a rep see why the account is a PQL?
+- Can a rep see why the account moved?
 - Can you rerun the workflow next week without rebuilding the spreadsheet?
 
 ## PLG + GTM Engineering Workflow Examples
@@ -609,7 +653,7 @@ account_last_activity_at older than 30 days
 Action:
 
 ```text
-Update CRM with PQL reason.
+Update CRM with usage reason.
 Draft rep follow-up.
 Add account to weekly manager review if no touch happens within 3 days.
 ```
@@ -805,9 +849,9 @@ That is the difference between "we have a score" and "we have a workflow."
 
 Use one depending on platform:
 
-1. `I put the Snowflake query, dbt model, and workflow play in a lead magnet. Comment PQL and I will send it.`
-2. `The useful artifact is not the video. It is the query behind it. I packaged the Snowflake PQL query + dbt model + campaign workflow here.`
-3. `If your PQL definition still lives in a spreadsheet, steal this: Snowflake query, dbt model, CRM guardrails, campaign draft play.`
+1. `Product usage is mostly trapped in analytics. I wrote up the GTM engineering workflow for getting it into CRM and campaign drafts. Comment PLG and I will send it.`
+2. `The useful artifact is not the video. It is the workflow behind it: Snowflake signal, dbt model, CRM guardrails, campaign draft.`
+3. `If product usage still becomes a manual CSV export before sales sees it, this is the workflow to steal.`
 
 ## Comment And DM Play
 
@@ -818,19 +862,19 @@ Use this when publishing the LinkedIn video. The point is to make the lead magne
 ```text
 I packaged the implementation version here:
 
-- Snowflake PQL query
+- Snowflake product usage query
 - dbt model
 - CRM guardrails
 - campaign draft workflow
 
 It is not Mixmax's exact production model. It is the template for teams trying to operationalize the same idea: product usage + account fit + CRM context -> rep action.
 
-Comment PQL and I will send the Notion link.
+Comment PLG and I will send the Notion link.
 ```
 
 ### Public Replies
 
-Use these when someone comments `PQL`, `send`, or anything close:
+Use these when someone comments `PLG`, `usage`, `send`, or anything close:
 
 ```text
 Sent. Start with the guardrails section before you copy the query.
@@ -859,13 +903,13 @@ I would not copy the scoring weights blindly. Start by mapping your product even
 ```text
 Curious what your stack is here. Snowflake + Salesforce + Outreach? Snowflake + HubSpot + Smartlead? Something weirder?
 
-The handoff usually changes more than the PQL definition.
+The handoff usually changes more than the usage definition.
 ```
 
-### If Someone Pushes Back On PQLs
+### If Someone Pushes Back On Usage Signals
 
 ```text
-Agree with the skepticism. A lot of PQL scoring is just "clicked a button twice" dressed up as intent.
+Agree with the skepticism. A lot of usage scoring is just "clicked a button twice" dressed up as intent.
 
 The version I trust has three parts: product usage, account fit, and CRM context. Any one of those alone gets noisy fast.
 ```
@@ -883,15 +927,15 @@ Do not over-automate the first version. The replies are the research.
 ## Blog CTA Block
 
 ```markdown
-## Steal The PQL Workflow
+## Steal The Product Usage Workflow
 
 Want the implementation version?
 
-We packaged the Snowflake query, dbt model, and Deepline/Aero workflow play behind this walkthrough. It uses a Mixmax-inspired PQL pattern: product usage signals, account fit, CRM context, and campaign guardrails in one rerunnable workflow.
+We packaged the Snowflake query, dbt model, and Deepline/Aero workflow play behind this walkthrough. It turns product usage signals, account fit, CRM context, and campaign guardrails into one rerunnable GTM workflow.
 
 Lead magnet options:
 
-- Get the Snowflake PQL query.
+- Get the Snowflake product usage query.
 - Copy the dbt model.
 - Use the CRM-to-campaign workflow play.
 - Ask Deepline to adapt it to your warehouse and campaign tool.

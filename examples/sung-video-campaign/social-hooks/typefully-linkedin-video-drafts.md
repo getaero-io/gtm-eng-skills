@@ -20,5 +20,5 @@ These are LinkedIn-only drafts with native video attached. The raw Screen Studio
 - Blog links point to `https://deepline.com/blog/...`.
 - Provider Sprawl copy was updated on 2026-06-05 after `/last30days` research. The tool chain now uses observed stacks: Apollo/Clay, Prospeo, MillionVerifier/Listman, HubSpot/Salesforce, n8n/Make/Zapier/Activepieces, Instantly/Smartlead.
 - All three LinkedIn video drafts were humanized on 2026-06-05 to remove generic AI/marketing phrasing while preserving the concrete GTM handoffs and pain points.
-- Snowflake was added as the priority draft on 2026-06-06 with the PQL lead magnet CTA and native compressed video attached from `/tmp/typefully_sung_videos/speedrun-time-to-integration-linkedin.mp4`.
-- Snowflake draft internal Typefully comment thread `a623c6d1-b8a1-428a-b929-c45d87932429` stores the first-comment copy and DM handoff for the PQL lead magnet. The draft was rehung around the `product usage + GTM engineering` hook on 2026-06-06.
+- Snowflake was added as the priority draft on 2026-06-06 with the PLG lead magnet CTA and native compressed video attached from `/tmp/typefully_sung_videos/speedrun-time-to-integration-linkedin.mp4`.
+- Snowflake draft internal Typefully comment thread `c252612a-c648-4d0d-9386-4074e669ebcc` stores the first-comment copy and DM handoff for the broader PLG motions workflow. The draft was rehung around the `product usage + GTM engineering` hook on 2026-06-07.

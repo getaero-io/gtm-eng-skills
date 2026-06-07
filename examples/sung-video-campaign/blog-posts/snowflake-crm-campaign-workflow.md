@@ -37,17 +37,19 @@ Sung walks through integration as a GTM workflow:
 
 The message is not "everyone should code more." It is "the people closest to the GTM problem need workflows they can inspect and change."
 
-## The Snowflake PQL Version
+## The Product Usage + GTM Engineering Version
 
-The clearest version of this play is product-qualified lead activation:
+The clearest version of this play is not only product-qualified lead activation. It is any PLG motion where product usage should change the next GTM action:
 
 1. Use Snowflake to find accounts with real product usage.
-2. Use dbt to make the PQL definition repeatable.
-3. Use CRM context to avoid bad pushes.
-4. Draft the campaign in Instantly, Smartlead, or the team's activation tool.
+2. Use dbt to make the usage definition repeatable.
+3. Use CRM context to decide whether the action is sales, CS, lifecycle, or suppression.
+4. Draft the campaign or task in Instantly, Smartlead, HubSpot, Attio, Salesforce, or the team's activation tool.
 5. Keep the whole run inspectable so the operator can explain why every record moved.
 
-This is the Mixmax lesson in a cleaner implementation shape: product usage signals become propensity scores, reps spend more time on high-fit accounts, and the workflow reallocates attention away from accounts that were never likely to convert.
+Sung's demo is a good example: power users of Pulse are visible in Snowflake, the team wants to introduce Spark, Deepline syncs the right attributes into Attio, and the campaign gets drafted in Instantly after clarifying questions. That is product-led expansion, not just "score a lead."
+
+This is the Mixmax lesson in a cleaner implementation shape: product usage signals should change rep attention and next action, not create another dashboard nobody trusts.
 
 The useful artifact is not another dashboard. It is the query and workflow that make the next run boring.
 
@@ -74,15 +76,15 @@ A better workflow makes the path explicit:
 
 That gives growth engineers speed without turning them into a shadow platform team.
 
-## Steal The PQL Workflow
+## Steal The Product Usage Workflow
 
 Want the implementation version?
 
-We packaged the Snowflake query, dbt model, and Deepline/Aero workflow play behind this walkthrough. It uses a Mixmax-inspired PQL pattern: product usage signals, account fit, CRM context, and campaign guardrails in one rerunnable workflow.
+We packaged the Snowflake query, dbt model, and Deepline/Aero workflow play behind this walkthrough. It covers PLG motions across sales-assist, feature cross-sell, team expansion, integration intent, renewal risk, and reactivation.
 
 Lead magnet options:
 
-- Get the Snowflake PQL query.
+- Get the Snowflake product usage query.
 - Copy the dbt model.
 - Use the CRM-to-campaign workflow play.
 - Ask Deepline to adapt it to your warehouse and campaign tool.
@@ -99,13 +101,16 @@ Notion share page: `https://app.notion.com/p/Snowflake-PQL-to-Campaign-Playbook-
 - CRM to campaign tool
 - Claude Code GTM workflow
 - MCP GTM workflow
-- Snowflake PQL query
-- dbt PQL model
+- Snowflake product usage query
+- dbt product usage model
 - product qualified lead workflow
+- product-led sales assist workflow
+- product-led expansion workflow
+- PLG sales assist workflow
 - Snowflake to Instantly workflow
 
 ## Suggested CTA
 
 The best GTM teams are not waiting for every integration. They are making the workflow visible enough to move fast without breaking the customer system.
 
-Comment `PQL` for the Snowflake query, dbt model, and workflow play.
+Comment `PLG` for the Snowflake query, dbt model, and workflow play.

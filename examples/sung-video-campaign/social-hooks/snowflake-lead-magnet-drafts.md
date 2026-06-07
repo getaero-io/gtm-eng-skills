@@ -1,4 +1,4 @@
-# Snowflake PQL Lead Magnet Drafts
+# Snowflake Product Usage + GTM Engineering Drafts
 
 Lead magnet: `examples/sung-video-campaign/lead-magnets/snowflake-pql-campaign-playbook.md`
 
@@ -10,14 +10,14 @@ Typefully priority video draft: `https://typefully.com/t/C8IlPMK`
 
 | Platform | Draft | Draft ID | Private URL | Share URL |
 | --- | --- | --- | --- | --- |
-| X | CSV workplace injury | 9399812 | https://typefully.com/?d=9399812&a=299886 | https://typefully.com/t/m0ONA4y |
-| X | PQL skeptic | 9399813 | https://typefully.com/?d=9399813&a=299886 | https://typefully.com/t/EzxfxiK |
-| LinkedIn | Setup guide launch | 9399814 | https://typefully.com/?d=9399814&a=299886 | https://typefully.com/t/9td9Ovg |
-| LinkedIn | PQL skeptic | 9399815 | https://typefully.com/?d=9399815&a=299886 | https://typefully.com/t/XLJmi6q |
+| X | Product usage trapped | 9399812 | https://typefully.com/?d=9399812&a=299886 | https://typefully.com/t/m0ONA4y |
+| X | Usage signal skeptic | 9399813 | https://typefully.com/?d=9399813&a=299886 | https://typefully.com/t/EzxfxiK |
+| LinkedIn | Product usage + GTM engineering | 9399814 | https://typefully.com/?d=9399814&a=299886 | https://typefully.com/t/9td9Ovg |
+| LinkedIn | Usage signal skeptic | 9399815 | https://typefully.com/?d=9399815&a=299886 | https://typefully.com/t/XLJmi6q |
 
 ## Hook Direction
 
-Use this frame for the Snowflake/PQL post:
+Use this frame for the Snowflake/product usage post:
 
 ```text
 Product usage is trapped in analytics.
@@ -40,13 +40,13 @@ GTM engineering is the layer between those two things:
 
 Snowflake -> dbt -> CRM context -> campaign draft.
 
-I wrote up the workflow. Comment PQL and I will send it.
+I wrote up the workflow. Comment PLG and I will send it.
 ```
 
-### X 2: PQL Skeptic
+### X 2: Usage Signal Skeptic
 
 ```text
-Most PQL scoring is just "clicked a button twice" dressed up as intent.
+Most usage scoring is just "clicked a button twice" dressed up as intent.
 
 The version I trust has 3 parts:
 
@@ -56,7 +56,7 @@ CRM context
 
 Then guardrails before anything touches a campaign.
 
-I wrote up the GTM engineering version. Comment PQL.
+I wrote up the GTM engineering version. Comment PLG.
 ```
 
 ### X 3: Agent Finished
@@ -74,13 +74,13 @@ That is the bar.
 Product usage is the signal.
 GTM engineering is the workflow.
 
-Comment PQL and I will send the writeup.
+Comment PLG and I will send the writeup.
 ```
 
 ### X 4: dbt Is Where The Definition Lives
 
 ```text
-If your PQL definition lives in a spreadsheet, sales will stop trusting it.
+If your product usage definition lives in a spreadsheet, sales will stop trusting it.
 
 Put it in dbt.
 
@@ -88,7 +88,7 @@ Then route it through CRM context, suppressions, and draft-mode campaigns.
 
 That is the boring GTM engineering work that makes product usage usable.
 
-Comment PQL and I will send the writeup.
+Comment PLG and I will send the writeup.
 ```
 
 ### X 5: Not Another Dashboard
@@ -107,7 +107,7 @@ run summary
 
 That is GTM engineering.
 
-Comment PQL and I will send the Snowflake version.
+Comment PLG and I will send the Snowflake version.
 ```
 
 ### X 6: Workflow Library
@@ -124,7 +124,7 @@ usage drop
 integration intent
 failed workflow rescue
 
-I wrote up 12 examples. Comment PQL.
+I wrote up 12 examples. Comment PLG.
 ```
 
 ### X 7: Rep Question
@@ -134,13 +134,13 @@ The rep question is simple:
 
 "Why is this account in my campaign?"
 
-If your system cannot answer that, you do not have a PQL workflow.
+If your system cannot answer that, you do not have a PLG workflow.
 
 You have a score with vibes attached.
 
 Product usage is only useful if GTM can explain it.
 
-Comment PQL and I will send the workflow.
+Comment PLG and I will send the workflow.
 ```
 
 ### X 8: Mixmax Angle
@@ -156,7 +156,7 @@ Not give sales a mystery score.
 
 That is the GTM engineering job.
 
-Comment PQL and I will send the Snowflake workflow.
+Comment PLG and I will send the Snowflake workflow.
 ```
 
 ## LinkedIn Drafts
@@ -176,7 +176,7 @@ The useful question is:
 
 how do you turn product usage into a GTM workflow sales can actually trust?
 
-The answer is not "make a PQL score."
+The answer is not "make a score."
 
 The answer is a workflow:
 
@@ -208,13 +208,13 @@ The useful artifact is not another dashboard.
 
 It is the workflow that lets a rep ask, "why is this account in my campaign?" and get a real answer.
 
-Comment PQL and I will send it.
+Comment PLG and I will send it.
 ```
 
-### LinkedIn 2: PQL Skeptic
+### LinkedIn 2: Usage Signal Skeptic
 
 ```text
-A lot of PQL scoring is fake precision.
+A lot of usage scoring is fake precision.
 
 Clicked a button twice.
 Viewed pricing.
@@ -239,7 +239,7 @@ Then you need GTM engineering before anything touches a campaign:
 - show sample rows before approval
 - log what moved and what got blocked
 
-Otherwise you did not build a PQL workflow.
+Otherwise you did not build a product-led workflow.
 
 You built a faster way to annoy sales.
 
@@ -247,13 +247,13 @@ I wrote up the Snowflake version:
 
 Snowflake -> dbt -> CRM -> campaign draft.
 
-Comment PQL and I will send it.
+Comment PLG and I will send it.
 ```
 
 ### LinkedIn 3: dbt Definition
 
 ```text
-If your PQL definition lives in a spreadsheet, it will drift.
+If your product usage definition lives in a spreadsheet, it will drift.
 
 Someone changes a threshold.
 Someone adds a column.
@@ -280,9 +280,9 @@ The actual pattern is simple:
 
 signal + context + guardrail + draft action + run summary
 
-I packaged the Snowflake PQL setup guide with the query, dbt model, tests, and 12 PLG/GTM workflow examples.
+I wrote up the Snowflake workflow with the query, dbt model, tests, and 12 PLG/GTM workflow examples.
 
-Comment PQL and I will send it.
+Comment PLG and I will send it.
 ```
 
 ### LinkedIn 4: Agent Finished Is Not The Bar
@@ -314,13 +314,13 @@ I turned the Snowflake speedrun into the setup guide I would want if I were impl
 - campaign draft play
 - PLG workflow examples
 
-Comment PQL and I will send it.
+Comment PLG and I will send it.
 ```
 
 ### LinkedIn 5: Workflow Library
 
 ```text
-The Snowflake PQL guide now has 12 workflow examples.
+The Snowflake PLG guide now has 12 workflow examples.
 
 Not abstract "intent."
 
@@ -349,19 +349,19 @@ run summary
 
 That pattern matters more than the score.
 
-Comment PQL and I will send the setup guide.
+Comment PLG and I will send the setup guide.
 ```
 
 ### LinkedIn 6: Mixmax Lesson
 
 ```text
-The Mixmax lesson is not "build a PQL dashboard."
+The Mixmax lesson is not "build a PLG dashboard."
 
 It is that product usage signals should change where reps spend time.
 
 That is the part people miss.
 
-A PQL workflow is only useful if it reallocates attention:
+A PLG workflow is only useful if it reallocates attention:
 
 away from low-fit accounts
 toward high-fit accounts
@@ -378,5 +378,5 @@ What gets logged?
 
 I put the Snowflake query, dbt model, CRM guardrails, and PLG workflow examples into a guide.
 
-Comment PQL and I will send it.
+Comment PLG and I will send it.
 ```

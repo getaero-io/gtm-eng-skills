@@ -246,13 +246,13 @@ Now you need scoped access, synced CRM attributes, campaign creation, approval s
 
 That is the difference between a hack and a system.
 
-I turned this into a lead magnet:
+I wrote up the workflow:
 
 Snowflake query -> dbt model -> CRM guardrails -> campaign draft.
 
-It uses the Mixmax-style PQL definition: product usage signals become propensity scores, then reps focus on the accounts most likely to convert.
+It covers the broader PLG motions: sales-assist, feature cross-sell, team expansion, integration intent, renewal risk, and reactivation.
 
-Comment PQL and I will send the query, model, and workflow play.
+Comment PLG and I will send the query, model, and workflow play.
 
 ### Threads hooks
 
