@@ -2,7 +2,7 @@
 
 Slug: `snowflake-pql-campaign-playbook`
 
-Offer line: `Turn product usage into GTM workflows without manual exports. Includes the Snowflake query, dbt model, CRM guardrails, and PLG motion examples.`
+Offer line: `Turn product usage into GTM workflows without manual exports. Includes the Snowflake query, dbt model, CRM guardrails, and 25 PLG + GTM engineering plays.`
 
 Primary CTA: `Get the product usage to GTM workflow playbook`
 
@@ -21,7 +21,7 @@ The reader gets:
 - A dbt model they can adapt inside their own warehouse.
 - A Deepline/Aero workflow play that syncs the right records to CRM and drafts a campaign.
 - The guardrails that keep this from becoming another CSV upload ritual.
-- A library of PLG motions across activation, sales-assist, expansion, retention, integration intent, and reactivation.
+- A library of 25 PLG + GTM engineering plays across activation, sales-assist, expansion, retention, integration intent, revenue routing, and reactivation.
 
 ## Who This Is For
 
@@ -296,6 +296,8 @@ Research note from the 2026-06-07 PLG scan:
 - Common triggers include team invites, repeated usage-limit hits, enterprise domain usage, integration setup, activation milestones, pricing-page visits, and expansion behavior.
 - Lifecycle strategy advice is converging on the same idea: product usage should route to self-serve prompts, sales-assist, CS risk workflows, or expansion nudges depending on account context.
 - Sung's transcript matches this broader framing because the demo is a product-led cross-sell/expansion play from Pulse power users to Spark credits, not a generic lead score.
+- The strongest 2026 PLG pattern is hybrid: self-serve adoption first, then sales or CS intervention when usage, fit, admin/security intent, renewal risk, or expansion context says a human should step in.
+- The newer AI/PLG discussion also makes usage caps, onboarding drift, reverse trials, and workflow stickiness more important. Those show up in the added plays for usage limits, activation stalls, SSO/SCIM intent, workflow failure, and automation adoption readiness.
 
 ## Implementation Checklist
 
@@ -655,6 +657,8 @@ Before pushing live:
 
 Use these as examples when adapting the playbook. The pattern is the same: warehouse signal, CRM context, guardrail, action.
 
+The expanded library below pulls from the current PLG/product-led sales research pattern: self-serve adoption first, then human sales/CS layered in when usage, fit, lifecycle, or risk says a person should intervene. The goal is not to make every signal a campaign. Some signals should create a rep task, some should create a CS action, some should trigger lifecycle automation, and some should stay suppressed.
+
 ### 1. Trial Setup Completed, No Sales Touch
 
 Signal:
@@ -885,6 +889,324 @@ Action:
 Alert owner.
 Draft expansion-assist note.
 Add account to sales-assist list.
+```
+
+### 13. Usage Limit Hit, Upgrade Path Obvious
+
+Signal:
+
+```text
+usage_limit_hit_count_14d >= 2
+plan_name in ('free', 'starter')
+active_users_14d >= 2
+open_opportunity_count = 0
+```
+
+Action:
+
+```text
+Draft upgrade-assist campaign.
+Include the exact limit hit and what becomes available on the next plan.
+Create CRM note for owner if account fit is high.
+```
+
+Guardrail:
+
+```text
+If account fit is low, route to lifecycle email instead of sales.
+```
+
+### 14. SSO Or SCIM Intent
+
+Signal:
+
+```text
+viewed_sso_docs = true
+created_api_key = true
+company_size >= enterprise_threshold
+no_enterprise_owner_assigned = true
+```
+
+Action:
+
+```text
+Route to enterprise AE or solutions owner.
+Draft technical discovery note.
+Ask one clear question: "Are you planning SSO/SCIM for a broader rollout?"
+```
+
+Why it works:
+
+```text
+Enterprise readiness often shows up as security, provisioning, and admin workflows before a formal sales conversation.
+```
+
+### 15. High-Intent Pricing Page Plus Real Usage
+
+Signal:
+
+```text
+pricing_page_views_7d >= 2
+ran_workflow_successfully >= 1
+active_users_14d >= 1
+crm_owner_id exists
+```
+
+Action:
+
+```text
+Draft owner follow-up.
+Mention the product action first, pricing second.
+```
+
+Guardrail:
+
+```text
+Block if pricing page view is the only signal.
+```
+
+### 16. Activation Stalled After Setup
+
+Signal:
+
+```text
+completed_setup_step = true
+reached_aha_moment = false
+days_since_signup between 3 and 10
+support_ticket_open = false
+```
+
+Action:
+
+```text
+Send lifecycle nudge or create support-assist task.
+Include the next one action needed to reach first value.
+```
+
+Why it works:
+
+```text
+This is not a sales play. It is an activation rescue play.
+```
+
+### 17. New Use Case Detected Inside Existing Customer
+
+Signal:
+
+```text
+is_customer = true
+new_feature_category_used = true
+feature_usage_depth_14d >= threshold
+current_contract_does_not_include_feature = true
+```
+
+Action:
+
+```text
+Alert AE and CSM.
+Draft cross-sell prep note with product evidence.
+Do not sequence end users directly.
+```
+
+Guardrail:
+
+```text
+Require CSM review before any customer-facing message.
+```
+
+### 18. Department Expansion
+
+Signal:
+
+```text
+new_email_domains_same_company = false
+new_departments_detected >= 2
+active_users_30d increased >= 50%
+customer_health not in ('red', 'at_risk')
+```
+
+Action:
+
+```text
+Create expansion-readiness task.
+Summarize which teams adopted and what workflows they ran.
+```
+
+Why it works:
+
+```text
+Expansion often starts as lateral adoption before procurement asks for a larger contract.
+```
+
+### 19. Champion Risk Before Renewal
+
+Signal:
+
+```text
+renewal_date within 120 days
+champion_activity_down_30d >= 50%
+account_usage_still_active = true
+no_new_champion_identified = true
+```
+
+Action:
+
+```text
+Create CS task to identify a new champion.
+Draft internal account brief, not an outbound campaign.
+```
+
+Guardrail:
+
+```text
+Do not contact the old champion if they left the company or stopped using the product for a sensitive reason.
+```
+
+### 20. Product Usage Up, Business Review Missing
+
+Signal:
+
+```text
+is_customer = true
+usage_up_60d >= 30%
+last_qbr_at is null or older than 180 days
+account_tier in ('strategic', 'enterprise')
+```
+
+Action:
+
+```text
+Create QBR prep task.
+Draft usage summary and expansion hypotheses.
+```
+
+Why it works:
+
+```text
+The right action is often a business review, not a sales sequence.
+```
+
+### 21. Low-Fit Power User
+
+Signal:
+
+```text
+active_users_14d >= 3
+feature_depth_score >= threshold
+account_fit_score < minimum_sales_threshold
+```
+
+Action:
+
+```text
+Keep in lifecycle nurture.
+Do not route to sales.
+Use aggregate behavior to improve onboarding or content.
+```
+
+Why it works:
+
+```text
+Usage without fit can waste rep time even when the product behavior looks impressive.
+```
+
+### 22. High-Fit Quiet Account
+
+Signal:
+
+```text
+account_fit_score >= target_threshold
+signup_completed = true
+activation_score low
+no_sales_touch_14d = true
+```
+
+Action:
+
+```text
+Send founder/rep note offering help with first setup.
+Keep message framed around removing friction, not "noticed you are inactive."
+```
+
+Guardrail:
+
+```text
+Use only for high-fit accounts. Otherwise automate.
+```
+
+### 23. Multi-Product Cross-Sell From Power Users
+
+Signal:
+
+```text
+power_users_of_product_a >= 2
+product_b_not_adopted = true
+product_b_use_case_matches_account = true
+crm_customer_stage = 'customer'
+```
+
+Action:
+
+```text
+Draft cross-sell campaign in review mode.
+Add account-owner approval before launch.
+Mention the workflow in product A that makes product B relevant.
+```
+
+Why it works:
+
+```text
+This is the pattern Sung shows: product usage creates context for a specific next product motion.
+```
+
+### 24. Workflow Failure At High-Fit Account
+
+Signal:
+
+```text
+account_fit_score >= target_threshold
+workflow_failed >= 2
+user_retried_workflow = true
+support_ticket_open = false
+```
+
+Action:
+
+```text
+Create support-led assist task.
+Draft technical help note.
+Mark as "do not sell until resolved."
+```
+
+Guardrail:
+
+```text
+Never turn product frustration into a sales campaign.
+```
+
+### 25. Agent Or Automation Adoption Readiness
+
+Signal:
+
+```text
+manual_workflow_runs_30d >= 5
+export_or_csv_usage_30d >= 2
+automation_feature_not_enabled = true
+admin_user_active = true
+```
+
+Action:
+
+```text
+Draft enablement note for admin or technical buyer.
+Create CRM task with before/after workflow summary.
+Offer a setup session or implementation guide.
+```
+
+Why it works:
+
+```text
+Repeated manual usage is often the strongest signal that an automation or agent workflow is worth introducing.
 ```
 
 ## GTM Engineering Patterns To Reuse

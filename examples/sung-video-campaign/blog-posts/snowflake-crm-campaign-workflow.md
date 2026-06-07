@@ -86,7 +86,7 @@ That gives growth engineers speed without turning them into a shadow platform te
 
 Want the implementation version?
 
-We packaged the Snowflake query, dbt model, and Deepline/Aero workflow play behind this walkthrough. It covers PLG motions across sales-assist, feature cross-sell, team expansion, integration intent, renewal risk, and reactivation.
+We packaged the Snowflake query, dbt model, and Deepline/Aero workflow play behind this walkthrough. It now covers 25 PLG + GTM engineering plays across activation, sales-assist, feature cross-sell, team expansion, integration intent, usage-limit upsell, renewal risk, reactivation, and automation readiness.
 
 Lead magnet options:
 

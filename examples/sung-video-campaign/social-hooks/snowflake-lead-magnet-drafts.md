@@ -157,7 +157,7 @@ usage drop
 integration intent
 failed workflow rescue
 
-I wrote up 12 examples. Comment PLG.
+I wrote up 25 examples. Comment PLG.
 ```
 
 ### X 7: Rep Question
@@ -340,7 +340,7 @@ The actual pattern is simple:
 
 signal + context + guardrail + draft action + run summary
 
-I wrote up the Snowflake workflow with the query, dbt model, tests, and 12 PLG/GTM workflow examples.
+I wrote up the Snowflake workflow with the query, dbt model, tests, and 25 PLG/GTM workflow examples.
 
 Comment PLG and I will send it.
 ```
@@ -380,7 +380,7 @@ Comment PLG and I will send it.
 ### LinkedIn 5: Workflow Library
 
 ```text
-The Snowflake PLG guide now has 12 workflow examples.
+The Snowflake PLG guide now has 25 workflow examples.
 
 Not abstract "intent."
 
@@ -398,6 +398,19 @@ Actual PLG + GTM engineering motions:
 10. Dormant high-fit account reactivation
 11. Multi-threading target account
 12. Self-serve account ready for sales assist
+13. Usage-limit upsell
+14. SSO/SCIM intent
+15. Pricing page plus real usage
+16. Activation stalled after setup
+17. New use case inside an existing customer
+18. Department expansion
+19. Champion risk before renewal
+20. Product usage up, no business review
+21. Low-fit power user suppression
+22. High-fit quiet account
+23. Multi-product cross-sell
+24. Workflow failure rescue at a high-fit account
+25. Agent or automation adoption readiness
 
 Each one follows the same pattern:
 
