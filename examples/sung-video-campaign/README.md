@@ -32,6 +32,7 @@ Updated Typefully/source social copy lives in `social-hooks/`.
 - `social-hooks/typefully-linkedin-video-drafts.md`: LinkedIn-only Typefully drafts with native video attached.
 - `social-hooks/all-platform-hooks.md`: X, LinkedIn, and Threads hook bank.
 - `social-hooks/snowflake-lead-magnet-drafts.md`: X and LinkedIn launch drafts for the Snowflake PQL setup guide.
+- `social-hooks/gtm-eng-june-30-event-drafts.md`: X, LinkedIn, and Threads drafts for the June 30 NYC GTM Eng session with Ramp.
 
 ## Lead Magnets
 
