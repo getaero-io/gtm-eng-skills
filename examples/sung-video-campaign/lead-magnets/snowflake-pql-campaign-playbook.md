@@ -167,6 +167,52 @@ crm context:
 
 This is the difference between a GTM workflow and a product activity report.
 
+## Connect Product Usage To CRM Outcomes And Backtest It
+
+Once product usage and CRM data live in the same workflow, use the agent to look backward before asking it to route accounts forward.
+
+The useful question is:
+
+```text
+Which product events usually happened before an upgrade, opportunity creation, expansion conversation, renewal risk flag, or sales-qualified handoff?
+```
+
+Have the agent join product events to CRM outcomes and inspect the pre-outcome window.
+
+Example backtest:
+
+| CRM outcome | Lookback window | Product usage to inspect |
+| --- | --- | --- |
+| Opportunity created | 7-30 days before opp creation | Setup completed, team invites, integration events, workflow runs |
+| Closed-won upgrade | 30-90 days before upgrade | Seat growth, usage-limit hits, power-user behavior, feature depth |
+| Expansion conversation | 14-60 days before meeting | New teams joining, heavier usage, repeated exports, new integration activity |
+| Renewal risk | 30-120 days before risk flag | Usage drop, failed workflows, fewer active users, champion inactivity |
+| Sales-qualified handoff | 7-30 days before handoff | High-intent actions plus firmographic fit and clean CRM ownership |
+
+Ask for patterns, not magic. A good first pass should produce something like:
+
+```text
+Accounts that upgraded usually had:
+- 3+ active users in the prior 30 days
+- at least one integration event
+- repeated usage of the feature being upsold
+- no open support blocker
+- a known CRM owner
+```
+
+**If you do not have a semantic layer in place, it probably will not get this right on the first pass. The agent does not know how your product works, so it will often find something silly like `signed_in` being correlated with purchases. Obviously people who buy the product also sign in. You will need a few iterations, but eventually you should get something directionally predictive.**
+
+The fastest way to improve the backtest is to give the agent more product context:
+
+- What each event means.
+- Which events are passive telemetry versus meaningful user effort.
+- Which features map to activation, expansion, retention, or risk.
+- Which events are prerequisites and should not be treated as intent.
+- What counts as a real upgrade, opportunity, renewal risk, or expansion signal in the CRM.
+- Which customer segments should be analyzed separately.
+
+Documented product events help a lot here. Even a rough event dictionary is better than asking the agent to infer product meaning from event names alone.
+
 ## Step 4: Decide The Action Before You Score
 
 Every score needs an action.
