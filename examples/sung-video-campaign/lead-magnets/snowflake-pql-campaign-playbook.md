@@ -62,15 +62,15 @@ Who approved the run?
 Can we rerun this next week?
 ```
 
-## Customer Examples This Pattern Comes From
+## Anonymized Examples This Pattern Comes From
 
 These are the examples to use in the post and comments. They make the guide feel real instead of sounding like another "AI GTM" abstraction.
 
-| Customer pattern | What changed | Number to cite |
+| Pattern | What changed | Number to cite |
 | --- | --- | --- |
-| Mixmax account focus | Rep activity was getting spent on the wrong accounts, so the workflow reallocated attention toward higher-fit accounts | 40% of prior rep activity was on wrong or low-fit accounts; relative win rate improved +53% |
-| Owner.com next-best action | Product and account context fed a ranked playbook instead of another static report | +17% higher lead-to-meeting conversion; ranked plays refreshed every 2-4 hours |
-| Prove account reallocation | High-value accounts with no meaningful activity were surfaced and routed back into rep focus | 5,972 A-tier accounts had no logged meetings in 2 years; ~500 rep hours could be reallocated toward 40-80 new A accounts |
+| Sales engagement account focus | Rep activity was getting spent on the wrong accounts, so the workflow reallocated attention toward higher-fit accounts | 40% of prior rep activity was on wrong or low-fit accounts; relative win rate improved +53% |
+| High-volume inbound next-best action | Product and account context fed a ranked playbook instead of another static report | +17% higher lead-to-meeting conversion; ranked plays refreshed every 2-4 hours |
+| Enterprise account reallocation | High-value accounts with no meaningful activity were surfaced and routed back into rep focus | 5,972 A-tier accounts had no logged meetings in 2 years; ~500 rep hours could be reallocated toward 40-80 new A accounts |
 | Contact and account signal monitoring | First-party signals changed routing and follow-up, not just reporting | +17% lead-to-opportunity conversion lift |
 
 The point is not "PQLs are magic."
@@ -83,7 +83,7 @@ This section is the part most public PLG guides skip.
 
 Everyone can say "connect product usage to sales." The hard part is knowing what breaks when you actually connect warehouse data, CRM records, campaign tools, rep activity, and product telemetry.
 
-The pattern across Owner, Mixmax, Prove, and other customer work is:
+The pattern across PLG, enterprise sales, and high-volume inbound customer work is:
 
 ```text
 raw signal -> identity graph -> semantic definition -> backtest -> guardrail -> draft action -> feedback loop
@@ -111,7 +111,7 @@ If the workflow cannot answer those questions, it is not ready for sales or CS.
 
 ### 2. The first warehouse project is usually an identity project
 
-Owner's event-stream work made this obvious.
+A high-volume inbound event-stream project made this obvious.
 
 Before you can analyze "what happened before an upgrade," you need a canonical customer identity across:
 
@@ -145,7 +145,7 @@ If the identity graph is weak, every downstream workflow gets weird:
 
 You will often have the same business event in multiple places.
 
-Example from Owner-style funnel work:
+Example from inbound funnel work:
 
 ```text
 form_submitted could exist in GA4
@@ -183,7 +183,7 @@ The semantic layer should include:
 - Verified query examples.
 - Known exclusions and suppression logic.
 
-Owner's technical team wanted the semantic definitions in dbt and Snowflake so they could reuse them across Snowflake Intelligence, Hex, Sigma, Slack, and Deepline. That is the right instinct.
+One technical team wanted the semantic definitions in dbt and Snowflake so they could reuse them across Snowflake Intelligence, Hex, Sigma, Slack, and Deepline. That is the right instinct.
 
 The more mature the customer, the more they should own the definitions in their dbt repo. Deepline can layer workflows on top.
 
@@ -202,9 +202,9 @@ Use this rule:
 | Revenue import / forecast sync | Daily or monthly replacement | Forecasts can update retroactively; append-only is wrong |
 | Win/loss signal discovery | Weekly or monthly | Backtesting does not need streaming |
 
-Owner-style conversion tracking benefits from 30-60 minute incremental updates.
+Conversion tracking workflows benefit from 30-60 minute incremental updates.
 
-Prove-style revenue imports do not need real-time streaming. They need reliable replacement semantics, auditability, and Slack/run summaries.
+Manual revenue import workflows do not need real-time streaming. They need reliable replacement semantics, auditability, and Slack/run summaries.
 
 ### 6. Reverse ETL is not the enemy. Unowned reverse ETL is.
 
@@ -360,9 +360,9 @@ It is deciding which source wins when two disagree.
 
 ## Customer Implementation Notes
 
-### Owner: semantic layer, customer event stream, and ownership
+### Semantic layer, customer event stream, and ownership
 
-Owner's lesson is that product usage, marketing analytics, and sales data only become useful after they share definitions.
+The lesson is that product usage, marketing analytics, and sales data only become useful after they share definitions.
 
 The implementation pattern:
 
@@ -383,7 +383,7 @@ Key lessons:
 - Treat event streaming as a single customer timeline, not a pile of disconnected raw tables.
 - When leadership asks about SDR headcount, lead routing, or funnel conversion, the answer must be explainable enough to change staffing decisions.
 
-Owner anti-patterns to avoid:
+Anti-patterns to avoid:
 
 - Dashboard numbers that do not match internal Sigma/Salesforce numbers.
 - AQL or lead assignment counts that differ by 30+ records without an explanation.
@@ -391,9 +391,9 @@ Owner anti-patterns to avoid:
 - PLG traffic getting mixed with inbound/marketing leads because the funnel definitions are too loose.
 - "If this field is true, subtract 50,000" scoring logic that nobody trusts.
 
-### Mixmax: signal discovery, scoring, and rep attention
+### Signal discovery, scoring, and rep attention
 
-Mixmax's lesson is that GTM scoring is valuable when it reallocates rep attention.
+The lesson is that GTM scoring is valuable when it reallocates rep attention.
 
 The implementation pattern:
 
@@ -409,7 +409,7 @@ company domain
 -> persisted account enrichment row
 ```
 
-The Mixmax account enrichment workflow uses:
+The account enrichment workflow uses:
 
 - PredictLeads for company news events.
 - Exa as a coverage fallback.
@@ -427,16 +427,16 @@ Key lessons:
 - If a third-party score says low but manual review says high, capture why. That is training data for the next model.
 - Track outbound events from tools like Smartlead and HeyReach into Snowflake so you can compare campaign activity to revenue outcomes.
 
-Mixmax anti-patterns to avoid:
+Anti-patterns to avoid:
 
 - Reps checking 5-6 screens before trusting a lead.
 - Common Room-style scores that are not explainable enough to act on.
 - Account fit scores that do not become a concrete next action.
 - Treating "uses Salesforce" as sufficient intent without sales hiring, outbound motion, or lifecycle context.
 
-### Prove: revenue imports, replacement semantics, and manual recovery
+### Revenue imports, replacement semantics, and manual recovery
 
-Prove's lesson is that not every data workflow starts with clean APIs.
+The lesson is that not every data workflow starts with clean APIs.
 
 Sometimes the correct first workflow is:
 
@@ -452,7 +452,7 @@ emailed XLSX
 
 This matters because warehouse GTM work often starts with messy operating data, not pristine event streams.
 
-Key lessons from the Prove import architecture:
+Key lessons from the import architecture:
 
 - Large XLSX files should not be shoved through webhook JSON. A 56K-row file can turn into a 26MB payload.
 - Use Drive or another staging layer for audit trail and manual recovery.
@@ -462,7 +462,7 @@ Key lessons from the Prove import architecture:
 - Keep product-key mapping explicit and make missing products visible.
 - Send run summaries to Slack so people know whether the import actually happened.
 
-Prove anti-patterns to avoid:
+Anti-patterns to avoid:
 
 - Treating every file as append-only.
 - Losing the original file after transforming it.
@@ -495,21 +495,21 @@ Use this as the implementation menu. These are the workflow shapes we have built
 
 | Workflow | Source systems | Processing layer | Activation target | What it proves |
 | --- | --- | --- | --- | --- |
-| Owner customer event stream | GA4, HubSpot, Salesforce, product data, custom tables, transcripts | Identity graph, event definitions, semantic layer | Dashboards, Slack answers, funnel analysis, workflow triggers | Product, marketing, and sales data only become useful after the business definitions match. |
-| Owner HubSpot contact enrichment | HubSpot contact trigger, Apollo, Crustdata, Serper, Apify | Provider waterfall, LinkedIn validation, company matching | HubSpot contact/company updates and associations | Enrichment should be auditable, validated, and written back only when confidence is high enough. |
-| Owner lead response and SDR funnel | Forms, meetings, HubSpot/Salesforce owners, routing, duplicates | Lead lifecycle definitions, response-time windows, same-day booking logic | Staffing and routing decisions | The valuable question is not "how many leads" but which leads became real meetings under which owner and response path. |
-| Mixmax account enrichment and scoring | Domain seed list, PredictLeads, Exa, Bloomberry, TheirStack | Account enrichment table, ICP prompt, playbook prompt, score evaluation | Rep-ready account rows with score, why-now, first move | A score is only useful when it tells a rep what to do next. |
-| Mixmax product usage and sales qualification | Product usage, CRM integrations, Chrome extension activity, sequencing activity | Usage-to-fit scoring and sales handoff rules | Prioritized sales follow-up | Product activity needs enough CRM context that sales can trust the handoff. |
-| Mixmax outbound event stream | Smartlead, HeyReach, campaign activity, reply/meeting outcomes | Snowflake event tables, campaign-to-outcome joins | Campaign QA, scoring feedback, rep attention | Outbound tools need outcome context or they become activity dashboards. |
-| Prove revenue import | Monthly Adaptive XLSX, product key XLSX, email/Drive/Zapier | Python transform, date normalization, product mapping, replacement semantics | Snowflake revenue table and Slack run summary | The right first workflow is often messy-file automation, not a clean API integration. |
-| Prove propensity and white-space prioritization | Salesforce accounts, wins/losses, firmographics, public signals, enrichment | Backtest, tiering, untouched-account detection | Rep allocation and enterprise account prioritization | Rev teams need to know which high-fit accounts are being ignored, not just which accounts look good. |
-| Prove account and org-chart research | Target account, exec names, account pages, social signals, contact data | Account research, contact classification, org chart generation | Rep prep and account strategy | Research is useful when it becomes a decision about who to contact and why. |
-| Air lead-to-meeting driver analysis | Lead, meeting, revenue, owner, response-time data | Causal driver analysis, time-to-first-touch decay, conversion decomposition | Growth lever prioritization | Teams often need to find the bottleneck before they need a new model. |
-| Air meeting likelihood scoring | Product/account data, distinct users, revenue, renewal dates, ARR, lead context | Meeting probability model, clean sales handoff | Sales prioritization | Scoring should predict a specific operating outcome, like a meeting, not a vague MQL. |
-| Air rep execution monitoring | Model output, Slack actions, CRM tasks, lead status | Action tracking, stale-lead detection, verification loop | Manager visibility and rep follow-up | A workflow is not done until the recommended action actually happened. |
-| Air self-serve lifecycle analytics | Product stage definitions, customer/product activity, Mode/Snowflake data | SQL generation, lifecycle stage classification | Lifecycle reporting and CS/GTM actions | Product lifecycle stages have to be operationalized, not only visualized. |
-| nTop won/lost signal discovery | Salesforce opportunities, won/lost labels, Exa website extraction, Crustdata jobs | Signal lift analysis, anti-fit flags, scorecard | ICP scoring and outbound targeting | The best signals often come from comparing won and lost accounts, not brainstorming keywords. |
-| Fairing niche signal discovery | Won/lost proxy set, websites, jobs, Facebook ads, Google ads, firmographics | Lift analysis, buyer persona mapping, search recipes | Apollo searches, scoring, personalized outbound | ICP work gets sharper when it turns into search recipes and skip rules. |
+| Customer event stream | GA4, HubSpot, Salesforce, product data, custom tables, transcripts | Identity graph, event definitions, semantic layer | Dashboards, Slack answers, funnel analysis, workflow triggers | Product, marketing, and sales data only become useful after the business definitions match. |
+| CRM contact enrichment | HubSpot contact trigger, Apollo, Crustdata, Serper, Apify | Provider waterfall, LinkedIn validation, company matching | HubSpot contact/company updates and associations | Enrichment should be auditable, validated, and written back only when confidence is high enough. |
+| Lead response and SDR funnel | Forms, meetings, HubSpot/Salesforce owners, routing, duplicates | Lead lifecycle definitions, response-time windows, same-day booking logic | Staffing and routing decisions | The valuable question is not "how many leads" but which leads became real meetings under which owner and response path. |
+| Account enrichment and scoring | Domain seed list, PredictLeads, Exa, Bloomberry, TheirStack | Account enrichment table, ICP prompt, playbook prompt, score evaluation | Rep-ready account rows with score, why-now, first move | A score is only useful when it tells a rep what to do next. |
+| Product usage and sales qualification | Product usage, CRM integrations, Chrome extension activity, sequencing activity | Usage-to-fit scoring and sales handoff rules | Prioritized sales follow-up | Product activity needs enough CRM context that sales can trust the handoff. |
+| Outbound event stream | Smartlead, HeyReach, campaign activity, reply/meeting outcomes | Snowflake event tables, campaign-to-outcome joins | Campaign QA, scoring feedback, rep attention | Outbound tools need outcome context or they become activity dashboards. |
+| Revenue import | Monthly Adaptive XLSX, product key XLSX, email/Drive/Zapier | Python transform, date normalization, product mapping, replacement semantics | Snowflake revenue table and Slack run summary | The right first workflow is often messy-file automation, not a clean API integration. |
+| Propensity and white-space prioritization | Salesforce accounts, wins/losses, firmographics, public signals, enrichment | Backtest, tiering, untouched-account detection | Rep allocation and enterprise account prioritization | Rev teams need to know which high-fit accounts are being ignored, not just which accounts look good. |
+| Account and org-chart research | Target account, exec names, account pages, social signals, contact data | Account research, contact classification, org chart generation | Rep prep and account strategy | Research is useful when it becomes a decision about who to contact and why. |
+| Lead-to-meeting driver analysis | Lead, meeting, revenue, owner, response-time data | Causal driver analysis, time-to-first-touch decay, conversion decomposition | Growth lever prioritization | Teams often need to find the bottleneck before they need a new model. |
+| Meeting likelihood scoring | Product/account data, distinct users, revenue, renewal dates, ARR, lead context | Meeting probability model, clean sales handoff | Sales prioritization | Scoring should predict a specific operating outcome, like a meeting, not a vague MQL. |
+| Rep execution monitoring | Model output, Slack actions, CRM tasks, lead status | Action tracking, stale-lead detection, verification loop | Manager visibility and rep follow-up | A workflow is not done until the recommended action actually happened. |
+| Self-serve lifecycle analytics | Product stage definitions, customer/product activity, Mode/Snowflake data | SQL generation, lifecycle stage classification | Lifecycle reporting and CS/GTM actions | Product lifecycle stages have to be operationalized, not only visualized. |
+| Won/lost signal discovery | Salesforce opportunities, won/lost labels, Exa website extraction, Crustdata jobs | Signal lift analysis, anti-fit flags, scorecard | ICP scoring and outbound targeting | The best signals often come from comparing won and lost accounts, not brainstorming keywords. |
+| Niche signal discovery | Won/lost proxy set, websites, jobs, Facebook ads, Google ads, firmographics | Lift analysis, buyer persona mapping, search recipes | Apollo searches, scoring, personalized outbound | ICP work gets sharper when it turns into search recipes and skip rules. |
 | Deepline event follow-up | Luma registrations, check-ins, HubSpot lists, SMS qualification | Event attendee enrichment, check-in segmentation, list sync | HubSpot lists, SMS/email follow-up | Event data is a high-intent GTM source only if it gets synced before the window closes. |
 | Snowflake messaging and customer-story matching | Warehouse/account data, customer stories, persona context, campaign history | Snowflake Cortex/RAG, company summary generation, QA prompts | Persona-specific outbound drafts | Warehouse context can make outbound more relevant when it chooses the right customer story and explains the match. |
 
@@ -706,21 +706,21 @@ Use this as the public-safe pattern:
 
 > A product usage signal is not just "used the product." It is a product behavior that should change the next GTM action.
 
-The Mixmax angle:
+The account-focus angle:
 
 - Product usage signals become propensity scores.
 - Reps focus on high-fit accounts before time gets spent on low-fit ones.
 - The workflow is valuable because it reallocates rep attention, not because it creates another dashboard.
 
-Public proof points from existing Deepline positioning:
+Public-safe proof points from existing Deepline positioning:
 
-- Mixmax saw a +53% relative win-rate improvement.
+- One sales engagement workflow saw a +53% relative win-rate improvement.
 - Focus on high-fit accounts increased by +50%.
 - 40% of prior rep activity was going to wrong or low-fit accounts.
-- Owner.com saw +17% higher lead-to-meeting conversion with prioritized next-best-action workflows.
-- Prove surfaced 5,972 A-tier accounts with no logged meetings in 2 years and a path to reallocate roughly 500 rep hours.
+- One high-volume inbound workflow saw +17% higher lead-to-meeting conversion with prioritized next-best-action workflows.
+- One enterprise account prioritization workflow surfaced 5,972 A-tier accounts with no logged meetings in 2 years and a path to reallocate roughly 500 rep hours.
 
-Do not present the query below as Mixmax's exact production model. Present it as the implementation template for teams trying to operationalize the same idea: usage signals should change rep action.
+Do not present the query below as a customer's exact production model. Present it as the implementation template for teams trying to operationalize the same idea: usage signals should change rep action.
 
 ## PLG Motions To Cover
 
@@ -775,7 +775,7 @@ campaign:
 [ ] Campaign tool can create draft lists
 [ ] Suppression list is connected
 [ ] Sequence stays in draft mode
-[ ] Owner can approve before launch
+[ ] Account owner can approve before launch
 
 ops:
 [ ] Run summary is stored
@@ -1705,7 +1705,7 @@ I packaged the implementation version here:
 - CRM guardrails
 - campaign draft workflow
 
-It is not Mixmax's exact production model. It is the template for teams trying to operationalize the same idea: product usage + account fit + CRM context -> rep action.
+It is not a customer's exact production model. It is the template for teams trying to operationalize the same idea: product usage + account fit + CRM context -> rep action.
 
 Comment PLG and I will send the Notion link.
 ```
