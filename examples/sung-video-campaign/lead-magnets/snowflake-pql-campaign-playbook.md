@@ -489,6 +489,47 @@ iterate
 
 That is the repeatable GTM engineering motion.
 
+## Workflow Inventory From Customer Work
+
+Use this as the implementation menu. These are the workflow shapes we have built, scoped, or repeatedly seen across customer work.
+
+| Workflow | Source systems | Processing layer | Activation target | What it proves |
+| --- | --- | --- | --- | --- |
+| Owner customer event stream | GA4, HubSpot, Salesforce, product data, custom tables, transcripts | Identity graph, event definitions, semantic layer | Dashboards, Slack answers, funnel analysis, workflow triggers | Product, marketing, and sales data only become useful after the business definitions match. |
+| Owner HubSpot contact enrichment | HubSpot contact trigger, Apollo, Crustdata, Serper, Apify | Provider waterfall, LinkedIn validation, company matching | HubSpot contact/company updates and associations | Enrichment should be auditable, validated, and written back only when confidence is high enough. |
+| Owner lead response and SDR funnel | Forms, meetings, HubSpot/Salesforce owners, routing, duplicates | Lead lifecycle definitions, response-time windows, same-day booking logic | Staffing and routing decisions | The valuable question is not "how many leads" but which leads became real meetings under which owner and response path. |
+| Mixmax account enrichment and scoring | Domain seed list, PredictLeads, Exa, Bloomberry, TheirStack | Account enrichment table, ICP prompt, playbook prompt, score evaluation | Rep-ready account rows with score, why-now, first move | A score is only useful when it tells a rep what to do next. |
+| Mixmax product usage and sales qualification | Product usage, CRM integrations, Chrome extension activity, sequencing activity | Usage-to-fit scoring and sales handoff rules | Prioritized sales follow-up | Product activity needs enough CRM context that sales can trust the handoff. |
+| Mixmax outbound event stream | Smartlead, HeyReach, campaign activity, reply/meeting outcomes | Snowflake event tables, campaign-to-outcome joins | Campaign QA, scoring feedback, rep attention | Outbound tools need outcome context or they become activity dashboards. |
+| Prove revenue import | Monthly Adaptive XLSX, product key XLSX, email/Drive/Zapier | Python transform, date normalization, product mapping, replacement semantics | Snowflake revenue table and Slack run summary | The right first workflow is often messy-file automation, not a clean API integration. |
+| Prove propensity and white-space prioritization | Salesforce accounts, wins/losses, firmographics, public signals, enrichment | Backtest, tiering, untouched-account detection | Rep allocation and enterprise account prioritization | Rev teams need to know which high-fit accounts are being ignored, not just which accounts look good. |
+| Prove account and org-chart research | Target account, exec names, account pages, social signals, contact data | Account research, contact classification, org chart generation | Rep prep and account strategy | Research is useful when it becomes a decision about who to contact and why. |
+| Air lead-to-meeting driver analysis | Lead, meeting, revenue, owner, response-time data | Causal driver analysis, time-to-first-touch decay, conversion decomposition | Growth lever prioritization | Teams often need to find the bottleneck before they need a new model. |
+| Air meeting likelihood scoring | Product/account data, distinct users, revenue, renewal dates, ARR, lead context | Meeting probability model, clean sales handoff | Sales prioritization | Scoring should predict a specific operating outcome, like a meeting, not a vague MQL. |
+| Air rep execution monitoring | Model output, Slack actions, CRM tasks, lead status | Action tracking, stale-lead detection, verification loop | Manager visibility and rep follow-up | A workflow is not done until the recommended action actually happened. |
+| Air self-serve lifecycle analytics | Product stage definitions, customer/product activity, Mode/Snowflake data | SQL generation, lifecycle stage classification | Lifecycle reporting and CS/GTM actions | Product lifecycle stages have to be operationalized, not only visualized. |
+| nTop won/lost signal discovery | Salesforce opportunities, won/lost labels, Exa website extraction, Crustdata jobs | Signal lift analysis, anti-fit flags, scorecard | ICP scoring and outbound targeting | The best signals often come from comparing won and lost accounts, not brainstorming keywords. |
+| Fairing niche signal discovery | Won/lost proxy set, websites, jobs, Facebook ads, Google ads, firmographics | Lift analysis, buyer persona mapping, search recipes | Apollo searches, scoring, personalized outbound | ICP work gets sharper when it turns into search recipes and skip rules. |
+| Deepline event follow-up | Luma registrations, check-ins, HubSpot lists, SMS qualification | Event attendee enrichment, check-in segmentation, list sync | HubSpot lists, SMS/email follow-up | Event data is a high-intent GTM source only if it gets synced before the window closes. |
+| Snowflake messaging and customer-story matching | Warehouse/account data, customer stories, persona context, campaign history | Snowflake Cortex/RAG, company summary generation, QA prompts | Persona-specific outbound drafts | Warehouse context can make outbound more relevant when it chooses the right customer story and explains the match. |
+
+The workflow names change by customer. The shape repeats:
+
+```text
+raw source
+-> business definition
+-> enrichment or model
+-> backtest / QA
+-> activation draft
+-> system writeback
+-> run summary
+-> feedback loop
+```
+
+The most common mistake is skipping straight from `raw source` to `activation draft`.
+
+That is where bad PQLs, bad account scores, and bad outbound campaigns come from.
+
 ## Step 1: Pick The PLG Motion
 
 Do not start with a universal score. Start with one GTM motion.
