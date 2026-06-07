@@ -19,7 +19,7 @@ The reader gets:
 - A setup guide for turning product usage into GTM actions.
 - A Snowflake query that turns product usage into an activation queue.
 - A dbt model they can adapt inside their own warehouse.
-- A Deepline/Aero workflow play that syncs the right records to CRM and drafts a campaign.
+- A Deepline workflow play that syncs the right records to CRM and drafts a campaign.
 - The guardrails that keep this from becoming another CSV upload ritual.
 - A library of 25 PLG + GTM engineering plays across activation, sales-assist, expansion, retention, integration intent, revenue routing, and reactivation.
 
@@ -76,6 +76,418 @@ These are the examples to use in the post and comments. They make the guide feel
 The point is not "PQLs are magic."
 
 The point is that product usage and account context should change the next GTM action.
+
+## What We Have Learned From Warehouse-Native GTM Implementations
+
+This section is the part most public PLG guides skip.
+
+Everyone can say "connect product usage to sales." The hard part is knowing what breaks when you actually connect warehouse data, CRM records, campaign tools, rep activity, and product telemetry.
+
+The pattern across Owner, Mixmax, Prove, and other customer work is:
+
+```text
+raw signal -> identity graph -> semantic definition -> backtest -> guardrail -> draft action -> feedback loop
+```
+
+If you skip the middle, you get a faster version of the same spreadsheet mess.
+
+### 1. The warehouse is not the workflow
+
+Snowflake, BigQuery, Redshift, or Postgres can hold the data. They do not decide what should happen next.
+
+The useful artifact is the decision layer on top:
+
+```text
+Which account is this?
+Which user matters?
+Which CRM owner owns it?
+Which lifecycle stage is it in?
+Which actions are suppressed?
+Which next action should be drafted?
+Which records were changed?
+```
+
+If the workflow cannot answer those questions, it is not ready for sales or CS.
+
+### 2. The first warehouse project is usually an identity project
+
+Owner's event-stream work made this obvious.
+
+Before you can analyze "what happened before an upgrade," you need a canonical customer identity across:
+
+- GA4 anonymous IDs.
+- HubSpot contacts and form submissions.
+- Salesforce leads, contacts, accounts, opportunities, and owners.
+- Product users and workspaces.
+- Campaign recipients.
+- Calendar meetings.
+- Gong or call transcripts.
+- Support tickets.
+- Billing records.
+
+The boring table is the important one:
+
+```text
+anonymous_id | user_id | email | contact_id | lead_id | account_id | domain | workspace_id
+```
+
+Do this before you get clever with scoring.
+
+If the identity graph is weak, every downstream workflow gets weird:
+
+- A product user does not match the CRM account.
+- A demo form submit gets counted twice.
+- GA4 says the lead came from one campaign, HubSpot says another.
+- The agent cannot tell whether "form submitted" means a web event, a HubSpot form event, or a Salesforce-created lead.
+- The rep sees an account in a campaign and asks, "why am I seeing this?"
+
+### 3. Source-of-truth priority matters more than source count
+
+You will often have the same business event in multiple places.
+
+Example from Owner-style funnel work:
+
+```text
+form_submitted could exist in GA4
+form_submitted could exist in HubSpot
+lead_created could exist in Salesforce
+demo_booked could exist in Chili Piper or Salesforce
+demo_held could exist in calendar, Gong, or Salesforce
+```
+
+The semantic layer needs to define priority.
+
+Example:
+
+```text
+If HubSpot has form_submit, use HubSpot.
+Else if GA4 has form_submit, use GA4.
+Else mark event as missing.
+```
+
+Do not let the agent infer this from table names. It will sometimes get it right. That is not enough.
+
+### 4. A semantic layer is a product manual for the agent
+
+The public AI story is "ask questions in natural language."
+
+The implementation story is "the agent needs business definitions."
+
+The semantic layer should include:
+
+- Metrics: `lead_to_demo_rate`, `pql_to_closed_won_rate`, `trial_activation_rate`.
+- Dimensions: source, segment, plan, owner, region, product, account tier.
+- Business objects: account, workspace, user, contact, opportunity, campaign, meeting.
+- Event definitions: form submit, AQL, MQL, PQL, demo booked, demo held, opportunity created, upgrade, expansion, churn risk.
+- Source priority rules.
+- Verified query examples.
+- Known exclusions and suppression logic.
+
+Owner's technical team wanted the semantic definitions in dbt and Snowflake so they could reuse them across Snowflake Intelligence, Hex, Sigma, Slack, and Deepline. That is the right instinct.
+
+The more mature the customer, the more they should own the definitions in their dbt repo. Deepline can layer workflows on top.
+
+### 5. Freshness depends on the action
+
+Not every workflow needs real-time data.
+
+Use this rule:
+
+| Workflow | Freshness needed | Why |
+| --- | --- | --- |
+| Same-day lead routing | 5-30 minutes | Paid social and low-intent leads decay quickly |
+| Product activation assist | 1-6 hours | Fast enough to catch onboarding drift |
+| Sales-assist PQL queue | 2-24 hours | Rep prioritization can run daily unless motion is very high velocity |
+| Expansion and renewal risk | Daily | Weekly is often too slow, real-time is usually unnecessary |
+| Revenue import / forecast sync | Daily or monthly replacement | Forecasts can update retroactively; append-only is wrong |
+| Win/loss signal discovery | Weekly or monthly | Backtesting does not need streaming |
+
+Owner-style conversion tracking benefits from 30-60 minute incremental updates.
+
+Prove-style revenue imports do not need real-time streaming. They need reliable replacement semantics, auditability, and Slack/run summaries.
+
+### 6. Reverse ETL is not the enemy. Unowned reverse ETL is.
+
+Census, Hightouch, Zapier, custom scripts, and Deepline workflows all solve variations of "move this modeled data into the operating system."
+
+The failure mode is not the tool.
+
+The failure mode is:
+
+```text
+model changed -> sync still runs -> CRM field is stale -> sales trusts it -> nobody knows who owns the fix
+```
+
+Before you sync anything to CRM, define:
+
+- Who owns the model.
+- Who owns the sync.
+- Which rows should be blocked.
+- What happens when the row disappears from the model.
+- Whether CRM values should be overwritten, appended, or only updated when blank.
+- How reps can see the reason.
+- How to roll back a bad run.
+
+### 7. Manual CSVs are a staging pattern, not an operating model
+
+Manual exports are fine for the first backtest.
+
+They are not fine for production.
+
+Use manual CSVs when:
+
+- You are validating whether a signal is worth modeling.
+- The customer does not know which event names matter.
+- You need a one-off benchmark against Sigma, Salesforce, or HubSpot.
+- You are reconciling metric differences.
+
+Stop using manual CSVs when:
+
+- The same export happens every week.
+- A rep action depends on the result.
+- The workflow affects CRM, campaigns, routing, or attribution.
+- Someone asks "why is my number different?" more than once.
+
+That is the point where the workflow needs a real model, run log, and owner.
+
+### 8. Backtesting is where AI becomes useful
+
+The best agent task is not "score these accounts."
+
+The better task is:
+
+```text
+Look at the 30-90 days before opportunity creation, expansion, upgrade, churn risk, or renewal loss.
+Find which product events, CRM context, support signals, and account traits appeared before the outcome.
+Separate prerequisite events from predictive events.
+Suggest a workflow that would have changed the GTM action earlier.
+```
+
+That is how you avoid fake insights like:
+
+```text
+signed_up is correlated with purchase
+```
+
+Of course it is. Users cannot buy before they exist.
+
+The useful backtest excludes prerequisites and looks for effort, collaboration, integration, admin intent, repeated usage, workflow success, limits, risk, and owner context.
+
+### 9. The action has to be smaller than the model
+
+Most teams try to build a universal score.
+
+The implementations that work start with one action:
+
+- Route same-day high-fit demos.
+- Draft a sales-assist sequence.
+- Create an AE/CS task.
+- Alert Slack when usage drops before renewal.
+- Sync one CRM field with reason codes.
+- Build a weekly manager review queue.
+
+One narrow action beats one broad score.
+
+### 10. The rep needs the "why," not just the rank
+
+Every routed account should carry a reason payload.
+
+Minimum reason object:
+
+```json
+{
+  "why_now": [
+    "3 active users in last 14 days",
+    "CRM connected",
+    "pricing page viewed twice",
+    "no sales activity in 30 days"
+  ],
+  "suggested_action": "draft_owner_followup",
+  "blocked_reasons": [],
+  "source_tables": [
+    "analytics.product_events",
+    "salesforce.accounts",
+    "hubspot.contacts"
+  ],
+  "scored_at": "2026-06-07T12:00:00Z"
+}
+```
+
+Without reason codes, sales adoption dies.
+
+### 11. The workflow needs a run summary
+
+Every production run should output:
+
+```text
+records_read
+records_qualified
+records_blocked
+records_updated_in_crm
+campaign_drafts_created
+sample_records
+blocked_reason_counts
+run_started_at
+run_finished_at
+approved_by
+```
+
+This is not bureaucracy. This is how you debug trust.
+
+When someone asks "what happened yesterday?" you should not open six tabs and guess.
+
+## Source Systems We Keep Seeing
+
+Use this as a mental map when scoping a warehouse-to-GTM workflow.
+
+| Category | Common tools | What they contribute | Common failure mode |
+| --- | --- | --- | --- |
+| Warehouse | Snowflake, BigQuery, Redshift, Postgres | Raw source of truth and modeled tables | Data exists but nobody can activate it |
+| Transformation | dbt, SQL, Python, Sigma data models | Business definitions, semantic layer, reusable models | Definitions split across tools |
+| CRM | Salesforce, HubSpot, Attio | Owners, lifecycle, opportunities, contacts, stage | Ownership is stale or not trusted |
+| Product analytics | PostHog, Mixpanel, Amplitude, Heap, GA4 | Product events, page views, onboarding funnels | Events lack business meaning |
+| Reverse ETL / sync | Census, Hightouch, Zapier, custom scripts, Deepline | Moves modeled data into operating systems | Sync runs without ownership or rollback |
+| Campaigns | Outreach, Salesloft, HubSpot sequences, Instantly, Smartlead, HeyReach, Lemlist | Drafted actions and outbound execution | Leads are uploaded without suppression context |
+| Sales activity | Gong, Outreach, Salesloft, Apollo, Smartlead, HeyReach | Meetings, replies, calls, emails, sequence events | Activity volume is measured without outcome context |
+| Enrichment | Apollo, People Data Labs, Clay, Clearbit, ZoomInfo, Bloomberry, TheirStack, PredictLeads, Exa | Fit, hiring, tech stack, news, account research | Provider outputs are treated as truth without provenance |
+| Support/CS | Zendesk, Intercom, Vitally, Gainsight | Tickets, health, renewal risk, blockers | Sales campaigns fire while support issues are open |
+| Finance/billing | Stripe, Chargebee, Adaptive, NetSuite | MRR, plan, renewal, forecast, usage limits | Imports are manual and retroactive changes are mishandled |
+| Collaboration | Slack, Notion, Google Drive, Sheets | Approval, staging, manual recovery, playbooks | Decisions happen outside the system of record |
+
+The highest-value GTM engineering work is usually not adding one more source.
+
+It is deciding which source wins when two disagree.
+
+## Customer Implementation Notes
+
+### Owner: semantic layer, customer event stream, and ownership
+
+Owner's lesson is that product usage, marketing analytics, and sales data only become useful after they share definitions.
+
+The implementation pattern:
+
+```text
+GA4 + HubSpot + Salesforce + product/custom data + transcripts
+-> identity graph
+-> customer event stream
+-> semantic definitions
+-> dashboards, Slack answers, workflows, and analysis
+```
+
+Key lessons:
+
+- Define `form_submitted`, `demo_booked`, `demo_held`, `AQL`, `MQL`, `PQL`, and `closed_won` explicitly.
+- Put preference rules in the semantic layer. Example: use HubSpot form submissions over GA4 when both exist.
+- Keep the customer's dbt/semantic repo as the source of truth when their data team is mature enough.
+- Keep freshness aligned to the operating motion. Conversion tracking wants 30-60 minute updates; strategic analysis does not.
+- Treat event streaming as a single customer timeline, not a pile of disconnected raw tables.
+- When leadership asks about SDR headcount, lead routing, or funnel conversion, the answer must be explainable enough to change staffing decisions.
+
+Owner anti-patterns to avoid:
+
+- Dashboard numbers that do not match internal Sigma/Salesforce numbers.
+- AQL or lead assignment counts that differ by 30+ records without an explanation.
+- Ownership fields that change constantly and create survivorship bias.
+- PLG traffic getting mixed with inbound/marketing leads because the funnel definitions are too loose.
+- "If this field is true, subtract 50,000" scoring logic that nobody trusts.
+
+### Mixmax: signal discovery, scoring, and rep attention
+
+Mixmax's lesson is that GTM scoring is valuable when it reallocates rep attention.
+
+The implementation pattern:
+
+```text
+company domain
+-> news and company events
+-> tech stack
+-> open AE/SDR roles
+-> CRM and outbound stack signals
+-> ICP score
+-> playbook
+-> why_now / first_move
+-> persisted account enrichment row
+```
+
+The Mixmax account enrichment workflow uses:
+
+- PredictLeads for company news events.
+- Exa as a coverage fallback.
+- Bloomberry for tech stack.
+- TheirStack for AE/SDR hiring.
+- Deeplineagent for score, playbook, `why_now`, signal summary, and first move.
+- A persistent account enrichment table for activation.
+
+Key lessons:
+
+- Score against the action, not the abstract account.
+- A "high score" should become a playbook: AE growth, CRM user, enablement, SDR team, outbound motion, or no-fit.
+- Store the why-now and first-move fields alongside the score.
+- Public enrichment is not enough; compare the scored model against actual win/loss, rep activity, and product/customer context.
+- If a third-party score says low but manual review says high, capture why. That is training data for the next model.
+- Track outbound events from tools like Smartlead and HeyReach into Snowflake so you can compare campaign activity to revenue outcomes.
+
+Mixmax anti-patterns to avoid:
+
+- Reps checking 5-6 screens before trusting a lead.
+- Common Room-style scores that are not explainable enough to act on.
+- Account fit scores that do not become a concrete next action.
+- Treating "uses Salesforce" as sufficient intent without sales hiring, outbound motion, or lifecycle context.
+
+### Prove: revenue imports, replacement semantics, and manual recovery
+
+Prove's lesson is that not every data workflow starts with clean APIs.
+
+Sometimes the correct first workflow is:
+
+```text
+emailed XLSX
+-> Google Drive staging
+-> webhook metadata
+-> Python transform
+-> Snowflake table
+-> run summary
+-> Slack notification
+```
+
+This matters because warehouse GTM work often starts with messy operating data, not pristine event streams.
+
+Key lessons from the Prove import architecture:
+
+- Large XLSX files should not be shoved through webhook JSON. A 56K-row file can turn into a 26MB payload.
+- Use Drive or another staging layer for audit trail and manual recovery.
+- Parse binary files in Python when the workflow runtime is not built for it.
+- Forecast and revenue files often update historical months. Do not append blindly.
+- Incremental logic should delete and replace the affected months, not duplicate revised forecasts.
+- Keep product-key mapping explicit and make missing products visible.
+- Send run summaries to Slack so people know whether the import actually happened.
+
+Prove anti-patterns to avoid:
+
+- Treating every file as append-only.
+- Losing the original file after transforming it.
+- No dry-run mode.
+- No schema-change checklist.
+- Silent failure when a new product appears in the export.
+
+### Cross-customer pattern: the operating layer beats the model
+
+Across these implementations, the model matters less than the operating loop:
+
+```text
+define the business object
+join identity
+choose source priority
+backtest against revenue outcomes
+draft the smallest useful action
+block risky records
+show reasons
+log the run
+collect feedback
+iterate
+```
+
+That is the repeatable GTM engineering motion.
 
 ## Step 1: Pick The PLG Motion
 
@@ -259,7 +671,7 @@ The Mixmax angle:
 - Reps focus on high-fit accounts before time gets spent on low-fit ones.
 - The workflow is valuable because it reallocates rep attention, not because it creates another dashboard.
 
-Public proof points from existing Deepline/Aero positioning:
+Public proof points from existing Deepline positioning:
 
 - Mixmax saw a +53% relative win-rate improvement.
 - Focus on high-fit accounts increased by +50%.
@@ -577,7 +989,7 @@ models:
               values: ['sales_ready']
 ```
 
-## Deepline/Aero Workflow Play
+## Deepline Workflow Play
 
 Use this as the shareable workflow/play:
 
@@ -1316,7 +1728,7 @@ Do not over-automate the first version. The replies are the research.
 
 Want the implementation version?
 
-We packaged the Snowflake query, dbt model, and Deepline/Aero workflow play behind this walkthrough. It turns product usage signals, account fit, CRM context, and campaign guardrails into one rerunnable GTM workflow.
+We packaged the Snowflake query, dbt model, and Deepline workflow play behind this walkthrough. It turns product usage signals, account fit, CRM context, and campaign guardrails into one rerunnable GTM workflow.
 
 Lead magnet options:
 
