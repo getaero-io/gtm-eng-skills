@@ -128,7 +128,9 @@ deepline plays bootstrap company-people-email --from provider:apollo_company_sea
 deepline plays bootstrap company-list --from provider:apollo_company_search --limit 5 --out companies.play.ts
 ```
 
-Bootstrap validates route category/getters; it does not map CSV/provider fields for you. Fill TODOs, run `plays check`, then a watched pilot. CSV bootstrap bakes `ctx.csv(...)`; do not pass the CSV again unless `plays describe` says so.
+Bootstrap validates route category/getters; it does not map CSV/provider fields for you. Generated bootstrap plays should pass `plays check` before provider execution, but same-name field defaults still need business review. Fill TODOs, run `plays check`, then a watched pilot. CSV bootstrap bakes `ctx.csv(...)`; do not pass the CSV again unless `plays describe` says so.
+
+Keep normalization at the declared contract boundary. Finder play/provider outputs should flow through described output fields or `extractedValues.*.get()`, where no-result becomes `null`; do not replace that with raw response parsing, shape guessing, or local trim/spelunking in the scratchpad.
 
 ## Provider Discovery
 
