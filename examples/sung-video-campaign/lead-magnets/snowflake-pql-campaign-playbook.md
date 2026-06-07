@@ -2,7 +2,7 @@
 
 Slug: `snowflake-pql-campaign-playbook`
 
-Offer line: `Turn product usage into GTM workflows without manual exports. Includes the Snowflake query, dbt model, CRM guardrails, and 25 PLG + GTM engineering plays.`
+Offer line: `Turn product usage into GTM workflows without manual exports. Includes the Snowflake query, dbt model, CRM guardrails, and 26 PLG + GTM engineering plays.`
 
 Primary CTA: `Get the product usage to GTM workflow playbook`
 
@@ -21,7 +21,7 @@ The reader gets:
 - A dbt model they can adapt inside their own warehouse.
 - A Deepline workflow play that syncs the right records to CRM and drafts a campaign.
 - The guardrails that keep this from becoming another CSV upload ritual.
-- A library of 25 PLG + GTM engineering plays across activation, sales-assist, expansion, retention, integration intent, revenue routing, and reactivation.
+- A library of 26 PLG + GTM engineering plays across activation, sales-assist, expansion, retention, integration intent, revenue routing, and reactivation.
 
 ## Who This Is For
 
@@ -738,6 +738,7 @@ Do not make this only about PQLs. PQLs are one routing motion inside a broader P
 | Expansion readiness | Usage grows before renewal or across teams | AE/CS expansion task |
 | Reactivation | Dormant high-fit account shows new activity or external signal | Re-engagement campaign |
 | Enterprise routing | Large company reaches meaningful usage | Route to enterprise owner with context |
+| Personal email identity resolution | A high-intent user signed up with Gmail, Outlook, iCloud, or another personal email | Resolve likely work identity and LinkedIn profile, then route only after validation |
 
 The point is not to name everything a PQL.
 
@@ -746,7 +747,7 @@ The point is to make product usage operational.
 Research note from the 2026-06-07 PLG scan:
 
 - Current PLG/product-led sales writing keeps coming back to sales-assist triggers, not only PQLs.
-- Common triggers include team invites, repeated usage-limit hits, enterprise domain usage, integration setup, activation milestones, pricing-page visits, and expansion behavior.
+- Common triggers include team invites, repeated usage-limit hits, enterprise domain usage, personal-email identity resolution, integration setup, activation milestones, pricing-page visits, and expansion behavior.
 - Lifecycle strategy advice is converging on the same idea: product usage should route to self-serve prompts, sales-assist, CS risk workflows, or expansion nudges depending on account context.
 - Sung's transcript matches this broader framing because the demo is a product-led cross-sell/expansion play from Pulse power users to Spark credits, not a generic lead score.
 - The strongest 2026 PLG pattern is hybrid: self-serve adoption first, then sales or CS intervention when usage, fit, admin/security intent, renewal risk, or expansion context says a human should step in.
@@ -1196,7 +1197,47 @@ Draft warm reactivation note.
 Suppress if new company is customer or active opportunity.
 ```
 
-### 5. Expansion Signal Before Renewal
+### 5. Personal Email To LinkedIn Identity Resolution
+
+Signal:
+
+```text
+signup_email_domain in ('gmail.com', 'outlook.com', 'icloud.com', 'yahoo.com')
+meaningful_product_activity = true
+work_email is null
+linkedin_url is null
+```
+
+Action:
+
+```text
+Search by name, personal email clues, company hints, location, and product context.
+Return candidate LinkedIn profiles with confidence reasons.
+Stage the best candidate for review or write back only above the verified threshold.
+If company identity is strong, attach the contact to the likely CRM account.
+```
+
+Guardrail:
+
+```text
+Never write a guessed LinkedIn URL directly into CRM.
+Require at least two corroborating signals:
+- exact name match plus company/domain match
+- exact name match plus location match
+- personal site/GitHub/social profile links to the same LinkedIn
+- email username matches a known profile handle
+```
+
+Why it works:
+
+```text
+Some of the best PLG users sign up with personal email.
+Without identity resolution, they stay trapped as "random Gmail user" in product analytics.
+The goal is not enrichment for its own sake.
+The goal is to recover enough identity to route the account correctly without polluting CRM.
+```
+
+### 6. Expansion Signal Before Renewal
 
 Signal:
 
@@ -1214,7 +1255,7 @@ Draft expansion prep note.
 Do not create outbound campaign.
 ```
 
-### 6. Usage Drop Before Renewal
+### 7. Usage Drop Before Renewal
 
 Signal:
 
@@ -1232,7 +1273,7 @@ Send Slack alert to account team.
 Add "usage risk" note to CRM.
 ```
 
-### 7. Product-Led Inbound Prioritization
+### 8. Product-Led Inbound Prioritization
 
 Signal:
 
@@ -1250,7 +1291,7 @@ Route to rep within same day.
 Draft first-touch email with product action context.
 ```
 
-### 8. Integration Intent
+### 9. Integration Intent
 
 Signal:
 
@@ -1267,7 +1308,7 @@ Create technical onboarding task.
 Draft email from solutions engineer or founder.
 ```
 
-### 9. Failed Workflow Rescue
+### 10. Failed Workflow Rescue
 
 Signal:
 
@@ -1290,7 +1331,7 @@ Why it works:
 Some product signals should create help, not sales pressure.
 ```
 
-### 10. Dormant High-Fit Account Reactivation
+### 11. Dormant High-Fit Account Reactivation
 
 Signal:
 
@@ -1307,7 +1348,7 @@ Draft reactivation campaign.
 Mention the external change and previous product context.
 ```
 
-### 11. Multi-Threading Target Account
+### 12. Multi-Threading Target Account
 
 Signal:
 
@@ -1325,7 +1366,7 @@ Draft account-owner task to multi-thread.
 Do not automatically sequence everyone.
 ```
 
-### 12. Self-Serve Account Ready For Sales Assist
+### 13. Self-Serve Account Ready For Sales Assist
 
 Signal:
 
@@ -1344,7 +1385,7 @@ Draft expansion-assist note.
 Add account to sales-assist list.
 ```
 
-### 13. Usage Limit Hit, Upgrade Path Obvious
+### 14. Usage Limit Hit, Upgrade Path Obvious
 
 Signal:
 
@@ -1369,7 +1410,7 @@ Guardrail:
 If account fit is low, route to lifecycle email instead of sales.
 ```
 
-### 14. SSO Or SCIM Intent
+### 15. SSO Or SCIM Intent
 
 Signal:
 
@@ -1394,7 +1435,7 @@ Why it works:
 Enterprise readiness often shows up as security, provisioning, and admin workflows before a formal sales conversation.
 ```
 
-### 15. High-Intent Pricing Page Plus Real Usage
+### 16. High-Intent Pricing Page Plus Real Usage
 
 Signal:
 
@@ -1418,7 +1459,7 @@ Guardrail:
 Block if pricing page view is the only signal.
 ```
 
-### 16. Activation Stalled After Setup
+### 17. Activation Stalled After Setup
 
 Signal:
 
@@ -1442,7 +1483,7 @@ Why it works:
 This is not a sales play. It is an activation rescue play.
 ```
 
-### 17. New Use Case Detected Inside Existing Customer
+### 18. New Use Case Detected Inside Existing Customer
 
 Signal:
 
@@ -1467,7 +1508,7 @@ Guardrail:
 Require CSM review before any customer-facing message.
 ```
 
-### 18. Department Expansion
+### 19. Department Expansion
 
 Signal:
 
@@ -1491,7 +1532,7 @@ Why it works:
 Expansion often starts as lateral adoption before procurement asks for a larger contract.
 ```
 
-### 19. Champion Risk Before Renewal
+### 20. Champion Risk Before Renewal
 
 Signal:
 
@@ -1515,7 +1556,7 @@ Guardrail:
 Do not contact the old champion if they left the company or stopped using the product for a sensitive reason.
 ```
 
-### 20. Product Usage Up, Business Review Missing
+### 21. Product Usage Up, Business Review Missing
 
 Signal:
 
@@ -1539,7 +1580,7 @@ Why it works:
 The right action is often a business review, not a sales sequence.
 ```
 
-### 21. Low-Fit Power User
+### 22. Low-Fit Power User
 
 Signal:
 
@@ -1563,7 +1604,7 @@ Why it works:
 Usage without fit can waste rep time even when the product behavior looks impressive.
 ```
 
-### 22. High-Fit Quiet Account
+### 23. High-Fit Quiet Account
 
 Signal:
 
@@ -1587,7 +1628,7 @@ Guardrail:
 Use only for high-fit accounts. Otherwise automate.
 ```
 
-### 23. Multi-Product Cross-Sell From Power Users
+### 24. Multi-Product Cross-Sell From Power Users
 
 Signal:
 
@@ -1612,7 +1653,7 @@ Why it works:
 This is the pattern Sung shows: product usage creates context for a specific next product motion.
 ```
 
-### 24. Workflow Failure At High-Fit Account
+### 25. Workflow Failure At High-Fit Account
 
 Signal:
 
@@ -1637,7 +1678,7 @@ Guardrail:
 Never turn product frustration into a sales campaign.
 ```
 
-### 25. Agent Or Automation Adoption Readiness
+### 26. Agent Or Automation Adoption Readiness
 
 Signal:
 
