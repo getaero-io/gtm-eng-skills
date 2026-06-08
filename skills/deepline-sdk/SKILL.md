@@ -221,6 +221,22 @@ await ctx.tools.execute({ id: "email", tool, input, staleAfterSeconds: 2592000 }
 dataset.withColumn("validated_email", resolver, { staleAfterSeconds: 86400 });
 ```
 
+For dataset cells whose refresh depends on the returned value, use object-column authoring. `previousCell.value` is the previous returned value for that row+column; `previousCell.completedAt`, `previousCell.staleAt`, and `previousCell.staleAfterSeconds` are metadata. Returning `null` from `staleAfterSeconds(value)` means the stored cell has no next expiry.
+
+```
+dataset.withColumn("job_change", {
+  run: async ({ row, ctx, previousCell }) => {
+    if (previousCell?.value.status === "stale_contact") {
+      return previousCell.value;
+    }
+    ctx.log("job_change_detection_run domain=" + String(row.domain));
+    return { status: "checking", domain: String(row.domain) };
+  },
+  staleAfterSeconds: (value) =>
+    value.status === "stale_contact" ? null : 2592000,
+});
+```
+
 Do not put non-determinism in play bodies. If you need authenticated HTTP, use secret handles:
 
 ```
@@ -320,6 +336,25 @@ Pilot-to-scale stop rules:
 - If a 1-3 row pilot returns names/LinkedIn but zero titles, inspect/export the pilot and fix projection or route before scale.
 - If a pilot returns good contacts but zero emails, scale only if email was optional and the CSV preserves contact identity plus `miss_reason`.
 - If the final user asked for 30 rows, use a slightly larger seed only to offset expected misses, then slice the final CSV to the requested row count.
+
+## Debugging Runs
+
+Use `ctx.log("message")` inside custom plays for lightweight breadcrumbs around route choice, row gates, getter shape, and fallback decisions. Inside dataset columns, use the row context (`rowCtx.log("message")`) so the log lands in the same run stream. Do not log secrets, credentials, raw large provider payloads, provider spend, or full CSV rows.
+
+Logs are run-ledger facts, not final data. Keep customer-facing outputs in dataset columns with `status`, `source`, evidence, and `miss_reason`; use logs to explain why a branch ran or skipped.
+
+Inspect logs with Deepline commands, one at a time:
+
+```text
+deepline runs get <run-id> --json --full
+deepline runs logs <run-id> --json
+```
+
+During pilots, a watched run is usually enough for live progress:
+
+```text
+deepline plays run --file <file.play.ts> --input '<json>' --watch
+```
 
 ## Recovery
 
