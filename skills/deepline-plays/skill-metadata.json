@@ -1,9 +1,9 @@
 {
-  "title": "Getting Started With Deepline SDK",
+  "title": "Getting Started With Deepline Plays",
   "documents": {
     "SKILL.md": {
       "kind": "entrypoint",
-      "title": "Getting Started With Deepline SDK",
+      "title": "Getting Started With Deepline Plays",
       "tags": ["sdk", "gtm", "plays", "v2"],
       "providers": []
     },
@@ -34,7 +34,7 @@
   },
   "default_document": {
     "kind": "reference",
-    "title": "Deepline SDK Document",
+    "title": "Deepline Plays Document",
     "tags": ["sdk"],
     "providers": []
   }

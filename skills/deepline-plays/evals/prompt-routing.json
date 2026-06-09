@@ -5,7 +5,7 @@
       "id": "run_named_prebuilt_export",
       "prompt": "Run this named prebuilt on one row and export the result.",
       "expectedPieces": [
-        "Getting Started With Deepline SDK",
+        "Getting Started With Deepline Plays",
         "Run, Export, Inspect, Repair"
       ],
       "requiredCommands": [
@@ -26,7 +26,7 @@
       "id": "csv_wrapper_projection",
       "prompt": "Upload a CSV, map headers, add status and miss_reason, then export clean rows.",
       "expectedPieces": [
-        "Getting Started With Deepline SDK",
+        "Getting Started With Deepline Plays",
         "Run, Export, Inspect, Repair"
       ],
       "requiredCommands": [
@@ -47,7 +47,7 @@
       "id": "find_companies_tam",
       "prompt": "Find companies in this ICP and size the TAM before building rows.",
       "expectedPieces": [
-        "Getting Started With Deepline SDK",
+        "Getting Started With Deepline Plays",
         "Find Companies, Contacts, And TAM"
       ],
       "requiredCommands": [
@@ -67,7 +67,7 @@
       "id": "company_contacts_email",
       "prompt": "For these companies, find contacts and then enrich email addresses.",
       "expectedPieces": [
-        "Getting Started With Deepline SDK",
+        "Getting Started With Deepline Plays",
         "Find Companies, Contacts, And TAM",
         "Run, Export, Inspect, Repair"
       ],
@@ -107,7 +107,7 @@
       "id": "repair_failed_or_suspicious_run",
       "prompt": "A run failed or the UI output looks suspicious; inspect it and repair if needed.",
       "expectedPieces": [
-        "Getting Started With Deepline SDK",
+        "Getting Started With Deepline Plays",
         "Run, Export, Inspect, Repair"
       ],
       "requiredCommands": [
@@ -127,7 +127,7 @@
       "id": "api_monitor_or_cron",
       "prompt": "Build an API or cron monitor around a play.",
       "expectedPieces": [
-        "Getting Started With Deepline SDK",
+        "Getting Started With Deepline Plays",
         "Run, Export, Inspect, Repair",
         "generated SDK/API references"
       ],
@@ -148,7 +148,7 @@
       "id": "fork_prebuilt_internals",
       "prompt": "Fork this prebuilt because its provider order or stale policy is wrong.",
       "expectedPieces": [
-        "Getting Started With Deepline SDK",
+        "Getting Started With Deepline Plays",
         "Run, Export, Inspect, Repair"
       ],
       "requiredCommands": [
@@ -168,7 +168,7 @@
       "id": "planning_only_no_spend",
       "prompt": "Plan the route and estimate cost, but do not run paid work.",
       "expectedPieces": [
-        "Getting Started With Deepline SDK",
+        "Getting Started With Deepline Plays",
         "Find Companies, Contacts, And TAM"
       ],
       "requiredCommands": [

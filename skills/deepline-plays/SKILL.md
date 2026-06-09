@@ -1,9 +1,9 @@
 ---
-name: deepline-sdk
-description: 'Use for Deepline SDK/CLI V2 work: get started, find/describe/run prebuilts, process CSVs, bootstrap/wrap/fork plays, author durable V2 workflows, find companies or contacts, size TAM, inspect/export runs, explain billing, and repair failures. Triggers on deepline CLI work, plays, prebuilts, CSV enrichment, prospecting, TAM, provider routing, play authoring, staleAfterSeconds, datasets, runs, exports, billing, and eval-style GTM tasks.'
+name: deepline-plays
+description: 'Use for Deepline Plays/CLI V2 work: get started, find/describe/run prebuilts, process CSVs, bootstrap/wrap/fork plays, author durable V2 workflows, find companies or contacts, size TAM, inspect/export runs, explain billing, and repair failures. Triggers on deepline CLI work, plays, prebuilts, CSV enrichment, prospecting, TAM, provider routing, play authoring, staleAfterSeconds, datasets, runs, exports, billing, and eval-style GTM tasks.'
 ---
 
-# Getting Started With Deepline SDK
+# Getting Started With Deepline Plays
 
 Deepline GTM work is paid uncertainty reduction. The play is the notebook, stable ids are the cache, datasets are durable row state, getters are the interface, and CSV is an input/output boundary. Start from live Deepline contracts, then run exactly or build a small durable wrapper.
 
