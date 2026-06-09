@@ -12,7 +12,7 @@ Discover differential signals between Closed Won and Closed Lost accounts by ext
 
 - **Deepline CLI** — All enrichment runs through `deepline enrich`. No separate API keys for exa/crustdata/apollo etc.
 - **Python 3** stdlib only — no pip dependencies for any shipped script.
-- **Credits** — ~0.47 credits/company (serper 0.02 + firecrawl 0.05 + crustdata 0.40). Step 7 contact discovery is additional. **Always get user approval before paid steps.**
+- **Credits** — paid web extraction plus CrustData job search. Run a small sample or `deepline tools get crustdata_v2_job_search --json` for current Deepline-facing pricing before scaling. Step 7 contact discovery is additional. **Always get user approval before paid steps.**
 
 ## Deepline-First Principle
 
@@ -159,16 +159,16 @@ deepline enrich \
 
 Aggregate scraped pages back into one row per domain, formatted as `{"data":{"results":[{url, title, text}]}}` for the analysis script.
 
-**Step 2c - Job listings with Crustdata (0.40 credits/company):**
+**Step 2c - Job listings with Crustdata:**
 
 ```bash
 deepline enrich \
   --input output/{{company}}-aggregated.csv \
   --output output/{{company}}-enriched.csv \
-  --with '{"alias":"jobs","tool":"crustdata_job_listings","payload":{"companyDomains":["{{domain}}"]}}' --json
+  --with '{"alias":"jobs","tool":"crustdata_v2_job_search","payload":{"filters":[{"filter_type":"company.basic_info.primary_domain","type":"=","value":"{{domain}}"}],"limit":100}}' --json
 ```
 
-**Total cost: ~0.47 credits/company.** Get user approval first. Example: "60 companies x 0.47 = ~28 credits."
+Estimate the paid-step total from current tool pricing before scaling. Get user approval first.
 
 ## Step 3: Quality gate
 
@@ -296,5 +296,5 @@ After enrichment, each row has:
 
 ## Changelog
 
-- **2026-04-13** — Switched Step 2 from exa_search (~5 credits) to Serper + Firecrawl (~0.07 credits) for website content. Total: ~0.47/company (was ~6). Fixed analyze_signals.py to handle Crustdata's `{"result":{"listings":[]}}` wrapper. Verified E2E on 15 companies.
+- **2026-04-13** — Switched Step 2 from exa_search (~5 credits) to Serper + Firecrawl (~0.07 credits) for website content. Fixed analyze_signals.py to handle Crustdata's `{"result":{"listings":[]}}` wrapper. Verified E2E on 15 companies.
 - **2026-04-07** — Added Step 1.0.5 (dedupe with apex helper), Step 7 (top 10 prospects required, contacts optional via `--contacts`/`--no-contacts`), `references/scoring-pitfalls.md` warning about confirmation-biased CRM fields, mandatory citation rule. Shipped `scripts/dedupe_utils.py` + `scripts/find_contacts.py`. Aggressively trimmed inline detail to references — moved Step 3 quality gate, Step 5 quality rules, Common Pitfalls (items 7-15), and Proven Signal Patterns into `references/`. SKILL.md went from 650 to ~250 lines via progressive disclosure.

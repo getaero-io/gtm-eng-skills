@@ -1,25 +1,41 @@
 {
-  "title": "Deepline SDK Dense V3 Bootstrap",
+  "title": "Getting Started With Deepline SDK",
   "documents": {
     "SKILL.md": {
       "kind": "entrypoint",
-      "title": "Deepline SDK Dense V3 Bootstrap",
+      "title": "Getting Started With Deepline SDK",
       "tags": ["sdk", "gtm", "plays", "v2"],
       "providers": []
-    }
-  },
-  "prefixes": {
-    "references/": {
+    },
+    "references/find-companies-contacts-tam.md": {
       "kind": "reference",
-      "title": "Dense V3 JTBD References",
-      "tags": ["gtm", "tam", "contacts", "workflow"],
+      "title": "Find Companies, Contacts, And TAM",
+      "tags": ["gtm", "tam", "contacts", "providers"],
+      "providers": []
+    },
+    "references/run-export-inspect-repair.md": {
+      "kind": "reference",
+      "title": "Run, Export, Inspect, Repair",
+      "tags": ["runs", "exports", "billing", "debugging"],
+      "providers": []
+    },
+    "references/sdk-reference.md": {
+      "kind": "reference",
+      "title": "SDK Reference",
+      "tags": ["sdk", "generated"],
+      "providers": []
+    },
+    "references/api-reference.md": {
+      "kind": "reference",
+      "title": "Runtime API Reference",
+      "tags": ["api", "generated"],
       "providers": []
     }
   },
   "default_document": {
-    "kind": "other",
-    "title": "Document",
-    "tags": [],
+    "kind": "reference",
+    "title": "Deepline SDK Document",
+    "tags": ["sdk"],
     "providers": []
   }
 }

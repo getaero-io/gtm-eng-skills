@@ -1,0 +1,189 @@
+{
+  "version": "2026-06-08",
+  "cases": [
+    {
+      "id": "run_named_prebuilt_export",
+      "prompt": "Run this named prebuilt on one row and export the result.",
+      "expectedPieces": [
+        "Getting Started With Deepline SDK",
+        "Run, Export, Inspect, Repair"
+      ],
+      "requiredCommands": [
+        "deepline plays describe prebuilt/<name> --json",
+        "deepline plays run prebuilt/<name> --input '{...}' --watch",
+        "deepline runs export <run-id> --dataset result.rows --out rows.csv"
+      ],
+      "skillNeedles": [
+        "Describe before spend",
+        "Direct-run only when exact"
+      ],
+      "referenceNeedles": [
+        "Pilot before scale",
+        "Good export output"
+      ]
+    },
+    {
+      "id": "csv_wrapper_projection",
+      "prompt": "Upload a CSV, map headers, add status and miss_reason, then export clean rows.",
+      "expectedPieces": [
+        "Getting Started With Deepline SDK",
+        "Run, Export, Inspect, Repair"
+      ],
+      "requiredCommands": [
+        "deepline plays bootstrap <family> --from <source> --using play:prebuilt/<candidate> --limit 5 --out workflow.play.ts",
+        "deepline plays check workflow.play.ts",
+        "deepline runs export <run-id> --dataset result.rows --out rows.csv"
+      ],
+      "skillNeedles": [
+        "Bootstrap/wrap when",
+        "Project to flat user-facing columns"
+      ],
+      "referenceNeedles": [
+        "flat user-facing headers",
+        "status`, `miss_reason"
+      ]
+    },
+    {
+      "id": "find_companies_tam",
+      "prompt": "Find companies in this ICP and size the TAM before building rows.",
+      "expectedPieces": [
+        "Getting Started With Deepline SDK",
+        "Find Companies, Contacts, And TAM"
+      ],
+      "requiredCommands": [
+        "deepline plays search \"company list ICP TAM funding headcount hiring\" --json",
+        "deepline tools search \"company search funding headcount hq\" --categories company_search --json"
+      ],
+      "skillNeedles": [
+        "Find Companies, Contacts, And TAM",
+        "criteria, evidence, count/sample basis"
+      ],
+      "referenceNeedles": [
+        "TAM means count basis plus representative sample",
+        "Scout Before Scale"
+      ]
+    },
+    {
+      "id": "company_contacts_email",
+      "prompt": "For these companies, find contacts and then enrich email addresses.",
+      "expectedPieces": [
+        "Getting Started With Deepline SDK",
+        "Find Companies, Contacts, And TAM",
+        "Run, Export, Inspect, Repair"
+      ],
+      "requiredCommands": [
+        "deepline plays search \"company people email\" --json",
+        "deepline tools search \"people search title seniority linkedin domain\" --categories people_search --json"
+      ],
+      "skillNeedles": [
+        "company-people-email",
+        "Company -> contacts -> email/phone"
+      ],
+      "referenceNeedles": [
+        "Use company domains over names",
+        "Cap contacts per account before email/phone"
+      ]
+    },
+    {
+      "id": "billing_confusion",
+      "prompt": "Why was I charged, or why does this run show zero credits?",
+      "expectedPieces": [
+        "Run, Export, Inspect, Repair"
+      ],
+      "requiredCommands": [
+        "deepline runs get <run-id> --full --json",
+        "deepline billing usage --limit 10"
+      ],
+      "skillNeedles": [
+        "Billing/rerun/debug/export question",
+        "No paid rerun until run metadata is understood"
+      ],
+      "referenceNeedles": [
+        "When explaining cost, report",
+        "This appears to charge only on confirmed moved results"
+      ]
+    },
+    {
+      "id": "repair_failed_or_suspicious_run",
+      "prompt": "A run failed or the UI output looks suspicious; inspect it and repair if needed.",
+      "expectedPieces": [
+        "Getting Started With Deepline SDK",
+        "Run, Export, Inspect, Repair"
+      ],
+      "requiredCommands": [
+        "deepline runs get <run-id> --full --json",
+        "deepline runs logs <run-id>"
+      ],
+      "skillNeedles": [
+        "Billing/rerun/debug/export question",
+        "Report reality"
+      ],
+      "referenceNeedles": [
+        "Repair Classes",
+        "Suspicious UI Or Output"
+      ]
+    },
+    {
+      "id": "api_monitor_or_cron",
+      "prompt": "Build an API or cron monitor around a play.",
+      "expectedPieces": [
+        "Getting Started With Deepline SDK",
+        "Run, Export, Inspect, Repair",
+        "generated SDK/API references"
+      ],
+      "requiredCommands": [
+        "deepline plays bootstrap --help",
+        "deepline plays check workflow.play.ts"
+      ],
+      "skillNeedles": [
+        "API/cron/webhook monitor",
+        "cron"
+      ],
+      "referenceNeedles": [
+        "Start A Named Or Prebuilt Play",
+        "Stream Events"
+      ]
+    },
+    {
+      "id": "fork_prebuilt_internals",
+      "prompt": "Fork this prebuilt because its provider order or stale policy is wrong.",
+      "expectedPieces": [
+        "Getting Started With Deepline SDK",
+        "Run, Export, Inspect, Repair"
+      ],
+      "requiredCommands": [
+        "deepline plays get prebuilt/<name> --source --out fork.play.ts",
+        "deepline plays check workflow.play.ts"
+      ],
+      "skillNeedles": [
+        "Fork when internals need to change",
+        "Do not fork for simple CSV aliases"
+      ],
+      "referenceNeedles": [
+        "getter/output projection issue",
+        "runtime/code error"
+      ]
+    },
+    {
+      "id": "planning_only_no_spend",
+      "prompt": "Plan the route and estimate cost, but do not run paid work.",
+      "expectedPieces": [
+        "Getting Started With Deepline SDK",
+        "Find Companies, Contacts, And TAM"
+      ],
+      "requiredCommands": [
+        "deepline plays search \"<job words>\" --json",
+        "deepline plays describe prebuilt/<candidate> --json",
+        "deepline tools describe <tool-id> --json"
+      ],
+      "skillNeedles": [
+        "Safe planning-only commands",
+        "Do not call `plays run` or provider execution in planning-only mode"
+      ],
+      "referenceNeedles": [
+        "TAM sizing only",
+        "Prefer result-priced or successful-hit billing"
+      ]
+    }
+  ]
+}

@@ -3,6 +3,7 @@ Use CrustData for structured discovery and enrichment with recall-first filterin
 - Start with free autocomplete (`companydb_autocomplete`, `persondb_autocomplete`) to discover canonical values.
 - Default to fuzzy contains operator `(.)`; use strict `[.]` only when explicitly requested.
 - Use `crustdata_companydb_search` as the resolver step; for `crustdata_enrich_company`, prefer domain-based inputs instead of name-only payloads.
+- For job data, use `crustdata_v2_job_search` for indexed listings or `crustdata_v2_live_job_search` when freshness is required for a known CrustData company id. Legacy job-listing compatibility actions are hidden from discovery and should not be selected for new workflows.
 - In changed-company email recovery, use Crust as the second step after LeadMagic and before PDL.
 - Keep filters composable and inspect a small sample before adding expensive enrichments.
 - If Crust misses in the first 10 rows for a batch, move it later for the rest of that batch.
