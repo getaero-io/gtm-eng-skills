@@ -289,6 +289,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-cli-slack-report-channel-routing` | Routes internal Slack observability reports to the correct V1/V2 channels by CLI client family: POST /api/v2/cli/feedback, /api/v2/cli/report-failure, and /api/v2/cli/session-start now read CLI client-context headers so python-cli (V1) f... |
 | `2026-06-sdk-play-route-lazy-build-imports` | Moves play preflight/typecheck/bundling imports behind lazy server-only boundaries for POST /api/v2/plays/check and POST /api/v2/plays/run to reduce Next/Vercel build memory. Request shapes, response envelopes, route paths, validation se... |
 | `2026-06-sdk-plays-run-internal-concurrency-guard-removed` | Removes the server-side in-flight guard that blocked concurrent dataset-backed internal child play calls (ctx.runPlay) in POST /api/v2/plays/run and the [name]/live route. Internal-only behavior: request shapes, response envelopes, route... |
 | `2026-06-sdk-play-runif-options-syntax` | Updates SDK CLI play bootstrap generation to emit the additive `step(..., resolver, { runIf })` authoring syntax while preserving existing play check/run routes, request shapes, response envelopes, and legacy `runIf(predicate, resolver)`... |
@@ -296,7 +297,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-05-sdk-play-tool-search-ergonomics` | Adds compatible SDK CLI discovery and rendering ergonomics for plays/tools search and describe flows. Existing command names, API routes, request shapes, and response shapes remain supported; the changes make additive CLI output and vali... |
 | `2026-05-play-runtime-seam-refactor` | Refactors play run start/status route internals behind scheduler and runtime control modules without changing SDK request or response shapes. Existing SDK/CLI start, tail, signal, and stop calls continue to use the same routes and envelo... |
 | `2026-05-sdk-play-bootstrap-command` | Adds the SDK CLI plays bootstrap command and public helper subpath for generating editable play scratchpads. Existing SDK/API routes, request shapes, response shapes, and command behavior remain supported; the command composes existing p... |
-| `2026-06-play-run-billing-breakdown` | Adds optional Deepline-facing billing breakdown fields to completed play run detail responses. Existing SDK/CLI clients continue to receive the previous run status envelope, and the new billing fields are additive. |
 
 ## Public Types
 
