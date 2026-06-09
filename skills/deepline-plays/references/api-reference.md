@@ -6,9 +6,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.88` |
+| SDK version | `0.1.89` |
 | API contract | `2026-06-dataset-column-cell-stale-hard-cutover` |
-| Latest supported SDK | `0.1.88` |
+| Latest supported SDK | `0.1.89` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.53` |
 | Generated sources | `src/lib/sdk/api-routes.ts`<br />`sdk/src/types.ts`<br />`sdk/src/client.ts`<br />`sdk/src/release.ts` |
@@ -289,6 +289,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-sdk-plays-internal-module-relocation` | Internal module relocation only for POST /api/v2/plays/run and POST /api/v2/plays/artifacts: resolveStaticPipelineTree now imports from @shared_libs/plays/resolve-static-pipeline (static-pipeline/compiler-manifest consolidation), schedul... |
 | `2026-06-cli-slack-report-channel-routing` | Routes internal Slack observability reports to the correct V1/V2 channels by CLI client family: POST /api/v2/cli/feedback, /api/v2/cli/report-failure, and /api/v2/cli/session-start now read CLI client-context headers so python-cli (V1) f... |
 | `2026-06-sdk-play-route-lazy-build-imports` | Moves play preflight/typecheck/bundling imports behind lazy server-only boundaries for POST /api/v2/plays/check and POST /api/v2/plays/run to reduce Next/Vercel build memory. Request shapes, response envelopes, route paths, validation se... |
 | `2026-06-sdk-plays-run-internal-concurrency-guard-removed` | Removes the server-side in-flight guard that blocked concurrent dataset-backed internal child play calls (ctx.runPlay) in POST /api/v2/plays/run and the [name]/live route. Internal-only behavior: request shapes, response envelopes, route... |
@@ -296,7 +297,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-06-sdk-plays-fork-shared-reference` | GET /api/v2/plays/:name and the play-run resolver now fork another org’s *published* play into the caller’s org when it is referenced as `<orgSlug>/<play>` (the org-shared analogue of `prebuilt/*`), instead of returning 404. Purely addit... |
 | `2026-05-sdk-play-tool-search-ergonomics` | Adds compatible SDK CLI discovery and rendering ergonomics for plays/tools search and describe flows. Existing command names, API routes, request shapes, and response shapes remain supported; the changes make additive CLI output and vali... |
 | `2026-05-play-runtime-seam-refactor` | Refactors play run start/status route internals behind scheduler and runtime control modules without changing SDK request or response shapes. Existing SDK/CLI start, tail, signal, and stop calls continue to use the same routes and envelo... |
-| `2026-05-sdk-play-bootstrap-command` | Adds the SDK CLI plays bootstrap command and public helper subpath for generating editable play scratchpads. Existing SDK/API routes, request shapes, response shapes, and command behavior remain supported; the command composes existing p... |
 
 ## Public Types
 
