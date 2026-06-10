@@ -190,9 +190,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.91` |
+| SDK version | `0.1.93` |
 | API contract | `2026-06-dataset-column-cell-stale-hard-cutover` |
-| Latest supported SDK | `0.1.91` |
+| Latest supported SDK | `0.1.93` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.53` |
 | Generated sources | `sdk/src/client.ts`<br />`sdk/src/play.ts`<br />`shared_libs/play-runtime/cell-staleness.ts`<br />`shared_libs/play-runtime/tool-result-types.ts`<br />`shared_libs/plays/dataset.ts` |
@@ -863,7 +863,8 @@ Signature: `class DeeplineClient`
 | `listPlayRuns` | method | List recent runs for a named play.<br /><br />Returns runs sorted by start time (newest first), including workflow IDs,<br />status, timestamps, and metadata. | `playName: string` - The play name to query | `Promise<PlayRunListItem[]>` |
 | `getRunStatus` | method | Get a run by id using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs get <run-id> --json<br />``` | `runId: string`<br />`options?: { full?: boolean }` | `Promise<PlayStatus>` |
 | `listRuns` | method | List play runs using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs list --play <play-name> --status failed --json<br />``` | `options: RunsListOptions` | `Promise<PlayRunListItem[]>` |
-| `tailRun` | method | Read the canonical run stream and return the latest run snapshot. | `runId: string`<br />`options?: RunsTailOptions` | `Promise<PlayStatus>` |
+| `observeRunEvents` | method | Observe one run's live events through the Convex Run Snapshot<br />subscription transport (ADR-0008). Yields the same `play.*` event<br />envelopes as `streamPlayRunEvents` and ends after the terminal<br />snapshot. Throws `RunObserveTransportUnavailableError` when this<br />server cannot serve the transport (older server, unconfigured grants, or<br />unreachable Convex) — callers fall back to the SSE stream with a notice. | `runId: string`<br />`options?: { signal?: AbortSignal; onNotice?: (message: string) => void }` | `AsyncGenerator<PlayLiveEvent>` |
+| `tailRun` | method | Read the canonical run stream until a terminal run status is observed.<br /><br />Tries the Convex Run Snapshot subscription transport first (ADR-0008);<br />when the server cannot serve it (grant endpoint missing/unconfigured or<br />Convex unreachable) it falls back — with one `onNotice` message — to the<br />support-window SSE stream below.<br /><br />Server stream windows are finite: they end cleanly at the function<br />ceiling even while the run keeps executing. A window that ends (cleanly<br />or via transient network error) without a terminal event triggers one<br />durable-status re-check followed by a backed-off reconnect, so long runs<br />tail to completion. Abort via `options.signal` to stop waiting. | `runId: string`<br />`options?: RunsTailOptions` | `Promise<PlayStatus>` |
 | `getRunLogs` | method | Fetch persisted logs for a run using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs logs <run-id> --limit 200 --json<br />``` | `runId: string`<br />`options?: RunsLogsOptions` | `Promise<RunsLogsResult>` |
 | `getPlaySheetRows` | method | Export persisted runtime-sheet rows for a play dataset/table namespace.<br /><br />This is the SDK form of exporting `ctx.dataset(...).run()` output for a<br />specific play and optional run id. | `input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; }` | `Promise<PlaySheetRowsResult>` |
 | `stopRun` | method | Stop a run by id using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs stop <run-id> --reason "stale lock" --json<br />``` | `runId: string`<br />`options?: { reason?: string }` | `Promise<StopPlayRunResult>` |

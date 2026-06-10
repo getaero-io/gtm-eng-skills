@@ -6,9 +6,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.91` |
+| SDK version | `0.1.93` |
 | API contract | `2026-06-dataset-column-cell-stale-hard-cutover` |
-| Latest supported SDK | `0.1.91` |
+| Latest supported SDK | `0.1.93` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.53` |
 | Generated sources | `src/lib/sdk/api-routes.ts`<br />`sdk/src/types.ts`<br />`sdk/src/client.ts`<br />`sdk/src/release.ts` |
@@ -218,7 +218,9 @@ while True:
 | `GET` | `/api/v2/plays/:name/sheet` | `runs.exportDatasetRows`<br />`getPlaySheetRows` | Read/export runtime sheet rows for a run dataset. | `src/app/api/v2/plays/[name]/sheet/route.ts` |
 | `POST` | `/api/v2/plays/run` | `startPlayRun`<br />`startPlayRunFromBundle`<br />`runPlay` | Start a saved, prebuilt, or artifact-backed play run. | `src/app/api/v2/plays/run/route.ts` |
 | `GET` | `/api/v2/runs` | `runs.list`<br />`listRuns` | List runs with filters such as play name and status. | `src/app/api/v2/runs/route.ts` |
-| `GET` | `/api/v2/runs/:runId` | `runs.get`<br />`runs.logs`<br />`getRunStatus`<br />`getRunLogs`<br />`getPlayStatus` | Read canonical status, result, outputs, and run package. | `src/app/api/v2/runs/[runId]/route.ts` |
+| `GET` | `/api/v2/runs/:runId` | `runs.get`<br />`getRunStatus`<br />`getPlayStatus` | Read canonical status, result, outputs, and run package. | `src/app/api/v2/runs/[runId]/route.ts` |
+| `GET` | `/api/v2/runs/:runId/logs` | `runs.logs`<br />`getRunLogs` | SDK-facing route. | `src/app/api/v2/runs/[runId]/logs/route.ts` |
+| `POST` | `/api/v2/runs/:runId/observe-grant` | `runs.tail`<br />`tailRun`<br />`runPlay` | SDK-facing route. | `src/app/api/v2/runs/[runId]/observe-grant/route.ts` |
 | `POST` | `/api/v2/runs/:runId/stop` | `runs.stop`<br />`stopRun`<br />`cancelPlay`<br />`stopPlay` | Stop a running or waiting play run. | `src/app/api/v2/runs/[runId]/stop/route.ts` |
 | `GET` | `/api/v2/runs/:runId/tail` | `runs.tail`<br />`tailRun` | Stream canonical run events over SSE. | `src/app/api/v2/runs/[runId]/tail/route.ts` |
 
@@ -278,7 +280,7 @@ while True:
 | Runtime Health | 1 |
 | Tool And Provider Calls | 6 |
 | Customer Data | 1 |
-| Play Runs | 7 |
+| Play Runs | 9 |
 | Play Definitions | 6 |
 | Play Artifacts | 4 |
 | Management And CLI | 23 |
@@ -290,13 +292,13 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | Change | Reason |
 |---|---|
 | `2026-06-cli-play-watch-durable-summary-reconcile` | Fixes a render race in `deepline plays run --watch`: when the streamed terminal status arrives with an empty step ledger for a fast run, resolvePlayRunOutputStatus now re-fetches the durable run package (GET /api/v2/runs/:id, already use... |
+| `2026-06-run-log-stream` | Adds GET /api/v2/runs/:runId/logs — paginated full-retention Run Log Stream reads with absolute per-run sequence numbers (ADR-0009). client.runs.logs and `deepline runs logs` move from slicing the snapshot tail to this route and now pagi... |
+| `2026-06-run-observe-grant-transport` | Adds POST /api/v2/runs/:runId/observe-grant plus a Convex Run Snapshot subscription transport for run watching (ADR-0008). New SDK/CLI versions try the subscription transport first and fall back to the existing GET /api/v2/runs/:runId/ta... |
 | `2026-06-sdk-plays-internal-module-relocation` | Internal module relocation only for POST /api/v2/plays/run and POST /api/v2/plays/artifacts: resolveStaticPipelineTree now imports from @shared_libs/plays/resolve-static-pipeline (static-pipeline/compiler-manifest consolidation), schedul... |
 | `2026-06-cli-slack-report-channel-routing` | Routes internal Slack observability reports to the correct V1/V2 channels by CLI client family: POST /api/v2/cli/feedback, /api/v2/cli/report-failure, and /api/v2/cli/session-start now read CLI client-context headers so python-cli (V1) f... |
 | `2026-06-sdk-play-route-lazy-build-imports` | Moves play preflight/typecheck/bundling imports behind lazy server-only boundaries for POST /api/v2/plays/check and POST /api/v2/plays/run to reduce Next/Vercel build memory. Request shapes, response envelopes, route paths, validation se... |
 | `2026-06-sdk-plays-run-internal-concurrency-guard-removed` | Removes the server-side in-flight guard that blocked concurrent dataset-backed internal child play calls (ctx.runPlay) in POST /api/v2/plays/run and the [name]/live route. Internal-only behavior: request shapes, response envelopes, route... |
 | `2026-06-sdk-play-runif-options-syntax` | Updates SDK CLI play bootstrap generation to emit the additive `step(..., resolver, { runIf })` authoring syntax while preserving existing play check/run routes, request shapes, response envelopes, and legacy `runIf(predicate, resolver)`... |
-| `2026-06-sdk-plays-fork-shared-reference` | GET /api/v2/plays/:name and the play-run resolver now fork another org’s *published* play into the caller’s org when it is referenced as `<orgSlug>/<play>` (the org-shared analogue of `prebuilt/*`), instead of returning 404. Purely addit... |
-| `2026-05-sdk-play-tool-search-ergonomics` | Adds compatible SDK CLI discovery and rendering ergonomics for plays/tools search and describe flows. Existing command names, API routes, request shapes, and response shapes remain supported; the changes make additive CLI output and vali... |
 
 ## Public Types
 
@@ -523,9 +525,11 @@ Result returned by `DeeplineClient.stopPlay`.
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-| `runId` | `string` | Yes | Public play-run identifier that was stopped. |
-| `stopped` | `true` | Yes | Stop request acknowledgement. |
+| `runId` | `string` | Yes | Public play-run identifier the stop request targeted. |
+| `stopped` | `boolean` | Yes | Whether the server confirmed the run was stopped. |
 | `hitlCancelledCount` | `number` | Yes | Number of open HITL interactions marked cancelled. |
+| `staleSchedulerState` | `boolean` | No | True when the scheduler state for the run was stale and the stop could<br />not be confirmed. Absent on older servers (treated as confirmed). |
+| `error` | `string` | No | Server-side error detail when the stop was not confirmed. |
 
 
 ### `RunsNamespace`
