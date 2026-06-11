@@ -107,6 +107,8 @@ Use when sizing reachability, volume, or market fit — "how many people can we 
 
 **Count-first invariant:** prefer a dedicated count endpoint. Otherwise run the likely retrieval path with `limit:1` / `per_page:1` / `size:1` and read totals from the response. Only pull full pages after shape + size look right.
 
+For large payloads or Windows/PowerShell quoting trouble, write the JSON to a file and pass `--payload @path/to/payload.json`; generated payloads can use `--payload-stdin`.
+
 ### Sizing a people audience
 
 Default to Dropleads first (strongest free first pass, LinkedIn-rich). Fall back to Apollo/Forager/Icypeas/Prospeo/PDL.
