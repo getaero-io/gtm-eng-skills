@@ -6,9 +6,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.99` |
+| SDK version | `0.1.100` |
 | API contract | `2026-06-dataset-column-cell-stale-hard-cutover` |
-| Latest supported SDK | `0.1.99` |
+| Latest supported SDK | `0.1.100` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.53` |
 | Generated sources | `src/lib/sdk/api-routes.ts`<br />`sdk/src/types.ts`<br />`sdk/src/client.ts`<br />`sdk/src/release.ts` |
@@ -306,11 +306,11 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-06-cli-browser-open-default-browser-detection` | Fixes the SDK CLI browser opener (sdk/src/cli/utils.ts) so `deepline plays run` reuses and focuses an existing browser tab instead of spawning dozens of duplicates. Default-browser detection now parses the macOS LaunchServices plist stru... |
 | `2026-06-run-start-contract-preflight` | Adds a submit-time preflight to POST /api/v2/plays/run: when a request carries a client-bundled runtimeArtifact, the route compares the CLI's x-deepline-api-contract header against this runtime's contract and returns HTTP 426 with a clea... |
 | `2026-06-cli-play-watch-step-progress-render` | Restores live per-step lines in human `deepline plays run --watch` (SDK 0.1.93 regression): the CLI now prints `step <name>: running\|completed` transitions from the existing play.step.status events the shared snapshot differ already emit... |
+| `2026-06-cli-failed-run-recoverable-rows` | Additive CLI text-render change for failed runs: `deepline plays run --watch` and run summaries now print "recoverable: N rows persisted" plus the `runs export` command when a failed run has persisted runtime-sheet rows, sourced from add... |
 | `2026-06-cli-play-watch-durable-summary-reconcile` | Fixes a render race in `deepline plays run --watch`: when the streamed terminal status arrives with an empty step ledger for a fast run, resolvePlayRunOutputStatus now re-fetches the durable run package (GET /api/v2/runs/:id, already use... |
 | `2026-06-run-log-stream` | Adds GET /api/v2/runs/:runId/logs — paginated full-retention Run Log Stream reads with absolute per-run sequence numbers (ADR-0009). client.runs.logs and `deepline runs logs` move from slicing the snapshot tail to this route and now pagi... |
 | `2026-06-run-observe-grant-transport` | Adds POST /api/v2/runs/:runId/observe-grant plus a Convex Run Snapshot subscription transport for run watching (ADR-0008). New SDK/CLI versions try the subscription transport first and fall back to the existing GET /api/v2/runs/:runId/ta... |
 | `2026-06-sdk-plays-internal-module-relocation` | Internal module relocation only for POST /api/v2/plays/run and POST /api/v2/plays/artifacts: resolveStaticPipelineTree now imports from @shared_libs/plays/resolve-static-pipeline (static-pipeline/compiler-manifest consolidation), schedul... |
-| `2026-06-cli-slack-report-channel-routing` | Routes internal Slack observability reports to the correct V1/V2 channels by CLI client family: POST /api/v2/cli/feedback, /api/v2/cli/report-failure, and /api/v2/cli/session-start now read CLI client-context headers so python-cli (V1) f... |
 
 ## Public Types
 
