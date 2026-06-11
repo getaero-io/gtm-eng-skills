@@ -23,28 +23,32 @@ AI Ark provides company search, people search, reverse lookup, mobile phone find
 
 ## Filter Structure (CRITICAL)
 
-AI Ark uses a strict nested filter structure. **Do NOT flatten or simplify these structures.**
+AI Ark uses a strict nested filter structure. **Do NOT flatten or simplify these structures.** Deepline still accepts legacy aliases for existing scripts, but new code should use the AI Ark-native fields below.
 
-### Text filters (contactLocation, title, name, education, keyword)
+### Text filters
 
 Text filters require `{ mode, content }` inside `include`/`exclude`:
 
 ```json
 {
   "contact": {
-    "contactLocation": {
+    "fullName": {
       "any": {
         "include": {
-          "mode": "FUZZY",
-          "content": ["San Francisco", "New York"]
+          "mode": "SMART",
+          "content": ["Ada Lovelace"]
         }
       }
     },
-    "title": {
-      "any": {
-        "include": {
-          "mode": "FUZZY",
-          "content": ["VP", "Director", "Head of"]
+    "experience": {
+      "current": {
+        "title": {
+          "any": {
+            "include": {
+              "mode": "SMART",
+              "content": ["VP", "Director", "Head of"]
+            }
+          }
         }
       }
     }
@@ -52,7 +56,7 @@ Text filters require `{ mode, content }` inside `include`/`exclude`:
 }
 ```
 
-### String filters (seniority, department, function, skills)
+### String filters
 
 String filters use arrays directly in `include`/`exclude`:
 
@@ -64,9 +68,27 @@ String filters use arrays directly in `include`/`exclude`:
         "include": ["vp", "director", "c_suite"]
       }
     },
-    "department": {
+    "departmentAndFunction": {
       "any": {
         "include": ["sales", "marketing"]
+      }
+    }
+  }
+}
+```
+
+### Company filters
+
+Contact company filters use AI Ark company IDs, not company names. Get IDs from `ai_ark_company_search`, then use `latest`, `current`, or `previous`.
+
+```json
+{
+  "contact": {
+    "company": {
+      "previous": {
+        "any": {
+          "include": ["8b1c2fa5-3ceb-437e-5ef5-495bc6d34ace"]
+        }
       }
     }
   }
@@ -87,11 +109,15 @@ String filters use arrays directly in `include`/`exclude`:
     }
   },
   "contact": {
-    "title": {
-      "any": {
-        "include": {
-          "mode": "FUZZY",
-          "content": ["VP of Sales", "Head of Sales"]
+    "experience": {
+      "current": {
+        "title": {
+          "any": {
+            "include": {
+              "mode": "SMART",
+              "content": ["VP of Sales", "Head of Sales"]
+            }
+          }
         }
       }
     },
@@ -100,12 +126,9 @@ String filters use arrays directly in `include`/`exclude`:
         "include": ["vp", "director"]
       }
     },
-    "contactLocation": {
+    "location": {
       "any": {
-        "include": {
-          "mode": "FUZZY",
-          "content": ["San Francisco"]
-        }
+        "include": ["San Francisco"]
       }
     }
   }
@@ -114,11 +137,17 @@ String filters use arrays directly in `include`/`exclude`:
 
 ### Field type reference
 
-**Contact text filters** (use `{ mode: "FUZZY", content: [...] }`):
-`name`, `contactLocation`, `currentCompany`, `pastCompany`, `education`, `title`, `keyword`
+**Contact text filters** (use `{ mode: "SMART", content: [...] }`):
+`fullName`, `skill`, `certification`, `education.degree`, `education.fieldOfStudy`, `experience.latest.title`, `experience.current.title`, `experience.previous.title`
+
+**Contact keyword filter**:
+`keyword` uses `{ include: { content: [...] } }` with optional `sources`, not a normal text operand.
 
 **Contact string filters** (use `["value1", "value2"]`):
-`socialProfile`, `contactLanguage`, `seniority`, `department`, `function`, `skills`, `certifications`
+`socialMediaLink`, `seniority`, `location`, `linkedin`, `departmentAndFunction`, `company.latest`, `company.current`, `company.previous`, `education.school`
+
+**Legacy aliases**:
+`name` maps to `fullName`; `title` maps to `experience.current.title`; `pastCompany` maps to `company.previous`; `currentCompany` maps to `company.current`; `contactLocation` maps to `location`; `socialProfile` maps to `socialMediaLink`. Do not send an alias and its native equivalent in the same request.
 
 **Account text filters**: `url`, `name`, `productAndServices`, `technologies`
 
@@ -126,9 +155,10 @@ String filters use arrays directly in `include`/`exclude`:
 
 ### Common mistakes to avoid
 
-- ❌ `contact.location` → ✅ `contact.contactLocation`
-- ❌ `{ include: ["value"] }` for text filters → ✅ `{ include: { mode: "FUZZY", content: ["value"] } }`
-- ❌ `{ include: { mode: "FUZZY", content: ["value"] } }` for string filters → ✅ `{ include: ["value"] }`
+- Prefer `contact.experience.current.title` over legacy `contact.title`
+- Prefer `contact.company.previous` with AI Ark company IDs over legacy `contact.pastCompany`
+- ❌ `{ include: ["value"] }` for text filters → ✅ `{ include: { mode: "SMART", content: ["value"] } }`
+- ❌ `{ include: { mode: "SMART", content: ["value"] } }` for string filters → ✅ `{ include: ["value"] }`
 
 ## Recommended Workflow
 
