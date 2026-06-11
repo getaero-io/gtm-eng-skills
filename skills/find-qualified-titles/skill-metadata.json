@@ -1,0 +1,12 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Find Qualified Titles (company_titles -> ICP filter -> contacts)",
+      "tags": [
+        "recipe"
+      ],
+      "providers": []
+    }
+  }
+}

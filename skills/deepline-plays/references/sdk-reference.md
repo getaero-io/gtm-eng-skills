@@ -190,9 +190,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.94` |
+| SDK version | `0.1.99` |
 | API contract | `2026-06-dataset-column-cell-stale-hard-cutover` |
-| Latest supported SDK | `0.1.94` |
+| Latest supported SDK | `0.1.99` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.53` |
 | Generated sources | `sdk/src/client.ts`<br />`sdk/src/play.ts`<br />`shared_libs/play-runtime/cell-staleness.ts`<br />`shared_libs/play-runtime/tool-result-types.ts`<br />`shared_libs/plays/dataset.ts` |
@@ -375,18 +375,18 @@ row, with original fields merged with the columns produced by
 documented expand/flatten recipe instead of assuming `ctx.dataset` changes
 row cardinality.
 
-Signature: `dataset<TItem extends object>( key: string, items: PlayDatasetInput<TItem>, ): DatasetBuilder<TItem, TItem>;`
+Signature: `dataset<TSource extends PlayDatasetInput<object>>( key: string, items: TSource, ): DatasetBuilder< PlayDatasetRow<TSource> & object, PlayDatasetRow<TSource> & object >;`
 
 #### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `key` | `string` | Yes | Dataset/table name. |
-| `items` | `PlayDatasetInput<TItem>` | Yes | Input rows. |
+| `items` | `TSource` | Yes | Input rows. |
 
 #### Returns
 
-`DatasetBuilder<TItem, TItem>`
+`DatasetBuilder< PlayDatasetRow<TSource> & object, PlayDatasetRow<TSource> & object >`
 
 
 ### `.dataset(...).withColumn(name, resolver).run(options)`

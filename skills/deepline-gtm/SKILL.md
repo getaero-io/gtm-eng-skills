@@ -64,6 +64,7 @@ When a recipe matches: **follow it step-by-step as your execution plan.** Recipe
 | `account-orgchart.md`           | Building an org chart, account map, buying committee, stakeholder map, or multi-threading plan around a target person or company          |
 | `build-tam.md`                  | Building a total addressable market list or large company list from ICP criteria                                                           |
 | `clay-to-deepline.md`           | Converting a Clay table into local Deepline enrich scripts (extraction, mapping, parity validation)                                        |
+| `find-qualified-titles.md`      | "Find all job titles at these companies" / "find the marketing-ops/RevOps/Salesforce buyers": pull each company's real title roster (free `company_titles`), LLM-filter to the ICP, then find contacts with tiered (LinkedIn, email, phone) reveal |
 | `linkedin-url-lookup.md`        | Resolving a person's LinkedIn profile URL from their name and company with strict identity validation                                      |
 | `portfolio-prospecting.md`      | Finding companies backed by a specific investor or accelerator, then finding contacts and building personalized outbound                   |
 | `small-business-prospecting.md` | Finding local small businesses or storefront/service-area companies using Maps-style search. Doctors, services business, restaurants, etc. |
