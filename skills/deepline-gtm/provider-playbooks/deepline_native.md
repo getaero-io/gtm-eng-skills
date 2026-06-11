@@ -14,9 +14,9 @@
 ## Provider Positioning
 
 - **`job_change`**: preferred job-change provider — charges only on confirmed moves.
-- **`search_contact`**: secondary people search. **Dropleads is the default people search.** Use `search_contact` only when dropleads fails or is unavailable. Not yet tested enough to be the primary path.
+- **`search_contact`**: secondary people search. **Not free** — `0.56` Deepline credits per contact returned (free only when zero contacts come back). **Dropleads is the default people search and is free per call.** Use `search_contact` only when dropleads fails or is unavailable. Not yet tested enough to be the primary path.
 - **`prospector` / `enrich_contact`**: use when dropleads + Apollo coverage is insufficient for the target segment.
-- **`enrich_company`**: $0.07 per call. Use when firmographic data is required and other sources have been exhausted.
+- **`enrich_company`**: `0.98` Deepline credits per call. Use when firmographic data is required and other sources have been exhausted.
 
 ## Key Behaviors
 
@@ -54,7 +54,7 @@
 
 ### job_change
 
-- Preferred job-change provider. Only charges $0.14 when status is `moved`.
+- Preferred job-change provider. Only charges `1.96` Deepline credits when status is `moved`.
 - Field names match the API exactly: `company_domain`, `professional_email`, `contact_linkedin`, etc.
   Do NOT use `email`, `linkedin`, `domain` — those are wrong field names for this operation.
 - Best coverage combo: `company_domain` + `contact_linkedin`.
@@ -66,7 +66,8 @@
 
 - **Not the default people search — dropleads is.** Use as a fallback when dropleads fails or returns no results.
 - Uses the dedicated Waterfall search key/budget (`60 RPM`), separate from the higher-throughput enrichment key.
-- Free and synchronous. Returns LinkedIn URLs only — email and phone are always redacted.
+- **Pricing: `0.56` Deepline credits per contact returned (post-deduct, billed on success). Free only when zero results come back.** A `page_size: 10` call that returns 10 contacts costs `5.6` credits — keep `page_size` small (`1-3`) for targeted lookups.
+- Synchronous. Returns LinkedIn URLs only — email and phone are always redacted.
 - Treat it as a company-scoped LinkedIn candidate finder, not a clean org-chart API. It is good at surfacing plausible current people at a company, but broad title queries can still return adjacent or support roles.
 - Follow up with `enrich_contact` to get email/phone for returned LinkedIn URLs.
 - Supports pagination: `page_number` and `page_size` (default 10, max 250 per page).
@@ -82,7 +83,7 @@
 
 ### enrich_company
 
-- Pre-reserves $0.07 per launch.
+- Pre-reserves `0.98` Deepline credits per launch.
 - Input: domain is most reliable; linkedin also works.
 - Result is nested under `output.company.*` — not top-level.
 
