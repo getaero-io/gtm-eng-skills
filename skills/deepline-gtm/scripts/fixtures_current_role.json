@@ -1,0 +1,262 @@
+[
+  {
+    "name": "stale-toplevel-jobtitle-military",
+    "profile": {
+      "jobTitle": "Platoon Sergeant",
+      "companyName": "United States Marine Corps",
+      "headline": "Corporate Controller",
+      "experiences": [
+        {"title": "Platoon Sergeant", "companyName": "United States Marine Corps", "jobStartedOn": "1995", "jobEndedOn": "2001", "jobStillWorking": false},
+        {"title": "Corporate Controller", "companyName": "CEIS", "jobStartedOn": "07-2025", "jobStillWorking": true}
+      ]
+    },
+    "expected": {"title": "Corporate Controller", "company": "CEIS", "role_kind": "work_current"}
+  },
+  {
+    "name": "stale-toplevel-deloitte",
+    "profile": {
+      "jobTitle": "Senior Associate",
+      "companyName": "Deloitte",
+      "experiences": [
+        {"title": "Senior Associate", "companyName": "Deloitte", "jobStartedOn": "2000", "jobStillWorking": false},
+        {"title": "Chief Financial Officer", "companyName": "Accent", "jobStartedOn": "03-2026", "jobStillWorking": true}
+      ]
+    },
+    "expected": {"title": "Chief Financial Officer", "company": "Accent", "role_kind": "work_current"}
+  },
+  {
+    "name": "board-seat-vs-real-job",
+    "profile": {
+      "jobTitle": "Board Member",
+      "companyName": "DXP",
+      "experiences": [
+        {"title": "Board Member", "companyName": "DXP", "jobStartedOn": "2021", "jobStillWorking": true},
+        {"title": "CFO", "companyName": "DXP Enterprises", "jobStartedOn": "2018", "jobStillWorking": true}
+      ]
+    },
+    "expected": {"title": "CFO", "company": "DXP Enterprises", "role_kind": "work_current"}
+  },
+  {
+    "name": "charity-board-only-hold",
+    "profile": {
+      "jobTitle": "President of the Board of Directors",
+      "companyName": "Trees For Houston",
+      "experiences": [
+        {"title": "President of the Board of Directors", "companyName": "Trees For Houston", "jobStartedOn": "2020", "jobStillWorking": true}
+      ]
+    },
+    "expected": {"title": "President of the Board of Directors", "company": "Trees For Houston", "role_kind": "nonwork_only_current"}
+  },
+  {
+    "name": "company-name-in-title-repaired-via-headline",
+    "profile": {
+      "jobTitle": "Board Member",
+      "companyName": "DXP Enterprises, Inc.",
+      "headline": "SVP & Chief Financial Officer (CFO), Board Member\nDXP Enterprises, Inc.",
+      "experiences": [
+        {"title": "DXP Enterprises, Inc.", "companyName": "DXP Enterprises, Inc.", "jobStartedOn": "2021-04", "jobStillWorking": true}
+      ]
+    },
+    "expected": {"title": "SVP & Chief Financial Officer (CFO)", "company": "DXP Enterprises, Inc."}
+  },
+  {
+    "name": "company-name-in-title-headline-beats-stale-toplevel",
+    "profile": {
+      "jobTitle": "Chief Financial Officer",
+      "companyName": "The Spearhead Group Inc.",
+      "headline": "Principal Legal Officer",
+      "experiences": [
+        {"title": "The Spearhead Group Inc.", "companyName": "The Spearhead Group Inc.", "jobStartedOn": "2021-10", "jobStillWorking": true}
+      ]
+    },
+    "expected": {"title": "Principal Legal Officer", "company": "The Spearhead Group Inc."}
+  },
+  {
+    "name": "company-name-in-title-repaired-via-toplevel-when-no-headline",
+    "profile": {
+      "jobTitle": "Chief Financial Officer",
+      "companyName": "The Spearhead Group Inc.",
+      "experiences": [
+        {"title": "The Spearhead Group Inc.", "companyName": "The Spearhead Group Inc.", "jobStartedOn": "2021-10", "jobStillWorking": true}
+      ]
+    },
+    "expected": {"title": "Chief Financial Officer", "company": "The Spearhead Group Inc."}
+  },
+  {
+    "name": "company-name-in-title-headline-beats-stale-work-toplevel-nonfinance",
+    "profile": {
+      "jobTitle": "Software Engineer",
+      "companyName": "Acme Cloud",
+      "headline": "VP of Engineering @ Acme Cloud",
+      "experiences": [
+        {"title": "Acme Cloud", "companyName": "Acme Cloud", "jobStartedOn": "2024-01", "jobStillWorking": true}
+      ]
+    },
+    "expected": {"title": "VP of Engineering", "company": "Acme Cloud"}
+  },
+  {
+    "name": "clean-current-cfo",
+    "profile": {
+      "jobTitle": "Chief Financial Officer",
+      "companyName": "Subsea Environmental Services",
+      "experiences": [
+        {"title": "Chief Financial Officer", "companyName": "Subsea Environmental Services", "jobStartedOn": "07-2025", "jobStillWorking": true},
+        {"title": "Chief Financial Officer", "companyName": "ClimeCo", "jobStartedOn": "09-2018", "jobEndedOn": "06-2025", "jobStillWorking": false}
+      ]
+    },
+    "expected": {"title": "Chief Financial Officer", "company": "Subsea Environmental Services", "role_kind": "work_current"}
+  },
+  {
+    "name": "nonfinance-stale-toplevel-engineering",
+    "profile": {
+      "jobTitle": "Software Engineer",
+      "companyName": "Old Startup",
+      "headline": "VP of Engineering",
+      "experiences": [
+        {"title": "Software Engineer", "companyName": "Old Startup", "jobStartedOn": "2012", "jobEndedOn": "2016", "jobStillWorking": false},
+        {"title": "VP of Engineering", "companyName": "Acme Cloud", "jobStartedOn": "01-2024", "jobStillWorking": true}
+      ]
+    },
+    "expected": {"title": "VP of Engineering", "company": "Acme Cloud", "role_kind": "work_current"}
+  },
+  {
+    "name": "nonfinance-headline-repair-sales",
+    "profile": {
+      "jobTitle": "Globex Corporation",
+      "companyName": "Globex Corporation",
+      "headline": "Head of Sales @ Globex Corporation",
+      "experiences": [
+        {"title": "Globex Corporation", "companyName": "Globex Corporation", "jobStartedOn": "2023-05", "jobStillWorking": true}
+      ]
+    },
+    "expected": {"title": "Head of Sales", "company": "Globex Corporation"}
+  },
+  {
+    "name": "nonfinance-headline-repair-ops-newline",
+    "profile": {
+      "jobTitle": "Initech",
+      "companyName": "Initech",
+      "headline": "Director of Operations\nInitech",
+      "experiences": [
+        {"title": "Initech", "companyName": "Initech", "jobStartedOn": "2022-09", "jobStillWorking": true}
+      ]
+    },
+    "expected": {"title": "Director of Operations", "company": "Initech"}
+  },
+  {
+    "name": "nonfinance-multirole-headline-disambiguated-by-target",
+    "target_role": "engineering",
+    "profile": {
+      "jobTitle": "Hooli",
+      "companyName": "Hooli",
+      "headline": "Advisor at Several | VP Engineering at Hooli | Mentor",
+      "experiences": [
+        {"title": "Hooli", "companyName": "Hooli", "jobStartedOn": "2021-01", "jobStillWorking": true}
+      ]
+    },
+    "expected": {"title": "VP Engineering", "company": "Hooli"}
+  },
+  {
+    "name": "target-role-must-not-match-company-substring",
+    "target_role": "engineering",
+    "profile": {
+      "jobTitle": "Engineering Works LLC",
+      "companyName": "Engineering Works LLC",
+      "headline": "VP Sales @ Engineering Works",
+      "experiences": [
+        {"title": "Engineering Works LLC", "companyName": "Engineering Works LLC", "jobStartedOn": "2023-01", "jobStillWorking": true}
+      ]
+    },
+    "expected": {"title": "VP Sales", "company": "Engineering Works LLC"}
+  },
+  {
+    "name": "real-dxp-multiline-headline-with-board-suffix-and-ticker",
+    "profile": {
+      "jobTitle": "Board Member",
+      "companyName": "DXP Enterprises, Inc.",
+      "headline": "SVP & Chief Financial Officer (CFO), Board Member \nDXP Enterprises, Inc.\n(Nasdaq: DXPE)",
+      "experiences": [
+        {"title": "DXP Enterprises, Inc.", "companyName": "DXP Enterprises, Inc.", "jobStartedOn": "2021-04", "jobStillWorking": true}
+      ]
+    },
+    "expected": {"title": "SVP & Chief Financial Officer (CFO)", "company": "DXP Enterprises, Inc."}
+  },
+  {
+    "name": "target-role-must-skip-advisory-segment",
+    "target_role": "engineering",
+    "profile": {
+      "jobTitle": "Acme",
+      "companyName": "Acme",
+      "headline": "Engineering Advisor | VP Engineering | Acme",
+      "experiences": [
+        {"title": "Acme", "companyName": "Acme", "jobStartedOn": "2022-06", "jobStillWorking": true}
+      ]
+    },
+    "expected": {"title": "VP Engineering", "company": "Acme"}
+  },
+  {
+    "name": "advisor-is-work-when-target-role-expects-advisor",
+    "target_role": "security advisor",
+    "profile": {
+      "jobTitle": "Security Advisor",
+      "companyName": "SecureCo",
+      "headline": "Security Advisor at SecureCo",
+      "experiences": [
+        {"title": "Security Advisor", "companyName": "SecureCo", "jobStartedOn": "2025-02", "jobStillWorking": true}
+      ]
+    },
+    "expected": {"title": "Security Advisor", "company": "SecureCo", "role_kind": "work_current"}
+  },
+  {
+    "name": "advisor-remains-nonwork-without-target-role-context",
+    "profile": {
+      "jobTitle": "Advisor",
+      "companyName": "Several Startups",
+      "headline": "Advisor to founders",
+      "experiences": [
+        {"title": "Advisor", "companyName": "Several Startups", "jobStartedOn": "2024-01", "jobStillWorking": true}
+      ]
+    },
+    "expected": {"title": "Advisor", "company": "Several Startups", "role_kind": "nonwork_only_current"}
+  },
+  {
+    "name": "string-false-jobStillWorking-must-not-beat-real-current",
+    "profile": {
+      "jobTitle": "VP Sales",
+      "companyName": "NewCo",
+      "experiences": [
+        {"title": "VP Sales", "companyName": "OldCo", "jobStartedOn": "2025-01", "jobStillWorking": "false", "jobEndedOn": "2025-06"},
+        {"title": "Chief Revenue Officer", "companyName": "NewCo", "jobStartedOn": "2025-07", "jobStillWorking": "true"}
+      ]
+    },
+    "expected": {"title": "Chief Revenue Officer", "company": "NewCo", "role_kind": "work_current"}
+  },
+  {
+    "name": "malformed-none-profile-returns-empty-no-crash",
+    "profile": null,
+    "expected": {"title": "", "company": "", "role_kind": "none"}
+  },
+  {
+    "name": "malformed-nondict-experiences-falls-back-to-toplevel",
+    "profile": {
+      "jobTitle": "Controller",
+      "companyName": "Widgets Inc",
+      "experiences": "not-an-array",
+      "headline": "Controller at Widgets Inc"
+    },
+    "expected": {"title": "Controller", "company": "Widgets Inc", "role_kind": "toplevel_only"}
+  },
+  {
+    "name": "malformed-nondict-experience-entry-skipped",
+    "profile": {
+      "jobTitle": "Office Manager",
+      "companyName": "Localshop",
+      "experiences": [
+        null,
+        "garbage",
+        {"title": "Office Manager", "companyName": "Localshop", "jobStartedOn": "2023-03", "jobStillWorking": true}
+      ]
+    },
+    "expected": {"title": "Office Manager", "company": "Localshop", "role_kind": "work_current"}
+  }
+]

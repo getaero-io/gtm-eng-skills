@@ -354,6 +354,28 @@ python3 ~/.claude/skills/deepline-gtm/scripts/validate-linkedin-names.py enriche
 
 Null out LinkedIn URLs where names don't match. 26% false positive rate without this gate (tested on 253-person dataset). Eval: `python3 scripts/validate-linkedin-names.py --fixtures scripts/fixtures_name_validation.json`
 
+```bash
+# Current role extraction. Top-level LinkedIn jobTitle is often stale or a board
+# role. This selects the latest active work role, repairs company-name-in-title
+# artifacts, and uses --target-role when advisor-style titles need context.
+python3 ~/.claude/skills/deepline-gtm/scripts/select-current-role.py enriched.csv \
+    --scrape-col li_scrape --out-title current_title --out-company current_company
+```
+
+Trusting top-level `jobTitle` ships stale titles: old military roles, decade-old IC roles, or advisor/board entries can outrank the real current job. Eval: `python3 scripts/select-current-role.py --fixtures scripts/fixtures_current_role.json` (22 cases across finance, non-finance, and advisor-role handling).
+
+```bash
+# Final contact audit. Run on the final CSV before shipping. It projects
+# freshness, cell shape, email risk, duplicate-person, job-change, and
+# domain-alignment checks into ACTION + flag_reason.
+python3 ~/.claude/skills/deepline-gtm/scripts/contact-accuracy-audit.py final.csv \
+    > final_audited.csv
+```
+
+The audit fixture covers every final-delivery gate: valid send rows, catch-all corroboration, job changers, stale profile/email verification, allowed aliases, malformed cells, and duplicate-person conflicts. Eval: `python3 scripts/contact-accuracy-audit.py --fixtures scripts/fixtures_contact_accuracy_audit.json`.
+
+**For any contact list you will actually send to**, read [references/contact-accuracy.md](references/contact-accuracy.md). It gives the full workflow: resolve the current work role, confirm identity, catch job-changers, validate email independently, preserve lineage, discover current role-holders company-first when accounts are known, audit the final file, and deliver one `ACTION` plus `flag_reason` per row.
+
 ## Custom enrichment with run_javascript and deeplineagent
 
 Use this section for:

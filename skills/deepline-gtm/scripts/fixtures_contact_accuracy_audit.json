@@ -1,0 +1,173 @@
+[
+  {
+    "name": "send-valid-current-work-email",
+    "rows": [
+      {
+        "name": "Avery Chen",
+        "company": "Acme Cloud",
+        "company_domain": "acmecloud.com",
+        "current_company": "Acme Cloud",
+        "current_title": "VP Engineering",
+        "linkedin_url": "https://www.linkedin.com/in/averychen",
+        "email": "avery.chen@acmecloud.com",
+        "email_validation": "zerobounce:valid",
+        "profile_scraped_at": "2026-06-01",
+        "email_verified_at": "2026-06-06",
+        "identity_confirmation": "linkedin_experience",
+        "gold_confidence": "HIGH"
+      }
+    ],
+    "expected": [
+      {"action": "SEND", "email_risk": "LOW", "flags": []}
+    ]
+  },
+  {
+    "name": "catch-all-needs-corroboration",
+    "rows": [
+      {
+        "name": "Jordan Lee",
+        "company": "Globex",
+        "company_domain": "globex.com",
+        "current_company": "Globex",
+        "current_title": "Head of Sales",
+        "linkedin_url": "https://linkedin.com/in/jordanlee",
+        "email": "jordan.lee@globex.com",
+        "email_validation": "catch-all",
+        "catch_all_corroboration_count": "1",
+        "profile_scraped_at": "2026-06-01",
+        "email_verified_at": "2026-06-05",
+        "identity_confirmation": "apollo_org",
+        "gold_confidence": "MEDIUM"
+      }
+    ],
+    "expected": [
+      {"action": "REVIEW", "email_risk": "HIGH", "flags": ["catch_all_not_corroborated"]}
+    ]
+  },
+  {
+    "name": "job-changer-removes-or-retargets",
+    "rows": [
+      {
+        "name": "Morgan Patel",
+        "company": "OldCo",
+        "company_domain": "oldco.com",
+        "current_company": "NewCo",
+        "current_title": "CFO",
+        "linkedin_url": "https://linkedin.com/in/morganpatel",
+        "email": "morgan@oldco.com",
+        "email_validation": "zerobounce:valid",
+        "profile_scraped_at": "2026-06-03",
+        "email_verified_at": "2026-06-04",
+        "identity_confirmation": "linkedin_experience",
+        "gold_confidence": "HIGH"
+      }
+    ],
+    "expected": [
+      {"action": "REMOVE / RE-TARGET", "flags": ["job_changed", "email_domain_mismatch"]}
+    ]
+  },
+  {
+    "name": "stale-verification-holds",
+    "rows": [
+      {
+        "name": "Casey Stone",
+        "company": "FreshCo",
+        "company_domain": "freshco.com",
+        "current_company": "FreshCo",
+        "current_title": "Director of Operations",
+        "linkedin_url": "https://linkedin.com/in/caseystone",
+        "email": "casey@freshco.com",
+        "email_validation": "zerobounce:valid",
+        "profile_scraped_at": "2026-03-01",
+        "email_verified_at": "2026-04-15",
+        "identity_confirmation": "linkedin_experience",
+        "gold_confidence": "HIGH"
+      }
+    ],
+    "expected": [
+      {"action": "VERIFY", "flags": ["profile_stale", "email_verification_stale"]}
+    ]
+  },
+  {
+    "name": "allowed-company-email-alias",
+    "rows": [
+      {
+        "name": "Riley Gomez",
+        "company": "Acme Cloud",
+        "company_domain": "acmecloud.com",
+        "allowed_email_domains": "acme.io, acmecloud.com",
+        "current_company": "Acme Cloud",
+        "current_title": "Chief Revenue Officer",
+        "linkedin_url": "https://linkedin.com/in/rileygomez",
+        "email": "riley@acme.io",
+        "email_validation": "zerobounce:valid",
+        "profile_scraped_at": "2026-06-02",
+        "email_verified_at": "2026-06-06",
+        "identity_confirmation": "email_domain_match",
+        "gold_confidence": "HIGH"
+      }
+    ],
+    "expected": [
+      {"action": "SEND", "flags": []}
+    ]
+  },
+  {
+    "name": "malformed-cell-checks",
+    "rows": [
+      {
+        "name": "Taylor Brooks",
+        "company": "DataWorks",
+        "company_domain": "dataworks.com",
+        "current_company": "DataWorks",
+        "current_title": "DataWorks",
+        "linkedin_url": "https://linkedin.com/search/results/people/?keywords=Taylor",
+        "email": "not-an-email",
+        "email_validation": "zerobounce:valid",
+        "profile_scraped_at": "2026-06-02",
+        "email_verified_at": "2026-06-06",
+        "identity_confirmation": "linkedin_experience",
+        "gold_confidence": "HIGH"
+      }
+    ],
+    "expected": [
+      {"action": "VERIFY", "flags": ["invalid_email_format", "invalid_linkedin_url", "title_equals_company"]}
+    ]
+  },
+  {
+    "name": "duplicate-person-conflict",
+    "rows": [
+      {
+        "name": "Jamie Park",
+        "company": "Northwind",
+        "company_domain": "northwind.com",
+        "current_company": "Northwind",
+        "current_title": "Controller",
+        "linkedin_url": "https://linkedin.com/in/jamiepark",
+        "email": "jamie@northwind.com",
+        "email_validation": "zerobounce:valid",
+        "profile_scraped_at": "2026-06-02",
+        "email_verified_at": "2026-06-06",
+        "identity_confirmation": "linkedin_experience",
+        "gold_confidence": "HIGH"
+      },
+      {
+        "name": "Jamie Park",
+        "company": "Northwind",
+        "company_domain": "northwind.com",
+        "current_company": "Northwind",
+        "current_title": "Controller",
+        "linkedin_url": "https://www.linkedin.com/in/jamiepark/",
+        "email": "jamie.park@northwind.com",
+        "email_validation": "zerobounce:valid",
+        "profile_scraped_at": "2026-06-02",
+        "email_verified_at": "2026-06-06",
+        "identity_confirmation": "linkedin_experience",
+        "gold_confidence": "HIGH"
+      }
+    ],
+    "expected": [
+      {"action": "REVIEW", "flags": ["duplicate_person_conflict"]},
+      {"action": "REVIEW", "flags": ["duplicate_person_conflict"]}
+    ]
+  }
+]
