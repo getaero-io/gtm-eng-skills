@@ -156,7 +156,7 @@ Notes:
 ## Recommended Workflow
 
 ```bash
-deepline tools get deeplineagent
+deepline tools describe deeplineagent
 
 ICP_CONTEXT=$(cat ./context/icp.md)
 PRODUCT_CONTEXT=$(cat ./context/product_context.md)

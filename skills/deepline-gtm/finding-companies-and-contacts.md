@@ -49,13 +49,13 @@ deepline tools search --categories company_search --search_terms "investors,fund
 deepline tools search --categories research --search_terms "ads,technographics" &
 wait
 
-deepline tools get crustdata_companydb_search &
-deepline tools get dropleads_search_people &
-deepline tools get apify_run_actor_sync &
+deepline tools describe crustdata_companydb_search &
+deepline tools describe dropleads_search_people &
+deepline tools describe apify_run_actor_sync &
 wait
 ```
 
-After tool discovery, do not jump straight into broad execution. Shortlist 1-2 realistic candidates, inspect their schemas with `deepline tools get`, validate enum-like inputs where needed, then run a narrow first pass.
+After tool discovery, do not jump straight into broad execution. Shortlist 1-2 realistic candidates, inspect their schemas with `deepline tools describe`, validate enum-like inputs where needed, then run a narrow first pass.
 
 ## People search providers (ROI order)
 
@@ -74,7 +74,7 @@ After tool discovery, do not jump straight into broad execution. Shortlist 1-2 r
 | ---- | --------------------------------------------------------------- | ------------------------------------------------------------- |
 | 0    | Check if the data already exists or has a known source URL      | Avoid unnecessary provider calls                              |
 | 1    | Shortlist 1-2 providers from the reference table                | Prevent random provider thrash                                |
-| 2    | Inspect the schema with `deepline tools get`                    | Avoid guessed field names and bad payloads                    |
+| 2    | Inspect the schema with `deepline tools describe`               | Avoid guessed field names and bad payloads                    |
 | 3    | Validate enum-like values with autocomplete tools               | Prevent silent empty searches                                 |
 | 4    | Execute a count-like or narrow first pass                       | Cheaply confirm fit before full pull                          |
 | 5    | Prefer result-priced routes when coverage is uncertain          | Avoid paying per miss during exploratory fanout                |
@@ -222,7 +222,7 @@ Direct extraction example:
 deepline tools execute parallel_extract --payload '{"urls":["https://www.ycombinator.com/companies?batch=W26"],"objective":"Extract all company names, domains, and one-line descriptions from this page","full_content":true}'
 ```
 
-Apify for source-specific scraping. Known actors: `dev_fusion/linkedin-profile-scraper`, `apimaestro/linkedin-profile-detail`, `harvestapi/linkedin-company-employees`, `supreme_coder/linkedin-post`, `harvestapi/linkedin-profile-posts`, `harvestapi/linkedin-post-reactions`, `radeance/similarweb-scraper`. Discover more with `deepline tools get apify_run_actor_sync` or `deepline tools execute apify_list_store_actors --payload '{"search":"...","limit":20}'`.
+Apify for source-specific scraping. Known actors: `dev_fusion/linkedin-profile-scraper`, `apimaestro/linkedin-profile-detail`, `harvestapi/linkedin-company-employees`, `supreme_coder/linkedin-post`, `harvestapi/linkedin-profile-posts`, `harvestapi/linkedin-post-reactions`, `radeance/similarweb-scraper`. Discover more with `deepline tools describe apify_run_actor_sync` or `deepline tools execute apify_list_store_actors --payload '{"search":"...","limit":20}'`.
 
 ```bash
 deepline tools execute apify_run_actor_sync --payload '{"actorId":"apimaestro/linkedin-profile-detail","input":{"username":"https://www.linkedin.com/in/someone/"},"timeoutMs":300000}'

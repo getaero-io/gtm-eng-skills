@@ -30,7 +30,7 @@ Planning rules:
 - Prefer direct URL fetch/extract over search when the data lives at a known public page.
 - Prefer `deepline enrich` for row-level enrichment or repeated transforms.
 - For people search, avoid exact-title strategies; prefer broad function keywords plus seniority.
-- Do not guess provider schemas. If the plan depends on a provider, include a `deepline tools get <tool_id>` validation step.
+- Do not guess provider schemas. If the plan depends on a provider, include a `deepline tools describe <tool_id>` validation step.
 - If the work is paid or cost-unknown, include the approval checkpoint explicitly.
 
 Output format:

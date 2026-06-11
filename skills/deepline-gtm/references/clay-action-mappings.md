@@ -10,13 +10,13 @@ Every Clay action maps to a specific Deepline CLI tool or native play. Use actua
 
 1. **Native play first** — check if a native Deepline play covers the action (they're stable, multi-provider, and cost-optimized). Current native plays: `name_and_domain_to_email_waterfall`, `company_to_contact_by_role_waterfall`, and `contact_to_phone_waterfall`.
 2. **Search for a dedicated tool** — `deepline tools search "<intent>"` before hardcoding any individual provider tool. New tools are added regularly. Examples: `deepline tools search "qualify person ICP"`, `deepline tools search "octave"`, `deepline tools search "email verify"`, `deepline tools search "add leads campaign"`.
-3. **Verify the tool exists** — `deepline tools get <tool_id>`. If it errors, the tool doesn't exist yet — use the `deeplineagent` fallback from this doc.
+3. **Verify the tool exists** - `deepline tools describe <tool_id>`. If it errors, the tool doesn't exist yet - use the `deeplineagent` fallback from this doc.
 4. **Use the mapping below as a fallback** — when no native play or dedicated tool exists.
 
 ```bash
 # Standard discovery pattern before writing any --with spec
 deepline tools search "<action intent>"     # find current options
-deepline tools get <candidate_tool_id>      # verify it exists + see payload schema
+deepline tools describe <candidate_tool_id> # verify it exists + see payload schema
 ```
 
 **Why this matters:** Deepline may add a native `octave_qualify_person`, `instantly_send_email`, or other integration at any time. Searching first means your script gets the better tool automatically — instead of being locked into a `deeplineagent` approximation.
@@ -151,7 +151,7 @@ Compiles to: `leadmagic_email_validation (first.last@, firstlast@, first_last@) 
 
 - `icypeas_email_finder` — 700M+ profiles, strong LinkedIn coverage; useful as a step if native play misses
 - `dropleads_email_finder` — included in native plays; available standalone too
-- Run `deepline tools get icypeas_email_finder` to verify tool exists before using
+- Run `deepline tools describe icypeas_email_finder` to verify tool exists before using
 
 **Final validation gate** (replaces all per-step Clay `validate-email` calls):
 
@@ -518,7 +518,7 @@ deepline tools execute instantly_add_to_campaign --payload '{
 | ------------------------------ | ------------------------------------------ | --------------------------- |
 | HeyReach (LinkedIn sequences)  | `heyreach_add_to_campaign`                 | LinkedIn outreach sequences |
 | Lemlist                        | `lemlist_add_to_campaign`                  | Multi-channel sequences     |
-| Smartlead (verify tool schema) | `deepline tools get smartlead_api_request` | Use API request endpoint    |
+| Smartlead (verify tool schema) | `deepline tools describe smartlead_api_request` | Use API request endpoint    |
 
 ---
 

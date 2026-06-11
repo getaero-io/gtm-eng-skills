@@ -27,8 +27,8 @@ Send feedback or a bug report to the Deepline team.
 3. **If confirmed**, run:
 
    ```
-   deepline provide-feedback --text "{feedback text}" --json
-   deepline session send --current-session --json
+   deepline feedback send "{feedback text}" --json
+   deepline sessions send --current-session --json
    ```
 
 4. Tell the user it was sent. If cancelled, do nothing.

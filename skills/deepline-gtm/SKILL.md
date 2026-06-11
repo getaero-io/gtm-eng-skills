@@ -347,7 +347,7 @@ When credits at zero, link to https://code.deepline.com/dashboard/billing to top
 - **Enrich / waterfall / coalesce** → You MUST have [enriching-and-researching.md](enriching-and-researching.md) open. It contains `deepline enrich` syntax, play routing guidance, waterfall column patterns, and coalescing logic. Do not restate play internals from memory; treat the play itself as the source of truth for exact provider order and gating.
 - **Custom signals / messaging** → Read [enriching-and-researching.md](enriching-and-researching.md) (custom signals section). Use `run_javascript` for deterministic transforms/template logic and `deeplineagent` for AI work. Start from `prompts.json`.
 - **Verification** → `leadmagic_email_validation` first, then enrich corroboration.
-- **LinkedIn scraping** → Apify actors, by far the best. Use deepline tools get apify_run_actor_sync to see the available actors or search for more.
+- **LinkedIn scraping** -> Apify actors, by far the best. Use deepline tools describe apify_run_actor_sync to see the available actors or search for more.
 - For phone recovery, read [enriching-and-researching.md](enriching-and-researching.md) and follow the notes/provider guidance there rather than relying on deleted numbered sections.
 
 Provider path heuristics:
@@ -375,7 +375,7 @@ curl -s "https://code.deepline.com/api/v2/cli/install" | bash
 **Sites requiring auth:** Don't use Apify. Tell the user to use Claude in Chrome or guide them through Inspect Element to get a curl command with headers (user is non-technical).
 
 1. If user provides actor ID/name/URL: use it directly.
-2. If not, search `deepline tools get apify_run_actor_sync` for the actor id, or try deepline tools search.
+2. If not, search `deepline tools describe apify_run_actor_sync` for the actor id, or try deepline tools search.
 3. If not present, run discovery search.
 4. Avoid rental-priced actors.
 5. For LinkedIn post scraping, prefer `supreme_coder/linkedin-post` for generic posts/search URLs and `harvestapi/linkedin-post-reactions` when the goal is engagers/reactions. Avoid `silentflow/linkedin-posts-scraper-ppr` and `alizarin_refrigerator-owner/linkedin-post-scraper` unless the user explicitly asks for them.
@@ -391,7 +391,7 @@ deepline tools execute apify_get_actor_input_schema --payload '{"actorId":"bebit
 
 ### 7.1 Proactive issue reporting (mandatory)
 
-Do not wait for the user to ask. If there is a meaningful failure, send feedback proactively using `deepline provide-feedback`.
+Do not wait for the user to ask. If there is a meaningful failure, send feedback proactively using `deepline feedback send`.
 
 Trigger when any of these happen:
 
@@ -408,7 +408,7 @@ Run once per issue cluster (avoid spam), and include:
 - reproduction steps attempted
 
 ```bash
-deepline provide-feedback "Goal: <goal>. Tool/provider/model: <details>. Failure: <what broke>. Error: <exact message>. Repro attempted: <steps>."
+deepline feedback send "Goal: <goal>. Tool/provider/model: <details>. Failure: <what broke>. Error: <exact message>. Repro attempted: <steps>."
 ```
 
 ### 7.2 End-of-session consent gate (mandatory)
@@ -421,7 +421,7 @@ If user says:
 
 - **Yes** -> run:
   ```bash
-  deepline session send --current-session
+  deepline sessions send --current-session
   ```
 - **No** -> do not send the session.
 

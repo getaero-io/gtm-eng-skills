@@ -12,7 +12,7 @@ Discover differential signals between Closed Won and Closed Lost accounts by ext
 
 - **Deepline CLI** — All enrichment runs through `deepline enrich`. No separate API keys for exa/crustdata/apollo etc.
 - **Python 3** stdlib only — no pip dependencies for any shipped script.
-- **Credits** — paid web extraction plus CrustData job search. Run a small sample or `deepline tools get crustdata_v2_job_search --json` for current Deepline-facing pricing before scaling. Step 7 contact discovery is additional. **Always get user approval before paid steps.**
+- **Credits** - paid web extraction plus CrustData job search. Run a small sample or `deepline tools describe crustdata_v2_job_search --json` for current Deepline-facing pricing before scaling. Step 7 contact discovery is additional. **Always get user approval before paid steps.**
 
 ## Deepline-First Principle
 

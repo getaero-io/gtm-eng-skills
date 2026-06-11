@@ -279,7 +279,7 @@ Full CLI patterns: [clay-action-mappings.md](../references/clay-action-mappings.
 
 ```bash
 deepline tools search "<what the action does>"   # search by intent
-deepline tools get <candidate_tool_id>            # inspect candidate
+deepline tools describe <candidate_tool_id>       # inspect candidate
 # if nothing found → deeplineagent fallback
 ```
 

@@ -63,7 +63,7 @@ Don't proceed until intent is clear. If the user is vague on edge cases, propose
 {
   alias: string                   # Unique name. Referenced by downstream steps.
   description?: string            # Short explanation of what this step does. Rendered in the pipeline UI.
-  tool: string                    # Tool ID. Verify with `deepline tools get`.
+  tool: string                    # Tool ID. Verify with `deepline tools describe`.
   payload: Record<string, any>    # Tool input. Supports {{placeholder}} syntax.
   extract_js?: string             # JS to reshape output before storing.
   # run_if_js is removed from CLI spec and should be implemented in workflow `run_javascript` steps.
@@ -136,7 +136,7 @@ Look for patterns to reuse: similar enrichment chains, scoring logic, persist pa
 
 ```bash
 deepline tools search "<what you need>"   # e.g. "enrich company", "send email", "scrape website"
-deepline tools get <tool_id>              # Check exact input schema and description
+deepline tools describe <tool_id>         # Check exact input schema and description
 ```
 
 Search by capability, not by provider name. The tool catalog has 800+ tools — there's likely one for what you need. Waterfall plays (multi-provider enrichment) show up in search results alongside single-provider tools.
@@ -144,8 +144,8 @@ Search by capability, not by provider name. The tool catalog has 800+ tools — 
 ### Database state
 
 ```bash
-deepline customer-db query --sql "SELECT table_name FROM information_schema.tables WHERE table_schema = 'demo_crm'"
-deepline customer-db query --sql "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'my_table'"
+deepline db query --sql "SELECT table_name FROM information_schema.tables WHERE table_schema = 'demo_crm'"
+deepline db query --sql "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'my_table'"
 ```
 
 Understand what tables exist before defining new ones or writing to existing ones.
@@ -396,7 +396,7 @@ enrich_contact → enrich_company → score (run_javascript) → classify (ai_in
 deepline workflows apply --payload '<JSON>' --json
 ```
 
-Check the response for `validation.status` — should be `"valid"`. If `"schema_drift"`, a tool reference couldn't be resolved. Run `deepline tools get <tool_id>` to verify the tool exists.
+Check the response for `validation.status` - should be `"valid"`. If `"schema_drift"`, a tool reference couldn't be resolved. Run `deepline tools describe <tool_id>` to verify the tool exists.
 
 ### Test call
 
@@ -422,7 +422,7 @@ Inspect per-step status and outputs. Steps skipped by execution mode show `misse
 ### Check DB outputs
 
 ```bash
-deepline customer-db query --sql "SELECT * FROM demo_crm.my_results ORDER BY created_at DESC LIMIT 5"
+deepline db query --sql "SELECT * FROM demo_crm.my_results ORDER BY created_at DESC LIMIT 5"
 ```
 
 ### Validate against expectations
