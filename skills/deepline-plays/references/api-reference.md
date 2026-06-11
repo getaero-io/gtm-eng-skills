@@ -6,9 +6,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.93` |
+| SDK version | `0.1.94` |
 | API contract | `2026-06-dataset-column-cell-stale-hard-cutover` |
-| Latest supported SDK | `0.1.93` |
+| Latest supported SDK | `0.1.94` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.53` |
 | Generated sources | `src/lib/sdk/api-routes.ts`<br />`sdk/src/types.ts`<br />`sdk/src/client.ts`<br />`sdk/src/release.ts` |
@@ -271,6 +271,18 @@ while True:
 | `POST` | `/api/v2/secrets` | `secrets set` | SDK-facing route. | `src/app/api/v2/secrets/route.ts` |
 | `DELETE` | `/api/v2/secrets/:id` | `secrets delete` | SDK-facing route. | `src/app/api/v2/secrets/[id]/route.ts` |
 | `POST` | `/api/v2/secrets/:id/test` | `secrets test` | SDK-facing route. | `src/app/api/v2/secrets/[id]/test/route.ts` |
+| `GET` | `/api/v2/workflows` | `listWorkflows` | SDK-facing route. | `src/app/api/v2/workflows/route.ts` |
+| `DELETE` | `/api/v2/workflows/:id` | `deleteWorkflow` | SDK-facing route. | `src/app/api/v2/workflows/[id]/route.ts` |
+| `GET` | `/api/v2/workflows/:id` | `getWorkflow` | SDK-facing route. | `src/app/api/v2/workflows/[id]/route.ts` |
+| `POST` | `/api/v2/workflows/:id/disable` | `disableWorkflow` | SDK-facing route. | `src/app/api/v2/workflows/[id]/disable/route.ts` |
+| `POST` | `/api/v2/workflows/:id/enable` | `enableWorkflow` | SDK-facing route. | `src/app/api/v2/workflows/[id]/enable/route.ts` |
+| `GET` | `/api/v2/workflows/:id/runs` | `listWorkflowRuns` | SDK-facing route. | `src/app/api/v2/workflows/[id]/runs/route.ts` |
+| `GET` | `/api/v2/workflows/:id/runs/:runId` | `getWorkflowRun` | SDK-facing route. | `src/app/api/v2/workflows/[id]/runs/[runId]/route.ts` |
+| `POST` | `/api/v2/workflows/:id/runs/:runId/cancel` | `cancelWorkflowRun` | SDK-facing route. | `src/app/api/v2/workflows/[id]/runs/[runId]/cancel/route.ts` |
+| `POST` | `/api/v2/workflows/apply` | `applyWorkflow` | SDK-facing route. | `src/app/api/v2/workflows/apply/route.ts` |
+| `POST` | `/api/v2/workflows/call` | `callWorkflow` | SDK-facing route. | `src/app/api/v2/workflows/call/route.ts` |
+| `POST` | `/api/v2/workflows/lint` | `lintWorkflow` | SDK-facing route. | `src/app/api/v2/workflows/lint/route.ts` |
+| `GET` | `/api/v2/workflows/schema` | `getWorkflowSchema` | SDK-facing route. | `src/app/api/v2/workflows/schema/route.ts` |
 
 
 ## Runtime Route Coverage
@@ -283,7 +295,7 @@ while True:
 | Play Runs | 9 |
 | Play Definitions | 6 |
 | Play Artifacts | 4 |
-| Management And CLI | 23 |
+| Management And CLI | 35 |
 
 ## Recent Compatible API Changes
 
@@ -297,8 +309,8 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-06-sdk-plays-internal-module-relocation` | Internal module relocation only for POST /api/v2/plays/run and POST /api/v2/plays/artifacts: resolveStaticPipelineTree now imports from @shared_libs/plays/resolve-static-pipeline (static-pipeline/compiler-manifest consolidation), schedul... |
 | `2026-06-cli-slack-report-channel-routing` | Routes internal Slack observability reports to the correct V1/V2 channels by CLI client family: POST /api/v2/cli/feedback, /api/v2/cli/report-failure, and /api/v2/cli/session-start now read CLI client-context headers so python-cli (V1) f... |
 | `2026-06-sdk-play-route-lazy-build-imports` | Moves play preflight/typecheck/bundling imports behind lazy server-only boundaries for POST /api/v2/plays/check and POST /api/v2/plays/run to reduce Next/Vercel build memory. Request shapes, response envelopes, route paths, validation se... |
+| `2026-06-sdk-enrich-v1-compat-v2-runtime` | Restores SDK CLI `deepline enrich` v1-style command ergonomics while continuing to execute through the existing V2 play run routes and dataset Runtime Sheet output. Existing API routes, request shapes, response envelopes, and installed S... |
 | `2026-06-sdk-plays-run-internal-concurrency-guard-removed` | Removes the server-side in-flight guard that blocked concurrent dataset-backed internal child play calls (ctx.runPlay) in POST /api/v2/plays/run and the [name]/live route. Internal-only behavior: request shapes, response envelopes, route... |
-| `2026-06-sdk-play-runif-options-syntax` | Updates SDK CLI play bootstrap generation to emit the additive `step(..., resolver, { runIf })` authoring syntax while preserving existing play check/run routes, request shapes, response envelopes, and legacy `runIf(predicate, resolver)`... |
 
 ## Public Types
 
