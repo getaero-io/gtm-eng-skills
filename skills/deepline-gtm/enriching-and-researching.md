@@ -74,7 +74,7 @@ Play tool: `name_and_domain_to_email_waterfall`
 | name + company_name (no domain) or SN `/sales/lead/` URLs | Resolve domain first (below), then use the play   |
 | standard `/in/` LinkedIn URL + name                       | Skip this play — use `LinkedIn URL -> work email` |
 
-**Play internals.** Runs 8 validated patterns first: `first.last@domain`, `firstlast@domain`, `first_last@domain`, `first-last@domain`, `firstinitiallast@domain`, `firstlastinitial@domain`, `first@domain`, `last@domain`. Pattern hits only count when validator returns `valid` (not `catch_all`). Falls through to `dropleads_email_finder -> hunter_email_finder -> leadmagic_email_finder -> crustdata_persondb_search -> peopledatalabs_enrich_contact`. `catch_all` is operationally usable for outreach but not counted as an automatic waterfall win inside the play.
+**Play internals.** Runs common validated patterns first; only `valid` hits count. Falls through to `dropleads_email_finder -> hunter_email_finder -> leadmagic_email_finder -> crustdata_persondb_search -> peopledatalabs_enrich_contact`. `catch_all` is usable for outreach but not an automatic win inside the play.
 
 **Example:**
 
@@ -141,7 +141,7 @@ Play tool: `personal_email_to_linkedin_waterfall`. Required payload: `personal_e
 
 Use it when a signup list (free-tier, GitHub stargazers, self-serve export) has only personal emails and you want to know who they are. Returns `linkedin_url`, `name`, `company`, `title`; a profile is often more recoverable and useful than a work email here. The play normalizes Gmail first (strips dots/`+tags`), then waterfalls `deepline_native` -> `forager` -> `findymail` -> `peopledatalabs`, charging per hit.
 
-The same play runs two ways (copy the v1 form if you have `deepline enrich --with` scripts):
+The same play runs two ways:
 
 ```bash
 # v1 enrich (--with JSON, per CSV row)
@@ -152,7 +152,7 @@ deepline enrich --input signups.csv --output out.csv \
 deepline plays run personal-email-to-linkedin-waterfall --input '{"personal_email":"ada@gmail.com"}'
 ```
 
-Porting v1 -> v2: the v1 `tool` (underscores) is the v2 play name (hyphens); the v1 `payload` is the v2 `--input`; drop the `{{column}}` placeholders. Coverage on bare personal emails is ~25-40% (a property of the input, not the provider), so over-provision and let misses fall off. If a row returns a company but no work email, chain `name_and_domain_to_email_waterfall` on those rows.
+Porting v1 -> v2: v1 `tool` (underscores) becomes the v2 play name (hyphens); v1 `payload` becomes v2 `--input`; drop `{{column}}` placeholders. Bare personal email coverage is ~25-40%, so over-provision. If a row returns a company but no work email, chain `name_and_domain_to_email_waterfall`.
 
 ### Contact identity -> phone
 
@@ -175,7 +175,7 @@ Play details:
 - `email` and `linkedin_url` are optional hints that unlock additional provider paths.
 - The play handles the phone provider order internally. Treat the play as the source of truth for exact sequencing.
 - LeadMagic runs in two gated forms inside the play: LinkedIn-based when `linkedin_url` exists, and email-based when `email` exists.
-- For async multi-provider waterfalls (BetterContact, FullEnrich) that aggregate 20+ sources internally, use them as manual enrichment steps outside the play when the native waterfall misses.
+- Use async aggregators (BetterContact, FullEnrich) as manual enrichment steps outside the play when the native waterfall misses.
 
 Example:
 
@@ -206,18 +206,18 @@ Why this play:
 
 Provider behavior:
 
-- `dropleads` is strongest when `roles` contains exact title tokens.
-- `deepline_native` translates portable roles into provider-safe boolean title-filter expressions. This is most useful when `roles` contains specific leadership intent like `CEO`, `Founder`, `CTO`, `VP Marketing`, `Head of Security`, or `Director of Engineering`.
-- `apollo` is useful for exact title search, but do not depend on it as the only source for founder/exec startup cases.
-- `icypeas` is a strong fallback for exact profile-style role searches, especially founders and startup operators.
+- `dropleads` is strongest with exact title tokens.
+- `deepline_native` translates portable roles into provider-safe title filters, especially for leadership intent like `CEO`, `Founder`, `CTO`, `VP Marketing`, `Head of Security`, or `Director of Engineering`.
+- `apollo` helps with exact title search, but should not be the only source for founder/exec startup cases.
+- `icypeas` is a strong exact-profile fallback, especially for founders and startup operators.
 - `prospeo` and `crustdata` are structured fallbacks, not reasons to jump to `deeplineagent`.
-- If the user asks for a very specific persona and you only have a broad function, refine the role phrasing first before adding more providers.
+- For a very specific persona with only a broad function, refine the role phrasing before adding providers.
 
 Persona matching:
 
 - Treat requested `roles` and `seniority` as semantic intent, not raw substring rules. Provider search can return adjacent titles that contain the same words but mean something different.
 - Validate that the returned title actually matches the requested persona before treating it as the decision maker. If the match is weak, return no result, broaden intentionally, or mark it low confidence instead of filling the row with a plausible-looking person.
-- Common false positives: `Owner` does not mean `Product Owner`, `Process Owner`, `Salesforce Product Owner`, or `P2P Functional Process Owner`; `Sales` does not mean `Salesforce`; `Head` does not always mean department head; `Chief` can be non-executive in phrases like `Chief of Staff`; `Security` can mean physical security instead of cybersecurity leadership.
+- Common false positives: `Owner` can mean process/product owner, `Sales` can mean Salesforce, `Chief` can mean Chief of Staff, and `Security` can mean physical security.
 - Prefer exact title families or explicit role phrases when intent is narrow. For example, use `Founder`, `Co-Founder`, `CEO`, `Chief Executive Officer`, or `Owner/Proprietor` for business-owner intent instead of relying on a loose `owner` token.
 - Ambiguous terms need supporting evidence from company/domain fit, full title context, and the requested function. Do not let one overlapping word override a bad persona fit.
 
@@ -361,9 +361,7 @@ python3 ~/.claude/skills/deepline-gtm/scripts/validate-linkedin-names.py enriche
 Null out LinkedIn URLs where names don't match.
 
 ```bash
-# Current role extraction. Top-level LinkedIn jobTitle is often stale or a board
-# role. This selects the latest active work role, repairs company-name-in-title
-# artifacts, and uses --target-role when advisor-style titles need context.
+# Current role extraction. Selects latest active work role and repairs artifacts.
 python3 ~/.claude/skills/deepline-gtm/scripts/select-current-role.py enriched.csv \
     --scrape-col li_scrape --out-title current_title --out-company current_company
 ```
@@ -371,9 +369,7 @@ python3 ~/.claude/skills/deepline-gtm/scripts/select-current-role.py enriched.cs
 Do not trust top-level `jobTitle`; old roles or board/advisor entries can outrank the real current job.
 
 ```bash
-# Final contact audit. Run on the final CSV before shipping. It projects
-# freshness, cell shape, email risk, duplicate-person, job-change, and
-# domain-alignment checks into ACTION + flag_reason.
+# Final contact audit. Projects delivery gates into ACTION + flag_reason.
 python3 ~/.claude/skills/deepline-gtm/scripts/contact-accuracy-audit.py final.csv \
     > final_audited.csv
 ```
