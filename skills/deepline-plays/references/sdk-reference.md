@@ -190,9 +190,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.104` |
+| SDK version | `0.1.105` |
 | API contract | `2026-06-dataset-column-cell-stale-hard-cutover` |
-| Latest supported SDK | `0.1.104` |
+| Latest supported SDK | `0.1.105` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.53` |
 | Generated sources | `sdk/src/client.ts`<br />`sdk/src/play.ts`<br />`shared_libs/play-runtime/cell-staleness.ts`<br />`shared_libs/play-runtime/tool-result-types.ts`<br />`shared_libs/plays/dataset.ts` |
@@ -836,6 +836,7 @@ Signature: `class DeeplineClient`
 |---|---|---|---|---|
 | `constructor` | constructor | Create a low-level SDK client.<br /><br />Most callers can omit options and let the SDK resolve auth/config from<br />environment variables and CLI-managed credentials. | `options?: DeeplineClientOptions` - Optional overrides for API key, base URL, timeout, and retries. |  |
 | `runs` | property | Canonical run lifecycle namespace backed by `/api/v2/runs`. |  | `RunsNamespace` |
+| `billing` | property | Billing namespace: subscription status/cancel and invoice history. |  | `BillingNamespace` |
 | `baseUrl` | getter | The resolved base URL this client is targeting (e.g. `"http://localhost:3000"`). |  | `string` |
 | `listSecrets` | method | List secret metadata visible to the current workspace. |  | `Promise<PlaySecretMetadata[]>` |
 | `checkSecret` | method | Check whether a named secret exists, is active, and has a stored value. | `name: string` - Secret name. It is normalized to uppercase before lookup. | `Promise<PlaySecretMetadata \| null>` |
@@ -894,6 +895,10 @@ Signature: `class DeeplineClient`
 | `unpublishSharePage` | method | Unshare: hard-delete the play's public page and its cards. Returns the<br />fresh status (now `share: null`). Org-admin only. Idempotent — a no-op when<br />the play was never published. | `name: string` | `Promise<SharePageStatus>` |
 | `regenerateSharePage` | method | Regenerate the LLM landing-page copy for a revision (defaults to the<br />published one). Org-admin only. | `name: string`<br />`request?: { revisionId?: string }` | `Promise<SharePageStatus>` |
 | `runPlay` | method | Run a play end-to-end: submit, stream until terminal, return result.<br /><br />This is the highest-level play execution method. It submits the play,<br />reads the canonical run stream for status updates, and returns a structured<br />result with logs and timing. Supports cancellation via `AbortSignal`. | `code: string` - Source string fallback; pass the bundled artifact in `options.artifact`<br />`csvPath: string \| null` - Input CSV path, or `null`<br />`name?: string` - Play name<br />`options?: { onProgress?: (status: PlayStatus) => void; signal?: AbortSignal; input?: Record<string, unknown>; sourceCode?: string; artifact?: Record<string, unknown>; compilerManifest?: PlayCompilerManifest; inputFile?: PlayStagedFileRef \| null; packagedFiles?: PlayStagedFileRef[]; force?: boolean; }` - Execution options | `Promise<PlayRunResult>` |
+| `getBillingPlans` | method | Published plans plus the caller's active plan: prices, monthly grant<br />credits, rollover policy, and which plans are open for subscription.<br />Prefer `client.billing.plans()`. |  | `Promise<BillingPlansResult>` |
+| `getBillingSubscriptionStatus` | method | Subscription state for the active workspace: active plan, whether a<br />Stripe subscription backs it, renewal/cancellation facts, and remaining<br />Deepline credit pools. Prefer `client.billing.subscription.status()`. |  | `Promise<BillingSubscriptionStatus>` |
+| `cancelBillingSubscription` | method | Schedule subscription cancellation at period end, or reverse a pending<br />cancellation with `{ undo: true }`. The customer keeps the cycle they<br />paid for and every remaining credit — cancellation never claws back<br />credits. Prefer `client.billing.subscription.cancel(...)`. | `options?: { undo?: boolean; }` | `Promise<BillingSubscriptionCancelResult>` |
+| `listBillingInvoices` | method | Customer-facing billing history: subscription invoices plus one-time<br />credit purchase receipts, newest first, with Stripe-hosted links.<br />Prefer `client.billing.invoices.list(...)`. | `options?: { limit?: number; }` | `Promise<BillingInvoicesResult>` |
 | `health` | method | Check API connectivity and server health. |  | `Promise<{ status: string; version?: string }>` |
 
 ### `client.runs`
@@ -914,3 +919,20 @@ logs, and exporting durable dataset rows.
 | `logs` | `(runId: string, options?: RunsLogsOptions) => Promise<RunsLogsResult>` | Yes | Fetch persisted log lines for a run. |
 | `exportDatasetRows` | `(input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; }) => Promise<PlaySheetRowsResult>` | Yes | Export persisted rows for a runtime-sheet dataset/table namespace. |
 | `stop` | `( runId: string, options?: { reason?: string }, ) => Promise<StopPlayRunResult>` | Yes | Stop a running/waiting run. |
+
+
+### `client.billing`
+
+Public billing namespace exposed as `client.billing`.
+
+Carries the durable Deepline billing product model — plans, subscription
+state, period-end cancellation, and invoice/receipt history — so CLI
+commands and programmatic callers share the same surface.
+
+#### Fields
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `plans` | `() => Promise<BillingPlansResult>` | Yes | Published plans plus the plan you are on ("what plans exist and what am I on"). |
+| `subscription` | `{ status: () => Promise<BillingSubscriptionStatus>; cancel: (options?: { undo?: boolean; }) => Promise<BillingSubscriptionCancelResult>; }` | Yes |  |
+| `invoices` | `{ list: (options?: { limit?: number }) => Promise<BillingInvoicesResult>; }` | Yes |  |

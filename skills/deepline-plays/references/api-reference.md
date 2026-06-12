@@ -6,9 +6,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.104` |
+| SDK version | `0.1.105` |
 | API contract | `2026-06-dataset-column-cell-stale-hard-cutover` |
-| Latest supported SDK | `0.1.104` |
+| Latest supported SDK | `0.1.105` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.53` |
 | Generated sources | `src/lib/sdk/api-routes.ts`<br />`sdk/src/types.ts`<br />`sdk/src/client.ts`<br />`sdk/src/release.ts` |
@@ -254,12 +254,18 @@ while True:
 | `POST` | `/api/v2/auth/cli/status` | `auth status` | SDK-facing route. | `src/app/api/v2/auth/cli/status/route.ts` |
 | `POST` | `/api/v2/auth/cli/switch` | `org switch` | SDK-facing route. | `src/app/api/v2/auth/cli/switch/route.ts` |
 | `GET` | `/api/v2/billing/balance` | `billing balance` | SDK-facing route. | `src/app/api/v2/billing/balance/route.ts` |
+| `GET` | `/api/v2/billing/catalog/current` | `billing.plans`<br />`getBillingPlans`<br />`billing plans` | SDK-facing route. | `src/app/api/v2/billing/catalog/current/route.ts` |
 | `POST` | `/api/v2/billing/checkout` | `billing checkout` | SDK-facing route. | `src/app/api/v2/billing/checkout/route.ts` |
 | `POST` | `/api/v2/billing/checkout/verify` | `billing redeem` | SDK-facing route. | `src/app/api/v2/billing/checkout/verify/route.ts` |
+| `GET` | `/api/v2/billing/invoices` | `billing.invoices.list`<br />`listBillingInvoices`<br />`billing invoices` | SDK-facing route. | `src/app/api/v2/billing/invoices/route.ts` |
 | `GET` | `/api/v2/billing/ledger` | `billing history` | SDK-facing route. | `src/app/api/v2/billing/ledger/route.ts` |
 | `DELETE` | `/api/v2/billing/limit` | `billing limit off` | SDK-facing route. | `src/app/api/v2/billing/limit/route.ts` |
 | `GET` | `/api/v2/billing/limit` | `billing limit` | SDK-facing route. | `src/app/api/v2/billing/limit/route.ts` |
 | `POST` | `/api/v2/billing/limit` | `billing limit set` | SDK-facing route. | `src/app/api/v2/billing/limit/route.ts` |
+| `POST` | `/api/v2/billing/quote` | `dashboard cost preview (no CLI command)` | SDK-facing route. | `src/app/api/v2/billing/quote/route.ts` |
+| `POST` | `/api/v2/billing/subscription/cancel` | `billing.subscription.cancel`<br />`cancelBillingSubscription`<br />`billing subscription cancel` | SDK-facing route. | `src/app/api/v2/billing/subscription/cancel/route.ts` |
+| `POST` | `/api/v2/billing/subscription/checkout` | `billing subscribe` | SDK-facing route. | `src/app/api/v2/billing/subscription/checkout/route.ts` |
+| `GET` | `/api/v2/billing/subscription/status` | `billing.subscription.status`<br />`getBillingSubscriptionStatus`<br />`billing subscription status` | SDK-facing route. | `src/app/api/v2/billing/subscription/status/route.ts` |
 | `GET` | `/api/v2/billing/usage` | `billing usage` | SDK-facing route. | `src/app/api/v2/billing/usage/route.ts` |
 | `POST` | `/api/v2/cli/feedback` | `feedback` | SDK-facing route. | `src/app/api/v2/cli/feedback/route.ts` |
 | `POST` | `/api/v2/cli/send-session` | `sessions send` | SDK-facing route. | `src/app/api/v2/cli/send-session/route.ts` |
