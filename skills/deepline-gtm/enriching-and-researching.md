@@ -41,7 +41,7 @@ Run `deepline enrich` in the foreground so you don't waste tokens while it compl
 ## Notes
 
 - Plays are the default surface for common enrichment jobs.
-- **Personal vs work emails:** "Personal emails" means Gmail/Hotmail/Yahoo, not work emails. **NEVER** substitute work email providers (Apollo, Hunter, LeadMagic). Use Fullenrich (`contact.personal_emails`) or BetterContact; if one fails, try the other.
+- **Personal vs work emails:** When the user asks for personal emails, they mean Gmail/Hotmail/Yahoo, not work emails. Use Fullenrich (`contact.personal_emails`) or BetterContact; do not substitute Apollo, Hunter, LeadMagic, or other work-email providers.
 - Direct provider tools are preferred for mechanical fields when no play exists.
 - When multiple providers recover the same mechanical field, prefer the route that bills on returned results or successful hits. Use request-priced, page-priced, or broad AI passes only after a tiny pilot proves they return usable rows.
 - `run_javascript` is for deterministic transforms, normalization, coalescing, templating, and cheap row-level glue logic.
