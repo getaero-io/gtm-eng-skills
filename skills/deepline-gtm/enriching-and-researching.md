@@ -20,6 +20,7 @@ If a play exists, use it first. Use manual provider chains only when:
 | Name + domain -> work email                              | You have name + domain (or can resolve domain from company_name / Sales Nav URL first)                     | `Name + domain -> work email`                             | Canonical deterministic path. Handles both direct and domain-first-then-waterfall cases.                                 |
 | LinkedIn URL -> work email                               | Standard `/in/` LinkedIn URL + name. `domain` optional; include if known for extra coverage.               | `LinkedIn URL -> work email`                              | Works with or without domain. Do NOT use for SN `/sales/lead/` URLs — resolve domain first and use the name+domain play. |
 | Email -> person/company context                          | You have an inbound or work email and need person + company details                                        | `Email -> person/company context`                         | Good for hydrating context from a single strong identifier.                                                              |
+| Personal email -> LinkedIn profile                       | Bare personal email (Gmail/GitHub signup); you need LinkedIn + name + company, not a work email | `Personal email -> LinkedIn profile`                      | Reverse identity resolution; best for personal-email-only lists. |
 | Company -> persona lookup                                | You have an account and need candidate contacts by role or seniority                                       | `Company -> persona lookup`                               | Canonical play for company-to-persona lookup                                                                             |
 | Company name only -> resolve domain first                | You need to recover homepage/domain before downstream enrichment                                           | `Company name only -> resolve domain first`               | Domain lookup is mechanical and should not start with `deeplineagent`                                                    |
 | Validate a recovered email                               | An email lookup has already run                                                                            | `Notes`                                                   | Validation belongs after recovery or coalescing, not before                                                              |
@@ -132,6 +133,25 @@ Example:
 deepline enrich --input inbound.csv --output inbound_enriched.csv --rows 0:1 \
   --with '{"alias":"person_context","tool":"deepline_native_enrich_contact","payload":{"email":"{{email}}"}}'
 ```
+
+### Personal email -> LinkedIn profile
+
+Play tool: `personal_email_to_linkedin_waterfall`. Required payload: `personal_email` only (name/company unknown, unlike the work-email plays).
+
+Use it when a signup list (free-tier, GitHub stargazers, self-serve export) has only personal emails and you want to know who they are. Returns `linkedin_url`, `name`, `company`, `title`; a profile is often more recoverable and useful than a work email here. The play normalizes Gmail first (strips dots/`+tags`), then waterfalls `deepline_native` -> `forager` -> `findymail` -> `peopledatalabs`, charging per hit.
+
+The same play runs two ways (copy the v1 form if you have `deepline enrich --with` scripts):
+
+```bash
+# v1 enrich (--with JSON, per CSV row)
+deepline enrich --input signups.csv --output out.csv \
+  --with '{"alias":"profile","tool":"personal_email_to_linkedin_waterfall","payload":{"personal_email":"{{personal_email}}"}}'
+
+# v2 play (same keys, real values instead of {{...}})
+deepline plays run personal-email-to-linkedin-waterfall --input '{"personal_email":"ada@gmail.com"}'
+```
+
+Porting v1 -> v2: the v1 `tool` (underscores) is the v2 play name (hyphens); the v1 `payload` is the v2 `--input`; drop the `{{column}}` placeholders. Coverage on bare personal emails is ~25-40% (a property of the input, not the provider), so over-provision and let misses fall off. If a row returns a company but no work email, chain `name_and_domain_to_email_waterfall` on those rows.
 
 ### Contact identity -> phone
 
