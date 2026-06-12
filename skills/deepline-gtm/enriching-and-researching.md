@@ -116,16 +116,11 @@ deepline enrich --input contacts.csv --output contacts_with_emails.csv --rows 0:
 
 ### Email -> person/company context
 
-Problem category: reverse enrichment from a known email.  
-Input profile: `email`.  
-Output target: hydrated person and company context.
-
 Play tool: `deepline_native_enrich_contact`
 
 Why this play:
 
 - Email is a strong identifier; use it directly.
-- Good for backfilling person/company fields after email recovery.
 - This is hydration, not research.
 
 Example:
@@ -139,7 +134,7 @@ deepline enrich --input inbound.csv --output inbound_enriched.csv --rows 0:1 \
 
 Play tool: `personal_email_to_linkedin_waterfall`. Required payload: `personal_email` only (name/company unknown, unlike the work-email plays).
 
-Use it when a signup list (free-tier, GitHub stargazers, self-serve export) has only personal emails and you want to know who they are. Returns `linkedin_url`, `name`, `company`, `title`; a profile is often more recoverable and useful than a work email here. The play normalizes Gmail first (strips dots/`+tags`), then waterfalls `deepline_native` -> `forager` -> `findymail` -> `peopledatalabs`, charging per hit.
+Use it when a signup list has only personal emails and you want to know who they are. Returns `linkedin_url`, `name`, `company`, `title`; a profile is often more recoverable and useful than a work email here. The play normalizes Gmail first, then waterfalls `deepline_native` -> `forager` -> `findymail` -> `peopledatalabs`, charging per hit.
 
 The same play runs two ways:
 
@@ -155,10 +150,6 @@ deepline plays run personal-email-to-linkedin-waterfall --input '{"personal_emai
 Porting v1 -> v2: v1 `tool` (underscores) becomes the v2 play name (hyphens); v1 `payload` becomes v2 `--input`; drop `{{column}}` placeholders. Bare personal email coverage is ~25-40%, so over-provision. If a row returns a company but no work email, chain `name_and_domain_to_email_waterfall`.
 
 ### Contact identity -> phone
-
-Problem category: contact-to-phone recovery.  
-Input profile: `first_name`, `last_name`, `domain`, with optional `email` and `linkedin_url`.  
-Output target: one best phone number for the contact.
 
 Play tool: `contact_to_phone_waterfall`
 
@@ -185,10 +176,6 @@ deepline enrich --input contacts.csv --output contacts_with_phones.csv --rows 0:
 ```
 
 ### Company -> persona lookup
-
-Problem category: account-to-contact persona lookup.  
-Input profile: `company_name`, `domain`, `roles`, and `seniority`. `domain` is required.  
-Output target: candidate contacts for the requested persona.
 
 Play tool: `company_to_contact_by_role_waterfall`
 

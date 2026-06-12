@@ -24,14 +24,14 @@ Safe planning-only commands: auth/health/balance, `plays search`, `plays describ
 
 ## Which Piece?
 
-| Situation | Use | First commands | Gate |
-| --- | --- | --- | --- |
-| Known play/prebuilt may fit exactly | This page + run/export reference | `deepline plays describe prebuilt/<name> --json` | Input/output/export/pricing/freshness match |
-| CSV needs aliases, validation, projection, or join | This page + run/export reference | `plays describe`, inspect headers, `plays bootstrap` | `plays check` and pilot pass |
-| Find companies, contacts, or TAM | `references/find-companies-contacts-tam.md` + this page | `plays search "company list TAM..."`, fallback `tools search` | Criteria, evidence, count/sample basis, and cost are legible |
-| Company -> contacts -> email/phone | Company/contact/TAM reference + this page | search/describe company, people, and channel contracts | Pilot proves account grain and contact identity |
-| API/cron/webhook monitor | This page + generated refs + run/export reference | `plays bootstrap --help`, generated SDK/API refs | Trigger, input, side effects, and pilot are isolated |
-| Billing/rerun/debug/export question | `references/run-export-inspect-repair.md` first | `runs get`, `runs export`, `runs logs` | No paid rerun until run metadata is understood |
+| Situation                                          | Use                                                     | First commands                                                | Gate                                                         |
+| -------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------ |
+| Known play/prebuilt may fit exactly                | This page + run/export reference                        | `deepline plays describe prebuilt/<name> --json`              | Input/output/export/pricing/freshness match                  |
+| CSV needs aliases, validation, projection, or join | This page + run/export reference                        | `plays describe`, inspect headers, `plays bootstrap`          | `plays check` and pilot pass                                 |
+| Find companies, contacts, or TAM                   | `references/find-companies-contacts-tam.md` + this page | `plays search "company list TAM..."`, fallback `tools search` | Criteria, evidence, count/sample basis, and cost are legible |
+| Company -> contacts -> email/phone                 | Company/contact/TAM reference + this page               | search/describe company, people, and channel contracts        | Pilot proves account grain and contact identity              |
+| API/cron/webhook monitor                           | This page + generated refs + run/export reference       | `plays bootstrap --help`, generated SDK/API refs              | Trigger, input, side effects, and pilot are isolated         |
+| Billing/rerun/debug/export question                | `references/run-export-inspect-repair.md` first         | `runs get`, `runs export`, `runs logs`                        | No paid rerun until run metadata is understood               |
 
 ## Find And Describe
 
@@ -145,6 +145,10 @@ Authoring rules:
 - Use `ctx.csv`, `ctx.dataset`, `ctx.tools.execute`, `ctx.runPlay`, `ctx.step`, `ctx.fetch`, and `ctx.secrets`.
 - Do not use local `fs`, raw `fetch`, shell commands, env reads, `Date.now`, or `Math.random` inside play bodies.
 - Use stable ids for paid work. Rename ids only to refresh wrong/stale provider data or changed semantics.
+- Prefer one paid operation per dataset cell. A paid/tool/play-backed column should return the provider or child-play default output as directly as possible, such as `email_lookup_raw`.
+- Put shaping, projection, `status`, `miss_reason`, display fields, and transformations in separate pure columns after the paid column.
+- Good shape: `email_lookup_raw: rowCtx.runPlay(...)` or `rowCtx.tools.execute(...)`, then `resolved_email`, `email_status`, and `miss_reason` as pure extraction/mapping columns.
+- Avoid one paid column that calls a provider or child play, transforms the output, invents status, and hides the raw/default result at the same time.
 - Return datasets for CSV/exportable outputs.
 - Use declared getters. Do not parse raw payload paths when `extractedValues.*.get()` exists.
 - Project to flat user-facing columns with `status`, `miss_reason`, evidence/source, and requested output fields.
