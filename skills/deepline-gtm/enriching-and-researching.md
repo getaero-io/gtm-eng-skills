@@ -10,8 +10,9 @@ If a play exists, use it first. Use manual provider chains only when:
 
 - no play exists
 - you need to customize provider order or extractor behavior
-- you are testing a niche provider patha
-  Run deepline enrich in the foreground so you don't waste tokens while it completes.
+- you are testing a niche provider path
+
+Run `deepline enrich` in the foreground so you don't waste tokens while it completes.
 
 ## Scenario table
 
@@ -40,21 +41,21 @@ If a play exists, use it first. Use manual provider chains only when:
 ## Notes
 
 - Plays are the default surface for common enrichment jobs.
-- **Personal vs work emails:** When the user asks for "personal emails", they mean Gmail/Hotmail/Yahoo - NOT work emails. **NEVER** substitute work email providers (Apollo, Hunter, LeadMagic) when personal emails are requested. Use Fullenrich (`contact.personal_emails`) or BetterContact. If one fails, try the other - do not fall back to work email providers.
+- **Personal vs work emails:** "Personal emails" means Gmail/Hotmail/Yahoo, not work emails. **NEVER** substitute work email providers (Apollo, Hunter, LeadMagic). Use Fullenrich (`contact.personal_emails`) or BetterContact; if one fails, try the other.
 - Direct provider tools are preferred for mechanical fields when no play exists.
-- When multiple providers can recover the same mechanical field, prefer the route that bills on returned results or successful hits. Use request-priced, page-priced, or broad AI research passes only after a tiny pilot proves they return usable rows.
+- When multiple providers recover the same mechanical field, prefer the route that bills on returned results or successful hits. Use request-priced, page-priced, or broad AI passes only after a tiny pilot proves they return usable rows.
 - `run_javascript` is for deterministic transforms, normalization, coalescing, templating, and cheap row-level glue logic.
 - `deeplineagent` is the default AI path for research, synthesis, custom signals, and classification when JS is not enough.
 - Domain lookup / homepage recovery is mechanical. Use `exa_search` with rich context or `serper_google_search`, not `deeplineagent`.
-- Persona lookup means "find candidate contacts at a company for a target role or seniority." Treat that as a dedicated play, not as generic research.
+- Persona lookup means "find candidate contacts at a company for a target role or seniority." Use the dedicated play, not generic research.
 - Validate after recovery or coalescing, not during each waterfall step.
-- For contact-to-email work, route by the strongest identifiers you already have: name + company + domain -> `Name + domain -> work email`, name + company only (no domain) OR Sales Navigator contacts -> resolve domain first, then use `name_and_domain_to_email_waterfall`, standard `/in/` LinkedIn URL + name -> `LinkedIn URL -> work email` whether or not `domain` is present, name + domain -> `First + last + domain -> work email`.
+- For contact-to-email work, route by your strongest identifiers: name + domain -> `Name + domain -> work email` (or `First + last + domain -> work email`); name + company only (no domain) OR Sales Navigator contacts -> resolve domain first, then `name_and_domain_to_email_waterfall`; standard `/in/` LinkedIn URL + name -> `LinkedIn URL -> work email` (domain optional).
 - **Sales Navigator exports**: `linkedin_url` values in `/sales/lead/` format are rejected by every provider (dropleads, crustdata, deepline_native, PDL). Do not pass them directly to any email waterfall. Resolve the company domain first, then use `name_and_domain_to_email_waterfall`.
-- If you got contacts from a people search (e.g. dropleads_search_people) and they have **standard `/in/`** LinkedIn URLs, use `person_linkedin_to_email_waterfall`. Add `domain` when you have it, but it is not required. This rule does NOT apply to Sales Navigator `/sales/lead/` URLs.
+- Contacts from a people search (e.g. dropleads_search_people) with **standard `/in/`** URLs -> `person_linkedin_to_email_waterfall` (`domain` optional). Does NOT apply to SN `/sales/lead/` URLs.
 - Validation interpretation: `valid` is deliverable, `catch_all` is usable but riskier, `invalid` should be dropped, and `unknown` is unresolved.
 - Phone recovery usually comes later in the pipeline than email or LinkedIn recovery.
 - Prefer inline code for short `run_javascript` transforms. Only move code into files when the logic is long, reused, or too awkward to keep inline.
-- Never start a second enrich run against the same `--output` file while another enrich is still running. The `.deepline.lock` directory is a safety mechanism, not a bug. Wait for the first run to finish or write to a different output path.
+- Never start a second enrich run against the same `--output` file while another is running. The `.deepline.lock` directory is a safety mechanism, not a bug. Wait for the first run, or write to a different output path.
 - In Claude Desktop on Windows, the working directory may look like `C:\Users\...` while the tool executor is still Bash/Git Bash. Use Bash commands such as `rm`, not PowerShell commands such as `Remove-Item`, unless the session context explicitly says the active shell is PowerShell.
 
 ## Plays
@@ -203,7 +204,7 @@ Why this play:
 - Do not assume the play will invent hidden row-level provider fields for you. For interpolated CSV runs, `roles` and `seniority` pass through exactly as provided.
 - Clean contract: pass a company domain. If you only have a LinkedIn company URL, resolve the domain first before using this play.
 
-Provider behavior to remember:
+Provider behavior:
 
 - `dropleads` is strongest when `roles` contains exact title tokens.
 - `deepline_native` translates portable roles into provider-safe boolean title-filter expressions. This is most useful when `roles` contains specific leadership intent like `CEO`, `Founder`, `CTO`, `VP Marketing`, `Head of Security`, or `Director of Engineering`.
@@ -212,21 +213,13 @@ Provider behavior to remember:
 - `prospeo` and `crustdata` are structured fallbacks, not reasons to jump to `deeplineagent`.
 - If the user asks for a very specific persona and you only have a broad function, refine the role phrasing first before adding more providers.
 
-Persona matching guidance:
+Persona matching:
 
 - Treat requested `roles` and `seniority` as semantic intent, not raw substring rules. Provider search can return adjacent titles that contain the same words but mean something different.
 - Validate that the returned title actually matches the requested persona before treating it as the decision maker. If the match is weak, return no result, broaden intentionally, or mark it low confidence instead of filling the row with a plausible-looking person.
 - Common false positives: `Owner` does not mean `Product Owner`, `Process Owner`, `Salesforce Product Owner`, or `P2P Functional Process Owner`; `Sales` does not mean `Salesforce`; `Head` does not always mean department head; `Chief` can be non-executive in phrases like `Chief of Staff`; `Security` can mean physical security instead of cybersecurity leadership.
 - Prefer exact title families or explicit role phrases when intent is narrow. For example, use `Founder`, `Co-Founder`, `CEO`, `Chief Executive Officer`, or `Owner/Proprietor` for business-owner intent instead of relying on a loose `owner` token.
 - Ambiguous terms need supporting evidence from company/domain fit, full title context, and the requested function. Do not let one overlapping word override a bad persona fit.
-
-Practical input patterns:
-
-- Exact exec intent: `CEO`, `Founder`, `Co-Founder`, `CTO`, `CFO`, `CMO`, `CISO`
-- Exact management intent: `VP Marketing`, `Head of Security`, `Director of Engineering`, `Revenue Operations`
-- Broad functional intent: `marketing`, `finance`, `security`, `product`, `engineering`, `sales`, `growth`
-- Good broad + level combos: `engineering + VP`, `security + Head`, `finance + Director`
-- Avoid relying on level-only phrasing like `C-Level` without a role.
 
 Operational rule:
 
@@ -246,13 +239,6 @@ Search examples:
 deepline tools search --categories people_search --search_terms "title filters,linkedin"
 deepline tools search --categories company_search --search_terms "structured filters,firmographics"
 ```
-
-Apify fallback:
-
-- Prefer an Apify company-employees actor when the default provider mix is not finding enough good contacts.
-- This is especially useful when structured people-search providers have thin coverage for a startup or an unusual title.
-- Pull the employee list first, then filter for the target persona rather than trying to force more provider retries.
-- Apify is slower, which is why it is a fallback rather than the default first pass.
 
 Example:
 
@@ -364,7 +350,7 @@ python3 ~/.claude/skills/deepline-gtm/scripts/validate-emails.py enriched.csv \
     --email-col email --domain-col domain
 ```
 
-Flag and investigate mismatched rows — these are often from a previous employer or a wrong-person match. If >20% of rows mismatch, the contact-finding step likely needs re-running with better company disambiguation.
+Flag mismatches; if >20% of rows mismatch, rerun contact finding with better company disambiguation.
 
 ```bash
 # LinkedIn name validation — catches wrong-person matches from search-based lookup
@@ -372,7 +358,7 @@ python3 ~/.claude/skills/deepline-gtm/scripts/validate-linkedin-names.py enriche
     --source-first first_name --source-last last_name --profile-name-col profile_name
 ```
 
-Null out LinkedIn URLs where names don't match. 26% false positive rate without this gate (tested on 253-person dataset). Eval: `python3 scripts/validate-linkedin-names.py --fixtures scripts/fixtures_name_validation.json`
+Null out LinkedIn URLs where names don't match.
 
 ```bash
 # Current role extraction. Top-level LinkedIn jobTitle is often stale or a board
@@ -382,7 +368,7 @@ python3 ~/.claude/skills/deepline-gtm/scripts/select-current-role.py enriched.cs
     --scrape-col li_scrape --out-title current_title --out-company current_company
 ```
 
-Trusting top-level `jobTitle` ships stale titles: old military roles, decade-old IC roles, or advisor/board entries can outrank the real current job. Eval: `python3 scripts/select-current-role.py --fixtures scripts/fixtures_current_role.json` (22 cases across finance, non-finance, and advisor-role handling).
+Do not trust top-level `jobTitle`; old roles or board/advisor entries can outrank the real current job.
 
 ```bash
 # Final contact audit. Run on the final CSV before shipping. It projects
@@ -391,8 +377,6 @@ Trusting top-level `jobTitle` ships stale titles: old military roles, decade-old
 python3 ~/.claude/skills/deepline-gtm/scripts/contact-accuracy-audit.py final.csv \
     > final_audited.csv
 ```
-
-The audit fixture covers every final-delivery gate: valid send rows, catch-all corroboration, job changers, stale profile/email verification, allowed aliases, malformed cells, and duplicate-person conflicts. Eval: `python3 scripts/contact-accuracy-audit.py --fixtures scripts/fixtures_contact_accuracy_audit.json`.
 
 **For any contact list you will actually send to**, read [references/contact-accuracy.md](references/contact-accuracy.md). It gives the full workflow: resolve the current work role, confirm identity, catch job-changers, validate email independently, preserve lineage, discover current role-holders company-first when accounts are known, audit the final file, and deliver one `ACTION` plus `flag_reason` per row.
 
@@ -462,29 +446,23 @@ deepline enrich --input out.csv --in-place \
 
 ### Prompt library
 
-Before writing a fresh prompt, inspect [`prompts.json`](prompts.json).
-
-List the top-level keys first. This is the cleanest way to see what prompts already exist:
+Before writing a fresh prompt, inspect [`prompts.json`](prompts.json):
 
 ```bash
 jq -r 'keys[]' .skills/deepline-gtm/prompts.json
 ```
 
-If you want a rough keyword search across the file, use `grep`:
+Keyword search:
 
 ```bash
 grep -nE "funding|competitor|personalization|research|signal" .skills/deepline-gtm/prompts.json
 ```
 
-Use `grep` for broad hunting only. It matches inside prompt bodies too, so the output is often noisy.
-
-Print a specific prompt by key with `jq`:
+Print a prompt by key:
 
 ```bash
 jq -r '."5 interesting facts about a candidate"' .skills/deepline-gtm/prompts.json
 ```
-
-If the prompt key contains quotes or awkward punctuation, first list keys with `jq -r 'keys[]'`, then copy the exact key into the command above.
 
 ### Recommended course of action
 

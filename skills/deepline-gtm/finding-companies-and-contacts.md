@@ -361,47 +361,11 @@ deepline tools execute serper_google_search --payload '{"query":"\"Jane Smith\" 
 | `adyntel_facebook_ad_search`             | Meta keyword-based ad search                                                                                 | keyword                                                                                                           | ~1 cr                                       | Additional channel coverage.                                                                                                                                                                                                                                                                                                                                                                     |
 | `deeplineagent`                          | Tool-backed fallback research and ambiguity resolution                                                       | prompt + row context                                                                                              | varies                                      | Use only after direct discovery paths fail or when you need guided synthesis over web findings. Ask for structured output with `jsonSchema`.                                                                                                                                                                                                                                                     |
 
-## Subagent orchestration
-
-When the `deepline-list-builder` subagent is available, use it to fan out searches across providers in parallel. Each provider search runs in an isolated context (no context pollution), results can be compared side-by-side, and the main agent stays clean for merging/dedup.
-
-**When to use:** Large multi-provider searches where you genuinely want to compare results across 3+ sources. Spawn one subagent per provider in a single tool call.
-
-**When NOT to use:** Single-provider lookups, enrichment tasks (use `deepline enrich`), or when provider selection routing above points to one clear primary provider.
-
-## Finding contacts at known companies
-
-Pick the right tool based on what you have and what you need:
-
-| Tool                        | Cost          | Input needed                      | Returns                                                  | Best for                                    | Limitation                                                                       |
-| --------------------------- | ------------- | --------------------------------- | -------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------- |
-| `exa_people_search`         | 0.1 cr/result | company name + role keyword       | Structured entities: name, title, LinkedIn, work history | Any company size, especially small startups | Finds _associated_ people, not guaranteed exact role match                       |
-| `dropleads_search_people`   | free          | company domain or keyword filters | Name, title, email (sometimes), company                  | Mid/large companies (>50 employees)         | Near-zero coverage for tiny startups (<50 people)                                |
-| `deeplineagent`             | varies        | company name/domain               | Structured if you pass `jsonSchema`                      | Fallback when providers return 0            | Slower than direct providers; use only after the normal search path is exhausted |
-| `apollo_people_search_paid` | 1 cr/result   | domain, title keywords            | Name, title, email, LinkedIn                             | Large companies with good Apollo coverage   | Expensive, poor for small startups                                               |
-
-**Default: `exa_people_search` via `deepline enrich`.** Returns structured person entities (name, title, LinkedIn, work history) — no parsing needed. Works across company sizes.
-
-```bash
-deepline enrich --input seed.csv --in-place --rows 0:1 \
-  --with '{"alias":"contact","tool":"exa_people_search","payload":{"query":"{{role}} at {{Company}}","numResults":3}}'
-```
-
-**Fallback: `dropleads_search_people`** when you need structured filters (seniority, geography, headcount) and companies are >50 employees. Then `deeplineagent` as the last resort.
-
 ## Sample calls by provider
 
 ### Serper Google Search
 
-**Query structuring:**
-
-- `site:` scoping to an authoritative domain is the highest-signal pattern -- use it whenever you know where the data lives.
-  - `site:ycombinator.com` -- YC company/job data.
-  - `site:crunchbase.com` -- funding and firmographic lookup.
-  - `site:linkedin.com/company` -- indexes company **tagline/description only**, not employee data.
-  - `site:linkedin.com` (broad) -- also surfaces **posts** (`/posts/...`). Useful for signal extraction.
-- Keyword soup without `site:` = noisy. Expect Reddit, newsletters, LinkedIn profiles, tangentially related content.
-- Use quoted phrases for exact match: `"Series B"`, `"GTM engineer"`. Combine with `site:` for high precision.
+Use `site:` plus quoted phrases for precision. Keyword soup without `site:` is noisy.
 
 ```bash
 # YC job listings for a specific role
@@ -410,26 +374,6 @@ deepline tools execute serper_google_search --payload '{"query":"site:ycombinato
 # Company LinkedIn URL discovery
 deepline tools execute serper_google_search --payload '{"query":"\"OpenAI\" site:linkedin.com/company","num":3}'
 ```
-
-### Dropleads (people search)
-
-Default to `dropleads_search_people` for people discovery when you need structured filters. Use Apollo only when you need a fallback source.
-
-```bash
-deepline enrich --input leads.csv --in-place --rows 0:1 \
-  --with '{"alias":"people_search","tool":"dropleads_search_people","payload":{"filters":{"jobTitles":["Sales","Growth"],"seniority":["VP","Director"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":5}}}'
-```
-
-Dropleads note: keep title filters broad (`jobTitles`) and allow seniority to do the heavy lifting.
-
-**Dropleads query gotchas:**
-
-- `keywords`: multi-word strings return 0 -- use `["GTM","engineer"]` not `["GTM Engineer"]`.
-- `jobTitles`: substring match, OR'd. Niche titles work (`"GTM Engineer"` = ~20 results).
-- `jobTitlesExactMatch`: no observable effect -- ignore it.
-- `companyNames`: fuzzy -- prefer `companyDomains` for precision.
-- `departments`/`seniority`: enum-only (see schema).
-- Use `limit:1` first to check `output.body.pagination.total`, then pull full pages. Don't iterate exploratory queries.
 
 ### CrustData (company + person search, autocomplete)
 

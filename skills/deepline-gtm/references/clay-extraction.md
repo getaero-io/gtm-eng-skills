@@ -7,12 +7,15 @@ description: 'How to extract Clay table configs via MCP or script. Read only whe
 
 Use `scripts/clay-extract.py` (bundled at `.skills/deepline-gtm/scripts/clay-extract.py`, also at repo root `scripts/clay-extract.py`) to pull full table configs from Clay's internal API. Extracts: field definitions, action settings (prompts, models, webhook URLs), formula text, conditional run logic, and up to ~36-66 sample records.
 
-## Two extraction paths
+## Three extraction paths
 
-| Path                         | When                                          | Steps                                                                                                                          |
-| ---------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **Claude-in-Chrome MCP**     | Running inside Claude Code with the extension | Zero steps — use `javascript_tool` with `fetch(url, {credentials: 'include'})` directly from the authenticated browser session |
-| **`clay-extract.py` script** | Standalone, CI, or no MCP                     | One-time cURL paste for auth, then zero-step extraction                                                                        |
+| Path                         | When                                          | Steps                                                                                                                                          |
+| ---------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Bookmarklet**              | A human, or an agent with Claude-in-Chrome    | One click on the Clay table tab. Downloads a complete `clay_extract_<table>.json`. Agents run the same source via `javascript_tool` (see below) |
+| **Claude-in-Chrome MCP**     | Running inside Claude Code with the extension | Zero steps. Run the bookmarklet source (below), or `fetch(url, {credentials: 'include'})` ad hoc from the authenticated browser session         |
+| **`clay-extract.py` script** | Standalone, CI, or no MCP                     | One-time cURL paste for auth, then zero-step extraction                                                                                        |
+
+The bookmarklet and the MCP path share one source of truth: `scripts/clay-extract-bookmarklet.js` (in this skill). It hits the current Clay v3 API (`/v3/tables/{id}` for config+fields+views, `table-schema-v2` for the rendered sample rows, `/count`, `records/ids`, and batched `bulk-fetch-records`) and assembles the same shape `clay-extract.py` produces.
 
 ## Script setup (one-time)
 
@@ -95,24 +98,22 @@ All require `Cookie: claysession=...` + `origin: https://app.clay.com` headers.
 
 ## MCP extraction (for agents with Claude-in-Chrome)
 
-When Claude-in-Chrome MCP is available, skip the script:
+When Claude-in-Chrome MCP is available, skip the script. Run the bookmarklet's logic directly, it pulls everything (config, schema, rendered sample rows, all records) in one shot:
 
-1. `tabs_context_mcp` → get tab context
-2. `navigate` → Clay URL (any table/workbook page)
-3. `javascript_tool` with `credentials: 'include'`:
+1. `tabs_context_mcp` with `createIfEmpty: true` → get a tab
+2. `navigate` → the Clay **table view** URL (`.../tables/t_xxx/views/gv_xxx`)
+3. Confirm auth before extracting: `javascript_tool` →
    ```javascript
-   fetch('https://api.clay.com/v3/tables/{TABLE_ID}', {
-     headers: { accept: 'application/json' },
+   fetch('https://api.clay.com/v3/tables/' + location.pathname.match(/t_[A-Za-z0-9]+/)[0], {
      credentials: 'include',
-   })
-     .then((r) => r.json())
-     .then((data) => {
-       window.__clayConfig = data;
-     });
+   }).then((r) => r.status); // expect 200; 401 means not logged in
    ```
-4. Read result, download as JSON blob
+4. Extract: read `scripts/clay-extract-bookmarklet.js` from this skill and paste its IIFE body into `javascript_tool`. It assigns the full result to `window.__clayExtract` and downloads `clay_extract_<table>.json`.
+   - In a headless/automation context the auto-download may not surface a file. Either read the payload off `window.__clayExtract` and write it yourself, or skip the `<a>.click()` and return `JSON.stringify(window.__clayExtract)`.
+   - The payload can be large (the TAL Scoring table is ~14 MB). Return a summary from `javascript_tool` (field counts, `exampleRecords.length`, `recordIds.length`), then pull the full object in chunks or via the download, not as one giant tool result.
+5. The browser already has the session cookie. `credentials: 'include'` sends it automatically; without it, fetch returns 401. The cookie is never read by the script, only the browser uses it.
 
-The browser already has the session cookie — `credentials: 'include'` sends it automatically. Without this flag, fetch returns 401.
+**Richest data lives in `exampleRecords`** (from `table-schema-v2`): flat `{ f_xxx: <rendered value> }` rows with formula/action outputs already resolved. `bulkFetchRecords` covers *all* rows but is sparse (only populated cells appear, and un-run rows show just `f_created_at`/`f_updated_at`). For prompt and schema recovery, prefer `exampleRecords` and the `tableSchema` tree; use `bulkFetchRecords` for full-table cell coverage.
 
 ## Input data formats
 
