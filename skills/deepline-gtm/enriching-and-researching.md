@@ -468,12 +468,6 @@ jq -r '."5 interesting facts about a candidate"' .skills/deepline-gtm/prompts.js
 4. If the next step is copy, sequence writing, scoring copy, or messaging, switch to `writing-outreach.md` and use the research column there.
 5. Keep outputs structured with `jsonSchema` when the column is meant to feed later steps.
 
-Practical rule:
-
-- use `jq -r 'keys[]'` to browse prompt names
-- use `grep -nE ...` to hunt by keyword
-- use `jq -r '."KEY NAME"'` to pull the exact prompt text
-
 ### Example: inline custom research column with `deeplineagent`
 
 ```bash
