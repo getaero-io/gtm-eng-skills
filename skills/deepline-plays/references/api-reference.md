@@ -301,6 +301,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-sdk-cli-python-alignment` | Aligns SDK CLI behavior for error/reporting edges: enrich CSV export uses backing Runtime Sheet rows when available and reports clearer output row counts, local play-file describe fails with actionable guidance, unknown top-level command... |
 | `2026-06-cli-quickstart-command-and-sdk-skill-sync` | Adds the additive `deepline quickstart` CLI command (sdk/src/cli/commands/quickstart.ts, registered in index.ts): it opens the hosted /cli/quickstart recipe picker and receives the selection on an ephemeral 127.0.0.1 listener, then print... |
 | `2026-06-sdk-enrich-stale-policy-removal` | Removes generated staleAfterSeconds policies from SDK CLI `deepline enrich` compatibility play source so force/retry behavior no longer makes metadata and child waterfall cells expire after one second. This is CLI-side source generation... |
 | `2026-06-sdk-enrich-compat-adapter-module` | Moves SDK CLI `deepline enrich` v1 compatibility defaults into sdk/src/cli/enrich-compat-adapter.ts and has the generated play compiler consume that adapter for the default play name, map name, and metadata recompute policy. This is a CL... |
@@ -308,7 +309,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-06-plays-artifacts-retryable-transient-503` | Hardens POST /api/v2/plays/artifacts against transient infrastructure failures: a thrown Convex/R2 I/O error during artifact registration now returns a structured retryable 503 ({ retryable: true, code: PLAYS_ARTIFACT_TRANSIENT }) instea... |
 | `2026-06-job-change-ledger-sweep` | Job-change bug-ledger sweep (SDK 0.1.102). POST /api/v2/plays/run gains submit-time input-contract validation: scalar inputs are checked against the play's declared inputSchema (additionalProperties:false, declared types, minLength) and... |
 | `2026-06-cli-plays-run-profile-beta-usage-note` | Adds one line to the `deepline plays run` usage text (sdk/src/cli/commands/play.ts) documenting that --profile defaults to workers_edge and that postgres_fast is BETA, strictly opt-in per run. Help-string copy only — no route, request sh... |
-| `2026-06-cli-browser-open-default-browser-detection` | Fixes the SDK CLI browser opener (sdk/src/cli/utils.ts) so `deepline plays run` reuses and focuses an existing browser tab instead of spawning dozens of duplicates. Default-browser detection now parses the macOS LaunchServices plist stru... |
 
 ## Public Types
 
