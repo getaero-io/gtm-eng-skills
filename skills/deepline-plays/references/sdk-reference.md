@@ -190,9 +190,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.106` |
+| SDK version | `0.1.108` |
 | API contract | `2026-06-dataset-column-cell-stale-hard-cutover` |
-| Latest supported SDK | `0.1.106` |
+| Latest supported SDK | `0.1.108` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.53` |
 | Generated sources | `sdk/src/client.ts`<br />`sdk/src/play.ts`<br />`shared_libs/play-runtime/cell-staleness.ts`<br />`shared_libs/play-runtime/tool-result-types.ts`<br />`shared_libs/plays/dataset.ts` |
@@ -544,6 +544,8 @@ result-based `staleAfterSeconds(value)` policy.
 |---|---|---:|---|
 | `run` | `(input: DatasetColumnRunInput<Row, Value>) => Value \| Promise<Value>` | Yes | Compute one cell value. Receives the previous stored value when rerunning. |
 | `runIf` | `(row: Row, index: number) => boolean \| Promise<boolean>` | No | Optional row-level gate. Skipped rows produce `null` for this column. |
+| `recompute` | `boolean` | No | Recompute this cell on each run instead of reusing its durable value. |
+| `recomputeOnError` | `boolean` | No | Recompute this cell when its durable value is an error-shaped object. |
 | `staleAfterSeconds` | `StaleAfterSeconds<Value>` | No | Fixed or value-dependent freshness policy for this cell. |
 
 
@@ -556,6 +558,8 @@ Options for row-level `.withColumn(...)` and `steps().step(...)` entries.
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `runIf` | `(row: Row, index: number) => boolean \| Promise<boolean>` | No | Optional row-level gate. Skipped rows produce `null` for this column. |
+| `recompute` | `boolean` | No | Recompute this cell on each run instead of reusing its durable value. |
+| `recomputeOnError` | `boolean` | No | Recompute this cell when its durable value is an error-shaped object. |
 | `staleAfterSeconds` | `StaleAfterSeconds<Value>` | No | Fixed or value-dependent freshness policy for this cell. |
 
 
@@ -636,13 +640,13 @@ Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayRefer
 
 Execute a single tool with a keyword-style request object.
 
-Signature: `execute<TOutput = LoosePlayObject>( request: ToolExecutionRequest & { staleAfterSeconds?: number }, ): Promise<ToolExecuteResult<TOutput>>;`
+Signature: `execute<TOutput = LoosePlayObject>( request: ToolExecutionRequest, ): Promise<ToolExecuteResult<TOutput>>;`
 
 #### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-| `request` | `ToolExecutionRequest & { staleAfterSeconds?: number }` | Yes | Tool call request. |
+| `request` | `ToolExecutionRequest` | Yes | Tool call request. |
 
 #### Returns
 
@@ -664,6 +668,7 @@ logical call name inside this play and participates in replay/idempotency.
 | `tool` | `string` | Yes | Current tool id from `deepline tools search` / `deepline tools describe`. |
 | `input` | `Record<string, unknown>` | Yes | JSON-serializable provider/tool input object. |
 | `description` | `string` | No | Human-readable description for logs and run inspection. |
+| `force` | `boolean` | No | Recompute this tool call instead of reusing a durable receipt/checkpoint. |
 | `staleAfterSeconds` | `number` | No | Numeric TTL in seconds for this tool checkpoint. |
 
 
@@ -701,13 +706,13 @@ when that mini-pipeline should execute outside a row dataset. Inside a
 `ctx.dataset` column resolver, pass the step program directly to
 `.withColumn(name, program)` instead.
 
-Signature: `runSteps<TInput extends Record<string, unknown>, TOutput>( program: StepProgram<TInput, any, TOutput>, input: TInput, options?: { description?: string }, ): Promise<TOutput>;`
+Signature: `runSteps<TInput extends Record<string, unknown>, TOutput>( program: StepProgram<TInput, unknown, TOutput>, input: TInput, options?: { description?: string }, ): Promise<TOutput>;`
 
 #### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-| `program` | `StepProgram<TInput, any, TOutput>` | Yes | Step program. |
+| `program` | `StepProgram<TInput, unknown, TOutput>` | Yes | Step program. |
 | `input` | `TInput` | Yes | Program input. |
 | `options` | `{ description?: string }` | No | Run options. |
 

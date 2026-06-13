@@ -6,9 +6,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.106` |
+| SDK version | `0.1.108` |
 | API contract | `2026-06-dataset-column-cell-stale-hard-cutover` |
-| Latest supported SDK | `0.1.106` |
+| Latest supported SDK | `0.1.108` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.53` |
 | Generated sources | `src/lib/sdk/api-routes.ts`<br />`sdk/src/types.ts`<br />`sdk/src/client.ts`<br />`sdk/src/release.ts` |
@@ -301,14 +301,14 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-cli-quickstart-command-and-sdk-skill-sync` | Adds the additive `deepline quickstart` CLI command (sdk/src/cli/commands/quickstart.ts, registered in index.ts): it opens the hosted /cli/quickstart recipe picker and receives the selection on an ephemeral 127.0.0.1 listener, then print... |
+| `2026-06-sdk-enrich-stale-policy-removal` | Removes generated staleAfterSeconds policies from SDK CLI `deepline enrich` compatibility play source so force/retry behavior no longer makes metadata and child waterfall cells expire after one second. This is CLI-side source generation... |
+| `2026-06-sdk-enrich-compat-adapter-module` | Moves SDK CLI `deepline enrich` v1 compatibility defaults into sdk/src/cli/enrich-compat-adapter.ts and has the generated play compiler consume that adapter for the default play name, map name, and metadata recompute policy. This is a CL... |
 | `2026-06-cli-backing-export-canonical-alias-columns` | Filters stale raw CSV alias headers from `deepline runs export` when backing Runtime Sheet rows expose the canonical SQL-safe columns selected by the run. CLI export-column selection/rendering only — no route, request shape, response env... |
 | `2026-06-plays-artifacts-retryable-transient-503` | Hardens POST /api/v2/plays/artifacts against transient infrastructure failures: a thrown Convex/R2 I/O error during artifact registration now returns a structured retryable 503 ({ retryable: true, code: PLAYS_ARTIFACT_TRANSIENT }) instea... |
 | `2026-06-job-change-ledger-sweep` | Job-change bug-ledger sweep (SDK 0.1.102). POST /api/v2/plays/run gains submit-time input-contract validation: scalar inputs are checked against the play's declared inputSchema (additionalProperties:false, declared types, minLength) and... |
 | `2026-06-cli-plays-run-profile-beta-usage-note` | Adds one line to the `deepline plays run` usage text (sdk/src/cli/commands/play.ts) documenting that --profile defaults to workers_edge and that postgres_fast is BETA, strictly opt-in per run. Help-string copy only — no route, request sh... |
 | `2026-06-cli-browser-open-default-browser-detection` | Fixes the SDK CLI browser opener (sdk/src/cli/utils.ts) so `deepline plays run` reuses and focuses an existing browser tab instead of spawning dozens of duplicates. Default-browser detection now parses the macOS LaunchServices plist stru... |
-| `2026-06-run-start-contract-preflight` | Adds a submit-time preflight to POST /api/v2/plays/run: when a request carries a client-bundled runtimeArtifact, the route compares the CLI's x-deepline-api-contract header against this runtime's contract and returns HTTP 426 with a clea... |
-| `2026-06-cli-play-watch-step-progress-render` | Restores live per-step lines in human `deepline plays run --watch` (SDK 0.1.93 regression): the CLI now prints `step <name>: running\|completed` transitions from the existing play.step.status events the shared snapshot differ already emit... |
-| `2026-06-cli-failed-run-recoverable-rows` | Additive CLI text-render change for failed runs: `deepline plays run --watch` and run summaries now print "recoverable: N rows persisted" plus the `runs export` command when a failed run has persisted runtime-sheet rows, sourced from add... |
 
 ## Public Types
 
