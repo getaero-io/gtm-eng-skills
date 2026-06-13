@@ -1,0 +1,400 @@
+1
+00:00:00,000 --> 00:00:01,880
+Hey, if you're watching this, you work in sales
+
+2
+00:00:01,880 --> 00:00:03,600
+and you're trying to reach out to people.
+
+3
+00:00:03,600 --> 00:00:05,480
+And in order to reach out to those people,
+
+4
+00:00:05,480 --> 00:00:07,480
+you have to verify some emails along the way.
+
+5
+00:00:07,480 --> 00:00:09,580
+And there's one of three entry points that you can do this.
+
+6
+00:00:09,580 --> 00:00:12,040
+One is you can work on hopes and prayers
+
+7
+00:00:12,040 --> 00:00:13,720
+by prompting Claude Raw.
+
+8
+00:00:13,720 --> 00:00:16,760
+And then you get into some like immediate privacy
+
+9
+00:00:16,760 --> 00:00:17,920
+kind of blockers.
+
+10
+00:00:17,920 --> 00:00:19,120
+And then it just guides you to go,
+
+11
+00:00:19,120 --> 00:00:22,360
+hey, you know, connect an MCP through like Apollo,
+
+12
+00:00:22,360 --> 00:00:24,200
+zoom info, et cetera, move on with your life.
+
+13
+00:00:24,200 --> 00:00:26,100
+Or you're like, fine, let's do that.
+
+14
+00:00:26,100 --> 00:00:27,880
+You swipe a credit card with Apollo
+
+15
+00:00:27,880 --> 00:00:29,560
+or sign an enterprise contract.
+
+16
+00:00:29,560 --> 00:00:31,080
+And then you prompt it with an MCP.
+
+17
+00:00:31,080 --> 00:00:32,520
+And you think, hey, this looks like it's
+
+18
+00:00:32,520 --> 00:00:33,640
+doing what I want it to do.
+
+19
+00:00:33,640 --> 00:00:36,160
+But it only gets you 65% coverage.
+
+20
+00:00:36,160 --> 00:00:39,400
+And then you're like, oh, dang, I have to now do it the hard way.
+
+21
+00:00:39,400 --> 00:00:42,120
+Or essentially, I have to go through all these different
+
+22
+00:00:42,120 --> 00:00:44,200
+vendors, swipe a bunch of credit cards.
+
+23
+00:00:44,200 --> 00:00:46,360
+And then even with that, I still have
+
+24
+00:00:46,360 --> 00:00:49,400
+to shepherd this kind of CSV along the way,
+
+25
+00:00:49,400 --> 00:00:52,840
+even with Claude, to make sure it's doing what I want it to do.
+
+26
+00:00:52,840 --> 00:00:55,240
+And this can be a very error-prone process.
+
+27
+00:00:55,240 --> 00:00:58,360
+In addition to that, you don't have an intuition of like,
+
+28
+00:00:58,360 --> 00:01:01,920
+hey, is this going to cost me $10 to enrich these contacts,
+
+29
+00:01:01,920 --> 00:01:03,000
+or $20 or $50?
+
+30
+00:01:03,000 --> 00:01:04,400
+Who knows, right?
+
+31
+00:01:04,400 --> 00:01:07,100
+That's where you don't have to kind of live
+
+32
+00:01:07,100 --> 00:01:10,160
+with these kind of locked-in pads of toil,
+
+33
+00:01:10,160 --> 00:01:13,120
+where there's a better way with Deepline, where it abstracts
+
+34
+00:01:13,120 --> 00:01:16,440
+a lot of the best practices and just bakes them in natively.
+
+35
+00:01:16,440 --> 00:01:18,880
+And so this is what it can look like, the Deepline way.
+
+36
+00:01:18,880 --> 00:01:21,520
+Specifically, you get to run from a single prompt
+
+37
+00:01:21,520 --> 00:01:23,800
+and Claude code with this simple skill
+
+38
+00:01:23,800 --> 00:01:26,000
+once you've already downloaded Deepline.
+
+39
+00:01:26,000 --> 00:01:27,120
+And the key thing is this.
+
+40
+00:01:27,120 --> 00:01:29,440
+You don't even have to sign up personally
+
+41
+00:01:29,440 --> 00:01:31,840
+for all your separate enrichment providers.
+
+42
+00:01:31,840 --> 00:01:33,920
+We already have wholesale contracts with them,
+
+43
+00:01:33,920 --> 00:01:37,480
+so you get the price performance that you expect.
+
+44
+00:01:37,480 --> 00:01:40,480
+And we have a standard procedure to find the cheapest path
+
+45
+00:01:40,480 --> 00:01:42,800
+to a valid result for all the emails that you want to,
+
+46
+00:01:42,800 --> 00:01:45,600
+or all the contacts, I should say, you want to enrich.
+
+47
+00:01:45,600 --> 00:01:47,760
+And we just give you a very predictable roadmap of like,
+
+48
+00:01:47,760 --> 00:01:49,920
+hey, this is exactly how it's going to play out,
+
+49
+00:01:49,920 --> 00:01:52,000
+in order to get you the CSV that you expect.
+
+50
+00:01:52,000 --> 00:01:52,400
+But you know what?
+
+51
+00:01:52,400 --> 00:01:54,760
+Seeing is believing, and so let's just run it right now.
+
+52
+00:01:54,760 --> 00:01:57,200
+And so I'm going to do this with Claude code already
+
+53
+00:01:57,200 --> 00:01:58,640
+up and running, and then I'm going
+
+54
+00:01:58,640 --> 00:02:01,800
+to run this prompt right here.
+
+55
+00:02:01,800 --> 00:02:06,360
+OK, and you'll notice here that after I prompt Deepline
+
+56
+00:02:06,360 --> 00:02:10,000
+and it's ready to do its job, it launches a new tab
+
+57
+00:02:10,000 --> 00:02:14,520
+in my browser in order to go through the steps
+
+58
+00:02:14,520 --> 00:02:15,880
+I expect to see.
+
+59
+00:02:15,880 --> 00:02:20,600
+It's going to discover new companies to find CTOs from,
+
+60
+00:02:20,600 --> 00:02:23,080
+from Crustata, one of the providers that is just best
+
+61
+00:02:23,120 --> 00:02:26,360
+practice baked in, find the CTOs at each of those companies
+
+62
+00:02:26,360 --> 00:02:29,520
+based off that provider, and then waterfall
+
+63
+00:02:29,520 --> 00:02:30,520
+through that process.
+
+64
+00:02:30,520 --> 00:02:33,040
+And a little bit later, when it gets to this step over here,
+
+65
+00:02:33,040 --> 00:02:34,960
+I'll show you exactly, just very visually,
+
+66
+00:02:34,960 --> 00:02:36,640
+how that looks and feels.
+
+67
+00:02:36,640 --> 00:02:38,880
+Over here, you'll notice it asked me
+
+68
+00:02:38,880 --> 00:02:40,680
+for approval, which is really great.
+
+69
+00:02:40,680 --> 00:02:42,720
+So I know I'm going to spend around like $35
+
+70
+00:02:42,720 --> 00:02:43,880
+before I approve the full run.
+
+71
+00:02:43,880 --> 00:02:45,640
+Let's say, hey, that's good enough for me.
+
+72
+00:02:45,640 --> 00:02:46,920
+Let's make it happen.
+
+73
+00:02:46,920 --> 00:02:48,640
+Now you're thinking to yourself, like, hey,
+
+74
+00:02:48,640 --> 00:02:50,720
+what does the actual enrichment look and feel like?
+
+75
+00:02:50,720 --> 00:02:53,880
+Well, it looks something like this,
+
+76
+00:02:53,880 --> 00:02:56,800
+where every step of the way, it would
+
+77
+00:02:56,800 --> 00:03:01,160
+go through this preview of like lead magic, and find email,
+
+78
+00:03:01,160 --> 00:03:02,200
+and Prospeo.
+
+79
+00:03:02,200 --> 00:03:05,840
+And it found out like, hey, we were able to verify right away
+
+80
+00:03:05,840 --> 00:03:08,800
+this person's email just by checking up lead magic,
+
+81
+00:03:08,800 --> 00:03:10,080
+and we move on with our lives.
+
+82
+00:03:10,080 --> 00:03:13,040
+And we found eight, or I think it was like verified
+
+83
+00:03:13,040 --> 00:03:15,240
+off the top of my head, or like what, 10 of these?
+
+84
+00:03:15,240 --> 00:03:17,000
+And we figured out like, hey, that's
+
+85
+00:03:17,000 --> 00:03:19,040
+enough to deliver the five net new rows.
+
+86
+00:03:19,040 --> 00:03:20,240
+Let's move on from there.
+
+87
+00:03:20,240 --> 00:03:21,200
+And now you're probably thinking like, hey,
+
+88
+00:03:21,200 --> 00:03:23,840
+what does the actual output look like at the end of the day?
+
+89
+00:03:23,840 --> 00:03:26,320
+It looks something like this, where bam,
+
+90
+00:03:26,320 --> 00:03:28,800
+I get the company name, domain, the CTO,
+
+91
+00:03:28,800 --> 00:03:30,000
+and the verified email.
+
+92
+00:03:30,000 --> 00:03:31,720
+And we have to move on with our lives.
+
+93
+00:03:31,720 --> 00:03:35,480
+And so again, in summary, you don't
+
+94
+00:03:35,480 --> 00:03:39,640
+have to live through these kind of toils and entry points.
+
+95
+00:03:39,640 --> 00:03:41,280
+There's a much better default way
+
+96
+00:03:41,280 --> 00:03:45,520
+to work without all the cumbersome kind of grind
+
+97
+00:03:45,520 --> 00:03:47,880
+it takes to stitch everything together,
+
+98
+00:03:47,880 --> 00:03:49,520
+because DeepBlind already handles that for you.
+
+99
+00:03:49,520 --> 00:03:50,240
+Have fun, y'all.
+
+100
+00:03:50,240 --> 00:03:51,800
+Bye.
+
