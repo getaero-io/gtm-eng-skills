@@ -42,6 +42,7 @@ Updated Typefully/source social copy lives in `social-hooks/`.
 - `lead-magnets/workflows-v2-implementation-guide.md`: public-facing Deepline V2 GTM workflow implementation guide for the `WORKFLOWS` CTA.
 - `lead-magnets/provider-stack-decision-matrix.md`: sendable provider routing, confidence, and CRM writeback matrix for the `PROVIDERS` CTA.
 - `lead-magnets/waterfall-cost-optimization-framework.md`: sendable waterfall cost, backtest, and eval framework for the `WATERFALL` CTA.
+- `lead-magnets/weekly-schedule-and-improvement-plan.md`: Notion review plan with this week's publishing schedule and last30days improvement recommendations.
 
 ## Diagrams And Sample Workflows
 
