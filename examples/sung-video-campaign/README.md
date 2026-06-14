@@ -40,6 +40,8 @@ Updated Typefully/source social copy lives in `social-hooks/`.
 - `lead-magnets/snowflake-pql-campaign-playbook.md`: setup guide with Snowflake product usage query, dbt model, PLG/GTM workflow examples, and Deepline workflow play for the Speedrun Time to Integration post. Notion share page: `https://app.notion.com/p/Product-Usage-To-GTM-Workflow-Playbook-377da8d1d8eb8128b1bde0d84216bf2a`.
 - `lead-magnets/lead-magnet-sequence.md`: recommended post order now that PLG is shipped: Workflows -> Providers -> Waterfall.
 - `lead-magnets/workflows-v2-implementation-guide.md`: public-facing Deepline V2 GTM workflow implementation guide for the `WORKFLOWS` CTA.
+- `lead-magnets/provider-stack-decision-matrix.md`: sendable provider routing, confidence, and CRM writeback matrix for the `PROVIDERS` CTA.
+- `lead-magnets/waterfall-cost-optimization-framework.md`: sendable waterfall cost, backtest, and eval framework for the `WATERFALL` CTA.
 
 ## Diagrams And Sample Workflows
 

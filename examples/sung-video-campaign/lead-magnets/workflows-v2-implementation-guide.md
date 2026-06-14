@@ -1,52 +1,85 @@
-# Deepline V2 Workflow Implementation Guide
+# Deepline V2 GTM Workflow Implementation Guide
 
 **Comment keyword:** `WORKFLOWS`
 
-This is the implementation guide for turning GTM work into typed Deepline V2 plays.
+This is the guide for turning a GTM idea into a repeatable Deepline V2 workflow.
 
-The old version of this workflow was usually a script, a Zap, a spreadsheet export, or a reverse ETL job someone was afraid to touch. It worked until the schema changed, the provider returned weird data, or sales asked why the campaign included the wrong accounts.
+The old version was usually a script, a Zap, a Clay table, a spreadsheet export, or a reverse ETL job someone was afraid to touch. It worked until the schema changed, the provider returned bad data, sales asked why a record was routed, or the one person who understood the workflow went on vacation.
 
-V2 should feel closer to writing a small product feature:
+The V2 version should feel closer to shipping a small product feature:
 
 ```text
-trigger/input -> typed play -> tools/enrichment -> guardrails -> dry run -> approval -> CRM/campaign writeback
+trigger -> typed input -> play -> tools/enrichment -> guardrails -> dry run -> approval -> writeback -> run summary
 ```
 
-## What You Build
+## The Rule
 
-A play that can:
+Do not automate the whole GTM motion first.
 
-- Take a list, event, product-usage segment, CRM view, or CSV as input.
-- Enrich the records using the right tools.
-- Apply business rules before anything touches a CRM or sequencer.
-- Produce an auditable run summary.
-- Let you test locally, then run the same logic in the cloud.
+Automate one obvious workflow that already happens manually.
 
-## V2 Mental Model
+The best first workflows are boring:
 
-V1 workflow specs were JSON config. V2 plays are TypeScript.
+- New signup -> CRM context -> safe HubSpot sequence.
+- Product usage spike -> account research -> campaign draft.
+- Personal email signup -> LinkedIn/company resolution -> review queue.
+- Event check-in -> same-day follow-up draft.
+- Closed-lost account shows new trigger -> owner task.
 
-That matters because GTM workflows are rarely linear. You need branching, retries, dedupe, provider fallbacks, suppressions, and row-level explanations.
+If the manual version is not clear, the automated version will be worse.
 
-Use V2 when the workflow needs:
+## The Architecture
 
-- Conditional logic.
-- Provider routing.
-- Human approval.
-- Run logs.
-- Repeatability.
-- Safer CRM writes.
-- A clean path from prototype to production.
+### 1. Input Contract
 
-## Public Surfaces
+Write down the shape of the data before you write the play.
 
-Use whichever surface matches the job:
+Example:
+
+```ts
+type SignupInput = {
+  email: string;
+  fullName?: string;
+  workspaceId: string;
+  signupSource?: string;
+  firstProductEvent?: string;
+  dryRun?: boolean;
+};
+```
+
+Minimum fields to define:
+
+| Field | Why it matters |
+| --- | --- |
+| Primary entity | Account, contact, workspace, event attendee, or opportunity |
+| Source system | Product, CRM, warehouse, CSV, event platform, support tool |
+| Owner | Who receives the task or approves the action |
+| Destination | HubSpot, Salesforce, Marketo, Smartlead, Slack, review queue |
+| Risk level | Draft only, approval required, safe writeback, never auto-write |
+| Required evidence | What must be true before this action is allowed |
+
+### 2. Typed Play
+
+V2 plays are TypeScript. That matters because GTM workflows are not linear.
+
+You need:
+
+- branching
+- retries
+- suppressions
+- provider routing
+- dedupe
+- review queues
+- field-level overwrite rules
+- row-level explanations
+
+Public Deepline V2 surfaces:
 
 ```bash
 deepline plays run ./my-play.play.ts --input '{}' --watch
 ```
 
-Programmatic SDK:
+SDK:
 
 ```ts
 client.runPlay(...)
@@ -57,7 +90,7 @@ ctx.play(name).runSync(...)
 ctx.runPlay(name, input)
 ```
 
-Raw API:
+HTTP:
 
 ```http
 POST /api/v2/plays/run
@@ -65,35 +98,71 @@ GET /api/v2/runs/:runId
 GET /api/v2/runs/:runId/tail
 ```
 
-## Starter Project Shape
+### 3. Guardrail Layer
 
-```text
-gtm-workflows/
-  plays/
-    signup-to-hubspot-sequence.play.ts
-    product-usage-to-campaign-draft.play.ts
-    personal-email-to-linkedin-review.play.ts
-  evals/
-    golden-set.csv
-    expected-outcomes.csv
-  docs/
-    workflow-owner.md
-    crm-writeback-rules.md
+Most bad GTM automation is not bad because the AI wrote a weird sentence.
+
+It is bad because the workflow touched the wrong record.
+
+Minimum guardrails:
+
+| Guardrail | Default |
+| --- | --- |
+| Existing customer | Suppress unless customer/expansion motion |
+| Open opportunity | Suppress or route to owner, never auto-sequence |
+| Unsubscribed/bounced | Suppress |
+| Missing owner | Review queue |
+| Personal email identity | Review unless high confidence |
+| Low evidence | Draft only |
+| Duplicate account/contact | Review or merge by explicit rule |
+| CRM overwrite | Never overwrite verified fields without provenance |
+
+### 4. Reason Payload
+
+Every routed record needs a reason payload. Otherwise sales sees a score and ignores it.
+
+```json
+{
+  "why_now": [
+    "completed setup in last 48 hours",
+    "pricing page viewed twice",
+    "no sales activity in 30 days"
+  ],
+  "suggested_action": "draft_owner_followup",
+  "blocked_reasons": [],
+  "source_tables": ["product_events", "crm_accounts"],
+  "scored_at": "2026-06-14T12:00:00Z"
+}
 ```
 
-## Minimal Play Skeleton
+### 5. Run Summary
 
-Use this as the shape, not a copy-paste final. The real implementation should use the exact tools and CRM fields in your workspace.
+Every production run should answer:
+
+- How many records were read?
+- How many qualified?
+- How many were blocked?
+- Why were they blocked?
+- How many drafts/tasks/writebacks were created?
+- Which providers ran?
+- What did it cost?
+- Who approved it?
+
+The test is simple: if someone asks what happened yesterday, you should not need six tabs and a guess.
+
+## Minimal V2 Play Skeleton
+
+Use this as the shape, not final copy-paste code. The real implementation should use the exact tool IDs, CRM fields, and suppressions in your workspace.
 
 ```ts
 import { definePlay } from "deepline";
 
 type Input = {
-  source: "signup" | "csv" | "warehouse_segment";
   rows: Array<{
     email?: string;
     domain?: string;
     companyName?: string;
+    workspaceId?: string;
     productSignal?: string;
   }>;
   dryRun?: boolean;
@@ -110,6 +179,17 @@ export default definePlay("gtm-workflow-starter", async (ctx, input: Input) => {
           companyName: row.companyName,
         },
         description: "Resolve the best matching company.",
+      })
+    )
+    .withColumn("crm_context", (row, ctx) =>
+      ctx.tools.execute({
+        id: "crm_lookup",
+        tool: "hubspot_search_objects",
+        input: {
+          object_type: "contacts",
+          query: row.email || row.domain || row.companyName,
+        },
+        description: "Check existing CRM state before action.",
       })
     )
     .withColumn("decision", (row) => {
@@ -132,33 +212,47 @@ export default definePlay("gtm-workflow-starter", async (ctx, input: Input) => {
 });
 ```
 
-## Workflow 1: Signup -> HubSpot Sequence
+## Five Workflows To Ship First
 
-Use when someone signs up with enough business context to justify fast follow-up.
+### 1. Signup -> HubSpot Sequence
+
+Use when a new signup has enough context to justify follow-up.
 
 **Inputs**
 
 - Email.
-- Domain.
-- Signup source.
-- Persona hint.
+- Name if available.
 - Workspace/account ID.
+- Signup source.
+- First meaningful product event.
 
 **Steps**
 
-1. Resolve company and contact.
-2. Check existing CRM contact/company.
-3. Apply suppression rules: customer, open opportunity, competitor, bad domain, unsubscribed, existing sequence.
-4. Enrich only what is missing.
-5. Score fit using explicit rules.
-6. Draft or enroll in the right HubSpot sequence.
-7. Log the evidence used.
+1. Normalize email, domain, name, and workspace.
+2. Check HubSpot for contact, company, lifecycle stage, owner, active deal, unsubscribe, and customer status.
+3. Resolve identity if the signup used a personal email.
+4. Pick the correct route:
+   - work email + no open opp -> onboarding sequence or draft
+   - personal email -> identity review queue
+   - enterprise domain + usage -> sales-assist task
+   - customer -> customer education or suppress
+5. Upsert only safe fields.
+6. Enroll, draft, or stage for review.
+7. Post a run summary.
 
-**Default guardrail:** start with draft-only until the review pass is clean.
+**Eval cases**
 
-## Workflow 2: Product Usage -> Campaign Draft
+| Case | Expected |
+| --- | --- |
+| New work email, no open opportunity | Enroll or draft |
+| Personal email | Identity review |
+| Existing open opportunity | Suppress or route to owner |
+| Unsubscribed | Suppress |
+| Customer | Suppress unless customer motion |
 
-Use when product activity is trapped in the warehouse and sales only hears about it after someone exports a list.
+### 2. Product Usage -> Campaign Draft
+
+Use when product activity is trapped in the warehouse and sales only hears about it after a manual export.
 
 **Inputs**
 
@@ -170,92 +264,122 @@ Use when product activity is trapped in the warehouse and sales only hears about
 
 **Steps**
 
-1. Pull the recent product events.
-2. Join account and CRM context.
-3. Backtest which events happened before real revenue moments.
-4. Remove obvious false positives.
-5. Generate rep context and a campaign draft.
-6. Send high-confidence accounts to review or CRM tasks.
+1. Pull recent product usage.
+2. Join to CRM account, owner, opportunity, and customer state.
+3. Define the business meaning of the event.
+4. Backtest against historical outcomes.
+5. Generate a reason payload.
+6. Draft a campaign or rep task.
+7. Route high-confidence actions to review.
 
-**Important:** if you do not have a semantic layer, the first pass will probably overfit to obvious events like `signed_in` or `signed_up`. Add product context, event definitions, and examples until the output is directionally useful.
+**Important**
 
-## Workflow 3: Personal Email -> LinkedIn Review
+If you do not have a semantic layer, the first pass will probably overfit to obvious events like `signed_in` or `signed_up`. That is not intelligence. Users cannot buy before they sign up.
 
-Use when PLG signups arrive from Gmail, iCloud, Outlook, or university emails.
+Add product context, event definitions, and examples until the output is directionally useful.
+
+### 3. Personal Email -> LinkedIn Review
+
+Use when serious product users sign up with Gmail, iCloud, Outlook, university, or other personal emails.
 
 **Inputs**
 
 - Personal email.
 - Name if available.
-- Product workspace.
+- Workspace ID.
+- Product context.
 - IP/company hint if available.
-- Referrer or invite source.
 
 **Steps**
 
-1. Generate candidate identity matches.
-2. Resolve likely LinkedIn profile and company.
-3. Compare name, location, role, domain, and product context.
-4. Accept only high-confidence matches.
-5. Send ambiguous matches to review.
-6. Write verified identity back to CRM or workspace context.
+1. Detect personal email.
+2. Collect name, handle, product, workspace, and referrer hints.
+3. Search for candidate LinkedIn/company matches.
+4. Require strong name match and corroborating evidence.
+5. Write back only verified identity.
+6. Send ambiguous records to review.
 
-**Default guardrail:** never auto-accept a weak personal-email match.
+**Default guardrail**
 
-## Workflow 4: Event Attendee -> Follow-Up Draft
+Never auto-accept a weak personal-email match.
 
-Use when an event list is valuable but too messy to hand directly to sales.
+### 4. Event Attendee -> Follow-Up Draft
+
+Use when an event list is useful but too messy to hand directly to sales.
 
 **Inputs**
 
-- Registration list.
-- Check-in list.
+- Event ID.
+- Registration/check-in status.
+- Attendee email.
+- Name.
 - Event topic.
-- Sponsor/partner context.
-- CRM account state.
 
 **Steps**
 
-1. Normalize emails and company names.
-2. Match to accounts and contacts.
-3. Prioritize checked-in attendees over registrants.
-4. Exclude customers and active opportunities unless the play is customer expansion.
-5. Draft personalized follow-up using event context.
-6. Route to owner or campaign.
+1. Normalize attendee identity.
+2. Enrich account and role.
+3. Segment checked-in vs registered vs no-show.
+4. Apply suppressions.
+5. Draft same-day follow-up for high-fit checked-in attendees.
+6. Send the rest to nurture or review.
 
-## Workflow 5: Champion Job Change -> Account Map
+### 5. Closed-Lost Trigger -> Re-Engagement Draft
 
-Use when a previous buyer or power user moves companies.
+Use when closed-lost accounts show new reasons to care.
 
 **Inputs**
 
-- Known champion.
-- Old company.
-- New company.
-- Prior relationship context.
-- CRM ownership.
+- Closed-lost account list.
+- Loss reason.
+- Old opportunity date.
+- New trigger: hiring, funding, product launch, competitor mention, tech-stack change, leadership change, product usage.
 
 **Steps**
 
-1. Verify the job change.
-2. Resolve the new company.
-3. Check if the new account exists in CRM.
-4. Enrich buying committee context.
-5. Draft a warm reactivation message.
-6. Log the relationship evidence.
+1. Pull closed-lost history.
+2. Find current trigger evidence.
+3. Compare trigger to loss reason.
+4. Suppress bad-fit and recent-touch accounts.
+5. Draft a specific re-engagement note.
+6. Route to owner with evidence.
 
-## Eval Starter Kit
+## Backtest Prompt
 
-Do not start by building a giant benchmark. Start with a tiny golden set that catches the expensive mistakes.
+Use this before the workflow writes to CRM or creates a campaign.
 
-**20 rows is enough for V1:**
+```text
+Take the workflow rule we just defined and apply it to the last 100 historical records.
 
-- 5 obvious good records.
-- 5 obvious bad records.
-- 5 ambiguous records.
-- 5 records that used to break the workflow.
+Use 50 records that produced the desired outcome and 50 that did not.
 
-**Check deterministic things first:**
+For each record, use the product, CRM, and enrichment state as it existed at the time. Do not use future information.
+
+Return:
+- would_act, blocked, or incomplete
+- which guardrail fired
+- evidence used
+- owner/action that would have been created
+- whether the historical outcome matched the workflow decision
+- the 5 worst false positives
+- the 5 worst false negatives
+- changes needed before production
+```
+
+Ship only when the workflow beats the current manual process and the false positives are explainable.
+
+## Cost-Effective Eval Starter Kit
+
+Do not start with a giant benchmark. Start with 20 rows.
+
+| Row type | Count |
+| --- | ---: |
+| Obvious good records | 5 |
+| Obvious bad records | 5 |
+| Ambiguous records | 5 |
+| Records that used to break the workflow | 5 |
+
+Check deterministic rules first:
 
 - Did we suppress customers?
 - Did we avoid open opportunities?
@@ -264,12 +388,12 @@ Do not start by building a giant benchmark. Start with a tiny golden set that ca
 - Did every accepted record have evidence?
 - Did every rejected record have a reason?
 
-**Use an LLM judge only where judgment is actually required:**
+Use an LLM judge only where judgment is actually required:
 
-- Is this account summary useful?
 - Is this campaign draft specific enough?
 - Does the recommended action match the evidence?
 - Is this identity match plausible?
+- Is the summary useful to a rep?
 
 ## Production Checklist
 
@@ -277,14 +401,32 @@ Do not start by building a giant benchmark. Start with a tiny golden set that ca
 - Input schema documented.
 - CRM writeback fields documented.
 - Suppression rules agreed with sales/marketing ops.
-- Dry run passes the golden set.
+- Dry run passes golden set.
 - Review queue exists for ambiguous rows.
-- Run summary includes accepted, rejected, reviewed, and failed counts.
-- Cost per run is visible.
+- Run summary includes accepted, rejected, reviewed, failed, and cost counts.
 - Rollback path exists.
+- First production version is draft-only or approval-gated.
 
-## The Practical Rule
+## Sources And Basis
 
-Prototype fast. Productionize only the winners.
+Public sources:
 
-The point is not to turn every GTM idea into infrastructure. The point is to make the ideas that work repeatable, observable, and safe enough to run without a weekly CSV ritual.
+- Deepline video page: Pipeline as Code for GTM Account Mapping, `https://deepline.com/blog/pipeline-as-code-account-mapping`.
+- Deepline guide: GTM Data Infrastructure Workflows, `https://deepline.com/blog/gtm-data-infrastructure`.
+- Deepline guide: Product Usage to GTM Workflow Playbook, `https://deepline.com/blog/product-usage-to-gtm-playbook`.
+- Deepline guide: 30 Claude Code GTM Workflows, `https://deepline.com/blog/claude-code-gtm-workflows`.
+
+Internal sources used to build this asset:
+
+- Deepline V2 SDK + CLI README.
+- Deepline V2 Play Runtime README.
+- Anonymized customer-call field notes from March-May 2026 covering workflow automation, account scoring, enrichment, CRM/Marketo/Salesforce handoffs, closed-lost backtesting, implementation risk, and provider consolidation.
+- Sung video campaign assets and sample workflows in this repo.
+
+## Send Copy
+
+Here is the V2 GTM workflow implementation guide.
+
+The shortest version: pick one manual workflow, write down the input contract, run it as a typed play, keep the guardrails boring, and do not let it touch CRM until it passes a small backtest.
+
+Start with the simple plays: signup -> HubSpot sequence, product usage -> campaign draft, personal email -> LinkedIn review, event attendee -> follow-up, closed-lost trigger -> owner task.
