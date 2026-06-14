@@ -31,12 +31,15 @@ Updated Typefully/source social copy lives in `social-hooks/`.
 - `social-hooks/typefully-draft-links.md`: existing Typefully draft IDs plus live API blocker note.
 - `social-hooks/typefully-linkedin-video-drafts.md`: LinkedIn-only Typefully drafts with native video attached.
 - `social-hooks/all-platform-hooks.md`: X, LinkedIn, and Threads hook bank.
+- `social-hooks/lead-magnet-sequence-drafts.md`: Workflows, Providers, and Waterfall lead magnet posts for X, LinkedIn, and Threads.
 - `social-hooks/snowflake-lead-magnet-drafts.md`: X and LinkedIn launch drafts for the Snowflake PQL setup guide.
 - `social-hooks/gtm-eng-june-30-event-drafts.md`: X, LinkedIn, and Threads drafts for the June 30 NYC GTM Eng session with Ramp.
 
 ## Lead Magnets
 
 - `lead-magnets/snowflake-pql-campaign-playbook.md`: setup guide with Snowflake product usage query, dbt model, PLG/GTM workflow examples, and Deepline workflow play for the Speedrun Time to Integration post. Notion share page: `https://app.notion.com/p/Product-Usage-To-GTM-Workflow-Playbook-377da8d1d8eb8128b1bde0d84216bf2a`.
+- `lead-magnets/lead-magnet-sequence.md`: recommended post order now that PLG is shipped: Workflows -> Providers -> Waterfall.
+- `lead-magnets/workflows-v2-implementation-guide.md`: public-facing Deepline V2 GTM workflow implementation guide for the `WORKFLOWS` CTA.
 
 ## Diagrams And Sample Workflows
 
