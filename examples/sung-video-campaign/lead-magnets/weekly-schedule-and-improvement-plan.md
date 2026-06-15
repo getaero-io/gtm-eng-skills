@@ -9,19 +9,20 @@
 
 | Date | Lead magnet | Primary post | Video | CTA | Review status |
 | --- | --- | --- | --- | --- | --- |
-| Monday, June 15, 2026 | Deepline V2 GTM Workflow Implementation Guide | LinkedIn native video + X thread + Threads post | Pipeline as Code / Glue Code | Comment `WORKFLOWS` | Ready for Jai review |
+| Tuesday, June 16, 2026 | Deepline V2 GTM Workflow Implementation Guide | LinkedIn native video + X thread + Threads post | Sung Pipeline as Code video included; Glue Code as optional follow-up | Comment `WORKFLOWS` | Ready for Jai review |
 | Wednesday, June 17, 2026 | GTM Provider Stack Decision Matrix | LinkedIn native video + X thread + Threads post | Provider Sprawl | Comment `PROVIDERS` | Ready for Jai review |
 | Friday, June 19, 2026 | Waterfall Cost Optimization Framework | LinkedIn native video + X thread + Threads post | Waterfall Complexity | Comment `WATERFALL` | Ready for Jai review |
 
 ## Recommended Publishing Cadence
 
-### Monday: Workflows
+### Tuesday: Workflows
 
 - 8:45 AM ET: LinkedIn post with native video.
 - 11:15 AM ET: X thread.
 - 4:30 PM ET: Threads version.
 - Same day: comment on 10-15 GTM engineering / Claude Code / RevOps posts before and after publishing.
 - Follow-up comment: "I can also send the 20-row eval template if useful."
+- Video: include Sung's Pipeline as Code walkthrough as the native LinkedIn video. Use Glue Code as the follow-up clip only if we want a second post in the thread.
 
 ### Wednesday: Providers
 
@@ -55,6 +56,56 @@ Other patterns:
 Implication for our asset:
 
 The `WORKFLOWS` lead magnet should not be framed as "learn GTM engineering." It should be framed as "turn one recurring GTM task into a typed V2 play with evals and guardrails."
+
+## Workflow Learnings To Fold Into Tuesday
+
+These are internal source notes for Jai review. Use the learnings publicly, but anonymize the customer names unless Jai explicitly approves naming them.
+
+### Jai's Workspace / Deepline Workflow Corpus
+
+What keeps repeating:
+
+- Work email waterfalls are usually the first "real" workflow because they expose provider choice, validation, cost, and writeback in one pass.
+- Known-account-to-right-contact workflows are more useful than generic list building because the account decision is already made; the workflow just needs to find the right person, verify, and route.
+- Messy CSV repair is not a throwaway ops task. It is often the beginning of the data contract: normalize, dedupe, resolve identity, enrich missing fields, and preserve provenance.
+- Buying-signal research only matters when it changes the next action: CRM task, Slack approval, campaign draft, or sequence membership.
+- The best workflows include reviewability by default: reason payload, source evidence, blocked reason, owner, cost, and run summary.
+- "One obvious outbound workflow" keeps showing up as the best validation unit. If the first workflow is not obvious to a rep or marketer, the implementation will drag.
+
+Tuesday framing:
+
+> The first useful GTM workflow is rarely glamorous. It is usually a row that moves from messy input -> trusted identity -> evidence -> guardrail -> owner action.
+
+### nTop / Aerospace Implementation
+
+Public handling: anonymize externally as "a Series B aerospace technology company" unless Jai approves using the customer name.
+
+What we learned:
+
+- The customer did not just need another dashboard. They needed signals to power ABM workflows.
+- The real unlock was unifying 15+ data sources in days, then moving from reporting to activation.
+- "Trusted enough to act on" mattered more than "perfect." The growth team needed confidence to defend pipeline decisions and make bigger moves.
+- Account scoring became useful when it fed prioritized accounts and next-best actions, not when it lived as a metric in a dashboard.
+- The public lesson: GTM engineering is the layer that turns analytics into action.
+
+Tuesday framing:
+
+> We learned this building real workflows: reporting is not the win. The win is when trusted signals change what the GTM team does next.
+
+### Broader Implementation Notes
+
+Patterns from customer calls and implementation work:
+
+- CSV-to-Salesforce mappings are often the first symptom of a workflow that needs an owner and a schema.
+- Custom objects matter when one contact/account can have multiple scores, packages, segments, or plays attached.
+- Salesforce/HubSpot/Marketo writeback rules need to be decided before the workflow runs, not after the first bad sync.
+- Slack approval loops are useful because they let humans teach the workflow before automation is trusted.
+- Cost estimates and spending caps reduce anxiety when the workflow calls multiple providers.
+- Closed-lost backtests are one of the fastest ways to find whether a signal is real or just impressive-looking.
+
+Tuesday framing:
+
+> Most teams do not fail because they cannot automate. They fail because nobody wrote down the input contract, writeback policy, and eval before the workflow touched the CRM.
 
 ### Providers
 
@@ -245,6 +296,8 @@ Most GTM workflows die after the first successful demo.
 The play works, then it becomes a script, Zap, spreadsheet, or reverse ETL job nobody wants to own.
 
 We wrote down the V2 workflow spec we use before turning a GTM idea into production.
+
+This comes from building real workflows across our own workspace and customer implementations: waterfall enrichment, messy CSV repair, product signals, CRM writeback, Slack approvals, and account scoring that actually changes what reps do next.
 
 Comment `WORKFLOWS` and I will send it.
 
