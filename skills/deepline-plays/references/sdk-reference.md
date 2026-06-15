@@ -311,6 +311,7 @@ or cron schedules. Bindings are declared as the third argument to
 | `billing` | `{ maxCreditsPerRun?: number; }` | No | Optional per-run billing controls enforced by the runtime. |
 | `webhook` | `{ hmac?: { algorithm?: 'sha256'; header?: string; secretEnv: string; }; }` | No | Webhook trigger with optional HMAC signature verification. |
 | `cron` | `{ schedule: string; timezone?: string; }` | No | Cron schedule trigger. |
+| `sqlListeners` | `SqlListenerDeclaration[]` | No | Customer DB row-change listeners that wake this play when published. |
 | `secrets` | `readonly string[]` | No | Customer-authored play secrets this play is allowed to use at runtime.<br />Values are never bundled or exposed by the SDK; access them with<br />`ctx.secrets.get("NAME")` and approved helpers such as<br />`ctx.secrets.bearer(handle)`. |
 
 
@@ -620,7 +621,7 @@ normalization, and no-result behavior. Do not invoke plays through
 
 `key` is the stable child-call identity for idempotency and traceability.
 
-Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayReferenceLike, input: Record<string, unknown>, options: { description?: string; staleAfterSeconds?: number }, ): Promise<TOutput>;`
+Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayReferenceLike, input: Record<string, unknown>, options: { description: string; staleAfterSeconds?: number }, ): Promise<TOutput>;`
 
 #### Parameters
 
@@ -629,7 +630,7 @@ Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayRefer
 | `key` | `string` | Yes | Stable child-call key. |
 | `playRef` | `string \| PlayReferenceLike` | Yes | Registered play name, play handle, or file-backed play reference. |
 | `input` | `Record<string, unknown>` | Yes | Input object passed to the child play. |
-| `options` | `{ description?: string; staleAfterSeconds?: number }` | Yes | Child play options. |
+| `options` | `{ description: string; staleAfterSeconds?: number }` | Yes | Child play options. |
 
 #### Returns
 

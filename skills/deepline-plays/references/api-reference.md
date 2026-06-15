@@ -262,7 +262,6 @@ while True:
 | `DELETE` | `/api/v2/billing/limit` | `billing limit off` | SDK-facing route. | `src/app/api/v2/billing/limit/route.ts` |
 | `GET` | `/api/v2/billing/limit` | `billing limit` | SDK-facing route. | `src/app/api/v2/billing/limit/route.ts` |
 | `POST` | `/api/v2/billing/limit` | `billing limit set` | SDK-facing route. | `src/app/api/v2/billing/limit/route.ts` |
-| `POST` | `/api/v2/billing/quote` | `dashboard cost preview (no CLI command)` | SDK-facing route. | `src/app/api/v2/billing/quote/route.ts` |
 | `POST` | `/api/v2/billing/subscription/cancel` | `billing.subscription.cancel`<br />`cancelBillingSubscription`<br />`billing subscription cancel` | SDK-facing route. | `src/app/api/v2/billing/subscription/cancel/route.ts` |
 | `POST` | `/api/v2/billing/subscription/checkout` | `billing subscribe` | SDK-facing route. | `src/app/api/v2/billing/subscription/checkout/route.ts` |
 | `GET` | `/api/v2/billing/subscription/status` | `billing.subscription.status`<br />`getBillingSubscriptionStatus`<br />`billing subscription status` | SDK-facing route. | `src/app/api/v2/billing/subscription/status/route.ts` |
