@@ -706,13 +706,13 @@ when that mini-pipeline should execute outside a row dataset. Inside a
 `ctx.dataset` column resolver, pass the step program directly to
 `.withColumn(name, program)` instead.
 
-Signature: `runSteps<TInput extends Record<string, unknown>, TOutput>( program: StepProgram<TInput, unknown, TOutput>, input: TInput, options?: { description?: string }, ): Promise<TOutput>;`
+Signature: `runSteps<TInput extends Record<string, unknown>, TOutput>( program: RunnableStepProgram<TInput, TOutput>, input: TInput, options?: { description?: string }, ): Promise<TOutput>;`
 
 #### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-| `program` | `StepProgram<TInput, unknown, TOutput>` | Yes | Step program. |
+| `program` | `RunnableStepProgram<TInput, TOutput>` | Yes | Step program. |
 | `input` | `TInput` | Yes | Program input. |
 | `options` | `{ description?: string }` | No | Run options. |
 
