@@ -14,7 +14,7 @@ People search split:
 - `apollo_search_people` maps to Apollo `mixed_people/api_search` (preview, no Apollo credits, obfuscated names/contact gaps).
 - `apollo_people_search_paid` maps to Apollo `mixed_people/search` (paid, billed per request in Deepline).
 - `apollo_people_search` remains supported as a legacy alias to the paid search path for compatibility.
-- `apollo_search_people_with_match` remains supported as a convenience helper over free search + paid enrichment.
+- `apollo_search_people_with_match` remains supported as a convenience helper over no-credit preview search + paid enrichment.
 - Use `apollo_search_people` first for cheap discovery and shortlist building; switch to `apollo_people_search_paid` when you need paid Apollo search coverage/filters.
 - `apollo_enrich_company`, `apollo_enrich_person`, and `apollo_reveal_person` remain valid compatibility aliases alongside the V2-canonical names.
 - `apollo_people_search_paid` is intentionally supported even though `mixed_people/search` is not represented in the current Apollo OpenAPI snapshot.
