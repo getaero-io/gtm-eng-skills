@@ -22,3 +22,4 @@ These are LinkedIn-only drafts with native video attached. The raw Screen Studio
 - All three LinkedIn video drafts were humanized on 2026-06-05 to remove generic AI/marketing phrasing while preserving the concrete GTM handoffs and pain points.
 - Snowflake was added as the priority draft on 2026-06-06 with the PLG lead magnet CTA and native compressed video attached from `/tmp/typefully_sung_videos/speedrun-time-to-integration-linkedin.mp4`.
 - Snowflake draft internal Typefully comment thread `c252612a-c648-4d0d-9386-4074e669ebcc` stores the first-comment copy and DM handoff for the broader PLG motions workflow. The draft was rehung around the `product usage + GTM engineering` hook on 2026-06-07.
+- New cross-platform lead magnet drafts were created on 2026-06-15 through the Typefully v2 API. These drafts enable X, LinkedIn, and Threads in one review item and reuse the existing LinkedIn native video media IDs. See `typefully-lead-magnet-drafts.md`.

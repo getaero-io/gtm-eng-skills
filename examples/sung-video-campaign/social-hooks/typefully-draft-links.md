@@ -2,7 +2,7 @@
 
 Created on 2026-06-01 in Typefully social set `Jai Toor` for X, LinkedIn, and Threads.
 
-Update attempt on 2026-06-05: local `TYPEFULLY_API_KEY` returned HTTP 403, so live draft edits are blocked until the key is regenerated. Final copy, YouTube URLs, and blog URLs are in `typefully-researched-drafts.md`.
+Update attempt on 2026-06-05: local `TYPEFULLY_API_KEY` returned HTTP 403, so live draft edits were blocked until the key was regenerated. New cross-platform lead magnet drafts were created through the Typefully v2 API on 2026-06-15; see `typefully-lead-magnet-drafts.md`.
 
 | # | Draft | Typefully ID | URL |
 | --- | --- | --- | --- |
@@ -21,3 +21,6 @@ Update attempt on 2026-06-05: local `TYPEFULLY_API_KEY` returned HTTP 403, so li
 | 13 | Spreadsheets are where workflow logic goes to hide | API blocked | See `typefully-researched-drafts.md` |
 | 14 | Pipeline as code is just "please make this repeatable" | API blocked | See `typefully-researched-drafts.md` |
 | 15 | The ICP should not live in one operator's head | API blocked | See `typefully-researched-drafts.md` |
+| 16 | WORKFLOWS lead magnet sequence | 9519465 | https://typefully.com/?d=9519465&a=299886 |
+| 17 | PROVIDERS lead magnet sequence | 9519466 | https://typefully.com/?d=9519466&a=299886 |
+| 18 | WATERFALL lead magnet sequence | 9519467 | https://typefully.com/?d=9519467&a=299886 |

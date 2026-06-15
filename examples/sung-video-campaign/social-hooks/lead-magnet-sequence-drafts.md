@@ -10,136 +10,185 @@ PLG is already shipped. Do not use `PLG` as the next CTA.
 
 ## Post 1: Workflows
 
+Target publish date: Tuesday, June 16, 2026.
+
+Video: Sung Pipeline as Code walkthrough.
+
+CTA: Comment `WORKFLOWS`.
+
 ### LinkedIn
 
-Most GTM workflows die in the same place:
+Most GTM workflows die after the first successful demo.
 
-someone proves the play works, then it gets buried in a script, Zap, spreadsheet, or reverse ETL job nobody wants to own.
+Someone proves the play works. Then it becomes a script, Zap, spreadsheet, reverse ETL job, or "ask the ops person" ritual nobody wants to own.
+
+We have seen this pattern across real GTM engineering work:
+
+- messy CSV repair
+- signup -> HubSpot sequence
+- work email waterfalls
+- product signal scoring
+- known account -> right contact
+- Slack approval loops
+- CRM writeback with evidence
+- campaign drafts reps can actually inspect
 
 The hard part is not "can we enrich this list?"
 
 It is:
 
 - what triggers the workflow
-- what data is allowed to update the CRM
-- what gets sent to review
+- what data is allowed to touch the CRM
+- what gets blocked
+- what needs review
 - what evidence gets logged
-- what happens when the provider is wrong
 - how you test it before sales sees it
 
 That is why we are moving more of this into typed Deepline V2 plays.
 
-Think:
+Input contract. Provider routing. Guardrails. Dry runs. Review queues. Run logs. CRM writeback.
 
-signup -> enrichment -> suppressions -> CRM context -> campaign draft -> approval -> writeback
+Less "here is a clever demo."
 
-Same workflow you used to hack together across five tools, but with TypeScript, run logs, guardrails, and a path from local test to production.
+More "here is the workflow you can run again next Tuesday without asking who owns it."
 
 Sung walks through the shape in the video.
 
-Comment `WORKFLOWS` and I will send the V2 GTM workflow implementation guide.
+Comment `WORKFLOWS` and I will send the V2 GTM workflow implementation guide + 20-row eval template.
 
 ### X
 
 Most GTM workflows die after the first successful demo.
 
-The play works, then it becomes a script, Zap, spreadsheet, or reverse ETL job nobody wants to own.
+The play works, then becomes a script, Zap, spreadsheet, or reverse ETL job nobody wants to own.
 
 The fix is boring:
 
-typed workflow
-clear inputs
+typed input
+provider routing
 guardrails
 dry run
-approval
+review queue
 CRM writeback
 run logs
 
-Comment WORKFLOWS and I will send the V2 implementation guide.
+Comment WORKFLOWS and I will send the V2 guide + 20-row eval template.
 
 ### Threads
 
-The least glamorous part of GTM engineering is the part that matters:
+Most GTM workflows die after the first successful demo.
 
-making the workflow repeatable after the first hacked-together version works.
+The play works once. Then nobody knows who owns the script, spreadsheet, Zap, enrichment order, approval step, or CRM writeback.
 
-Signup -> enrichment -> suppressions -> CRM context -> campaign draft -> approval -> writeback.
+The useful version is boring:
 
-Comment WORKFLOWS and I will send the V2 guide.
+input contract, guardrails, dry run, review queue, run logs, writeback.
+
+Comment WORKFLOWS and I will send the V2 implementation guide.
 
 ## Post 2: Providers
 
+Target publish date: Thursday, June 18, 2026.
+
+Video: Sung Provider Sprawl walkthrough.
+
+CTA: Comment `PROVIDERS`.
+
 ### LinkedIn
-
-Provider sprawl is what happens when every GTM workflow starts with:
-
-"let's just add one more enrichment vendor."
-
-Then six months later nobody knows:
-
-- which provider is trusted for which field
-- why a row was accepted
-- why two vendors disagree
-- whether the expensive provider was even needed
-- what should be written back to CRM
-
-The answer is not fewer providers. It is a provider decision matrix.
-
-Which tool runs for identity?
-Which runs for mobile?
-Which runs only after LinkedIn is present?
-Which result needs corroboration?
-Which fields should never be overwritten?
-
-Sung's Provider Sprawl video is the cleanest explanation of this problem.
-
-Comment `PROVIDERS` and I will send the provider stack decision matrix.
-
-### X
 
 Provider sprawl is not "we use too many data vendors."
 
-It is "we do not know which vendor is trusted for which job."
+It is "nobody knows which system is allowed to be right."
 
-Identity, mobile, company, title, email, intent, CRM writeback.
+That is how you end up with:
 
-Each needs different routing + confidence rules.
+- one tool for emails
+- another for mobile
+- another for company data
+- another for intent
+- another for product usage
+- a CRM full of fields nobody trusts
+- a spreadsheet explaining which one to believe
 
-Comment PROVIDERS and I will send the decision matrix.
+The better question is not "which provider is best?"
+
+It is:
+
+- who owns identity?
+- who owns work email?
+- who owns mobile?
+- who owns title?
+- who owns company?
+- who owns usage?
+- what needs corroboration?
+- what should never overwrite CRM?
+
+Provider choice gets much easier when every field has an owner, fallback, review trigger, and writeback policy.
+
+Sung's Provider Sprawl video is the cleanest walkthrough of the problem.
+
+Comment `PROVIDERS` and I will send the provider ownership matrix.
+
+### X
+
+Provider sprawl is not "we use too many vendors."
+
+It is "we do not know which system is allowed to be right."
+
+Identity, email, mobile, title, company, usage, intent, CRM writeback.
+
+Each needs an owner, fallback, review trigger, and writeback rule.
+
+Comment PROVIDERS and I will send the matrix.
 
 ### Threads
 
 The provider problem is not the number of vendors.
 
-It is running them without a decision matrix.
+It is running them without a field-level decision matrix.
 
-Which vendor owns which field? When do you stop? What gets reviewed? What is safe to write to CRM?
+Which system owns email? Mobile? Title? Product usage? Intent? What gets reviewed? What is safe to write to CRM?
 
 Comment PROVIDERS and I will send the matrix.
 
 ## Post 3: Waterfall
 
+Target publish date: Saturday, June 20, 2026.
+
+Video: Sung Waterfall Complexity walkthrough.
+
+CTA: Comment `WATERFALL`.
+
 ### LinkedIn
 
-Waterfalls are where GTM engineering starts to pay for itself.
+Bad enrichment waterfalls are just expensive loops with better branding.
 
-If every row hits every provider, you are not building a workflow. You are lighting money on fire with better logging.
+Every row hits every provider.
 
-The better version:
+Every "maybe" result gets accepted.
 
-- cheap provider first when precision is good enough
-- expensive provider only when the row is worth it
+Nobody measures review time.
+
+Nobody knows whether the expensive provider was needed.
+
+The useful version is much simpler:
+
+- route by input quality
+- use cheap providers when confidence is good enough
+- save expensive calls for rows worth saving
 - stop when confidence is high
-- route ambiguous matches to review
-- backtest cost per accepted result, not cost per API call
+- send ambiguous matches to review
+- measure cost per accepted result
 
-That last part matters.
+Not cost per API call.
 
-The cheapest provider can be expensive if it creates review work, bad CRM writes, or weak campaigns.
+Cost per usable GTM action.
+
+That is the number that matters when the workflow writes to CRM, triggers a sequence, or gives sales a reason to act.
 
 Sung walks through the waterfall complexity in the video.
 
-Comment `WATERFALL` and I will send the cost optimization framework.
+Comment `WATERFALL` and I will send the cost optimization framework. We are turning it into a calculator too: paste your provider order + costs, get routing recommendations.
 
 ### X
 
@@ -149,7 +198,10 @@ run every provider on every row and call it automation.
 
 Good waterfall:
 
-route by input quality, stop on confidence, review ambiguity, measure cost per accepted result.
+route by input quality
+stop on confidence
+review ambiguity
+measure cost per accepted result
 
 Not cost per API call.
 Cost per usable GTM action.
