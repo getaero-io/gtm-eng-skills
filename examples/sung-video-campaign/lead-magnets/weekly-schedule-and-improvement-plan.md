@@ -10,8 +10,8 @@
 | Date | Lead magnet | Primary post | Video | CTA | Review status |
 | --- | --- | --- | --- | --- | --- |
 | Tuesday, June 16, 2026 | Deepline V2 GTM Workflow Implementation Guide | LinkedIn native video + X thread + Threads post | Sung Pipeline as Code video included; Glue Code as optional follow-up | Comment `WORKFLOWS` | Ready for Jai review |
-| Wednesday, June 17, 2026 | GTM Provider Stack Decision Matrix | LinkedIn native video + X thread + Threads post | Provider Sprawl | Comment `PROVIDERS` | Ready for Jai review |
-| Friday, June 19, 2026 | Waterfall Cost Optimization Framework | LinkedIn native video + X thread + Threads post | Waterfall Complexity | Comment `WATERFALL` | Ready for Jai review |
+| Thursday, June 18, 2026 | GTM Provider Stack Decision Matrix | LinkedIn native video + X thread + Threads post | Provider Sprawl | Comment `PROVIDERS` | Ready for Jai review |
+| Saturday, June 20, 2026 | Waterfall Cost Optimization Framework | LinkedIn native video + X thread + Threads post | Waterfall Complexity | Comment `WATERFALL` | Ready for Jai review |
 
 ## Recommended Publishing Cadence
 
@@ -24,7 +24,7 @@
 - Follow-up comment: "I can also send the 20-row eval template if useful."
 - Video: include Sung's Pipeline as Code walkthrough as the native LinkedIn video. Use Glue Code as the follow-up clip only if we want a second post in the thread.
 
-### Wednesday: Providers
+### Thursday: Providers
 
 - 8:45 AM ET: LinkedIn post with native video.
 - 11:15 AM ET: X thread.
@@ -32,11 +32,11 @@
 - Same day: comment on CRM, data quality, RevOps stack, Clay/Apollo/ZoomInfo comparison posts.
 - Follow-up comment: "The useful part is the field-level source-of-truth table. Happy to send the editable version."
 
-### Friday: Waterfall
+### Saturday: Waterfall
 
-- 8:45 AM ET: LinkedIn post with native video.
-- 11:15 AM ET: X thread.
-- 2:30 PM ET: Threads version.
+- 10:00 AM ET: LinkedIn post with native video.
+- 12:30 PM ET: X thread.
+- 3:00 PM ET: Threads version.
 - Same day: comment on enrichment, provider cost, Clay waterfall, Apollo/ZoomInfo, and data quality posts.
 - Follow-up comment: "We are turning this into a calculator: paste your provider order + costs, get routing recommendations."
 
