@@ -300,6 +300,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-sdk-skill-sync-v1-alignment` | Aligns SDK CLI skill sync/install behavior with the v1 Deepline skill bundle while keeping the SDK play-authoring entrypoint: SDK auto-refresh now installs the v1 well-known skills plus `deepline-plays`, and SDK install guidance points a... |
 | `2026-06-sdk-play-like-tool-reference-metadata` | Adds optional playReference metadata to play-backed tool catalog entries and SDK ToolDefinition so SDK CLI tools describe/execute can point agents at the declared runnable prebuilt play instead of deriving a guessed slug from the tool id... |
 | `2026-06-sdk-feedback-skill-sync` | Adds the SDK-owned `deepline-plays-feedback` agent skill to the SDK skills sync/install list and documents the existing V2 CLI feedback/session commands, including the Cowork transcript mount fallback. This changes only which skill docum... |
 | `2026-06-sdk-cli-python-alignment` | Aligns SDK CLI behavior for error/reporting edges: enrich CSV export uses backing Runtime Sheet rows when available and reports clearer output row counts, local play-file describe fails with actionable guidance, unknown top-level command... |
@@ -307,7 +308,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-06-sdk-enrich-stale-policy-removal` | Removes generated staleAfterSeconds policies from SDK CLI `deepline enrich` compatibility play source so force/retry behavior no longer makes metadata and child waterfall cells expire after one second. This is CLI-side source generation... |
 | `2026-06-sdk-enrich-compat-adapter-module` | Moves SDK CLI `deepline enrich` v1 compatibility defaults into sdk/src/cli/enrich-compat-adapter.ts and has the generated play compiler consume that adapter for the default play name, map name, and metadata recompute policy. This is a CL... |
 | `2026-06-cli-backing-export-canonical-alias-columns` | Filters stale raw CSV alias headers from `deepline runs export` when backing Runtime Sheet rows expose the canonical SQL-safe columns selected by the run. CLI export-column selection/rendering only — no route, request shape, response env... |
-| `2026-06-plays-artifacts-retryable-transient-503` | Hardens POST /api/v2/plays/artifacts against transient infrastructure failures: a thrown Convex/R2 I/O error during artifact registration now returns a structured retryable 503 ({ retryable: true, code: PLAYS_ARTIFACT_TRANSIENT }) instea... |
 
 ## Public Types
 
