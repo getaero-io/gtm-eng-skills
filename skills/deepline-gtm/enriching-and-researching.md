@@ -14,6 +14,23 @@ If a play exists, use it first. Use manual provider chains only when:
 
 Run `deepline enrich` in the foreground so you don't waste tokens while it completes.
 
+## CLI surface compatibility
+
+Deepline's SDK-backed `enrich` command requires a stable play name:
+`--name <task-slug>`. The legacy V1 CLI may reject `--name`. If you are unsure
+which surface is installed, check `deepline enrich --help` before the first
+enrich run and choose the compatible shape; do not discover this by running a
+failing enrichment.
+
+For SDK-backed enrich commands, include a descriptive `--name`:
+
+```bash
+deepline enrich --input in.csv --output out.csv --name task-slug \
+  --with '{"alias":"domain","tool":"run_javascript","payload":{"code":"return row.company_domain;"}}'
+```
+
+For legacy V1 CLI commands, omit `--name` if help does not list it.
+
 ## Scenario table
 
 | Scenario                                                 | Use when                                                                                                   | Default play/tool                                         | Why                                                                                                                      |
