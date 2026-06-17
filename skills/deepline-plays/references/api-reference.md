@@ -300,6 +300,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-prebuilt-play-alias-removal` | Removes legacy prebuilt play aliases from SDK-facing play registry/search/describe surfaces and SDK CLI display text so only canonical play names are returned, searched, and documented. This is a deliberate canonicalization cleanup: rout... |
 | `2026-06-play-schedule-billing-policy-denials` | Adds typed billing-policy denial handling to POST /api/v2/plays/:name/live and POST /api/v2/plays/artifacts so scheduled-play entitlement failures return a customer-safe 403 envelope instead of a generic thrown platform error or retryabl... |
 | `2026-06-cli-agent-runtime-observability` | Adds compatible CLI/SDK observability metadata for agent-runtime attribution and Cowork network diagnostics: SDK and Python CLI requests may include the optional X-Deepline-Agent-Runtime header, CLI feedback/failure/auth-status routes ad... |
 | `2026-06-sdk-skill-sync-v1-alignment` | Aligns SDK CLI skill sync/install behavior with the v1 Deepline skill bundle while keeping the SDK play-authoring entrypoint: SDK auto-refresh now installs the v1 well-known skills plus `deepline-plays`, and SDK install guidance points a... |
@@ -307,7 +308,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-06-sdk-feedback-skill-sync` | Adds the SDK-owned `deepline-plays-feedback` agent skill to the SDK skills sync/install list and documents the existing V2 CLI feedback/session commands, including the Cowork transcript mount fallback. This changes only which skill docum... |
 | `2026-06-sdk-cli-python-alignment` | Aligns SDK CLI behavior for error/reporting edges: enrich CSV export uses backing Runtime Sheet rows when available and reports clearer output row counts, local play-file describe fails with actionable guidance, unknown top-level command... |
 | `2026-06-cli-quickstart-command-and-sdk-skill-sync` | Adds the additive `deepline quickstart` CLI command (sdk/src/cli/commands/quickstart.ts, registered in index.ts): it opens the hosted /cli/quickstart recipe picker and receives the selection on an ephemeral 127.0.0.1 listener, then print... |
-| `2026-06-sdk-enrich-stale-policy-removal` | Removes generated staleAfterSeconds policies from SDK CLI `deepline enrich` compatibility play source so force/retry behavior no longer makes metadata and child waterfall cells expire after one second. This is CLI-side source generation... |
 
 ## Public Types
 
