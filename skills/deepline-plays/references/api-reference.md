@@ -433,7 +433,7 @@ Either `name` (for live plays) or `artifactStorageKey` (for packaged ad hoc runs
 | `packagedFiles` | `unknown[]` | No | Additional staged file references (dependencies, data files). |
 | `force` | `boolean` | No | Compatibility flag; active sibling runs are allowed. |
 | `waitForCompletionMs` | `number` | No | Optionally let the start request wait briefly and return a terminal result. |
-| `profile` | `string` | No | Per-run execution profile override. The server defaults to `workers_edge`;<br />tests can pass `local` here. Most callers should leave this unset. |
+| `profile` | `string` | No | Per-run execution profile override. The server defaults to workers_edge;<br />tests and runtime probes can pass a different profile here. Most callers<br />should leave this unset. |
 
 
 ### `PlayRunStart`
