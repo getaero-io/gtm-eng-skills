@@ -23,37 +23,37 @@ If only a name is given with no company context, ask before proceeding.
 
 Before running the waterfall, capture the deal context that changes who matters. If the user already gave enough context, proceed and do not interrogate them. If key context is missing, ask at most 1-2 critical questions before execution.
 
-| Context field | Why it matters |
-| ------------- | -------------- |
-| Product or service being sold | Changes the owning function, technical evaluator, and likely blocker |
-| Deal stage | Prospecting, single-threaded, active evaluation, or stuck deal changes the entry strategy |
-| Existing contacts or CRM relationships | Preserves warm paths and avoids buying data already owned |
-| Target function | Keeps the committee focused instead of mapping every executive |
-| Company size or account segment | Right-sizes the committee and prevents over-threading small accounts |
-| Known champion, blocker, or economic buyer | Anchors the output around real deal evidence, not title guesses |
+| Context field                              | Why it matters                                                                            |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| Product or service being sold              | Changes the owning function, technical evaluator, and likely blocker                      |
+| Deal stage                                 | Prospecting, single-threaded, active evaluation, or stuck deal changes the entry strategy |
+| Existing contacts or CRM relationships     | Preserves warm paths and avoids buying data already owned                                 |
+| Target function                            | Keeps the committee focused instead of mapping every executive                            |
+| Company size or account segment            | Right-sizes the committee and prevents over-threading small accounts                      |
+| Known champion, blocker, or economic buyer | Anchors the output around real deal evidence, not title guesses                           |
 
 Right-size the target committee:
 
-| Segment | Target committee size |
-| ------- | --------------------- |
-| SMB | 2-3 people |
-| Mid-market | 4-6 people |
-| Enterprise | 6-12 people |
+| Segment    | Target committee size |
+| ---------- | --------------------- |
+| SMB        | 2-3 people            |
+| Mid-market | 4-6 people            |
+| Enterprise | 6-12 people           |
 
 ## Two modes - pick before you start
 
 The waterfall below defaults to **company-wide mapping** (domain to every employee). But a lot of requests are actually **person-centric** ("build a 2-up / 2-down around this person"). They need different handling, and confusing them spends user budget and produces a worse chart.
 
-| Signal in the request                                                                                | Mode               | What changes                                                                                                                                                        |
-| ---------------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "map the GTM org at Acme", "who are the decision makers at Acme", a bare domain                      | **company-wide**   | Run the full Section 2 waterfall. Hierarchy is inferred org-wide from title tiers.                                                                                  |
+| Signal in the request                                                                                | Mode               | What changes                                                                                                                                                       |
+| ---------------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "map the GTM org at Acme", "who are the decision makers at Acme", a bare domain                      | **company-wide**   | Run the full Section 2 waterfall. Hierarchy is inferred org-wide from title tiers.                                                                                 |
 | "build an org chart around Jane Doe", "Jane's manager and her reports", a single LinkedIn URL/person | **person-centric** | Do NOT run the full company waterfall. At a 100k-person enterprise it floods you with thousands of irrelevant people. Use the focused flow in **§2-person** below. |
 
 **Why this matters:** the company-wide waterfall is built to maximize coverage. Person-centric work needs the opposite: a tight neighborhood around one node. Running the wrong mode is the single most common way this recipe disappoints.
 
 ### The hard truth about reporting chains
 
-No data source Deepline can reach, including Apollo, PDL, Dropleads, Apify, the `linkedin_scraper` family, or Sales Navigator, exposes a real "reports to" / manager field. LinkedIn does not publish reporting chains, and neither does Sales Nav. It improves _who you can find_, not _who reports to whom_. So **every reporting edge in any org chart this recipe produces is inferred, not retrieved.**
+No data source Deepline can reach, including PDL, Dropleads, Apify, the `linkedin_scraper` family, or Sales Navigator, exposes a real "reports to" / manager field. LinkedIn does not publish reporting chains, and neither does Sales Nav. It improves _who you can find_, not _who reports to whom_. So **every reporting edge in any org chart this recipe produces is inferred, not retrieved.**
 
 That means:
 
@@ -63,16 +63,16 @@ That means:
 
 ## Quick reference
 
-| Step | What                    | Source                                                              | Spend posture |
-| ---- | ----------------------- | ------------------------------------------------------------------- | ------------- |
-| 1    | Resolve target          | `leadmagic_profile_search` or `prebuilt/person-linkedin-to-email`   | Metered Deepline action |
-| 2a   | Deepline Native search  | `deepline_native_search_contact` (4 title tiers)                    | Metered Deepline action |
+| Step | What                    | Source                                                              | Spend posture                  |
+| ---- | ----------------------- | ------------------------------------------------------------------- | ------------------------------ |
+| 1    | Resolve target          | `leadmagic_profile_search` or `prebuilt/person-linkedin-to-email`   | Metered Deepline action        |
+| 2a   | Deepline Native search  | `deepline_native_search_contact` (4 title tiers)                    | Metered Deepline action        |
 | 2b   | Dropleads search        | `dropleads_search_people`                                           | Free or bundled when available |
-| 2c   | Apify LinkedIn scrape   | `apify_run_actor_sync` with `harvestapi/linkedin-company-employees` | Metered Deepline action |
-| 2d   | Apollo paid search      | `apollo_people_search_paid` (2 pages)                               | Metered Deepline action |
-| 2e   | PDL gap-fill (optional) | `peopledatalabs_person_search` CXO+VP only                          | Metered Deepline action |
-| 3    | Classify + infer        | Title-based seniority + tenure + recency signals + Claude reasoning | No provider action |
-| 4    | Generate output         | HTML org chart file                                                 | No provider action |
+| 2c   | Apify LinkedIn scrape   | `apify_run_actor_sync` with `harvestapi/linkedin-company-employees` | Metered Deepline action        |
+| 2d   | Icypeas people search   | `icypeas_find_people`                                               | Metered Deepline action        |
+| 2e   | PDL gap-fill (optional) | `peopledatalabs_person_search` CXO+VP only                          | Metered Deepline action        |
+| 3    | Classify + infer        | Title-based seniority + tenure + recency signals + Claude reasoning | No provider action             |
+| 4    | Generate output         | HTML org chart file                                                 | No provider action             |
 
 Typical run: 150-250 people found, 3-8 minutes. When the user asks about spend, show only Deepline-facing credits or estimates from the tool catalog. Do not discuss supplier-side cost structure.
 
@@ -187,11 +187,10 @@ Pilot with a small `maxItems` first, then write the final roster into `"$WORK_DI
 
 > If you genuinely need a raw actor call (e.g. a different roster actor), the current company-roster actor is `harvestapi/linkedin-company-employees` (input: `companyLinkedinUrls` string[] required, optional `maxItems`/`profileDepth`), and the per-profile actor is `apimaestro/linkedin-profile-detail` (input `{"username":"<handle>"}`, returns an `experience[]` array where the live role has `is_current: true`, the cleanest "where do they work today" signal). Actor ids and input keys drift; confirm with `deepline tools describe apify_run_actor_sync` (its `apifyKnownActors` list) before relying on any of them.
 
-**Source 4: Apollo paid search**
+**Source 4: Icypeas people search**
 
 ```bash
-deepline tools execute apollo_people_search_paid --payload '{"q_organization_domains_list":["DOMAIN"],"per_page":100,"page":1}'
-deepline tools execute apollo_people_search_paid --payload '{"q_organization_domains_list":["DOMAIN"],"per_page":100,"page":2}'
+deepline tools execute icypeas_find_people --payload '{"query":{"currentCompanyWebsite":{"include":["DOMAIN"]}},"pagination":{"size":100}}'
 ```
 
 Expected: +80-100 net new.
@@ -273,11 +272,11 @@ For each team/department:
   velocity_ratio = recent_hires / total_headcount
 ```
 
-| velocity_ratio | Staleness risk               | Display                                       |
-| -------------- | ---------------------------- | --------------------------------------------- |
+| velocity_ratio | Staleness risk              | Display                                       |
+| -------------- | --------------------------- | --------------------------------------------- |
 | >= 0.30        | HIGH, chart may be outdated | amber `⚡ Growing fast` badge on team sidebar |
 | 0.15 - 0.29    | MEDIUM, some churn expected | no badge                                      |
-| < 0.15         | LOW                          | no badge                                      |
+| < 0.15         | LOW                         | no badge                                      |
 
 **Surfacing this in the UI:**
 
@@ -293,16 +292,16 @@ A static org chart of titles ages out quickly and rarely tells a rep who to call
 
 **Title to committee-role mapping.** Titles are a starting signal, not proof. Assign a role to each relevant contact, then verify behavior where you can. A "champion" is defined by behavior, not title.
 
-| Role                            | Maps from these titles                                                                           | Why they matter |
-| ------------------------------- | ------------------------------------------------------------------------------------------------ | ---------------- |
-| **Economic buyer**              | CFO, VP Finance, CRO, GM/BU owner, P&L-owning Director; for smaller deals the owning-function VP | Approves the spend. Not always the most senior person. |
-| **Champion**                    | RevOps/Sales Ops, Enablement, Demand Gen lead, the Director closest to the pain                  | Sells internally for you. Title matters least here. |
+| Role                            | Maps from these titles                                                                           | Why they matter                                                                   |
+| ------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| **Economic buyer**              | CFO, VP Finance, CRO, GM/BU owner, P&L-owning Director; for smaller deals the owning-function VP | Approves the spend. Not always the most senior person.                            |
+| **Champion**                    | RevOps/Sales Ops, Enablement, Demand Gen lead, the Director closest to the pain                  | Sells internally for you. Title matters least here.                               |
 | **Coach**                       | Friendly former user, partner contact, customer success lead, IC with strong access              | Gives process guidance but may not sell internally. Do not confuse with champion. |
-| **Technical buyer / evaluator** | VP/Director Engineering, Architect, Director of IT, CISO, Data Privacy Officer                   | Can kill the deal on technical, security, or integration grounds. |
-| **Procurement / legal**         | Procurement, Vendor Management, Legal, Privacy, Compliance                                      | Owns commercial and policy friction late in the process. Surface early. |
-| **Blocker / final authority**   | CISO, Head of Compliance, General Counsel, Procurement/Vendor Mgmt                               | Quiet, risk-driven veto. Surface early. |
-| **End user / influencer**       | ICs in the owning function; Staff/Principal/Senior Architect                                     | Adoption sign-off and peer consensus. |
-| **Executive sponsor**           | Relevant C-suite/SVP (CRO, CMO, CTO, CEO)                                                        | Ties the purchase to strategy. |
+| **Technical buyer / evaluator** | VP/Director Engineering, Architect, Director of IT, CISO, Data Privacy Officer                   | Can kill the deal on technical, security, or integration grounds.                 |
+| **Procurement / legal**         | Procurement, Vendor Management, Legal, Privacy, Compliance                                       | Owns commercial and policy friction late in the process. Surface early.           |
+| **Blocker / final authority**   | CISO, Head of Compliance, General Counsel, Procurement/Vendor Mgmt                               | Quiet, risk-driven veto. Surface early.                                           |
+| **End user / influencer**       | ICs in the owning function; Staff/Principal/Senior Architect                                     | Adoption sign-off and peer consensus.                                             |
+| **Executive sponsor**           | Relevant C-suite/SVP (CRO, CMO, CTO, CEO)                                                        | Ties the purchase to strategy.                                                    |
 
 Example: a security sale where the **CISO champions**, the **CFO is economic buyer**, the **CTO evaluates**, and the **CEO sponsors**. Four titles, four roles, one deal.
 
@@ -310,40 +309,40 @@ Example: a security sale where the **CISO champions**, the **CFO is economic buy
 
 **Hidden influencer and champion-potential signals:**
 
-| Signal | Why it matters |
-| ------ | -------------- |
-| Staff, Principal, Lead, Architect, Admin, or EA title | May control technical consensus, executive access, or calendar flow |
-| Recently joined or promoted in the owning function | Likely to have a mandate and lower attachment to incumbent tools |
-| Former user, former customer employee, or prior company used the product category | Higher odds they understand the pain and can coach the process |
-| Long-tenured IC in the buying function | Often trusted informally even without a manager title |
-| Mutual investor, customer, partner, alumni, or coworker path | Raises access quality and reply probability |
-| Public content about the problem area | Indicates personal stake or active evaluation |
+| Signal                                                                            | Why it matters                                                      |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Staff, Principal, Lead, Architect, Admin, or EA title                             | May control technical consensus, executive access, or calendar flow |
+| Recently joined or promoted in the owning function                                | Likely to have a mandate and lower attachment to incumbent tools    |
+| Former user, former customer employee, or prior company used the product category | Higher odds they understand the pain and can coach the process      |
+| Long-tenured IC in the buying function                                            | Often trusted informally even without a manager title               |
+| Mutual investor, customer, partner, alumni, or coworker path                      | Raises access quality and reply probability                         |
+| Public content about the problem area                                             | Indicates personal stake or active evaluation                       |
 
 Classify each committee member with these output fields:
 
-| Field | Allowed values or shape |
-| ----- | ----------------------- |
-| `committee_role` | `economic_buyer`, `champion`, `coach`, `technical_evaluator`, `procurement_legal`, `blocker`, `end_user`, `executive_sponsor`, `unknown` |
-| `disposition` | `champion`, `supportive`, `neutral`, `skeptical`, `detractor`, `unknown` |
-| `access_level` | `direct`, `warm_path`, `crm_relationship`, `indirect`, `none` |
-| `influence_level` | `high`, `medium`, `low`, `unknown` |
-| `key_concern` | One short phrase tied to title, team, job post, CRM note, or public signal |
-| `how_to_win` | One recommended engagement angle |
-| `risk_if_ignored` | One concrete risk if this person is not engaged |
-| `next_action` | `contact_now`, `warm_intro`, `monitor`, `ask_champion`, `do_not_contact_yet` |
-| `evidence` | Source names and short reason, never a bare assertion |
+| Field             | Allowed values or shape                                                                                                                  |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `committee_role`  | `economic_buyer`, `champion`, `coach`, `technical_evaluator`, `procurement_legal`, `blocker`, `end_user`, `executive_sponsor`, `unknown` |
+| `disposition`     | `champion`, `supportive`, `neutral`, `skeptical`, `detractor`, `unknown`                                                                 |
+| `access_level`    | `direct`, `warm_path`, `crm_relationship`, `indirect`, `none`                                                                            |
+| `influence_level` | `high`, `medium`, `low`, `unknown`                                                                                                       |
+| `key_concern`     | One short phrase tied to title, team, job post, CRM note, or public signal                                                               |
+| `how_to_win`      | One recommended engagement angle                                                                                                         |
+| `risk_if_ignored` | One concrete risk if this person is not engaged                                                                                          |
+| `next_action`     | `contact_now`, `warm_intro`, `monitor`, `ask_champion`, `do_not_contact_yet`                                                             |
+| `evidence`        | Source names and short reason, never a bare assertion                                                                                    |
 
 ### 3d. Multi-threading sequence
 
 Do not tell the rep to "contact everyone." Pick a sequencing strategy based on deal context and account size.
 
-| Situation | Strategy | First contacts | Notes |
-| --------- | -------- | -------------- | ----- |
-| No known contacts | Access line | Coach or warm path, then champion, then economic buyer | Start where access is strongest, not necessarily highest title |
-| Active single-threaded deal | Dual track | Champion plus one technical evaluator or end user | Add coverage without surprising the champion |
-| Stuck deal | Power line | Executive sponsor or economic buyer plus blocker/procurement | Use when the current path cannot unblock budget or risk |
-| Small account | Thin committee | 2-3 people max | Avoid over-threading and creating internal noise |
-| Enterprise account | Layered committee | 6-12 people across owning function, technical, finance, and legal/procurement | Sequence over time, do not blast all contacts at once |
+| Situation                   | Strategy          | First contacts                                                                | Notes                                                          |
+| --------------------------- | ----------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| No known contacts           | Access line       | Coach or warm path, then champion, then economic buyer                        | Start where access is strongest, not necessarily highest title |
+| Active single-threaded deal | Dual track        | Champion plus one technical evaluator or end user                             | Add coverage without surprising the champion                   |
+| Stuck deal                  | Power line        | Executive sponsor or economic buyer plus blocker/procurement                  | Use when the current path cannot unblock budget or risk        |
+| Small account               | Thin committee    | 2-3 people max                                                                | Avoid over-threading and creating internal noise               |
+| Enterprise account          | Layered committee | 6-12 people across owning function, technical, finance, and legal/procurement | Sequence over time, do not blast all contacts at once          |
 
 Reflect this in the chart (§4): show `committee_role`, `disposition`, `access_level`, `influence_level`, and `next_action` on every relevant contact. Prioritize 3-5 immediate contacts for a normal mid-market account, then list additional people as monitor or ask-champion targets.
 
@@ -377,23 +376,39 @@ type OrgChartNode = {
   name: string;
   title: string;
   team: string;
-  seniority_level: "exec" | "director" | "manager" | "ic";
+  seniority_level: 'exec' | 'director' | 'manager' | 'ic';
   committee_role:
-    | "economic_buyer"
-    | "champion"
-    | "coach"
-    | "technical_evaluator"
-    | "procurement_legal"
-    | "blocker"
-    | "end_user"
-    | "executive_sponsor"
-    | "unknown";
-  disposition: "champion" | "supportive" | "neutral" | "skeptical" | "detractor" | "unknown";
-  access_level: "direct" | "warm_path" | "crm_relationship" | "indirect" | "none";
-  influence_level: "high" | "medium" | "low" | "unknown";
+    | 'economic_buyer'
+    | 'champion'
+    | 'coach'
+    | 'technical_evaluator'
+    | 'procurement_legal'
+    | 'blocker'
+    | 'end_user'
+    | 'executive_sponsor'
+    | 'unknown';
+  disposition:
+    | 'champion'
+    | 'supportive'
+    | 'neutral'
+    | 'skeptical'
+    | 'detractor'
+    | 'unknown';
+  access_level:
+    | 'direct'
+    | 'warm_path'
+    | 'crm_relationship'
+    | 'indirect'
+    | 'none';
+  influence_level: 'high' | 'medium' | 'low' | 'unknown';
   priority_score: number;
   champion_potential_score: number;
-  next_action: "contact_now" | "warm_intro" | "monitor" | "ask_champion" | "do_not_contact_yet";
+  next_action:
+    | 'contact_now'
+    | 'warm_intro'
+    | 'monitor'
+    | 'ask_champion'
+    | 'do_not_contact_yet';
   key_concern: string | null;
   how_to_win: string | null;
   risk_if_ignored: string | null;
@@ -405,7 +420,7 @@ type OrgChartNode = {
   };
   reporting_edge: {
     inferred: true;
-    confidence: "high" | "medium" | "low";
+    confidence: 'high' | 'medium' | 'low';
     evidence: string[];
   } | null;
   role_evidence: string[];
@@ -453,27 +468,27 @@ Display `🆕` badge in the Name column for anyone with tenure < 90 days so reps
 
 Compute `champion_potential_score` on a 0-60 scale. This score is not a claim that someone is already a champion. It tells the rep who is worth testing for champion behavior.
 
-| Factor | Condition | Score |
-| ------ | --------- | ----- |
-| Role relevance | In owning function for the deal context | +12 |
-| Role relevance | Adjacent function with clear stake | +6 |
-| Influence | Director+ in owning function | +12 |
-| Influence | Staff, Principal, Lead, Architect, Admin, EA, or long-tenured IC | +8 |
-| Accessibility | Direct CRM relationship or prior conversation | +12 |
-| Accessibility | Warm path through customer, investor, partner, or coworker | +8 |
-| Change agent | Joined or promoted in last 180 days | +8 |
-| Change agent | Prior company used the product category or competitor | +6 |
-| Personal stake | Public content, job post ownership, or CRM note tied to the pain | +8 |
-| Engagement potential | Has email or LinkedIn plus a specific reason to reach out | +8 |
+| Factor               | Condition                                                        | Score |
+| -------------------- | ---------------------------------------------------------------- | ----- |
+| Role relevance       | In owning function for the deal context                          | +12   |
+| Role relevance       | Adjacent function with clear stake                               | +6    |
+| Influence            | Director+ in owning function                                     | +12   |
+| Influence            | Staff, Principal, Lead, Architect, Admin, EA, or long-tenured IC | +8    |
+| Accessibility        | Direct CRM relationship or prior conversation                    | +12   |
+| Accessibility        | Warm path through customer, investor, partner, or coworker       | +8    |
+| Change agent         | Joined or promoted in last 180 days                              | +8    |
+| Change agent         | Prior company used the product category or competitor            | +6    |
+| Personal stake       | Public content, job post ownership, or CRM note tied to the pain | +8    |
+| Engagement potential | Has email or LinkedIn plus a specific reason to reach out        | +8    |
 
 Classify score bands:
 
-| Score | Label | Action |
-| ----- | ----- | ------ |
-| 45-60 | High champion potential | Contact or warm-intro early |
-| 30-44 | Medium champion potential | Use as access line or ask current champion |
-| 15-29 | Low champion potential | Monitor unless they fill a required committee role |
-| 0-14 | Unknown | Do not over-prioritize without more evidence |
+| Score | Label                     | Action                                             |
+| ----- | ------------------------- | -------------------------------------------------- |
+| 45-60 | High champion potential   | Contact or warm-intro early                        |
+| 30-44 | Medium champion potential | Use as access line or ask current champion         |
+| 15-29 | Low champion potential    | Monitor unless they fill a required committee role |
+| 0-14  | Unknown                   | Do not over-prioritize without more evidence       |
 
 Keep Coach and Champion separate. A coach can explain the process but may not have political capital. A champion has pain, influence, access, and willingness to sell internally. Mark `disposition = champion` only when evidence supports behavior, not just score.
 

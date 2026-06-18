@@ -53,12 +53,12 @@ For legacy V1 CLI commands, omit `--name` if help does not list it.
 | Generate copy after research                             | The research column already exists and you now need messaging, first lines, scoring copy, or sequence text | `writing-outreach.md`                                     | Copywriting should route to the outreach doc, usually with `deeplineagent` once the research column exists               |
 | LinkedIn post URL -> list of engagers                    | You have a LinkedIn post URL and want all reactors/commenters                                              | `linkedin_post_to_engagers`                               | Scrape all reactors/commenters from a LinkedIn post. Returns structured engager list.                                    |
 | List of people with name + position -> ICP qualification | You have person rows with name and headline and need tier classification                                   | `engagers_to_icp_qualification`                           | Classify leads against ICP using headline/position via deeplineagent                                                     |
-| **Personal email discovery**                             | User explicitly asks for personal emails (Gmail, Hotmail, etc.) - NOT work emails                          | `Personal email discovery`                                | Use Fullenrich or BetterContact. **NEVER use Apollo** - it returns work emails even with `reveal_personal_emails:true`.  |
+| **Personal email discovery**                             | User explicitly asks for personal emails (Gmail, Hotmail, etc.) - NOT work emails                          | `Personal email discovery`                                | Use Fullenrich or BetterContact. Do not substitute work-email providers.  |
 
 ## Notes
 
 - Plays are the default surface for common enrichment jobs.
-- **Personal vs work emails:** When the user asks for personal emails, they mean Gmail/Hotmail/Yahoo, not work emails. Use Fullenrich (`contact.personal_emails`) or BetterContact; do not substitute Apollo, Hunter, LeadMagic, or other work-email providers.
+- **Personal vs work emails:** When the user asks for personal emails, they mean Gmail/Hotmail/Yahoo, not work emails. Use Fullenrich (`contact.personal_emails`) or BetterContact; do not substitute Hunter, LeadMagic, or other work-email providers.
 - Direct provider tools are preferred for mechanical fields when no play exists.
 - When multiple providers recover the same mechanical field, prefer the route that bills on returned results or successful hits. Use request-priced, page-priced, or broad AI passes only after a tiny pilot proves they return usable rows.
 - `run_javascript` is for deterministic transforms, normalization, coalescing, templating, and cheap row-level glue logic.
@@ -212,7 +212,7 @@ Provider behavior:
 
 - `dropleads` is strongest with exact title tokens.
 - `deepline_native` translates portable roles into provider-safe title filters, especially for leadership intent like `CEO`, `Founder`, `CTO`, `VP Marketing`, `Head of Security`, or `Director of Engineering`.
-- `apollo` helps with exact title search, but should not be the only source for founder/exec startup cases.
+- Exact-title provider search should not be the only source for founder/exec startup cases.
 - `icypeas` is a strong exact-profile fallback, especially for founders and startup operators.
 - `prospeo` and `crustdata` are structured fallbacks, not reasons to jump to `deeplineagent`.
 - For a very specific persona with only a broad function, refine the role phrasing before adding providers.

@@ -31,37 +31,49 @@ Follow this pattern for every recipe:
 ## Recipe 1 — Find CTOs in New York with verified work emails
 
 **Goal:** Find 5 CTOs at startups in New York with verified work emails and LinkedIn profiles.
-**Data source:** the `prebuilt/people-search-to-email` play — one run that searches people via Apollo and fills any missing work emails through Deepline's multi-provider email waterfall (pay only for found emails).
+**Data source:** Dropleads people search for the contact list, then Deepline's multi-provider email waterfall for missing work emails.
 
-Substitute the titles/locations from the user's request; keep the row count at 5 unless asked otherwise. Locations use Apollo's `City, State, Country` form.
+Substitute the titles/locations from the user's request; keep the row count at 5 unless asked otherwise.
 
-Speed matters more than completeness here: the user should see real contacts within ~30 seconds. Run exactly the two commands below — no extra inspection steps.
+Speed matters more than completeness here: the user should see real contacts quickly. Run the commands below with minimal extra inspection.
 
-### Step 1 — Run the prebuilt
+### Step 1 — Search people
 
 ```bash
-deepline plays run prebuilt/people-search-to-email --input '{
-  "titles": ["CTO", "Chief Technology Officer"],
-  "locations": ["New York, New York, United States"],
-  "limit": 5
-}' --watch --json
+deepline tools execute dropleads_search_people --payload '{
+  "filters": {
+    "jobTitles": ["CTO", "Chief Technology Officer"],
+    "personalCountries": { "include": ["United States"] },
+    "personalStates": { "include": ["New York"] },
+    "personalCities": { "include": ["New York"] }
+  },
+  "pagination": { "page": 1, "limit": 5 }
+}' --output-format csv_file --no-preview --json
 ```
 
-### Step 2 — Export and display
+### Step 2 — Fill emails
+
+Prepare a CSV with `first_name`, `last_name`, and `domain` columns from the people-search result, then run:
+
+```bash
+deepline plays run prebuilt/name-and-domain-to-email-waterfall-batch --input '{"csv":"<prepped csv>"}' --watch --json
+```
+
+### Step 3 — Export and display
 
 ```bash
 deepline runs export <run-id> --dataset result.rows --out quickstart-contacts.csv
 ```
 
-Show a table: `full_name`, `company_name`, `work_email`, `linkedin_url`. The `work_email` column is the final answer (Apollo-verified, or waterfall-filled when Apollo missed).
+Show a table: `full_name`, `company_name`, `work_email`, `linkedin_url`. The `work_email` column is the final answer.
 
-### Step 3 — Wrap up
+### Step 4 — Wrap up
 
-Tell the user one play did the whole job — people search plus a per-row email waterfall for any misses — that `deepline runs get <run-id> --full --json` shows exactly what the run billed, and that they can go deeper — phone numbers, job-change signals, company discovery — with `/deepline-plays`.
+Tell the user the flow searched people, then ran a per-row email waterfall. `deepline runs get <run-id> --full --json` shows exactly what the run billed, and they can go deeper — phone numbers, job-change signals, company discovery — with `/deepline-plays`.
 
 ### Fallback (if the play fails)
 
-Tell the user, then run the pieces directly: search with `deepline tools execute apollo_search_people_with_match --payload '{...}' --output-format csv_file --no-preview --json` (same titles/locations, `per_page` 5), show the rows, and fill missing emails with `deepline plays run prebuilt/name-and-domain-to-email-waterfall-batch --input '{"csv":"<prepped csv>"}' --watch --json` (needs `first_name`, `last_name`, `domain` columns; derive `domain` from the `organization` JSON column's `primary_domain`).
+Tell the user, then run `/deepline-plays` with the same goal.
 
 ### Last resort
 

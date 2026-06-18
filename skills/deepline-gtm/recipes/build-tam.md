@@ -1,6 +1,6 @@
 ---
 name: build-tam
-description: 'Build a Total Addressable Market list by sourcing accounts and contacts from providers like Apollo, Crustdata, and PDL.'
+description: 'Build a Total Addressable Market list by sourcing accounts and contacts from providers like Crustdata, Dropleads, and PDL.'
 ---
 
 # Provider-Led Account And Contact Sourcing

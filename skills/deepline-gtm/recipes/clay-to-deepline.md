@@ -121,7 +121,7 @@ Answer these **before writing scripts** based on what Phase 1 revealed. Only ans
 - [ ] Has scoring/qualification columns → use ICP criteria verbatim from Clay config
 - [ ] Has campaign push / CRM update columns → verify with `deepline tools search "<platform> add leads"`
 - [ ] Has cross-table lookups → export linked table to CSV first
-- [ ] **Is a company intelligence table** (source = Mixrank) → use `apollo_company_search`
+- [ ] **Is a company intelligence table** (source = Mixrank) → use `crustdata_companydb_search`
 
 **Security (all tables):**
 
@@ -288,7 +288,7 @@ deepline tools describe <candidate_tool_id>       # inspect candidate
 | `enrich-person-with-*` | `"person enrich linkedin"` | `leadmagic_profile_search`                      |
 | `find-email-*`         | `"email finder"`           | `hunter_email_finder`, `leadmagic_email_finder` |
 | `verify-email-*`       | `"email verify validate"`  | `leadmagic_email_validation`                    |
-| `company-*`            | `"company enrich"`         | `apollo_enrich_company`                         |
+| `company-*`            | `"company enrich"`         | `prospeo_enrich_company`                        |
 | `add-to-campaign-*`    | `"add leads campaign"`     | `instantly_add_to_campaign`                     |
 
 ### Summary Table
@@ -303,7 +303,7 @@ deepline tools describe <candidate_tool_id>       # inspect candidate
 | `octave-qualify-person`                       | `deeplineagent` + `jsonSchema` ICP scorer                                        |
 | `add-lead-to-campaign`                        | `instantly_add_to_campaign` or `smartlead_api_request`                           |
 | `route-row`                                   | **Not replicable.** Produce filtered output CSV per destination.                 |
-| `find-lists-of-companies-with-mixrank-source` | `apollo_company_search` + optional `prospeo_enrich_company`                      |
+| `find-lists-of-companies-with-mixrank-source` | `crustdata_companydb_search` + optional `prospeo_enrich_company`                 |
 
 ---
 

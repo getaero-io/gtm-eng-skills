@@ -19,7 +19,7 @@ Format as a prominent callout/highlight block at the very top of the report:
 
 • #1 signal: [top signal name] on their website — [X]x more common in won accounts — [one-line reason why it indicates buying intent]
 • Best-fit archetype: [ideal won customer in one sentence: size, vertical, regulatory context, maturity stage]
-• Fastest path to pipeline: Apollo search for "[title 1]" + "[title 2]" at [headcount]-person [vertical] companies — these people own the buying decision
+• Fastest path to pipeline: Deepline people search for "[title 1]" + "[title 2]" at [headcount]-person [vertical] companies — these people own the buying decision
 • Hard skip flags: [signal 1], [signal 2], [signal 3] — [brief reason each signals existing solution, build culture, or procurement freeze]
 • Scoring: 60+ pts → Tier 1 immediate outreach · 35–59 → Tier 2 trigger-based · <35 → nurture or skip
 ```
@@ -69,17 +69,17 @@ Pre-built, click-ready search links for each buyer type.
 **People Searches (find the buyers):**
 
 ```markdown
-| Who You're Finding          | Why They're the Buyer                                 | Apollo Link             |
-| --------------------------- | ----------------------------------------------------- | ----------------------- |
-| [Title 1, Title 2, Title 3] | [Signal lift + one-line reason they own the decision] | [Open in Apollo ↗](URL) |
+| Who You're Finding          | Why They're the Buyer                                 | Prospecting Link     |
+| --------------------------- | ----------------------------------------------------- | -------------------- |
+| [Title 1, Title 2, Title 3] | [Signal lift + one-line reason they own the decision] | [Open Search ↗](URL) |
 ```
 
 **Company Searches (find the accounts):**
 
 ```markdown
-| What You're Finding             | Signal It Represents | Apollo Link             |
-| ------------------------------- | -------------------- | ----------------------- |
-| [Company type + keyword filter] | [Signal name + lift] | [Open in Apollo ↗](URL) |
+| What You're Finding             | Signal It Represents | Prospecting Link     |
+| ------------------------------- | -------------------- | -------------------- |
+| [Company type + keyword filter] | [Signal name + lift] | [Open Search ↗](URL) |
 ```
 
 **Google Search Operators (verify a specific company before outreach):**
@@ -90,42 +90,30 @@ Pre-built, click-ready search links for each buyer type.
 | [Signal name] | `site:domain.com "[keyword]"` | [What a positive match means] |
 ```
 
-**Apollo URL format — use these parameter names:**
+**Prospecting command format — use Deepline play-backed searches:**
 
 ```
 People search:
-https://app.apollo.io/#/people
-  ?personTitles[]=Title+One
-  &personTitles[]=Title+Two
-  &personSeniorities[]=vp
-  &personSeniorities[]=director
-  &personSeniorities[]=c_suite
-  &qOrganizationKeywordTags[]=vertical-keyword
-  &organizationLocations[]=United+States
-  &organizationNumEmployeesRanges[]=201-500
-  &page=1
+deepline tools execute company_to_contact_by_role_waterfall \
+  --input '{"domain":"example.com","roles":["Title One","Title Two"],"seniority":["vp","director"],"limit":25}'
 
 Company search:
-https://app.apollo.io/#/companies
-  ?qOrganizationKeywordTags[]=keyword-one
-  &qOrganizationKeywordTags[]=keyword-two
-  &organizationLocations[]=United+States
-  &organizationNumEmployeesRanges[]=201-500
-  &page=1
+deepline tools execute crustdata_companydb_search \
+  --input '{"company_keywords":["keyword-one","keyword-two"],"countries":["United States"],"headcount_ranges":["201-500"],"limit":50}'
 ```
 
 Valid headcount ranges: `1-10` `11-20` `21-50` `51-200` `201-500` `501-1000` `1001-5000` `5001-10000` `10001+`
 
 Valid seniorities: `vp` `director` `manager` `c_suite` `owner` `partner` `senior` `entry`
 
-Use `qOrganizationKeywordTags[]` for keyword-based company filtering — this searches company descriptions/tags. Do NOT use hardcoded Apollo industry tag IDs; use keyword tags instead.
+Use keyword-based company filtering where the selected company-search tool supports it. Do not hardcode provider-specific industry tag IDs; use portable keywords instead.
 
 ### 0.4 Buyer Persona Quick Reference
 
 One row per key persona. Pull title patterns and pain points from job hiring signals + keyword analysis. Include 3–5 personas covering: primary decision-maker, economic buyer, technical evaluator, champion.
 
 ```markdown
-| Persona | Title Pattern               | Pain Point        | Signal to Reference                    | Apollo Search   |
+| Persona | Title Pattern               | Pain Point        | Signal to Reference                    | Prospect Search |
 | ------- | --------------------------- | ----------------- | -------------------------------------- | --------------- |
 | [Name]  | [Title 1, Title 2, Title 3] | [Core pain point] | [Top signal + lift + where to find it] | [Search ↗](URL) |
 ```
@@ -135,12 +123,12 @@ One row per key persona. Pull title patterns and pain points from job hiring sig
 Condensed scoring model — score any prospect in under 2 minutes.
 
 ```markdown
-| Signal                            | Points | How to Check                                      |
-| --------------------------------- | ------ | ------------------------------------------------- |
-| [Top positive signal]             | +[N]   | `site:domain.com "[keyword]"` OR Apollo tech/jobs |
-| ... (8–12 positive signals total) |        |                                                   |
-| [Top anti-fit signal]             | −[N]   | [How to check]                                    |
-| ... (4–6 anti-fit signals total)  |        |                                                   |
+| Signal                            | Points | How to Check                                          |
+| --------------------------------- | ------ | ----------------------------------------------------- |
+| [Top positive signal]             | +[N]   | `site:domain.com "[keyword]"` OR Deepline jobs/search |
+| ... (8–12 positive signals total) |        |                                                       |
+| [Top anti-fit signal]             | −[N]   | [How to check]                                        |
+| ... (4–6 anti-fit signals total)  |        |                                                       |
 ```
 
 Score tiers:

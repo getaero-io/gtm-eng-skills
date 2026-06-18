@@ -51,7 +51,7 @@ python3 scripts/find_contacts.py \
 
 ## The 3-phase contact chain (when `--contacts` is on)
 
-**Phase 1 — `company_to_contact_by_role_waterfall` (FREE tier).** Dropleads → deepline_native → Apollo → Icypeas → Prospeo → Crustdata. Works on >200-employee US/EU companies. Returns LinkedIn URLs + titles, often no emails. Run first because it's free.
+**Phase 1 — `company_to_contact_by_role_waterfall` (FREE tier).** Dropleads → deepline_native → Icypeas → Prospeo → Crustdata. Works on >200-employee US/EU companies. Returns LinkedIn URLs + titles, often no emails. Run first because it's free.
 
 **Phase 2 — `exa_search_people` fallback for the gaps.** For any company Phase 1 returned ZERO contacts for, fall back to `exa_search_people` with `includeDomains=['linkedin.com']` and a query like `"Design Engineer OR Mechanical Engineer OR DfAM Engineer at {{company_name}}"`. Exa neural search finds LinkedIn profiles by semantic match against the company name — far better coverage for small / non-US / niche industrial targets than the B2B provider waterfall.
 

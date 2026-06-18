@@ -9,7 +9,7 @@ Use Dropleads as a two-phase flow: low-cost contact discovery first, paid enrich
 - Use `dropleads_search_people` after you already have target account domains, by passing `filters.companyDomains`. It is a contact search primitive, not a dependable way to discover target accounts.
 - Do not build joins or account-discovery flows that depend on every returned lead having `companyDomain`. Treat returned `companyDomain` as optional; if you need account domains as the source of truth, use a company-native search/enrichment tool first.
 - Tighten filters until sample rows clearly match role, industry, and geo expectations.
-- Key filter fields: `filters.jobTitles`, `filters.seniority` (C-Level/VP/Director/Manager/Senior/Entry/Intern), `filters.industries`, `filters.departments`, `filters.companyDomains`, `filters.employeeRanges`, `filters.personalCountries.include` (for geo), `pagination.page`, `pagination.limit`.
+- Key filter fields: `filters.jobTitles`, `filters.seniority` (VP/Director/Manager/Senior/Entry/Intern), `filters.industries`, `filters.departments`, `filters.companyDomains`, `filters.employeeRanges`, `filters.personalCountries.include` (for geo), `pagination.page`, `pagination.limit`. Use title terms like `CEO`, `CTO`, or `Founder` for C-level searches; do not pass `C-Level` as a Dropleads seniority value.
 
 ### Filter best practices
 
@@ -20,7 +20,7 @@ All Dropleads filters nest under the `filters` object. Pagination nests under `p
   "filters": {
     "companyDomains": ["microsoft.com"],
     "jobTitles": ["CTO", "VP Engineering"],
-    "seniority": ["C-Level", "VP", "Director"],
+    "seniority": ["VP", "Director"],
     "personalCountries": { "include": ["United States"] }
   },
   "pagination": { "page": 1, "limit": 25 }
@@ -33,7 +33,7 @@ All Dropleads filters nest under the `filters` object. Pagination nests under `p
 | --------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Company   | `filters.companyDomains`            | Exact domain match for known accounts. Prefer this when you already have domains; do not rely on people-search results to discover a complete account-domain list. `companyNames` does fuzzy substring matching — "Microsoft" pulls in unrelated businesses. |
 | Country   | `filters.personalCountries.include` | Array inside a nested object.                                                                                                                                                                                                                                |
-| Seniority | `filters.seniority`                 | Exact values only: `C-Level`, `VP`, `Director`, `Manager`, `Senior`, `Entry`, `Intern`.                                                                                                                                                                      |
+| Seniority | `filters.seniority`                 | Exact values only: `VP`, `Director`, `Manager`, `Senior`, `Entry`, `Intern`. Use `jobTitles` terms like `CEO`, `CTO`, or `Founder` for C-level searches.                                                                                                      |
 | Industry  | `filters.industries`                | Exact strings from Dropleads. Pilot with a broad search first when unsure.                                                                                                                                                                                   |
 
 ### Geo filters are best-effort, not verified
@@ -69,4 +69,4 @@ Dropleads geo filters (`personalCountries` / `personalStates` / `personalCities`
 
 ## 5) Account discovery boundary
 
-For account-based pipelines, start with a company-native source such as `apollo_company_search` or another provider that returns account domains as first-class results. Feed those domains into Dropleads via `filters.companyDomains` to find contacts at known accounts. Dropleads may include `companyDomain` on returned people, but it is not guaranteed enough to be the join key that creates the account universe.
+For account-based pipelines, start with a company-native source that returns account domains as first-class results. Feed those domains into Dropleads via `filters.companyDomains` to find contacts at known accounts. Dropleads may include `companyDomain` on returned people, but it is not guaranteed enough to be the join key that creates the account universe.

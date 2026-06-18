@@ -15,7 +15,7 @@
 
 - **`job_change`**: preferred job-change provider — charges only on confirmed moves.
 - **`search_contact`**: secondary people search. **Not free** — `0.56` Deepline credits per contact returned (free only when zero contacts come back). **Dropleads is the default people search and is free per call.** Use `search_contact` only when dropleads fails or is unavailable. Not yet tested enough to be the primary path.
-- **`prospector` / `enrich_contact`**: use when dropleads + Apollo coverage is insufficient for the target segment.
+- **`prospector` / `enrich_contact`**: use when Dropleads coverage is insufficient for the target segment.
 - **`enrich_company`**: `0.98` Deepline credits per call. Use when firmographic data is required and other sources have been exhausted.
 
 ## Key Behaviors

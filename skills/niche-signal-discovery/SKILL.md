@@ -10,7 +10,7 @@ Discover differential signals between Closed Won and Closed Lost accounts by ext
 
 ## Prerequisites
 
-- **Deepline CLI** — All enrichment runs through `deepline enrich`. No separate API keys for exa/crustdata/apollo etc.
+- **Deepline CLI** — All enrichment runs through `deepline enrich`; route through prebuilt plays and customer-configured provider connections rather than hardcoding provider-specific prospecting tools.
 - **Python 3** stdlib only — no pip dependencies for any shipped script.
 - **Credits** - paid web extraction plus CrustData job search. Run a small sample or `deepline tools describe crustdata_v2_job_search --json` for current Deepline-facing pricing before scaling. Step 7 contact discovery is additional. **Always get user approval before paid steps.**
 
@@ -214,7 +214,7 @@ The script computes substring-match presence, Laplace-smoothed lift, source brea
 
 ## Step 5: Report generation
 
-**Read `references/report-template.md`** for the full report structure (Quick Reference Dashboard at the top, then detail sections), the signal-strength visual scale, Apollo URL format, and all quality rules. Critical rules in brief:
+**Read `references/report-template.md`** for the full report structure (Quick Reference Dashboard at the top, then detail sections), the signal-strength visual scale, prospecting-link format, and all quality rules. Critical rules in brief:
 
 - Raw counts always (`15% (6)`, not just `15%`); sample sizes in headers (`Won (n=37)`)
 - Bold only signals with lift > 2x AND count ≥ 3 companies
@@ -284,7 +284,7 @@ After enrichment, each row has:
 - **`references/keyword-catalog.md`** — JSON schema + multi-vertical examples for Step 1.5 config generation
 - **`references/dedupe.md`** — Step 1.0.5 dedupe failure modes, categorization rules, library usage
 - **`references/quality-gate.md`** — Step 3 verification scripts, buffer-flush retry pattern, auto-extracted-domain validation
-- **`references/report-template.md`** — Step 5 full report structure, signal-strength scale, Apollo URL format, all quality rules
+- **`references/report-template.md`** — Step 5 full report structure, signal-strength scale, prospecting-link format, all quality rules
 - **`references/signal-interpretation.md`** — Step 6 buyer-vs-seller-vs-competitor rules
 - **`references/step-7-prospects.md`** — Step 7 prospect-card skeleton, Exa guardrails, Phase 3 apex validation
 - **`references/scoring-pitfalls.md`** — Confirmation-biased CRM fields to exclude from scoring

@@ -31,8 +31,7 @@ Escalate only when you need a filter the current step lacks.
 
 1. **`free_simple_company_search`** — SQL over the free company corpus. Exact/domain lookup and bounded SQL. FREE.
 2. **`dropleads_search_people`** — adds revenue, funding range, technologies + people filters. Use `dropleads_get_lead_count` to size first. FREE.
-3. **`apollo_company_search`** — adds hiring signals (job titles, locations, num roles), funding dates, tech UIDs.
-4. **`crustdata_companydb_search`** — adds investors, funding stage, fuzzy `(.)` operator. Use `crustdata_companydb_autocomplete` (free) first.
+3. **`crustdata_companydb_search`** — adds investors, funding stage, fuzzy `(.)` operator. Use `crustdata_companydb_autocomplete` (free) first.
 
 **When DB providers return 0** (pre-revenue startups, niche verticals, non-US): use `exa_company_search` for concept search, `parallel_extract` for known source URLs, `serper_google_maps_search` for local/SMB, and `serper_google_search` for scoped directory discovery.
 
@@ -60,11 +59,10 @@ After tool discovery, shortlist 1-2 candidates, inspect schemas, validate enum-l
 ## People search providers (ROI order)
 
 1. **`wiza_search_prospects`** — 30 masked results, no contact data. Good for sizing. FREE.
-2. **`apollo_search_people`** — obfuscated names. Pair with `apollo_people_match` to unmask. FREE.
-3. **`dropleads_search_people`** — workhorse: title, seniority, dept, geo, tech, revenue. Near-zero coverage <50 emp. FREE.
-4. **`crustdata_persondb_search`** — cheapest bulk paid. Use `crustdata_persondb_autocomplete` (free) first.
-5. **`lusha_search_contacts`** — dept, seniority, industry, title, tech filters.
-6. **`ai_ark_people_search`** — title, seniority, skills, location, company attributes.
+2. **`dropleads_search_people`** — workhorse: title, seniority, dept, geo, tech, revenue. Near-zero coverage <50 emp. FREE.
+3. **`crustdata_persondb_search`** — cheapest bulk paid. Use `crustdata_persondb_autocomplete` (free) first.
+4. **`lusha_search_contacts`** — dept, seniority, industry, title, tech filters.
+5. **`ai_ark_people_search`** — title, seniority, skills, location, company attributes.
 
 **Alts:** `exa_people_search` (tiny startups); `contactout_search_people`; `icypeas_find_people` (700M+ DB); `rocketreach_search_people` (30+ filters).
 
@@ -111,12 +109,11 @@ For large payloads or Windows/PowerShell quoting trouble, write the JSON to a fi
 
 ### Sizing a people audience
 
-Default to Dropleads first (strongest free first pass, LinkedIn-rich). Fall back to Apollo/Forager/Icypeas/Prospeo/PDL.
+Default to Dropleads first (strongest free first pass, LinkedIn-rich). Fall back to Wiza/Forager/Icypeas/Prospeo/PDL.
 
 ```bash
 deepline tools execute dropleads_get_lead_count --payload '{"filters":{"jobTitles":["CEO"],"industries":["Technology"]}}'
 deepline tools execute dropleads_search_people --payload '{"filters":{"jobTitles":["VP Sales"],"industries":["Technology"]},"pagination":{"page":1,"limit":1}}'
-deepline tools execute apollo_search_people --payload '{"page":1,"per_page":1}'
 deepline tools execute forager_person_role_search_totals --payload '{"role_title":"\"Software Engineer\""}'
 deepline tools execute icypeas_count_people --payload '{"query":{"currentJobTitle":{"include":["CTO"]}}}'
 deepline tools execute peopledatalabs_person_search --payload '{"query":{"bool":{"must":[{"term":{"location_country":"United States"}},{"term":{"job_title_role":"marketing"}}]}},"size":1}'
@@ -352,8 +349,6 @@ deepline tools execute serper_google_search --payload '{"query":"\"Jane Smith\" 
 | `serper_google_search`                   | URL discovery, `site:` scoped searches                                                                       | query string                                                                                                      | low-cost                                    | Defaults `gl=us` and `hl=en`. Use `site:` + quoted phrases for precision.                                                                                                                                                                                                                                                           |
 | `parallel_search`                        | Broad discovery when you don't know which domains hold the data                                              | objective string                                                                                                  | ~1 cr                                       | Lower precision than domain-scoped search.                                                                                                                                                                                                                                                                                                                                                       |
 | `parallel_extract`                       | URL-bound extraction, JS-rendered pages                                                                      | URLs + objective                                                                                                  | ~1 cr                                       | Slow. Good for portfolio pages, job boards.                                                                                                                                                                                                                                                                                                                                                      |
-| `apollo_people_search`                   | People fallback when dropleads returns 0                                                                     | title, domain, location                                                                                           | ~0.2 cr                                     | Mixed quality. Fallback only.                                                                                                                                                                                                                                                                                                                                                                    |
-| `apollo_people_search_paid`              | Large company contact pull with email                                                                        | domain, title keywords                                                                                            | 1 cr/result                                 | Expensive. Good coverage for large cos.                                                                                                                                                                                                                                                                                                                                                          |
 | `hunter_email_finder`                    | Email finding in waterfall                                                                                   | domain, first/last name                                                                                           | ~0.3 cr                                     | Poor coverage for <50 emp companies.                                                                                                                                                                                                                                                                                                                                                             |
 | `peopledatalabs_company_search`          | SQL-based company search                                                                                     | SQL (industry, size, funding, location)                                                                           | expensive                                   | Last resort. Exhaust others first.                                                                                                                                                                                                                                                                                                                                                               |
 | `crustdata_person_enrichment`            | LinkedIn profile enrichment                                                                                  | LinkedIn URL                                                                                                      | ~1 cr                                       | —                                                                                                                                                                                                                                                                                                                                                                                                |
@@ -396,7 +391,7 @@ deepline tools execute crustdata_companydb_search --payload '{"filters":[{"filte
 
 ### People Data Labs
 
-**PDL is expensive -- use it as a last resort.** Exhaust Exa, Google, Apollo, and Crustdata first.
+**PDL is expensive -- use it as a last resort.** Exhaust Exa, Google, and Crustdata first.
 
 **Shell quoting with PDL SQL:** PDL takes a raw SQL string. Avoid inline single-quote escaping in bash -- it breaks silently. Instead write the payload to a temp file and pass it with `--payload-file`, or use a bash heredoc:
 
@@ -453,8 +448,6 @@ Use these when you want fast sizing before doing the full list pull.
 
 | Provider         | Tool                                 | Command                                                                                                                                                                                        |
 | ---------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Apollo           | `apollo_search_people`               | `deepline tools execute apollo_search_people --payload '{"page":1,"per_page":1}'`                                                                                                              |
-| Apollo           | `apollo_people_search_paid`          | `deepline tools execute apollo_people_search_paid --payload '{"q_keywords":"sales","per_page":1,"page":1}'`                                                                                    |
 | Dropleads        | `dropleads_get_lead_count`           | `deepline tools execute dropleads_get_lead_count --payload '{"filters":{"jobTitles":["CEO"],"industries":["Technology"]}}'`                                                                    |
 | Dropleads        | `dropleads_search_people`            | `deepline tools execute dropleads_search_people --payload '{"filters":{"jobTitles":["VP Sales"],"industries":["Technology"]},"pagination":{"page":1,"limit":1}}'`                              |
 | Forager          | `forager_organization_search_totals` | `deepline tools execute forager_organization_search_totals --payload '{"industries":[1]}'`                                                                                                     |

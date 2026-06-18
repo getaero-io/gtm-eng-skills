@@ -4,7 +4,7 @@
       "kind": "entrypoint",
       "title": "Deepline Plays Quickstart Demo",
       "tags": ["quickstart", "demo", "prospecting", "plays"],
-      "providers": ["apollo", "dropleads"]
+      "providers": ["dropleads"]
     }
   }
 }

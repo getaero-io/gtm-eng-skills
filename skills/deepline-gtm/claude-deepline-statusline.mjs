@@ -35,7 +35,6 @@ const C = {
 
 const PROVIDER_LABELS = {
   apify: 'Apify',
-  apollo: 'Apollo',
   crustdata: 'CrustData',
   deepline_native: 'Deepline Native',
   dropleads: 'DropLeads',

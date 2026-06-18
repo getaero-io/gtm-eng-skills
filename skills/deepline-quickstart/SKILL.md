@@ -175,17 +175,20 @@ After the fast path finishes, do not run another command just to display rows. T
 
 ### Fallback (if Step 1 errors)
 
-Tell the user, then try Apollo:
+Tell the user, then try Dropleads:
 
 ```bash
-deepline tools execute apollo_search_people_with_match --payload '{
-  "person_titles": ["CTO", "Chief Technology Officer"],
-  "person_seniorities": ["c_suite"],
-  "person_locations": ["New York, New York, United States"],
-  "organization_num_employees_ranges": ["1-200"],
-  "include_similar_titles": true,
-  "per_page": 5,
-  "page": 1
+deepline tools execute dropleads_search_people --payload '{
+  "filters": {
+    "jobTitles": ["CTO", "Chief Technology Officer"],
+    "personalCountries": {"include": ["United States"]},
+    "personalStates": {"include": ["New York"]},
+    "personalCities": {"include": ["New York"]}
+  },
+  "pagination": {
+    "page": 1,
+    "limit": 5
+  }
 }'
 ```
 

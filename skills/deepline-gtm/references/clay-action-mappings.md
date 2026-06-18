@@ -38,7 +38,7 @@ deepline tools describe <candidate_tool_id> # verify it exists + see payload sch
 
 | Clay action key                                             | Deepline tool / native play                                                                                                                                                                                                                                                                                                                                                                               | Notes                                                                                              |
 | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `find-lists-of-companies-with-mixrank-source` (source type) | **Pass 1**: `apollo_company_search` — filters by location, employee count, industry keywords, tech stack, funding. Returns `name`, `primary_domain`, `linkedin_url`, `city`, `state`, `country`. **Pass 2** (optional): `prospeo_enrich_company` — adds `description`, `employee_count`, `industry`, `type`. Apollo is 0.2 credits/call; Prospeo is 0.6 credits/result. See Company Source section below. | ✅ Tested — apollo_company_search returns 4–100 companies per call with location + keyword filters |
+| `find-lists-of-companies-with-mixrank-source` (source type) | **Pass 1**: `crustdata_companydb_search` — filters by location, employee count, industry, funding, and investors. Returns company name, domain, LinkedIn URL, HQ, funding, and firmographic fields. **Pass 2** (optional): `prospeo_enrich_company` — adds `description`, `employee_count`, `industry`, `type`. See Company Source section below. | Use `crustdata_companydb_autocomplete` first for canonical filter values |
 | `enrich-person-with-mixrank-v2`                             | `leadmagic_profile_search` → `crustdata_person_enrichment` waterfall                                                                                                                                                                                                                                                                                                                                      | See Person Enrichment section                                                                      |
 | `lookup-company-in-other-table`                             | `run_javascript` (local CSV join)                                                                                                                                                                                                                                                                                                                                                                         | Export company table to CSV first                                                                  |
 | `lookup-multiple-rows-in-other-table`                       | `run_javascript` (local CSV join)                                                                                                                                                                                                                                                                                                                                                                         | Same pattern                                                                                       |
@@ -226,43 +226,43 @@ Prefer `name_and_domain_to_email_waterfall` over a hand-built waterfall when you
 
 ## Company Source — Replacing `find-lists-of-companies-with-mixrank-source`
 
-Clay's Mixrank source fetches a pre-built list from a configured Mixrank query. The Deepline equivalent is a two-pass Python script: **discover with `apollo_company_search`**, then **enrich with `prospeo_enrich_company`** for fields Clay gets from Mixrank (description, industry, size, type).
+Clay's Mixrank source fetches a pre-built list from a configured Mixrank query. The Deepline equivalent is a two-pass Python script: **discover with `crustdata_companydb_search`**, then **enrich with `prospeo_enrich_company`** for fields Clay gets from Mixrank (description, industry, size, type).
 
-### Pass 1 — Generate company list (`apollo_company_search`)
+### Pass 1 — Generate company list (`crustdata_companydb_search`)
 
 ```python
 import json, subprocess, csv
 
-# Apollo filter payload — translate from Clay's Mixrank source config
+# CrustData filter payload — translate from Clay's Mixrank source config
 # Check the Clay table config or ask the user for the original filter criteria
 payload = {
-    "organization_locations": ["Los Angeles", "San Diego", "Orange County", "Irvine"],  # example: SouthernCal
-    "q_organization_keyword_tags": ["software", "technology", "saas"],                   # industry focus
-    "organization_num_employees_ranges": ["51-200", "201-500", "501-1000"],              # size range
-    # "currently_using_any_of_technology_uids": ["snowflake", "bigquery"],              # tech stack (optional)
-    "per_page": 100,
-    "page": 1,   # increment for more pages
+    "filters": [
+        {"filter_type": "hq_location", "type": "(.)", "value": "Los Angeles"},
+        {"filter_type": "crunchbase_categories", "type": "(.)", "value": "software"},
+        {"filter_type": "employee_count_range", "type": "in", "value": ["51-200", "201-500", "501-1000"]},
+    ],
+    "limit": 100,
 }
 
 result = subprocess.run(
-    ["deepline", "tools", "execute", "apollo_company_search",
+    ["deepline", "tools", "execute", "crustdata_companydb_search",
      "--payload", json.dumps(payload), "--json"],
     capture_output=True, text=True
 )
 response_json = json.loads(result.stdout)
-accounts = response_json.get("result", {}).get("accounts", [])
-# Fields: name, primary_domain, linkedin_url, organization_city, organization_state,
-#         organization_country, organization_revenue_printed
+accounts = response_json.get("result", {}).get("data", [])
+# Fields vary by CrustData result shape; preserve company name, domain,
+# LinkedIn URL, HQ, employee count, funding, and category fields when present.
 ```
 
-**Apollo output → Clay field mapping:**
+**CrustData output → Clay field mapping:**
 
-| Apollo field                               | Clay formula field                                      |
+| CrustData field                            | Clay formula field                                      |
 | ------------------------------------------ | ------------------------------------------------------- |
-| `name`                                     | Name                                                    |
-| `primary_domain`                           | Domain                                                  |
+| `company_name` / `name`                    | Name                                                    |
+| `domain` / `company_domain`                | Domain                                                  |
 | `linkedin_url`                             | LinkedIn URL                                            |
-| `organization_city` + `organization_state` | Location                                                |
+| `hq_location` / `city` + `state`           | Location                                                |
 | `organization_country`                     | Country                                                 |
 | —                                          | Size, Description, Primary Industry, Type (need Pass 2) |
 
@@ -285,13 +285,13 @@ enriched = json.loads(result.stdout).get("result", {}).get("company", {})
 
 | Clay                                          | Deepline                                                                                            |
 | --------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Mixrank source — bundled in Clay subscription | Apollo: 0.2 credits/call (100 companies per call = 0.002/company) + Prospeo: 0.6 credits/enrichment |
+| Mixrank source — bundled in Clay subscription | CrustData company search + optional Prospeo enrichment; check live tool catalog for Deepline credits |
 | Returns all fields in one step                | Two passes; Pass 2 optional if downstream uses only domain/name/linkedin                            |
 
 ### Key questions to ask the user before generating the script
 
 1. What filters did the Clay Mixrank source use? (location, size, industry, tech stack) — visible in the Clay source config or ask the user
-2. How many companies total? (Apollo paginates at 100/page, max 500 pages)
+2. How many companies total? Use a narrow pilot or count-like query before paging.
 3. Does the pipeline actually use `Description`, `Industry`, `Size`, `Type`? If not, skip Pass 2.
 
 ---

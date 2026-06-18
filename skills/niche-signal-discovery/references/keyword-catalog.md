@@ -144,7 +144,7 @@ Each key is a category name, each value is a list of keyword strings.
     "activity logging",
     "pipeline visibility"
   ],
-  "anti_fit": ["outreach", "salesloft", "apollo", "sales engagement platform"]
+  "anti_fit": ["outreach", "salesloft", "lemlist", "sales engagement platform"]
 }
 ```
 
@@ -236,9 +236,9 @@ Each key is a tool category, each value is a list of tool names to search for. *
 ```json
 {
   "crm": ["salesforce", "hubspot", "pipedrive"],
-  "sales_engagement": ["outreach", "salesloft", "apollo", "lemlist"],
+  "sales_engagement": ["outreach", "salesloft", "lemlist", "smartlead"],
   "conversation_intelligence": ["gong", "chorus", "clari"],
-  "prospecting": ["zoominfo", "apollo", "clearbit", "lusha"],
+  "prospecting": ["zoominfo", "clearbit", "lusha", "cognism"],
   "anti_fit_tech": ["outreach", "salesloft", "sales engagement"]
 }
 ```

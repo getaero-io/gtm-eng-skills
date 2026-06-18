@@ -7,7 +7,7 @@ Step 7 of the niche-signal-discovery pipeline. It runs through Deepline in
 two phases:
 
   Phase 1: company_to_contact_by_role_waterfall (FREE tier).
-           Dropleads + Deepline native + Apollo + Icypeas + Prospeo + Crustdata.
+           Dropleads + Deepline native + Icypeas + Prospeo + Crustdata.
            Works well for >200-employee US/EU companies with mature B2B data
            coverage. Returns LinkedIn URLs + titles; often no emails.
 
@@ -32,8 +32,8 @@ Why this fallback chain exists:
   waterfall) returned ZERO contacts on all 10 top-scoring prospects —
   Plasma Processes, Ad Astra Rocket, Avimetal, Axial3D, CubeLabs, NextAero,
   Camber Spine, American Additive Mfg, 3D-Side, 3di GmbH. These are mostly
-  <200-employee industrial companies, many non-US, where Dropleads / Apollo
-  / Crustdata have thin coverage. Exa people search found 15 real named
+  <200-employee industrial companies, many non-US, where B2B waterfall
+  providers have thin coverage. Exa people search found 15 real named
   contacts at 6 of the 10 in the same pass. The moral: the waterfall is
   cheaper (free tier) but Exa is the actual discovery engine for niche
   industrial / non-US targets. Always run both.

@@ -300,6 +300,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-customer-provider-key-guidance` | Updates SDK CLI help text, bootstrap examples, generated SDK comments, and skill-sync reference docs so default play authoring and docs no longer recommend customer-key-only providers as platform-managed actions. This is CLI/docs guidanc... |
 | `2026-06-sdk-cli-observability-noise-reduction` | Improves SDK/Python CLI observability without changing installed-client contracts: SDK CLI local network/system/runtime failures now best-effort POST to the existing /api/v2/cli/report-failure route, SDK CLI high-value cloud failures emi... |
 | `2026-06-prebuilt-play-canonical-discovery` | Removes misleading prebuilt play alias metadata from play discovery/describe responses and SDK CLI rendering so agents see only canonical runnable prebuilt references such as prebuilt/person-to-phone. Response shapes, route paths, auth s... |
 | `2026-06-prebuilt-play-alias-removal` | Removes legacy prebuilt play aliases from SDK-facing play registry/search/describe surfaces and SDK CLI display text so only canonical play names are returned, searched, and documented. This is a deliberate canonicalization cleanup: rout... |
@@ -307,7 +308,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-06-cli-agent-runtime-observability` | Adds compatible CLI/SDK observability metadata for agent-runtime attribution and Cowork network diagnostics: SDK and Python CLI requests may include the optional X-Deepline-Agent-Runtime header, CLI feedback/failure/auth-status routes ad... |
 | `2026-06-sdk-skill-sync-v1-alignment` | Aligns SDK CLI skill sync/install behavior with the v1 Deepline skill bundle while keeping the SDK play-authoring entrypoint: SDK auto-refresh now installs the v1 well-known skills plus `deepline-plays`, and SDK install guidance points a... |
 | `2026-06-sdk-play-like-tool-reference-metadata` | Adds optional playReference metadata to play-backed tool catalog entries and SDK ToolDefinition so SDK CLI tools describe/execute can point agents at the declared runnable prebuilt play instead of deriving a guessed slug from the tool id... |
-| `2026-06-sdk-feedback-skill-sync` | Adds the SDK-owned `deepline-plays-feedback` agent skill to the SDK skills sync/install list and documents the existing V2 CLI feedback/session commands, including the Cowork transcript mount fallback. This changes only which skill docum... |
 
 ## Public Types
 
@@ -323,8 +323,8 @@ schema, examples, pricing, and extraction guidance before executing.
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-| `toolId` | `string` | Yes | Unique tool identifier used in API calls (e.g. `"apollo_people_search"`). |
-| `provider` | `string` | Yes | Provider that backs this tool (e.g. `"apollo"`, `"hunter"`, `"test"`). |
+| `toolId` | `string` | Yes | Unique tool identifier used in API calls (e.g. `"dropleads_search_people"`). |
+| `provider` | `string` | Yes | Provider that backs this tool (e.g. `"hunter"`, `"dropleads"`, `"test"`). |
 | `displayName` | `string` | Yes | Human-readable name for display. |
 | `description` | `string` | Yes | What this tool does — suitable for LLM tool descriptions. |
 | `categories` | `DeeplineToolCategory[]` | Yes | Categorization tags (e.g. `["people", "enrichment"]`). |

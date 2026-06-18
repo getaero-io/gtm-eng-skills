@@ -13,7 +13,7 @@ Every major VC and accelerator publishes their portfolio online. **Do NOT waste 
 
 ## What NOT to do
 
-Tested and failed: Apollo investor filtering (irrelevant results), people-first then verify investor (~7-9% hit rate, wastes 60-80% of turns), Crustdata `crunchbase_investors` (inconsistent), `deeplineagent` per-row investor verification (~5-10s/row, unacceptable at scale)
+Tested and failed: provider-side investor filtering on generic prospecting databases (irrelevant results), people-first then verify investor (~7-9% hit rate, wastes 60-80% of turns), Crustdata `crunchbase_investors` (inconsistent), `deeplineagent` per-row investor verification (~5-10s/row, unacceptable at scale)
 
 ## Proven approach
 

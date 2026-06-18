@@ -31,6 +31,6 @@ Use `forager_person_detail_reverse_lookup_by_email` when you already know a work
 
 ## Cross-Provider Workflow Tips
 
-- Apollo `apollo_search_people` returns obfuscated last names. When building name-dependent workflows (e.g. email pattern generation), bridge through `apollo_people_match` first to get the real last name, then use Forager for phone/email reveals.
+- When building name-dependent workflows (e.g. email pattern generation), start from a source that returns full names before using Forager for phone/email reveals.
 - Forager person search results include `person_id` -- save this for subsequent `forager_person_detail_lookup` calls to avoid re-searching.
 - Check account balance from Forager before large batch operations.
