@@ -11,6 +11,8 @@ Default rule: every user request is fresh unless the user names a project, play 
 
 Run one Deepline command at a time when you need its output. Avoid `jq`, shell parsing, background jobs, raw `curl`, env spelunking, or local provider probes around Deepline commands. JSON output is for reading directly.
 
+If CLI V2 seems broken, check `deepline switch status`; use `deepline switch sdk` to switch to SDK mode or `deepline switch python` to roll back to the Python CLI.
+
 ## Core Loop
 
 1. **Preflight:** check auth/health/balance when spend or cloud execution is likely.
