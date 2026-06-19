@@ -300,6 +300,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-play-run-workspace-concurrency-limits` | Adds workspace-scoped admission limits to POST /api/v2/plays/run so overloaded workspaces receive a bounded HTTP 429 with Retry-After instead of unbounded start/run fan-out. Request shapes, successful response envelopes, auth semantics,... |
 | `2026-06-customer-provider-key-guidance` | Updates SDK CLI help text, bootstrap examples, generated SDK comments, and skill-sync reference docs so default play authoring and docs no longer recommend customer-key-only providers as platform-managed actions. This is CLI/docs guidanc... |
 | `2026-06-sdk-adhoc-play-run-submit-idempotency` | Hardens SDK ad-hoc play runs without changing the public API contract: client one-shot play execution sends the existing bundled source/runtime artifact directly to POST /api/v2/plays/run, the route refreshes the working ad-hoc definitio... |
 | `2026-06-ad-hoc-play-artifact-ensure` | Changes POST /api/v2/plays/run ad-hoc play-file artifact persistence from unconditional same-key R2 PUTs to an idempotent content-addressed ensure before dispatch, with same-process coalescing and R2 same-object write-race recovery. Requ... |
@@ -307,7 +308,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-06-prebuilt-play-canonical-discovery` | Removes misleading prebuilt play alias metadata from play discovery/describe responses and SDK CLI rendering so agents see only canonical runnable prebuilt references such as prebuilt/person-to-phone. Response shapes, route paths, auth s... |
 | `2026-06-prebuilt-play-alias-removal` | Removes legacy prebuilt play aliases from SDK-facing play registry/search/describe surfaces and SDK CLI display text so only canonical play names are returned, searched, and documented. This is a deliberate canonicalization cleanup: rout... |
 | `2026-06-play-schedule-billing-policy-denials` | Adds typed billing-policy denial handling to POST /api/v2/plays/:name/live and POST /api/v2/plays/artifacts so scheduled-play entitlement failures return a customer-safe 403 envelope instead of a generic thrown platform error or retryabl... |
-| `2026-06-cli-agent-runtime-observability` | Adds compatible CLI/SDK observability metadata for agent-runtime attribution and Cowork network diagnostics: SDK and Python CLI requests may include the optional X-Deepline-Agent-Runtime header, CLI feedback/failure/auth-status routes ad... |
 
 ## Public Types
 
