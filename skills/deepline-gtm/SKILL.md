@@ -28,6 +28,10 @@ Customer is generally trying to go from "I have an ICP" to "Here's a list of pro
 
 No-loss rule: moved guidance remains fully documented at its canonical level and is linked from here.
 
+### CLI family fallback
+
+If Deepline CLI V2 or SDK mode seems broken while running a GTM task, check `deepline switch status`. Use `deepline switch sdk` to move an installer-managed CLI to SDK mode, or `deepline switch python` to roll back to the Python CLI. Auth is host-scoped and should carry across both families.
+
 ## 2) Read behavior — MANDATORY before any execution
 
 **STOP. Do not call any provider, run any `deepline tools execute`, or write any search command until you have opened the correct sub-doc for your task.**
