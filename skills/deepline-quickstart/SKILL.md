@@ -22,7 +22,7 @@ Follow this pattern for every recipe:
 
 ### CLI surface
 
-This quickstart needs to be fast. Do not run `deepline --version`, `deepline auth status`, or separate CLI discovery commands. In evals, `DEEPLINE_EVAL_CLI_MODE` tells you the surface. Outside evals, the fast path performs one inline `deepline enrich --help` check only when needed. If the installed CLI is SDK/V2, use `--name quickstart-ny-cto-email` and the hyphenated `person-linkedin-to-email` prebuilt id. If the installed CLI is legacy/V1, omit `--name` and use `person_linkedin_to_email_waterfall`.
+This quickstart needs to be fast. Do not run `deepline --version`, `deepline auth status`, or separate CLI discovery commands. The fast path performs one inline `deepline enrich --help` check to choose the compatible command syntax. If the installed CLI is SDK/V2, use `--name quickstart-ny-cto-email` and the hyphenated `person-linkedin-to-email` prebuilt id. If the installed CLI is legacy/V1, omit `--name` and use `person_linkedin_to_email_waterfall`.
 
 ### Session commands reference
 
@@ -95,17 +95,7 @@ with open("deepline/data/quickstart_ny_ctos.csv", "w", newline="") as f:
         })
 PY
 
-if [ "${DEEPLINE_EVAL_CLI_MODE:-}" = "sdk-prod" ] || [ "${DEEPLINE_EVAL_CLI_MODE:-}" = "v2" ]; then
-  cli_mode="sdk"
-elif [ -n "${DEEPLINE_EVAL_CLI_MODE:-}" ]; then
-  cli_mode="legacy"
-elif deepline enrich --help 2>&1 | grep -q -- '--name <name>'; then
-  cli_mode="sdk"
-else
-  cli_mode="legacy"
-fi
-
-if [ "$cli_mode" = "sdk" ]; then
+if deepline enrich --help 2>&1 | grep -Eq -- '(^|[[:space:]])--name([[:space:]<]|$)'; then
   deepline enrich --input deepline/data/quickstart_ny_ctos.csv --output deepline/data/quickstart_enriched.csv --name quickstart-ny-cto-email --all \
     --with '{"alias":"email","tool":"person-linkedin-to-email","payload":{"linkedin_url":"{{linkedin_url}}"}}'
 else
@@ -137,7 +127,7 @@ Note the output CSV path from the result.
 
 First, make sure the CSV has plain string columns named `first_name`, `last_name`, and `linkedin_url`. If the Dropleads result uses `fullName` and `linkedinUrl`, normalize those columns locally instead of running a separate Deepline enrichment pass; this quickstart should spend paid work only on the email waterfall. Use full `https://www.linkedin.com/in/...` URLs.
 
-Then run the waterfall play.
+Then run the waterfall. If `deepline enrich --help` lists `--name`, use the SDK/V2 command; otherwise use the legacy command.
 
 SDK/V2:
 
