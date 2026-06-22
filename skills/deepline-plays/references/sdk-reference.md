@@ -43,10 +43,6 @@ const ctx = await Deepline.connect();
 
 const job = await ctx.play('prebuilt/person-linkedin-to-email').run({
   linkedin_url: 'https://www.linkedin.com/in/example-person/',
-  first_name: 'Jane',
-  last_name: 'Smith',
-  company_name: 'ExampleCo',
-  domain: 'example.com',
 });
 
 const result = await job.get();
