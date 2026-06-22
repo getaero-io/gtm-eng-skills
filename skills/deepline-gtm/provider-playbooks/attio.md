@@ -24,8 +24,7 @@ The most common workflow. Attio auto-enriches records when email (people) or dom
 ```
 1. attio_assert_record  -> upsert person/company by email/domain
 2. Attio auto-enriches  -> job titles, social profiles, company data
-3. attio_create_webhook -> subscribe to record.updated for enrichment-complete signal
-4. Webhook fires        -> receiver triggers downstream enrichment or sync
+3. attio_query_records  -> poll or re-query updated enrichment fields before downstream sync
 ```
 
 ### Playbook 2: Pipeline Qualification
@@ -52,7 +51,7 @@ The most common workflow. Attio auto-enriches records when email (people) or dom
 ```
 1. Loop: attio_assert_record -> upsert each record (respect 25 writes/sec)
 2. Loop: attio_create_entry  -> add to pipeline (respect 25 writes/sec)
-3. attio_create_webhook      -> subscribe to record.updated for enrichment tracking
+3. attio_query_records       -> verify enrichment state before routing follow-up tasks
 ```
 
 ## Common Mistakes

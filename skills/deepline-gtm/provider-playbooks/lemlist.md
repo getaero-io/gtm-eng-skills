@@ -69,14 +69,6 @@ deepline tools execute lemlist_export_unsubscribed_variables --payload '{}'
 deepline tools execute lemlist_get_unsubscribe_by_email --payload '{"email":"bounce@example.com"}'
 ```
 
-### Webhooks
-
-```bash
-deepline tools execute lemlist_add_webhook --payload '{"target_url":"https://hooks.example.com/lemlist","type":"emailsReplied"}'
-deepline tools execute lemlist_get_webhooks --payload '{}'
-deepline tools execute lemlist_delete_webhook --payload '{"hook_id":"hoo_abc123"}'
-```
-
 ## Response Shape Contract
 
 Deepline wraps all provider payloads in a standard result envelope: `{ data, meta }`.

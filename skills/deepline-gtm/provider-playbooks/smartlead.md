@@ -77,14 +77,6 @@ deepline tools execute smartlead_remove_campaign_email_account --payload '{"camp
 deepline tools execute smartlead_update_email_account_warmup --payload '{"email_account_id":1,"warmup_enabled":true,"total_warmup_per_day":20,"daily_rampup":2,"reply_rate_percentage":30}'
 ```
 
-### Webhooks
-
-```bash
-deepline tools execute smartlead_upsert_campaign_webhook --payload '{"campaign_id":12345678,"webhook":{"name":"Reply Tracker","webhook_url":"https://hooks.example.com/sl","event_types":["EMAIL_REPLY","LEAD_UNSUBSCRIBED"]}}'
-deepline tools execute smartlead_fetch_campaign_webhooks --payload '{"campaign_id":12345678}'
-deepline tools execute smartlead_delete_campaign_webhook --payload '{"campaign_id":12345678,"id":42}'
-```
-
 ### Block List
 
 ```bash
