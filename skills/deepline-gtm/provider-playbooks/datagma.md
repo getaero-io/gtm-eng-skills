@@ -48,9 +48,14 @@ Use for:
 
 Best inputs:
 
-- `firstName` + `lastName` + `company`
-- or `fullName` + `company`
+- `firstName` + `lastName` + `companyDomain`
+- or `fullName` + `companyDomain`
 - optionally `linkedInSlug` when you have the company LinkedIn slug
+
+Canonical Deepline snake_case column names map straight through, so CSV columns
+named `first_name` / `last_name` / `full_name` / `company_name` /
+`company_domain` / `domain` are accepted as input aliases for their camelCase
+equivalents (the bare `domain` column is treated as the company web domain).
 
 ### `datagma_full_enrichment`
 
