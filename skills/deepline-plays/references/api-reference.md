@@ -292,14 +292,14 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-sdk-thin-package-runtime-deps` | Trims the published `deepline` npm package by removing Convex/ws/acorn runtime dependencies and replacing the broad packaged repo snapshot with a minimal local-play bundling source payload. This is packaging, local CLI bundling, and SDK... |
 | `2026-06-sdk-installer-quickstart-auth-copy` | Fixes SDK CLI installer handoff behavior and auth success parity without changing the SDK/API contract: installer-launched `deepline quickstart` now honors DEEPLINE_INSTALLER_MODE/--no-launch while still using a terminal for browser sele... |
+| `2026-06-play-live-run-backed-canvas-definition` | Makes GET /api/v2/plays/:name/live?mode=canvas return an existing run-backed definition payload when an org/generated play has persisted runs but its definition document is not yet visible, instead of returning a transient 404. The respo... |
 | `2026-06-sdk-cli-scalar-output-rendering` | Improves SDK CLI and internal Slack rendering for scalar play-run outputs: completed run packages with top-level value outputs now show those values in `plays run --watch` text output, and SDK CLI activity alerts label scalar results as... |
 | `2026-06-sdk-enrich-prebuilt-alias-resolution` | Fixes SDK CLI/enrich prebuilt play naming and dashboard live-state handling without changing installed-client contracts: legacy native waterfall ids such as person_linkedin_to_email_waterfall now resolve to their existing canonical V2 pr... |
 | `2026-06-synthetic-play-run-active-cap` | Raises the internal active-run limit only for non-prod synthetic POST /api/v2/plays/run requests used by preview/runtime test harnesses. Customer requests keep the same workspace active-run cap, route path, method, auth semantics, reques... |
 | `2026-06-sdk-enrich-waterfall-provider-fallback` | Updates SDK CLI `deepline enrich --with-waterfall` generated play source so recoverable provider/upstream 5xx failures inside a waterfall child are treated as misses and later waterfall providers can run. This is CLI-side generated-sourc... |
 | `2026-06-gemini-antigravity-cli-attribution` | Adds Gemini CLI and Antigravity to SDK/Python CLI agent-runtime attribution and default skill install targets. SDK and Python CLI requests may now report the optional X-Deepline-Agent-Runtime header as gemini or antigravity, and install... |
-| `2026-06-play-run-workspace-concurrency-limits` | Adds workspace-scoped admission limits to POST /api/v2/plays/run so overloaded workspaces receive a bounded HTTP 429 with Retry-After instead of unbounded start/run fan-out. Request shapes, successful response envelopes, auth semantics,... |
-| `2026-06-customer-provider-key-guidance` | Updates SDK CLI help text, bootstrap examples, generated SDK comments, and skill-sync reference docs so default play authoring and docs no longer recommend customer-key-only providers as platform-managed actions. This is CLI/docs guidanc... |
 
 ## Public Types
 
