@@ -292,14 +292,14 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-billing-run-provider-audit-fields` | Adds customer-safe run-level billing auditability to existing billing usage and ledger surfaces: GET /api/v2/billing/usage recent activity and GET /api/v2/billing/ledger entries/CSV now include additive Deepline-priced provider/action/ru... |
 | `2026-06-sdk-enrich-run-if-condition-stats` | Fixes SDK CLI `deepline enrich` generated play source so direct `--with` and waterfall child `run_if_js` predicates are emitted as native dataset-column runIf gates, which makes V2 run summaries report skipped:condition while preserving... |
+| `2026-06-sdk-enrich-in-place-export-safety` | Hardens SDK CLI `deepline enrich` CSV export so `--in-place --all` overlays run output onto the original source CSV, refuses partial in-place writes that would shrink the local file, and keeps provider/failure result envelopes compact in... |
 | `2026-06-play-run-query-access-sql-metadata` | Adds optional sqlTableName and sqlQualifiedTableName metadata to play-run dataset packages and deepline_db_query follow-up actions so SDK/CLI/API consumers can display the exact server-returned customer storage table without deriving nam... |
 | `2026-06-deepline-plays-recipe-skill-surface` | Consolidates Deepline plays agent docs into the v1 well-known skill bundle by publishing /deepline-plays as a recipe-wrapper skill, removing legacy deepline-plays-feedback/deepline-plays-quickstart cleanup targets, and updating SDK skill... |
 | `2026-06-sdk-update-agent-skills-refresh` | Refreshes Deepline agent skills after a successful explicit SDK CLI `deepline update` for npm-global and Python-managed sidecar installs, using the existing skills-sync path and preserving dry-run/source/failure behavior. This is local C... |
 | `2026-06-play-run-workspace-unjam-controls` | Adds additive V2 play-run observability and recovery controls for workspace-level run-slot unjams: GET /api/v2/runs now accepts status-only workspace listing so active child/sub-runs can be surfaced without a play filter, POST /api/v2/ru... |
 | `2026-06-v2-play-description-metadata` | Moves V2 prebuilt play descriptions from registry-owned metadata onto definePlay source metadata and threads optional description fields through check/artifact/run registration paths plus SDK client types. This is additive and migration-... |
-| `2026-06-play-live-dashboard-first-paint-optimization` | Optimizes GET /api/v2/plays/:name/live for dashboard first paint by allowing lightweight one-run discovery, preserving the existing full recent-runs refresh path, and parallelizing optional enrichment/pipeline work. Route path, method, a... |
-| `2026-06-sdk-thin-package-runtime-deps` | Trims the published `deepline` npm package by removing Convex/ws/acorn runtime dependencies and replacing the broad packaged repo snapshot with a minimal local-play bundling source payload. This is packaging, local CLI bundling, and SDK... |
 
 ## Public Types
 
