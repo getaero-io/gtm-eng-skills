@@ -6,9 +6,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.109` |
+| SDK version | `0.1.110` |
 | API contract | `2026-06-dataset-column-cell-stale-hard-cutover` |
-| Latest supported SDK | `0.1.109` |
+| Latest supported SDK | `0.1.110` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.53` |
 | Generated sources | `src/lib/sdk/api-routes.ts`<br />`sdk/src/types.ts`<br />`sdk/src/client.ts`<br />`sdk/src/release.ts` |
@@ -292,14 +292,14 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-play-run-workspace-unjam-controls` | Adds additive V2 play-run observability and recovery controls for workspace-level run-slot unjams: GET /api/v2/runs now accepts status-only workspace listing so active child/sub-runs can be surfaced without a play filter, POST /api/v2/ru... |
+| `2026-06-v2-play-description-metadata` | Moves V2 prebuilt play descriptions from registry-owned metadata onto definePlay source metadata and threads optional description fields through check/artifact/run registration paths plus SDK client types. This is additive and migration-... |
 | `2026-06-play-live-dashboard-first-paint-optimization` | Optimizes GET /api/v2/plays/:name/live for dashboard first paint by allowing lightweight one-run discovery, preserving the existing full recent-runs refresh path, and parallelizing optional enrichment/pipeline work. Route path, method, a... |
 | `2026-06-sdk-thin-package-runtime-deps` | Trims the published `deepline` npm package by removing Convex/ws/acorn runtime dependencies and replacing the broad packaged repo snapshot with a minimal local-play bundling source payload. This is packaging, local CLI bundling, and SDK... |
 | `2026-06-sdk-installer-quickstart-auth-copy` | Fixes SDK CLI installer handoff behavior and auth success parity without changing the SDK/API contract: installer-launched `deepline quickstart` now honors DEEPLINE_INSTALLER_MODE/--no-launch while still using a terminal for browser sele... |
 | `2026-06-play-live-run-backed-canvas-definition` | Makes GET /api/v2/plays/:name/live?mode=canvas return an existing run-backed definition payload when an org/generated play has persisted runs but its definition document is not yet visible, instead of returning a transient 404. The respo... |
 | `2026-06-sdk-cli-scalar-output-rendering` | Improves SDK CLI and internal Slack rendering for scalar play-run outputs: completed run packages with top-level value outputs now show those values in `plays run --watch` text output, and SDK CLI activity alerts label scalar results as... |
 | `2026-06-sdk-enrich-prebuilt-alias-resolution` | Fixes SDK CLI/enrich prebuilt play naming and dashboard live-state handling without changing installed-client contracts: legacy native waterfall ids such as person_linkedin_to_email_waterfall now resolve to their existing canonical V2 pr... |
-| `2026-06-synthetic-play-run-active-cap` | Raises the internal active-run limit only for non-prod synthetic POST /api/v2/plays/run requests used by preview/runtime test harnesses. Customer requests keep the same workspace active-run cap, route path, method, auth semantics, reques... |
-| `2026-06-sdk-enrich-waterfall-provider-fallback` | Updates SDK CLI `deepline enrich --with-waterfall` generated play source so recoverable provider/upstream 5xx failures inside a waterfall child are treated as misses and later waterfall providers can run. This is CLI-side generated-sourc... |
 
 ## Public Types
 
@@ -413,6 +413,7 @@ Either `name` (for live plays) or `artifactStorageKey` (for packaged ad hoc runs
 | `artifactStorageKey` | `string` | No | R2 artifact key for ad hoc artifact-backed runs. |
 | `sourceCode` | `string` | No | Source snapshot already validated while registering this artifact. |
 | `sourceFiles` | `Record<string, string>` | No | Source graph snapshots for local helper files included in cloud preflight. |
+| `description` | `string` | No | Human-readable one-line description for the revision created by file-backed runs. |
 | `staticPipeline` | `unknown` | No | Static pipeline already produced while registering this artifact. |
 | `artifactHash` | `string` | No | Artifact content hash already validated while registering this artifact. |
 | `graphHash` | `string` | No | Static graph hash already validated while registering this artifact. |
@@ -508,11 +509,16 @@ Summary of a single play run, returned by `DeeplineClient.listPlayRuns`.
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `workflowId` | `string` | Yes | Public Deepline play-run id. |
+| `playName` | `string \| null` | No | Saved play name for this run, when available. |
 | `runId` | `string` | Yes | Backend run attempt id, when exposed. |
+| `parentRunId` | `string \| null` | No | Parent play-run id when this run was launched through ctx.runPlay. |
+| `rootRunId` | `string \| null` | No | Root play-run id for nested ctx.runPlay descendants. |
 | `type` | `string` | Yes | Workflow type (typically `'Workflow'`). |
 | `status` | `string` | Yes | Human-readable status (e.g. `'Completed'`, `'Failed'`). |
-| `startTime` | `string \| null` | Yes | ISO 8601 timestamp when the run started. |
-| `closeTime` | `string \| null` | Yes | ISO 8601 timestamp when the run finished. |
+| `startTime` | `string \| null` | No | ISO 8601 timestamp when the run started. |
+| `startedAt` | `number \| string \| null` | No | Unix epoch milliseconds when the run started, returned by normalized V2 run summaries. |
+| `closeTime` | `string \| null` | No | ISO 8601 timestamp when the run finished. |
+| `finishedAt` | `number \| string \| null` | No | Unix epoch milliseconds when the run finished, returned by normalized V2 run summaries. |
 | `executionTime` | `string \| null` | Yes | Duration string (e.g. `'2.5s'`). |
 | `billingTotalCredits` | `number` | No | Total Deepline credits charged for the run, when available. |
 | `billingMaxCreditsPerRun` | `number \| null` | No | Configured per-run Deepline credit cap, when available. |
@@ -552,6 +558,7 @@ logs, and exporting durable dataset rows.
 | `logs` | `(runId: string, options?: RunsLogsOptions) => Promise<RunsLogsResult>` | Yes | Fetch persisted log lines for a run. |
 | `exportDatasetRows` | `(input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; }) => Promise<PlaySheetRowsResult>` | Yes | Export persisted rows for a runtime-sheet dataset/table namespace. |
 | `stop` | `( runId: string, options?: { reason?: string }, ) => Promise<StopPlayRunResult>` | Yes | Stop a running/waiting run. |
+| `stopAll` | `(options?: { reason?: string }) => Promise<StopAllPlayRunsResult>` | Yes | Stop active runs across the current workspace. |
 
 
 ### `CustomerDbQueryResult`
