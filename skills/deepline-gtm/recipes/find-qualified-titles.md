@@ -13,7 +13,7 @@ company, and you only spend on contacts at the very end.
 **Why exact-match (`title_lists`) is correct here - not a tradeoff.** Normally exact
 title matching is brittle (it misses "Sr Director Marketing Operations" if you typed
 "Senior Director..."). That problem does not exist in this pipeline, because the titles
-come from `company_titles` - they are the company's *own verbatim roster strings*. The
+come from `company_titles` - they are the company's _own verbatim roster strings_. The
 LLM picks from that list, so every matched title is guaranteed to resolve. `title_lists`
 then returns **all exact matches for every title you selected** (it's an OR across the
 list, exact per entry): pick 5 titles -> get every person holding any of those 5. This is
@@ -39,14 +39,14 @@ for free; people-search is for when you already know the persona and need volume
 
 ## Quick reference
 
-| Step | What | Tool | Cost |
-|------|------|------|------|
-| 1 | Full title roster per company | `company_titles` | FREE |
-| 1b | Flatten nested titles -> scalar column | `run_javascript` | 0 |
-| 2 | LLM filters roster to ICP-matching titles | `deeplineagent` | cheap (1 small call/co) |
-| 2b | Flatten `matched_titles` -> scalar column | `run_javascript` | 0 |
-| 3 | Find all holders of the matched titles (exact) | `deepline_native_search_contact` (`title_lists`) | LinkedIn-only tier |
-| 4 | (optional) reveal email / phone | `enrich_contact` / `enrich_phone` | only on kept rows |
+| Step | What                                           | Tool                                             | Cost                    |
+| ---- | ---------------------------------------------- | ------------------------------------------------ | ----------------------- |
+| 1    | Full title roster per company                  | `company_titles`                                 | FREE                    |
+| 1b   | Flatten nested titles -> scalar column         | `run_javascript`                                 | 0                       |
+| 2    | LLM filters roster to ICP-matching titles      | `deeplineagent`                                  | cheap (1 small call/co) |
+| 2b   | Flatten `matched_titles` -> scalar column      | `run_javascript`                                 | 0                       |
+| 3    | Find all holders of the matched titles (exact) | `deepline_native_search_contact` (`title_lists`) | LinkedIn-only tier      |
+| 4    | (optional) reveal email / phone                | `enrich_contact` / `enrich_phone`                | only on kept rows       |
 
 ## Why this shape (non-obvious rules, all verified live)
 
@@ -64,12 +64,17 @@ for free; people-search is for when you already know the persona and need volume
   defaults to a small page. If you select many titles or expect many holders, set
   `page_size` high enough (or paginate with `page_number`) so matches aren't silently
   truncated. Don't assume 10 is enough when you passed 30 titles.
-- **Materialize nested output into flat columns before referencing it.** `company_titles`
-  output sits at `result.data.output.titles`; `deeplineagent` JSON at `result.object.<field>`.
+- **Materialize nested output into flat columns before referencing it.** In `deepline enrich`
+  row cells, `company_titles` currently appears under `row.titles.output.titles`
+  and `deeplineagent` structured JSON under `row.icp_match.result.object.<field>` or
+  `row.icp_match.extracted_json.<field>`.
   A bare placeholder like `{{titles.output.titles}}` does NOT resolve, and a raw array
   placeholder breaks the JSON `--with` spec. Extract with `run_javascript` first.
-  - Inside `run_javascript`, the alias is already unwrapped:
-    `row.titles.result.data.output.titles` and `row.icp_match.object.matched_titles`.
+  Direct `deepline tools execute --json` uses the V2 envelope (`toolResponse.raw...`),
+  so do not copy direct execute paths into row-level JS without inspecting the persisted row.
+  - Inside `run_javascript`, use the persisted row shape:
+    `row.titles.output.titles` and
+    `row.icp_match.result.object.matched_titles` / `row.icp_match.extracted_json.matched_titles`.
   - When injecting the flattened array into a later payload, **quote the placeholder**:
     `"titles": "{{matched_titles}}"` (the interpolator substitutes the real array).
 
@@ -78,14 +83,17 @@ for free; people-search is for when you already know the persona and need volume
 ```bash
 # 1 - full title roster per company (FREE)
 deepline enrich --input companies.csv --output titles.csv \
+  --name find-qualified-titles-roster \
   --with '{"alias":"titles","tool":"company_titles","payload":{"domain":"{{domain}}"}}'
 
 # 1b - flatten titles into a scalar column
 deepline enrich --input titles.csv --output titles_flat.csv \
-  --with '{"alias":"titles_flat","tool":"run_javascript","payload":{"code":"const t = row.titles?.result?.data?.output?.titles || []; return JSON.stringify(t);"}}'
+  --name find-qualified-titles-flatten-roster \
+  --with '{"alias":"titles_flat","tool":"run_javascript","payload":{"code":"const t = row.titles?.output?.titles || row.titles?.result?.data?.output?.titles || []; return JSON.stringify(t);"}}'
 
 # 2 - LLM filters the roster to the ICP (cheap)
 deepline enrich --input titles_flat.csv --output matched.csv \
+  --name find-qualified-titles-icp-match \
   --with '{
     "alias":"icp_match","tool":"deeplineagent",
     "payload":{
@@ -95,22 +103,25 @@ deepline enrich --input titles_flat.csv --output matched.csv \
     }
   }'
 
-# 2b - flatten matched_titles (note JS-runtime path: object.matched_titles)
+# 2b - flatten matched_titles (V2 raw cells use result.object / extracted_json)
 deepline enrich --input matched.csv --output matched_flat.csv \
-  --with '{"alias":"matched_titles","tool":"run_javascript","payload":{"code":"const t = (row.icp_match && row.icp_match.object && row.icp_match.object.matched_titles) || []; return JSON.stringify(t.slice(0,100));"}}'
+  --name find-qualified-titles-flatten-matches \
+  --with '{"alias":"matched_titles","tool":"run_javascript","payload":{"code":"const match = row.icp_match || {}; const t = match?.extracted_json?.matched_titles || match?.result?.object?.matched_titles || match?.object?.matched_titles || []; return JSON.stringify(t.slice(0,100));"}}'
 
 # 3 - find the people. search_contact returns all exact matches for every matched title
 #   (LinkedIn only - email/phone redacted). Quote the array placeholder. Raise page_size
 #   if you selected many titles so matches aren't truncated.
 deepline enrich --input matched_flat.csv --output contacts.csv \
+  --name find-qualified-titles-contacts \
   --with '{
     "alias":"contacts","tool":"deepline_native_search_contact",
     "payload":{"domain":"{{domain}}","title_lists":[{"name":"icp","titles":"{{matched_titles}}"}],"page_size":50}
   }'
 ```
 
-Contacts land at `contacts.result.data.output.persons[]` (name, title, `linkedin_url`,
-seniority, department). Flatten to one row per contact before any email or phone reveal:
+Contacts land at `contacts.output.persons[]` (legacy rows may use
+`contacts.result.data.output.persons[]`) with name, title, `linkedin_url`, seniority,
+and department. Flatten to one row per contact before any email or phone reveal:
 
 ```bash
 python3 .skills/deepline-gtm/scripts/flatten-search-contact-persons.py contacts.csv \
@@ -126,15 +137,15 @@ If the skill is installed outside the repo, use the same script from the install
 Step 3 (`search_contact`) returns LinkedIn only - the lowest upfront cost. **Ask the user
 which channels they actually need before spending**, then add only the steps they pick:
 
-| Tier | Tool | Returns |
-|------|------|---------|
-| LinkedIn only | `search_contact` (above) | name, title, LinkedIn (email/phone redacted) |
-| + work email | `enrich_contact` on the kept `linkedin_url` (or `first_name`+`last_name`+`domain`) | + verified email |
-| + phone | `enrich_phone` on priority contacts only | + phone (top picks only) |
+| Tier          | Tool                                                                               | Returns                                      |
+| ------------- | ---------------------------------------------------------------------------------- | -------------------------------------------- |
+| LinkedIn only | `search_contact` (above)                                                           | name, title, LinkedIn (email/phone redacted) |
+| + work email  | `enrich_contact` on the kept `linkedin_url` (or `first_name`+`last_name`+`domain`) | + verified email                             |
+| + phone       | `enrich_phone` on priority contacts only                                           | + phone (top picks only)                     |
 
 Run email/phone only on the rows the user keeps; never blanket-enrich the full set.
 
-Cost note: if the user wants emails on *most* contacts up front, `prospector` (boolean
+Cost note: if the user wants emails on _most_ contacts up front, `prospector` (boolean
 `title_filters`, returns contact+verified email in one call) can be cheaper net than
 `search_contact` + a separate `enrich_contact` per row - but `prospector` does **not**
 support exact `title_lists`, so you lose the roster-exact precision. Use `search_contact`

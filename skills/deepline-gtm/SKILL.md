@@ -82,7 +82,7 @@ If none match, grep for more specific keywords: `Grep pattern="<keyword>" path="
 - **NEVER read a large CSV into context with the Read tool.** Reading CSV rows into the conversation window exhausts context and produces zero output. This is the single most common failure mode.
 - Use `deepline enrich` for any row-by-row processing (enrichment, rewriting, research, scoring).
 - To explore or understand CSV content without loading it, use `deepline csv show --csv <path> --rows 0:2` for a two-row sample, or spawn an Explore subagent to answer questions about the data.
-- For CSV enrichment, prefer `deepline enrich --input <csv> --output <csv> --rows 0:1 ...` for a one-row pilot, then rerun against the full file after inspecting output.
+- For CSV enrichment on the SDK V2 CLI, prefer `deepline enrich --input <csv> --output <csv> --name task-slug --rows 0:1 ...` for a one-row pilot, then rerun against the full file after inspecting output. Legacy V1 CLIs may reject `--name`; check `deepline enrich --help` before the first run if the installed surface is unclear.
 
 ### Tools
 
@@ -135,61 +135,11 @@ Use `deepline enrich` as the default path.
 Why:
 
 - **Row-safe:** each pass is explicit and traceable.
-- **UI-safe:** progress, errors, and outputs are visible in Session UI/Playground so your user can interject and guide you.
+- **Observable:** run status, errors, and outputs are visible through Deepline run/play commands and dashboard links.
 - **Retry-safe:** rerun from a known pass, not full actor chains.
 - **Scale-safe:** large results stay in CSV lineage and are easy to inspect/filter.
 - **Auto-batches + rate limit safe** knows how to auto batch and deal with rate limits. Almost all of the providers have rate limits that you don't know about that are managed for you if you run deepline enrich
 - **Lower risk:** fewer custom orchestration scripts and hidden assumptions.
-
-## 2.6) Session UI plan — MANDATORY for every task
-
-**Always** publish your execution plan to the Session UI before running any commands. This is not optional — users monitor progress in real time via the Session UI. Without it, the UI shows nothing and users have no visibility.
-
-```bash
-# Post your plan (accepts JSON array of step labels)
-deepline session start --steps '["Inspect CSV and understand shape","Search for email finder tools","Run pilot on rows 0:1","Get approval for full run","Execute full enrichment","Post-run validation and delivery"]' --user-prompt "Original user request"
-
-# As you complete each step, update its status (0-indexed)
-deepline session start --update 0 --status completed
-deepline session start --update 1 --status running
-deepline session start --update 1 --status completed
-deepline session start --update 2 --status running
-# On error:
-deepline session start --update 2 --status error
-```
-
-Valid step statuses: `pending`, `running`, `completed`, `error`, `skipped`.
-
-### Live status updates within a step
-
-As you work through a running step, send status updates to show what you're currently doing. This is for emergent work the plan couldn't predict upfront (parsing responses, falling back to alternative providers, extracting data, etc.).
-
-```bash
-# While a step is running, send status updates (attaches to the currently-running step)
-deepline session status --message "Extracting company domains from provider response"
-deepline session status --message "LeadMagic returned no results — falling back to ZeroBounce"
-deepline session status --message "Validating 23 catch-all emails"
-
-# Optionally target a specific step by index
-deepline session status --message "Retrying with different params" --step-index 2
-```
-
-Each new status message marks the previous one as done and appears as the active sub-step. These are lightweight — use them freely whenever you're doing something the user would want to see.
-
-Rules:
-
-- Post the plan **before** running any enrichment/tool commands. This is step zero of every task.
-- When you know the user's original request, include it on the initial `deepline session start` call with `--user-prompt "..."`.
-- Immediately set the first step to running right after posting the plan: `deepline session start --update 0 --status running`.
-- Update steps as you go — mark `running` when starting, `completed` or `error` when done.
-- Send `session status` messages during step execution to show what you're currently working on.
-- Keep step labels short and descriptive (what, not how).
-- Do **not** call `deepline session start --steps ...` at the end just to mark completion. `--steps` is a full `set_plan` replace and can wipe incremental step/sub-step history.
-- Finish by updating existing steps incrementally with `--update` (for example, set final running step to `completed`).
-- If `--update` fails with `step_index ... not found (0 steps)`, recover by posting `--steps` once, then resume `--update` calls.
-- Only re-post `--steps` mid-run when the plan structure truly changes.
-- When writing output CSVs outside of `deepline enrich`, register them: `deepline session output --csv <path> --label "Label"`.
-- Use `deepline session usage [--session-id UUID] [--json]` when you need to inspect the current session's credits used, estimated spend, or limit state.
 
 ## 3) Core policy defaults
 
@@ -226,9 +176,7 @@ The slug must describe the task (e.g. `deepline/data/yc-cmo-outbound`, `deepline
 - Even when you don't have a CSV, create one and use deepline enrich.
 - This process requires iteration; one-shotting via `deepline tools execute` is short sighted.
 - For `run_javascript` in `deepline enrich`, put JS in `payload.code`; the current row is auto-injected as `row` at runtime, so you usually should not pass `row` yourself.
-- If a command created CSV outside enrich, register it with the Session UI so a table card appears: `deepline session output --csv <csv_path> --label "My Results"`. This is the lightweight alternative to `deepline enrich` for surfacing output in the Session UI.
-- When execution work is complete, stop backend explicitly with `deepline backend stop --just-backend` unless the user asked to keep it running.
-- In chat, send the file path + playground status, not pasted CSV rows, unless explicitly requested.
+- In chat, send the file path and run/play URL when available, not pasted CSV rows, unless explicitly requested.
 - Preserve lineage columns (especially `_metadata`) end-to-end. When rebuilding intermediate CSVs with shell tools, carry forward `_metadata` columns.
 - Never enrich a user-provided or source CSV in-place. Use `--output` to write to your working directory on the first pass, then `--in-place` on that output for subsequent passes. `--in-place` is for iterating on your own prior outputs — never on source files.
 - For reruns, keep successful existing cells by default; use `--with-force <alias>` only for targeted recompute.
@@ -239,7 +187,7 @@ See [enriching-and-researching.md](enriching-and-researching.md) for `deepline c
 
 - Keep one intended final CSV path: `FINAL_CSV="${OUTPUT_DIR:-$WORKDIR}/<requested_filename>.csv"`
 - Before finishing: use the post-run inspection script pattern from [enriching-and-researching.md](enriching-and-researching.md). Run it once instead of separate checks.
-- In the final message, always report: exact `FINAL_CSV` and exact Playground URL.
+- In the final message, always report: exact `FINAL_CSV` and the run/play URL when the CLI reports one.
 - Before closing the session, follow the Section 7 consent step for session sharing.
 
 ## 4) Credit and approval gate (paid actions)
@@ -327,10 +275,7 @@ Approve full run?
 - Must run a real pilot on the exact CSV for full run (`--rows 0:1`, end exclusive).
 - Must include ASCII preview verbatim in approval.
 - If pilot fails, fix and re-run until successful before asking for approval.
-- Before using AskUserQuestion for the approval gate, notify the Session UI so the user knows to check the terminal:
-  ```bash
-  deepline session alert --message "Approval needed: run enrichment on N rows (~X credits)"
-  ```
+- Ask for approval in chat after the pilot. Include the row count, estimated credits, and a small ASCII preview so the user can approve or redirect without opening another surface.
 
 ### 4.5 Billing commands
 
@@ -387,8 +332,8 @@ curl -s "https://code.deepline.com/api/v2/cli/install" | bash
 7. Honor `operatorNotes` over public ratings when conflicting.
 
 ```bash
-deepline tools execute apify_list_store_actors --payload '{"search":"linkedin company employees scraper","sortBy":"relevance","limit":20}'
-deepline tools execute apify_get_actor_input_schema --payload '{"actorId":"bebity/linkedin-jobs-scraper"}'
+deepline tools execute apify_list_store_actors --input '{"search":"linkedin company employees scraper","sortBy":"relevance","limit":20}'
+deepline tools execute apify_get_actor_input_schema --input '{"actorId":"bebity/linkedin-jobs-scraper"}'
 ```
 
 ## 7) Feedback & session sharing
