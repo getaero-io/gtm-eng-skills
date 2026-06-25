@@ -1,41 +1,12 @@
 {
-  "title": "Getting Started With Deepline Plays",
   "documents": {
     "SKILL.md": {
       "kind": "entrypoint",
-      "title": "Getting Started With Deepline Plays",
-      "tags": ["sdk", "gtm", "plays", "v2"],
-      "providers": []
-    },
-    "references/find-companies-contacts-tam.md": {
-      "kind": "reference",
-      "title": "Find Companies, Contacts, And TAM",
-      "tags": ["gtm", "tam", "contacts", "providers"],
-      "providers": []
-    },
-    "references/run-export-inspect-repair.md": {
-      "kind": "reference",
-      "title": "Run, Export, Inspect, Repair",
-      "tags": ["runs", "exports", "billing", "debugging"],
-      "providers": []
-    },
-    "references/sdk-reference.md": {
-      "kind": "reference",
-      "title": "SDK Reference",
-      "tags": ["sdk", "generated"],
-      "providers": []
-    },
-    "references/api-reference.md": {
-      "kind": "reference",
-      "title": "Runtime API Reference",
-      "tags": ["api", "generated"],
+      "title": "Deepline Plays Recipe",
+      "tags": [
+        "recipe"
+      ],
       "providers": []
     }
-  },
-  "default_document": {
-    "kind": "reference",
-    "title": "Deepline Plays Document",
-    "tags": ["sdk"],
-    "providers": []
   }
 }

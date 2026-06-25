@@ -36,6 +36,42 @@
       "title": "List Builder",
       "tags": ["agent", "prospecting"],
       "providers": []
+    },
+    "references/clay-action-mappings.md": {
+      "kind": "reference",
+      "title": "Clay Action Mappings",
+      "tags": ["reference", "clay"],
+      "providers": []
+    },
+    "references/clay-extraction.md": {
+      "kind": "reference",
+      "title": "Clay Extraction",
+      "tags": ["reference", "clay"],
+      "providers": []
+    },
+    "references/contact-accuracy.md": {
+      "kind": "reference",
+      "title": "Contact Accuracy",
+      "tags": ["reference", "contacts"],
+      "providers": []
+    },
+    "references/plays-api-reference.md": {
+      "kind": "reference",
+      "title": "Plays API Reference",
+      "tags": ["reference", "plays"],
+      "providers": []
+    },
+    "references/plays-run-export-inspect-repair.md": {
+      "kind": "reference",
+      "title": "Plays Run Export Inspect Repair",
+      "tags": ["reference", "plays"],
+      "providers": []
+    },
+    "references/plays-sdk-reference.md": {
+      "kind": "reference",
+      "title": "Plays SDK Reference",
+      "tags": ["reference", "plays"],
+      "providers": []
     }
   },
   "prefixes": {
@@ -49,6 +85,12 @@
       "kind": "provider-playbook",
       "title": "Provider Playbook",
       "tags": ["provider"],
+      "providers": []
+    },
+    "references/": {
+      "kind": "reference",
+      "title": "Reference",
+      "tags": ["reference"],
       "providers": []
     },
     "recipes/": {

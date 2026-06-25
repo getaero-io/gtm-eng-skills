@@ -10,12 +10,12 @@ description: 'Convert a Clay table configuration into local Deepline scripts. Ha
 | Signal in Clay table                                                    | Target                                                                                                  | Why                                                 |
 | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
 | Batch rows, no triggers, one-time or manual re-runs                     | **Enrich migration** (this recipe)                                                                      | `deepline enrich` scripts, run locally              |
-| Webhook trigger, row routing (`route-row`), CRM writes, campaign pushes | **Cloud workflow migration** → see [cloud-workflow-builder.md](../references/cloud-workflow-builder.md) | `deepline workflows apply`, deployed + event-driven |
-| Hybrid: batch enrichment + downstream push to CRM/campaign              | **Enrich migration first**, then a **cloud workflow** for the push                                      | Split at the enrichment boundary                    |
+| Webhook trigger, row routing (`route-row`), CRM writes, campaign pushes | **Custom play migration** → see [deepline-plays.md](deepline-plays.md) | Compose tools/plays with explicit orchestration |
+| Hybrid: batch enrichment + downstream push to CRM/campaign              | **Enrich migration first**, then a **custom play** for the push                         | Split at the enrichment boundary          |
 
 Most Clay tables are enrich migrations. This recipe covers that path end-to-end.
 
-For cloud workflow migrations, **Extraction and Documentation still apply** — then follow [cloud-workflow-builder.md](../references/cloud-workflow-builder.md) with the extracted config as the source artifact.
+For custom play migrations, **Extraction and Documentation still apply** — then follow [deepline-plays.md](deepline-plays.md) with the extracted config as the source artifact.
 
 ---
 
@@ -405,7 +405,7 @@ Always use `clay_curl` wrapper. Get `VIEW_ID` from `.table.firstViewId`. Parse w
 
 ### Parity Thresholds
 
-Base thresholds (shared with [cloud-workflow-migrations.md](../references/cloud-workflow-migrations.md#parity-thresholds)):
+Base thresholds:
 
 | Field type                               | Threshold                             |
 | ---------------------------------------- | ------------------------------------- |
@@ -437,7 +437,7 @@ python3 /path/to/skill/scripts/compare.py ground_truth.csv enriched.csv \
 
 ### Diagnosing LLM Mismatches
 
-Follow the process from [cloud-workflow-migrations.md](../references/cloud-workflow-migrations.md#diagnosing-llm-parity-mismatches): check prompt parity → check model parity → check true ambiguity (run 3x) → document, don't overfit.
+Use this mismatch process: check prompt parity → check model parity → check true ambiguity (run 3x) → document, don't overfit.
 
 ---
 
@@ -465,7 +465,7 @@ Follow the process from [cloud-workflow-migrations.md](../references/cloud-workf
 5. **Pilot gate**: `--rows 0:0` (structural), then `--rows 0:3` (real APIs)
 6. **Full run**: After pilot approval
 7. **Phase 3 (§7)**: `compare.py ground_truth.csv enriched.csv` — confirm thresholds pass
-8. **Cloud workflow migration** (optional): If table needs triggers/routing → [cloud-workflow-builder.md](../references/cloud-workflow-builder.md)
+8. **Custom play migration** (optional): If table needs triggers/routing → [deepline-plays.md](deepline-plays.md)
 
 ### Pilot Gate
 
