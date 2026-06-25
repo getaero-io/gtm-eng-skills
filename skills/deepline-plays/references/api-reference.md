@@ -292,6 +292,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-sdk-update-agent-skills-refresh` | Refreshes Deepline agent skills after a successful explicit SDK CLI `deepline update` for npm-global and Python-managed sidecar installs, using the existing skills-sync path and preserving dry-run/source/failure behavior. This is local C... |
 | `2026-06-play-run-workspace-unjam-controls` | Adds additive V2 play-run observability and recovery controls for workspace-level run-slot unjams: GET /api/v2/runs now accepts status-only workspace listing so active child/sub-runs can be surfaced without a play filter, POST /api/v2/ru... |
 | `2026-06-v2-play-description-metadata` | Moves V2 prebuilt play descriptions from registry-owned metadata onto definePlay source metadata and threads optional description fields through check/artifact/run registration paths plus SDK client types. This is additive and migration-... |
 | `2026-06-play-live-dashboard-first-paint-optimization` | Optimizes GET /api/v2/plays/:name/live for dashboard first paint by allowing lightweight one-run discovery, preserving the existing full recent-runs refresh path, and parallelizing optional enrichment/pipeline work. Route path, method, a... |
@@ -299,7 +300,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-06-sdk-installer-quickstart-auth-copy` | Fixes SDK CLI installer handoff behavior and auth success parity without changing the SDK/API contract: installer-launched `deepline quickstart` now honors DEEPLINE_INSTALLER_MODE/--no-launch while still using a terminal for browser sele... |
 | `2026-06-play-live-run-backed-canvas-definition` | Makes GET /api/v2/plays/:name/live?mode=canvas return an existing run-backed definition payload when an org/generated play has persisted runs but its definition document is not yet visible, instead of returning a transient 404. The respo... |
 | `2026-06-sdk-cli-scalar-output-rendering` | Improves SDK CLI and internal Slack rendering for scalar play-run outputs: completed run packages with top-level value outputs now show those values in `plays run --watch` text output, and SDK CLI activity alerts label scalar results as... |
-| `2026-06-sdk-enrich-prebuilt-alias-resolution` | Fixes SDK CLI/enrich prebuilt play naming and dashboard live-state handling without changing installed-client contracts: legacy native waterfall ids such as person_linkedin_to_email_waterfall now resolve to their existing canonical V2 pr... |
 
 ## Public Types
 

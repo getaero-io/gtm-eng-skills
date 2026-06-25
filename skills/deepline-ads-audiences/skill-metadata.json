@@ -1,0 +1,89 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Deepline Ads Audiences",
+      "tags": [
+        "ads",
+        "audiences",
+        "google-ads",
+        "meta",
+        "linkedin",
+        "customer-match"
+      ],
+      "providers": [
+        "google_ads_audiences",
+        "meta_audiences",
+        "linkedin_ads_audiences",
+        "aviato",
+        "limadata",
+        "crustdata"
+      ]
+    },
+    "plays/build-hash-only-audience.play.ts": {
+      "kind": "example",
+      "title": "Build hash-only audience play",
+      "tags": ["play", "audience", "hashing", "customer-match"]
+    },
+    "plays/audit-no-double-hash.play.ts": {
+      "kind": "example",
+      "title": "Audit no double hash play",
+      "tags": ["play", "audit", "hashing", "validation"]
+    },
+    "plays/upload-google-hash-only-audience.play.ts": {
+      "kind": "example",
+      "title": "Upload Google hash-only audience play",
+      "tags": ["play", "google-ads", "customer-match", "upload"]
+    },
+    "plays/upload-facebook-google-hash-only-audience.play.ts": {
+      "kind": "example",
+      "title": "Upload Facebook and Google hash-only audience play",
+      "tags": [
+        "play",
+        "facebook",
+        "meta",
+        "google-ads",
+        "customer-match",
+        "upload"
+      ]
+    },
+    "plays/report-google-coverage-lift.play.ts": {
+      "kind": "example",
+      "title": "Report Google coverage lift play",
+      "tags": [
+        "play",
+        "google-ads",
+        "customer-match",
+        "reporting",
+        "coverage-lift"
+      ]
+    },
+    "recipes/enrich-and-upload-facebook-google.md": {
+      "kind": "recipe",
+      "title": "Enrich and upload paid ads audiences to Facebook and Google",
+      "tags": [
+        "recipe",
+        "facebook",
+        "meta",
+        "google-ads",
+        "audience-enrichment"
+      ]
+    },
+    "recipes/max-coverage-audience.md": {
+      "kind": "recipe",
+      "title": "Max coverage paid ads audience",
+      "tags": [
+        "recipe",
+        "max-coverage",
+        "ads",
+        "audience-enrichment",
+        "customer-match"
+      ]
+    },
+    "recipes/sample-abm-segment-example.md": {
+      "kind": "recipe",
+      "title": "Sample ABM segment ads audience example",
+      "tags": ["recipe", "example", "abm", "ads", "audience-enrichment"]
+    }
+  }
+}
