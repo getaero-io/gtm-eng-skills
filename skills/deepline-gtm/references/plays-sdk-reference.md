@@ -310,7 +310,7 @@ or cron schedules. Bindings are declared as the third argument to
 | `webhook` | `{ hmac?: { algorithm?: 'sha256'; header?: string; secretEnv: string; }; }` | No | Webhook trigger with optional HMAC signature verification. |
 | `cron` | `{ schedule: string; timezone?: string; }` | No | Cron schedule trigger. |
 | `sqlListeners` | `SqlListenerDeclaration[]` | No | Customer DB row-change listeners that wake this play when published. |
-| `secrets` | `readonly string[]` | No | Customer-authored play secrets this play is allowed to use at runtime.<br />Values are never bundled or exposed by the SDK; access them with<br />`ctx.secrets.get("NAME")` and approved helpers such as<br />`ctx.secrets.bearer(handle)`. |
+| `secrets` | `readonly string[]` | No | Customer-authored play secrets this play is allowed to use at runtime.<br />Values are never bundled or exposed by the SDK; access them with<br />`ctx.secrets.get("NAME")` and approved helpers such as<br />`ctx.secrets.bearer(handle)`. Secret-authenticated `ctx.fetch` calls<br />require an https:// URL so customer secrets never leave Deepline over<br />plaintext HTTP. |
 
 
 ### `ctx.csv(path, options)`
@@ -679,6 +679,7 @@ Use this for non-provider HTTP calls that must replay safely. The response
 is recorded under `key` so workflow replay sees the same value. Prefer
 `ctx.tools.execute(...)` for Deepline-managed provider APIs because tools
 handle auth, retries, rate limits, extraction metadata, and spend tracking.
+If `init.auth` comes from `ctx.secrets`, `url` must be https://.
 
 Signature: `fetch( key: string, url: string | URL, init?: SecretAwareRequestInit, options?: { staleAfterSeconds?: number }, ): Promise<{ ok: boolean; status: number; statusText: string; url: string; headers: Record<string, string>; bodyText: string; json: unknown | null; }>;`
 
