@@ -287,7 +287,8 @@ deepline billing limit    # Show the current monthly billing cap
 ```
 
 When credits at zero, link to https://code.deepline.com/dashboard/billing to top up.
-10 credits == 1 USD
+Do not hardcode a USD-to-credit exchange rate in the skill. Use live billing,
+pricing, or tool output when quoting credit costs.
 
 ## 5) Provider routing (high level)
 

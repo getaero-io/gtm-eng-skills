@@ -244,7 +244,7 @@ while True:
 | `POST` | `/api/v2/auth/cli/organizations` | `org list` | SDK-facing route. | `src/app/api/v2/auth/cli/organizations/route.ts` |
 | `POST` | `/api/v2/auth/cli/register` | `auth register` | SDK-facing route. | `src/app/api/v2/auth/cli/register/route.ts` |
 | `POST` | `/api/v2/auth/cli/status` | `auth status` | SDK-facing route. | `src/app/api/v2/auth/cli/status/route.ts` |
-| `POST` | `/api/v2/auth/cli/switch` | `org switch` | SDK-facing route. | `src/app/api/v2/auth/cli/switch/route.ts` |
+| `POST` | `/api/v2/auth/cli/switch` | `org set`<br />`org switch` | SDK-facing route. | `src/app/api/v2/auth/cli/switch/route.ts` |
 | `GET` | `/api/v2/billing/balance` | `billing balance` | SDK-facing route. | `src/app/api/v2/billing/balance/route.ts` |
 | `GET` | `/api/v2/billing/catalog/current` | `billing.plans`<br />`getBillingPlans`<br />`billing plans` | SDK-facing route. | `src/app/api/v2/billing/catalog/current/route.ts` |
 | `POST` | `/api/v2/billing/checkout` | `billing checkout` | SDK-facing route. | `src/app/api/v2/billing/checkout/route.ts` |

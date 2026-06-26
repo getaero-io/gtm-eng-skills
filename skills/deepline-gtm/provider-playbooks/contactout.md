@@ -10,7 +10,7 @@ ContactOut for LinkedIn → email/phone enrichment when you have a LinkedIn URL.
 
 - **Input required**: LinkedIn URL (best), email, or name+company
 - **Geographic coverage**: Global, strongest in US + Europe
-- **Credit cost**: ~$0.10 per email credit; separate phone + search credits
+- **Provider credit cost**: ~$0.10 per ContactOut email credit; separate phone + search credits
 - **LinkedIn URL requirement**: Must contain "linkedin.com/in/" or "linkedin.com/pub/". Sales Navigator URLs not supported.
 
 ## Key operations
