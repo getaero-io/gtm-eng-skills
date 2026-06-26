@@ -1,0 +1,12 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Public Social Research",
+      "tags": [
+        "recipe"
+      ],
+      "providers": []
+    }
+  }
+}
