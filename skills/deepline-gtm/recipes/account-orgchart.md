@@ -96,16 +96,16 @@ Merge CRM results first. In the org chart, give CRM contacts a **CRM badge** and
 **If LinkedIn URL given:**
 
 ```bash
-deepline enrich --input seed.csv --in-place --name orgchart-target-profile \
+deepline enrich --input seed.csv --in-place \
   --with '{"alias":"target_profile","tool":"leadmagic_profile_search","payload":{"profile_url":"{{linkedin_url}}"},"extract_js":"(data) => ({ name: (data?.first_name || \"\") + \" \" + (data?.last_name || \"\"), title: data?.current_position || data?.headline || \"\", company_name: data?.current_company || \"\", location: data?.location || \"\" })"}'
 ```
 
 Then resolve domain if missing:
 
 ```bash
-deepline enrich --input seed.csv --in-place --name orgchart-domain-search \
+deepline enrich --input seed.csv --in-place \
   --with '{"alias":"domain_search","tool":"exa_search","payload":{"query":"{{company_name}} official website","numResults":1}}'
-deepline enrich --input seed.csv --in-place --name orgchart-domain-extract \
+deepline enrich --input seed.csv --in-place \
   --with '{"alias":"domain","tool":"run_javascript","payload":{"code":"const r=row.domain_search;const url=((r?.results||[])[0]?.url)||\"\";const m=url.match(/^https?:\\/\\/(www\\.)?([^\\/]+)/);return m?m[2]:null;"}}'
 ```
 
@@ -125,11 +125,11 @@ Use this instead of the company-wide waterfall when the request centers on one i
 
    Use `dropleads_search_people` (free when available) and `deepline_native_search_contact` with title filters first; fall back to `exa_search` / Google-style queries for enterprises that index poorly. Keep each search scoped. You want ~3-8 candidates per tier, not hundreds.
 
-   **Resolving a candidate's LinkedIn URL from a name:** don't reach for `leadmagic_profile_search` because it is for the reverse direction, hydrating a profile when you already have the URL. For name to LinkedIn URL, use the **Serper to Apify validate** pattern from the sibling [`linkedin-url-lookup`](linkedin-url-lookup.md) recipe: `serper_google_search` with a `site:linkedin.com/in` query, then validate the top hit with an Apify profile scrape and a mandatory name-match gate. Or call the canonical play `prebuilt/person-to-linkedin`, which wraps this waterfall.
+   **Resolving a candidate's LinkedIn URL from a name:** don't reach for `leadmagic_profile_search` because it is for the reverse direction, hydrating a profile when you already have the URL. For name to LinkedIn URL, use the **Serper to Apify validate** pattern from the sibling [`linkedin-url-lookup`](linkedin-url-lookup.md) recipe: `serper_google_search` with a `site:linkedin.com/in` query, then validate the top hit with an Apify profile scrape and a mandatory name-match gate. Or call the canonical play `prebuilt/person-to-linkedin` (aliases `name_to_linkedin_url_waterfall`, `name-to-linkedin-url`), which wraps this waterfall.
 
 3. **Rank the inferred edges, don't assert them.** For each candidate, score the likelihood they're the actual manager/report using the Manager prediction scoring table below (seniority gap + team match + geo + experience delta + tenure overlap). Surface the top 1-2 per tier _with their score shown as a confidence badge_. When several same-title managers tie (common at big enterprises), show them as parallel candidates rather than picking one. The rep can disambiguate.
 
-4. **Enrich the neighborhood.** Run emails/phones only on the final shortlist via the `prebuilt/person-linkedin-to-email` play, using verified providers like Prospeo. Watch for non-obvious corporate domains (e.g. a company named "Acme Corporation" may use `@acme.io`, not `@acmecorporation.com`); take the domain from the enrichment result, don't assume it.
+4. **Enrich the neighborhood.** Run emails/phones only on the final shortlist via the `prebuilt/person-linkedin-to-email` play (alias `person_linkedin_to_email_waterfall`), using verified providers like Prospeo. Watch for non-obvious corporate domains (e.g. a company named "Acme Corporation" may use `@acme.io`, not `@acmecorporation.com`); take the domain from the enrichment result, don't assume it.
 
 5. **Render** the same HTML chart as §4, but centered on the anchor with the inferred edges badged by confidence and the §"hard truth" disclaimer shown prominently.
 
@@ -153,13 +153,13 @@ echo "\"$DOMAIN\",\"$COMPANY\"" >> "$WORK_DIR/accounts.csv"
 **Source 1: Deepline Native**
 
 ```bash
-deepline enrich --input "$WORK_DIR/accounts.csv" --output "$WORK_DIR/dn-csuite.csv" --name orgchart-dn-csuite \
+deepline enrich --input "$WORK_DIR/accounts.csv" --output "$WORK_DIR/dn-csuite.csv" \
   --with '{"alias":"people","tool":"deepline_native_search_contact","payload":{"domain":"{{company_domain}}","title_filters":[{"name":"csuite","filter":"CEO OR CTO OR CFO OR COO OR CMO OR CRO OR Founder"}]}}'
-deepline enrich --input "$WORK_DIR/accounts.csv" --output "$WORK_DIR/dn-vp.csv" --name orgchart-dn-vp \
+deepline enrich --input "$WORK_DIR/accounts.csv" --output "$WORK_DIR/dn-vp.csv" \
   --with '{"alias":"people","tool":"deepline_native_search_contact","payload":{"domain":"{{company_domain}}","title_filters":[{"name":"vp","filter":"VP OR Vice President OR SVP"}]}}'
-deepline enrich --input "$WORK_DIR/accounts.csv" --output "$WORK_DIR/dn-dir.csv" --name orgchart-dn-dir \
+deepline enrich --input "$WORK_DIR/accounts.csv" --output "$WORK_DIR/dn-dir.csv" \
   --with '{"alias":"people","tool":"deepline_native_search_contact","payload":{"domain":"{{company_domain}}","title_filters":[{"name":"dir","filter":"Head OR Director OR Senior Director"}]}}'
-deepline enrich --input "$WORK_DIR/accounts.csv" --output "$WORK_DIR/dn-mgr.csv" --name orgchart-dn-mgr \
+deepline enrich --input "$WORK_DIR/accounts.csv" --output "$WORK_DIR/dn-mgr.csv" \
   --with '{"alias":"people","tool":"deepline_native_search_contact","payload":{"domain":"{{company_domain}}","title_filters":[{"name":"mgr","filter":"Manager OR Senior Manager"}]}}'
 ```
 
@@ -168,7 +168,7 @@ Expected: ~25-35 people.
 **Source 2: Dropleads (FREE)**
 
 ```bash
-deepline enrich --input "$WORK_DIR/accounts.csv" --output "$WORK_DIR/dropleads.csv" --name orgchart-dropleads \
+deepline enrich --input "$WORK_DIR/accounts.csv" --output "$WORK_DIR/dropleads.csv" \
   --with '{"alias":"people","tool":"dropleads_search_people","payload":{"filters":{"companyDomains":["{{company_domain}}"]},"pagination":{"page":1,"limit":100}}}'
 ```
 

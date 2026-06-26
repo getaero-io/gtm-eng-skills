@@ -44,29 +44,15 @@ Before enrichment or upload, confirm:
 - The workflow is for ABM paid ads only, not outbound.
 - Google and Meta account selection has been confirmed by account name and ID.
 
-## Play Path
+## V2 Path
 
-Confirm the play surface first:
-
-```bash
-deepline --help
-deepline plays --help
-```
-
-If `deepline plays` is unavailable, stop and ask for the Deepline SDK CLI to be installed or updated. Do not replace this recipe with older enrichment or tool-execution command paths.
+Use this path when `deepline plays --help` is available.
 
 Build baseline and enriched objects:
 
 ```bash
 deepline plays check .skills/deepline-ads-audiences/plays/build-hash-only-audience.play.ts
 deepline plays run --file .skills/deepline-ads-audiences/plays/build-hash-only-audience.play.ts --input '{"file":"'"$WORKDIR"'/source.csv"}' --watch
-```
-
-Export the datasets from the build run:
-
-```bash
-deepline runs export <build-run-id> --dataset baseline_hash_only_audience --out "$WORKDIR/unenriched_hash_only.csv"
-deepline runs export <build-run-id> --dataset enriched_hash_only_audience --out "$WORKDIR/enriched_hash_only.csv"
 ```
 
 Audit the enriched payload:
@@ -84,11 +70,47 @@ deepline plays run --file .skills/deepline-ads-audiences/plays/upload-google-has
 deepline plays run --file .skills/deepline-ads-audiences/plays/upload-google-hash-only-audience.play.ts --input '{"file":"'"$WORKDIR"'/enriched_hash_only.csv","account_id":"<google_customer_id_without_dashes>","audience_name":"High-priority segment enriched hash-only <date>"}' --watch
 ```
 
+## V1 Path
+
+Use this path when the installed CLI does not expose `deepline plays`, but does expose `deepline enrich` and `deepline tools`.
+
+Start with discovery:
+
+```bash
+deepline --help
+deepline enrich --help
+deepline tools search "aviato email hash" --json
+deepline tools search "limadata audience identifiers" --json
+deepline tools search "contactout personal email" --json
+deepline tools search "google ads audiences" --json
+deepline tools search "meta audiences" --json
+```
+
+Run the provider waterfall in bounded batches:
+
+```bash
+deepline enrich --input "$WORKDIR/source.csv" --output "$WORKDIR/aviato_hashes.csv" --rows 0:50 --with 'aviato_hash=<current_aviato_hash_tool>:{"linkedin_url":"{{linkedin_url}}","email":"{{work_email}}"}'
+deepline enrich --input "$WORKDIR/aviato_misses.csv" --output "$WORKDIR/limadata_hashes.csv" --rows 0:50 --with 'limadata_hash=<current_limadata_hash_tool>:{"linkedin_url":"{{linkedin_url}}","email":"{{work_email}}"}'
+```
+
+Stop after Aviato and LimaData by default. Report coverage lift, unique hashes added, contacts still missing personal hashes, and Deepline spend.
+
+Then ask whether the user wants to pay about 0.08 USD/contact in additional Deepline spend to increase coverage. Only after explicit approval, run the broader fallback pass. For ContactOut specifically, run the free pre-check first and only run paid reveal for rows where the pre-check is true and no hashed provider already returned a usable hash.
+
+Build and audit the hash-only payloads using the current V1 hash helper or validation tool. If the current V1 install cannot hash normalized raw personal emails and cannot audit provided SHA-256 values, stop and use the V2 plays. Do not upload raw personal emails as a workaround.
+
+Upload with current account tools only after showing the account choices back as `Account Name (Account ID)`. Create four separate audiences when both platforms are connected:
+
+- Google unenriched.
+- Google enriched.
+- Meta unenriched.
+- Meta enriched.
+
 ## Acceptance Criteria
 
 The run is complete only when:
 
-- The play run IDs and exported files are reported.
+- The chosen surface is named as V1 or V2.
 - The source count, LinkedIn URL count, baseline work-email count, and provider coverage counts are reported.
 - Provider hashes are passed through as lowercase 64-character SHA-256 values.
 - Raw personal emails, if any, are normalized and hashed exactly once.

@@ -15,7 +15,7 @@ Operational pattern:
 4. Promote only after pilot success and clear assumptions are set.
 
 ```bash
-deepline enrich --input contacts.csv --output contacts.csv.out.csv --name leadmagic-email-verify \
+deepline enrich --input contacts.csv --output contacts.csv.out.csv \
   --with-waterfall "email-verify" \
   --with '{"alias":"verify_primary","tool":"leadmagic_email_validation","payload":{"email":"{{email_1}}"}}' \
   --with '{"alias":"verify_secondary","tool":"leadmagic_email_validation","payload":{"email":"{{email_2}}"}}' \

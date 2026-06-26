@@ -116,7 +116,7 @@ Answer these **before writing scripts** based on what Phase 1 revealed. Only ans
 **Table type (check all that apply):**
 
 - [ ] Has person enrichment columns → verify with `deepline tools search "person enrichment linkedin"`
-- [ ] Has email finding columns → use `name-and-domain-to-email-waterfall` as primary play
+- [ ] Has email finding columns → use `name_and_domain_to_email_waterfall` as primary play
 - [ ] Has AI generation columns (use-ai, claygent, octave) → recover prompts verbatim (§2.5)
 - [ ] Has scoring/qualification columns → use ICP criteria verbatim from Clay config
 - [ ] Has campaign push / CRM update columns → verify with `deepline tools search "<platform> add leads"`
@@ -231,8 +231,8 @@ Filter to rows still missing a value before running expensive fallback stages.
 
 ```
 1. filter_missing → MISSING_CSV
-2. deepline enrich --name <task-slug> --in-place (adds schema cols to work.csv)
-3. deepline enrich --name <task-slug> MISSING_CSV -> MISSING_WORK (adds same cols fresh)
+2. deepline enrich --in-place (adds schema cols to work.csv)
+3. deepline enrich MISSING_CSV → MISSING_WORK (adds same cols fresh)
 4. execute on MISSING_WORK
 5. merge_back MISSING_WORK → work.csv
 ```
@@ -254,7 +254,7 @@ code = "const fn=(row.first_name||'').toLowerCase()..."
 print('col_name=run_javascript:' + json.dumps({'code': code}))
 PYEOF
 )
-deepline enrich --input seed.csv --output work.csv --name clay-js-transform --with "$WITH_ARG"
+deepline enrich --input seed.csv --output work.csv --with "$WITH_ARG"
 ```
 
 Never hand-build JSON with embedded JS in bash strings.
@@ -295,7 +295,7 @@ deepline tools describe <candidate_tool_id>       # inspect candidate
 
 | Clay action                                   | Deepline tool                                                                    |
 | --------------------------------------------- | -------------------------------------------------------------------------------- |
-| Email waterfall + `validate-email`            | `name-and-domain-to-email-waterfall` + `perm_fln` + `leadmagic_email_validation` |
+| Email waterfall + `validate-email`            | `name_and_domain_to_email_waterfall` + `perm_fln` + `leadmagic_email_validation` |
 | `enrich-person-with-mixrank-v2`               | `leadmagic_profile_search` → `crustdata_person_enrichment`                       |
 | `chat-gpt-schema-mapper`                      | `deeplineagent` with `jsonSchema`                                                |
 | `use-ai` (no web)                             | `deeplineagent`                                                                  |
@@ -385,7 +385,7 @@ Clay-specific patterns. For general Deepline patterns (email plays, interpolatio
 | `fn@domain`             | 3%               |
 | Provider waterfall only | ~12%             |
 
-Use `name-and-domain-to-email-waterfall` as primary play. Accept `valid`, `valid_catch_all`, AND `catch_all` from validation (NOT `unknown`).
+Use `name_and_domain_to_email_waterfall` as primary play. Accept `valid`, `valid_catch_all`, AND `catch_all` from validation (NOT `unknown`).
 
 ### Cookie Security
 

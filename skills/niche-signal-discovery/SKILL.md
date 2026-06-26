@@ -16,7 +16,7 @@ Discover differential signals between Closed Won and Closed Lost accounts by ext
 
 ## Deepline-First Principle
 
-Use `deepline enrich` for all enrichment and `deepline tools execute` for one-offs. Inspect CSV shape and samples with `deepline csv show`; inspect run state with the run/play URL or `deepline runs get` when a run id is available. Reruns are idempotent. Refer to `deepline-gtm` for command patterns and provider playbooks.
+Use `deepline enrich` for all enrichment, `deepline tools execute` for one-offs, `deepline playground` for inspection. Reruns are idempotent. Refer to `deepline-gtm` for command patterns and provider playbooks.
 
 ## Input requirements
 
@@ -140,7 +140,6 @@ Create three JSON files in `output/{{company}}/`:
 deepline enrich \
   --input output/{{company}}-icp-input.csv \
   --output output/{{company}}-discovered.csv \
-  --name niche-pages-discovery \
   --with '{"alias":"pages","tool":"serper_google_search","payload":{"query":"site:{{domain}} product OR features OR integrations OR customers OR security OR pricing OR careers OR about"}}' \
   --json
 ```
@@ -155,7 +154,6 @@ Extract URLs from Serper results, then scrape each:
 deepline enrich \
   --input output/{{company}}-urls.csv \
   --output output/{{company}}-scraped.csv \
-  --name niche-page-scrape \
   --with '{"alias":"content","tool":"firecrawl_scrape","payload":{"url":"{{url}}"}}' --json
 ```
 
@@ -167,7 +165,6 @@ Aggregate scraped pages back into one row per domain, formatted as `{"data":{"re
 deepline enrich \
   --input output/{{company}}-aggregated.csv \
   --output output/{{company}}-enriched.csv \
-  --name niche-job-listings \
   --with '{"alias":"jobs","tool":"crustdata_v2_job_search","payload":{"filters":[{"filter_type":"company.basic_info.primary_domain","type":"=","value":"{{domain}}"}],"limit":100}}' --json
 ```
 
@@ -189,11 +186,8 @@ Then spot-check that won rows have job data, that website coverage is >80%, and 
 
 ## Step 3.5: Review configs against enriched data
 
-Inspect the enriched CSV before analysis:
-
 ```bash
-deepline csv show --csv output/{{company}}-enriched.csv --summary
-deepline csv show --csv output/{{company}}-enriched.csv --rows 0:5
+deepline playground output/{{company}}-enriched.csv
 ```
 
 **Red flags:**
@@ -255,9 +249,9 @@ python3 scripts/find_contacts.py --input prospects_actionable.csv --output top10
 
 When `--contacts` is on, the orchestrator runs a 3-phase chain via Deepline:
 
-1. `company-to-contact` (free, mature companies)
+1. `company_to_contact_by_role_waterfall` (free, mature companies)
 2. **`exa_search_people` fallback for any company Phase 1 missed** — mandatory. On the run that motivated this, Phase 1 returned 0 contacts on all 10 top prospects (small/non-US industrial); Exa found 15 real contacts at 6 of those 10 in the same pass.
-3. `name-and-domain-to-email-waterfall` with `linkedin_url` supplied and **apex-domain validation** — providers return stale addresses (`@orbitalatk.com` for someone now at X-Bow, personal Gmails, wrong-company false positives). Mismatched apex → publish "(email not found)", keep the raw value in `raw_email` for auditing.
+3. `name_and_domain_to_email_waterfall` with `linkedin_url` supplied and **apex-domain validation** — providers return stale addresses (`@orbitalatk.com` for someone now at X-Bow, personal Gmails, wrong-company false positives). Mismatched apex → publish "(email not found)", keep the raw value in `raw_email` for auditing.
 
 **Read `references/step-7-prospects.md`** for the required vs. optional output fields, the prospect-card skeleton, the Phase 2 Exa guardrails (title parsing + company-match filter), and the "10 is a ceiling, not a floor" guidance.
 

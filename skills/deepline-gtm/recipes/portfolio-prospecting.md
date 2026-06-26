@@ -29,7 +29,7 @@ deepline tools execute parallel_extract --payload '{"urls":["https://www.ycombin
 **Step 2: Filter to companies hiring your target role (optional).**
 
 ```bash
-deepline enrich --input yc_companies.csv --in-place --name portfolio-role-filter-pilot --rows 0:2 \
+deepline enrich --input yc_companies.csv --in-place --rows 0:2 \
   --with '{"alias":"exa_jobs","tool":"exa_search","payload":{"query":"GTM Engineer site:ycombinator.com","numResults":50,"type":"auto"}}'
 ```
 

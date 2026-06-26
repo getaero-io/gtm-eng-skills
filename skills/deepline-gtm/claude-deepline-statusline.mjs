@@ -187,8 +187,7 @@ function isDeeplineToolUse(toolUse) {
 function classifyCommand(command) {
   if (!command) return 'running';
   if (/\b(deepline|dl)\s+enrich\b/.test(command)) return 'enrich';
-  if (/\b(deepline|dl)\s+tools\s+describe\b/.test(command))
-    return 'tools_describe';
+  if (/\b(deepline|dl)\s+tools\s+get\b/.test(command)) return 'tools_get';
   if (/\b(deepline|dl)\s+tools\s+execute\b/.test(command))
     return 'tools_execute';
   if (/\b(deepline|dl)\s+tools\s+(search|list)\b/.test(command))
@@ -200,7 +199,7 @@ function classifyCommand(command) {
 function isTrackableMode(mode) {
   return (
     mode === 'enrich' ||
-    mode === 'tools_describe' ||
+    mode === 'tools_get' ||
     mode === 'tools_execute' ||
     mode === 'tools_search' ||
     mode === 'csv' ||
@@ -211,6 +210,7 @@ function isTrackableMode(mode) {
 function shouldUseCachedBackendOnly(command) {
   if (!command) return false;
   return (
+    /\b(deepline|dl)\s+backend\b/.test(command) ||
     /\b(deepline|dl)\s+csv\s+render\b/.test(command) ||
     /\b(deepline|dl)\s+csv\s+--execute_cells\b/.test(command)
   );
@@ -263,10 +263,8 @@ function extractExecutedTools(command) {
   return [...new Set(out)];
 }
 
-function extractToolsDescribeTarget(command) {
-  const m = command.match(
-    /(?:deepline|dl)\s+tools\s+describe\s+([a-zA-Z0-9_:-]+)/,
-  );
+function extractToolsGetTarget(command) {
+  const m = command.match(/(?:deepline|dl)\s+tools\s+get\s+([a-zA-Z0-9_:-]+)/);
   return m ? m[1] : '';
 }
 
@@ -430,8 +428,8 @@ function explainCommand(command) {
     return { detail: 'Enriching rows', current: '', providers: '' };
   }
 
-  if (mode === 'tools_describe') {
-    const target = extractToolsDescribeTarget(command);
+  if (mode === 'tools_get') {
+    const target = extractToolsGetTarget(command);
     return {
       detail: `Learning ${shortToolTarget(target)}`,
       current: '',
@@ -618,9 +616,6 @@ function parseBackendUpFromJson(output) {
       up = parsed.running;
     } else if (typeof parsed?.healthy === 'boolean') {
       up = parsed.healthy;
-    } else if (typeof parsed?.status === 'string') {
-      const s = parsed.status.toLowerCase();
-      up = s === 'ok' || s.includes('running') || s.includes('healthy');
     } else if (typeof parsed?.backend?.status === 'string') {
       const s = parsed.backend.status.toLowerCase();
       up = s.includes('running') || s.includes('healthy');
@@ -673,7 +668,7 @@ function getBackendStatus(state, opts = {}) {
   let up = null;
   let renderUrl = '';
   try {
-    const out = execSync('deepline health --json', {
+    const out = execSync('deepline backend status --json', {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 1200,
@@ -773,9 +768,9 @@ function backendBadge(backend, frameIndex) {
   }
   void frameIndex;
   if (backend.up) {
-    return ansi('✅ Deepline reachable', C.green, true);
+    return ansi('✅ Backend running', C.green, true);
   }
-  return ansi('⏸️ Deepline unreachable', C.red, true);
+  return ansi('⏸️ Backend paused', C.red, true);
 }
 
 function renderActiveLine(frame, status, backend, frameIndex, thinking) {

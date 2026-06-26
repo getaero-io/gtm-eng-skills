@@ -110,7 +110,7 @@
 ### CLI quick checks
 
 ```bash
-deepline tools describe deepline_native_job_change --json
+deepline tools get deepline_native_job_change
 deepline tools execute deepline_native_job_change --payload '{"company_domain":"stripe.com","professional_email":"jane@stripe.com"}'
 deepline tools execute deepline_native_search_contact --payload '{"domain":"stripe.com","title_filters":[{"name":"eng","filter":"VP Engineering OR Head of Engineering"}],"page_size":5}'
 deepline tools execute deepline_native_search_contact --payload '{"domain":"hubspot.com","title_filters":[{"name":"sales-leadership","filter":"VP Sales OR Head of Sales OR Director of Sales"}],"page_size":3}'
@@ -121,7 +121,7 @@ deepline tools execute deepline_native_enrich_company --payload '{"domain":"stri
 ### `deepline enrich` usage
 
 ```bash
-deepline enrich --input contacts.csv --output contacts.csv.out.csv --name deepline-native-job-change \
+deepline enrich --input contacts.csv --output contacts.csv.out.csv \
   --with '{"alias":"job_change","tool":"deepline_native_job_change","payload":{"company_domain":"{{domain}}","professional_email":"{{email}}"}}'
 ```
 

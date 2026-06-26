@@ -34,7 +34,7 @@ deepline tools execute dropleads_search_people --payload '{"filters":{"keywords"
 For batch:
 
 ```bash
-deepline enrich --csv contacts.csv --rows 0:1 --in-place --name linkedin-url-search-pilot \
+deepline enrich --csv contacts.csv --rows 0:1 --in-place \
   --with '{"alias":"li_url","tool":"dropleads_search_people","payload":{"filters":{"keywords":["{{first_name}}","{{last_name}}"],"jobTitles":["{{title}}"]},"pagination":{"page":1,"limit":1}}}'
 ```
 
@@ -71,11 +71,11 @@ For batch:
 
 ```bash
 # Find candidates
-deepline enrich --csv contacts.csv --rows 0:1 --in-place --name linkedin-url-apify-profile \
+deepline enrich --csv contacts.csv --rows 0:1 --in-place \
   --with '{"alias":"li_serper","tool":"serper_google_search","payload":{"query":"\"{{first_name}} {{last_name}}\" \"{{company}}\" site:linkedin.com/in","num":3}}'
 
 # Scrape + name-validate top result
-deepline enrich --csv contacts.csv --rows 0:1 --in-place --name linkedin-url-validate-hit \
+deepline enrich --csv contacts.csv --rows 0:1 --in-place \
   --with '{"alias":"li_validate","tool":"apify_run_actor_sync","payload":{"actorId":"harvestapi/linkedin-profile-scraper","input":{"urls":["{{li_serper_url}}"],},"timeoutMs":90000}}'
 ```
 
@@ -94,7 +94,7 @@ Exa is a weak fallback for name-only lookup (23% validated vs serper's 74% in a 
 Structured people search with company domain context.
 
 ```bash
-deepline enrich --csv contacts.csv --rows 0:1 --in-place --name linkedin-url-commit-candidate \
+deepline enrich --csv contacts.csv --rows 0:1 --in-place \
   --with '{"alias":"linkedin","tool":"crustdata_people_search","payload":{"companyDomain":"{{domain}}","titleKeywords":["{{title}}"],"limit":1}}'
 ```
 

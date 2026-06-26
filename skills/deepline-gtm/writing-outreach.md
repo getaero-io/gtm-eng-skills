@@ -135,15 +135,15 @@ When you already have contact + company context in CSV columns, use `run_javascr
 
 ```bash
 # Fast path: template personalization via run_javascript
-deepline enrich --input enriched.csv --in-place --name outreach-pain-point \
+deepline enrich --input enriched.csv --in-place \
   --with '{"alias":"outbound_email","tool":"run_javascript","payload":{"code":"@${OUTPUT_DIR}/template_email.js"}}'
 
 # AI path: deeplineagent when the row already has the research
-deepline enrich --input enriched.csv --in-place --name outreach-trigger \
+deepline enrich --input enriched.csv --in-place \
   --with '{"alias":"outbound_email","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Write a concise personalized cold email to {{first_name}} at {{company_name}} using this context: {{company_research}}. Return JSON with subject and email.","jsonSchema":{"type":"object","properties":{"subject":{"type":"string"},"email":{"type":"string"}},"required":["subject","email"],"additionalProperties":false}}}'
 
 # Research-first path: deeplineagent when the row still needs fresh research
-deepline enrich --input enriched.csv --in-place --name outreach-opener \
+deepline enrich --input enriched.csv --in-place \
   --with '{"alias":"research_backed_email","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Research {{company_domain}} and write a personalized cold email to {{first_name}}. Use Deepline-managed tools if needed. Return JSON with subject and email.","jsonSchema":{"type":"object","properties":{"subject":{"type":"string"},"email":{"type":"string"}},"required":["subject","email"],"additionalProperties":false}}}'
 ```
 
@@ -228,7 +228,7 @@ SEQ_WITH=$(jq -nc --arg product "$PRODUCT_CONTEXT" '{
 
 printf "prospect_payload\n{\"person\":{\"firstName\":\"Rachael\",\"lastName\":\"Foster\",\"title\":\"Vice President AMER Field Marketing, Public Sector, Services, & Community\"},\"company\":{\"name\":\"Cloudera\",\"domain\":\"cloudera.com\"}}\n" > ./qualification_email_seed.csv
 
-deepline enrich --input ./qualification_email_seed.csv --output ./qualification_email_seed_enriched.csv --name outreach-qualification-email \
+deepline enrich --input ./qualification_email_seed.csv --output ./qualification_email_seed_enriched.csv \
   --with "$QUAL_WITH" \
   --with "$SEQ_WITH"
 ```

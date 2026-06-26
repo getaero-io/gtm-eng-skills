@@ -83,7 +83,7 @@ If none match, grep for more specific keywords: `Grep pattern="<keyword>" path="
 - **NEVER read a large CSV into context with the Read tool.** Reading CSV rows into the conversation window exhausts context and produces zero output. This is the single most common failure mode.
 - Use `deepline enrich` for any row-by-row processing (enrichment, rewriting, research, scoring).
 - To explore or understand CSV content without loading it, use `deepline csv show --csv <path> --rows 0:2` for a two-row sample, or spawn an Explore subagent to answer questions about the data.
-- For CSV enrichment, use `deepline enrich --input <csv> --output <csv> --name task-slug --rows 0:1 ...` for a one-row pilot, then rerun against the full file after inspecting output. If the installed surface is unclear, check `deepline --help` and `deepline enrich --help` before the first run rather than discovering the shape through a failed enrichment.
+- For CSV enrichment on the SDK V2 CLI, prefer `deepline enrich --input <csv> --output <csv> --name task-slug --rows 0:1 ...` for a one-row pilot, then rerun against the full file after inspecting output. Legacy V1 CLIs may reject `--name`; check `deepline enrich --help` before the first run if the installed surface is unclear.
 
 ### Tools
 

@@ -94,7 +94,7 @@ Pre-built, click-ready search links for each buyer type.
 
 ```
 People search:
-deepline plays run prebuilt/company-to-contact \
+deepline tools execute company_to_contact_by_role_waterfall \
   --input '{"domain":"example.com","roles":["Title One","Title Two"],"seniority":["vp","director"],"limit":25}'
 
 Company search:

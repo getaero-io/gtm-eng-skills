@@ -51,7 +51,7 @@ python3 scripts/find_contacts.py \
 
 ## The 3-phase contact chain (when `--contacts` is on)
 
-**Phase 1 — `company-to-contact` (FREE tier).** Dropleads → deepline_native → Icypeas → Prospeo → Crustdata. Works on >200-employee US/EU companies. Returns LinkedIn URLs + titles, often no emails. Run first because it's free.
+**Phase 1 — `company_to_contact_by_role_waterfall` (FREE tier).** Dropleads → deepline_native → Icypeas → Prospeo → Crustdata. Works on >200-employee US/EU companies. Returns LinkedIn URLs + titles, often no emails. Run first because it's free.
 
 **Phase 2 — `exa_search_people` fallback for the gaps.** For any company Phase 1 returned ZERO contacts for, fall back to `exa_search_people` with `includeDomains=['linkedin.com']` and a query like `"Design Engineer OR Mechanical Engineer OR DfAM Engineer at {{company_name}}"`. Exa neural search finds LinkedIn profiles by semantic match against the company name — far better coverage for small / non-US / niche industrial targets than the B2B provider waterfall.
 
@@ -62,7 +62,7 @@ python3 scripts/find_contacts.py \
 - **Title parse**: Exa results follow `Name | Role at Company`. Regex the name out of the leading capitalized tokens; treat the rest as the title. Fall back to de-slugging the LinkedIn URL when the title doesn't parse cleanly.
 - **Company-match filter**: Require the company name (or its first ~8 characters) to appear somewhere in the result title or text. Exa neural will sometimes return profiles at COMPETING companies — e.g., searching for "plasma process engineer at Plasma Processes" returned a real plasma process engineer working at Hypertherm. Discard any result where the company name doesn't match.
 
-**Phase 3 — `name-and-domain-to-email-waterfall` for email resolution.** For every named contact with a LinkedIn URL, resolve the company domain, then run this waterfall with both `domain` and `linkedin_url`. Returns one primary email per contact.
+**Phase 3 — `name_and_domain_to_email_waterfall` for email resolution.** For every named contact with a LinkedIn URL, resolve the company domain, then run this waterfall with both `domain` and `linkedin_url`. Returns one primary email per contact.
 
 **Domain-match validation is mandatory.** Always check that the returned email's apex domain matches the company's apex domain before publishing. Providers return stale addresses often enough that this is the difference between a usable list and an embarrassing one. On one real run:
 

@@ -231,6 +231,7 @@ while True:
 
 | Method | Path | SDK/client surface | Purpose | Source |
 |---|---|---|---|---|
+| `POST` | `/api/v2/enrich/compile` | `compileEnrichPlan` | Compile legacy enrich command input into a runtime plan. | `src/app/api/v2/enrich/compile/route.ts` |
 | `POST` | `/api/v2/plays/artifacts` | `registerPlayArtifact` | Register a bundled play artifact for ad hoc runs. | `src/app/api/v2/plays/artifacts/route.ts` |
 | `POST` | `/api/v2/plays/check` | `checkPlayArtifact` | Validate a play bundle before storing or running it. | `src/app/api/v2/plays/check/route.ts` |
 | `POST` | `/api/v2/plays/files/stage` | `stagePlayFiles`<br />`resolveStagedPlayFiles` | Stage CSV or packaged files used by play runs. | `src/app/api/v2/plays/files/stage/route.ts` |
@@ -243,7 +244,7 @@ while True:
 | `POST` | `/api/v2/auth/cli/organizations` | `org list` | SDK-facing route. | `src/app/api/v2/auth/cli/organizations/route.ts` |
 | `POST` | `/api/v2/auth/cli/register` | `auth register` | SDK-facing route. | `src/app/api/v2/auth/cli/register/route.ts` |
 | `POST` | `/api/v2/auth/cli/status` | `auth status` | SDK-facing route. | `src/app/api/v2/auth/cli/status/route.ts` |
-| `POST` | `/api/v2/auth/cli/switch` | `org set`<br />`org switch` | SDK-facing route. | `src/app/api/v2/auth/cli/switch/route.ts` |
+| `POST` | `/api/v2/auth/cli/switch` | `org switch` | SDK-facing route. | `src/app/api/v2/auth/cli/switch/route.ts` |
 | `GET` | `/api/v2/billing/balance` | `billing balance` | SDK-facing route. | `src/app/api/v2/billing/balance/route.ts` |
 | `GET` | `/api/v2/billing/catalog/current` | `billing.plans`<br />`getBillingPlans`<br />`billing plans` | SDK-facing route. | `src/app/api/v2/billing/catalog/current/route.ts` |
 | `POST` | `/api/v2/billing/checkout` | `billing checkout` | SDK-facing route. | `src/app/api/v2/billing/checkout/route.ts` |
@@ -271,6 +272,18 @@ while True:
 | `POST` | `/api/v2/secrets` | `secrets set` | SDK-facing route. | `src/app/api/v2/secrets/route.ts` |
 | `DELETE` | `/api/v2/secrets/:id` | `secrets delete` | SDK-facing route. | `src/app/api/v2/secrets/[id]/route.ts` |
 | `POST` | `/api/v2/secrets/:id/test` | `secrets test` | SDK-facing route. | `src/app/api/v2/secrets/[id]/test/route.ts` |
+| `GET` | `/api/v2/workflows` | `listWorkflows` | SDK-facing route. | `src/app/api/v2/workflows/route.ts` |
+| `DELETE` | `/api/v2/workflows/:id` | `deleteWorkflow` | SDK-facing route. | `src/app/api/v2/workflows/[id]/route.ts` |
+| `GET` | `/api/v2/workflows/:id` | `getWorkflow` | SDK-facing route. | `src/app/api/v2/workflows/[id]/route.ts` |
+| `POST` | `/api/v2/workflows/:id/disable` | `disableWorkflow` | SDK-facing route. | `src/app/api/v2/workflows/[id]/disable/route.ts` |
+| `POST` | `/api/v2/workflows/:id/enable` | `enableWorkflow` | SDK-facing route. | `src/app/api/v2/workflows/[id]/enable/route.ts` |
+| `GET` | `/api/v2/workflows/:id/runs` | `listWorkflowRuns` | SDK-facing route. | `src/app/api/v2/workflows/[id]/runs/route.ts` |
+| `GET` | `/api/v2/workflows/:id/runs/:runId` | `getWorkflowRun` | SDK-facing route. | `src/app/api/v2/workflows/[id]/runs/[runId]/route.ts` |
+| `POST` | `/api/v2/workflows/:id/runs/:runId/cancel` | `cancelWorkflowRun` | SDK-facing route. | `src/app/api/v2/workflows/[id]/runs/[runId]/cancel/route.ts` |
+| `POST` | `/api/v2/workflows/apply` | `applyWorkflow` | SDK-facing route. | `src/app/api/v2/workflows/apply/route.ts` |
+| `POST` | `/api/v2/workflows/call` | `callWorkflow` | SDK-facing route. | `src/app/api/v2/workflows/call/route.ts` |
+| `POST` | `/api/v2/workflows/lint` | `lintWorkflow` | SDK-facing route. | `src/app/api/v2/workflows/lint/route.ts` |
+| `GET` | `/api/v2/workflows/schema` | `getWorkflowSchema` | SDK-facing route. | `src/app/api/v2/workflows/schema/route.ts` |
 
 
 ## Recent Compatible API Changes
@@ -279,12 +292,14 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-sdk-enrich-name-domain-waterfall-runtime` | Fixes SDK CLI `deepline enrich` generated play source so inline prebuilt play calls with an entirely blank templated payload are skipped before starting a child run, and shortens the V2 prebuilt name-and-domain-to-email-waterfall-batch r... |
 | `2026-06-sdk-enrich-inline-child-email-fallback` | Fixes SDK CLI `deepline enrich` generated play source so inline prebuilt child plays such as person-linkedin-to-email execute through the V2 child-run path without treating internal parentRunId/rootRunId metadata as public play input, an... |
 | `2026-06-billing-run-provider-audit-fields` | Adds customer-safe run-level billing auditability to existing billing usage and ledger surfaces: GET /api/v2/billing/usage recent activity and GET /api/v2/billing/ledger entries/CSV now include additive Deepline-priced provider/action/ru... |
+| `2026-06-play-run-runtime-sheet-readiness-module` | Moves POST /api/v2/plays/run pre-start Runtime Sheet data-plane readiness from the legacy customer-db provisioning facade to the deeper runtime-sheet readiness module. This is an internal server-side readiness/repair implementation chang... |
 | `2026-06-sdk-enrich-run-if-condition-stats` | Fixes SDK CLI `deepline enrich` generated play source so direct `--with` and waterfall child `run_if_js` predicates are emitted as native dataset-column runIf gates, which makes V2 run summaries report skipped:condition while preserving... |
 | `2026-06-sdk-enrich-in-place-export-safety` | Hardens SDK CLI `deepline enrich` CSV export so `--in-place --all` overlays run output onto the original source CSV, refuses partial in-place writes that would shrink the local file, and keeps provider/failure result envelopes compact in... |
 | `2026-06-play-run-query-access-sql-metadata` | Adds optional sqlTableName and sqlQualifiedTableName metadata to play-run dataset packages and deepline_db_query follow-up actions so SDK/CLI/API consumers can display the exact server-returned customer storage table without deriving nam... |
-| `2026-06-sdk-update-agent-skills-refresh` | Refreshes Deepline agent skills after a successful explicit SDK CLI `deepline update` for npm-global and Python-managed sidecar installs, using the existing skills-sync path and preserving dry-run/source/failure behavior. This is local C... |
+| `2026-06-deepline-plays-recipe-skill-surface` | Consolidates Deepline plays agent docs into the v1 well-known skill bundle by publishing /deepline-plays as a recipe-wrapper skill, removing legacy deepline-plays-feedback/deepline-plays-quickstart cleanup targets, and updating SDK skill... |
 
 ## Public Types
 
