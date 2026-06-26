@@ -14,15 +14,15 @@ If a play exists, use it first. Use manual provider chains only when:
 
 Run `deepline enrich` in the foreground so you don't waste tokens while it completes.
 
-## CLI surface compatibility
+## CLI Surface
 
 Deepline's SDK-backed `enrich` command requires a stable play name:
-`--name <task-slug>`. The legacy V1 CLI may reject `--name`. If you are unsure
-which surface is installed, check `deepline enrich --help` before the first
-enrich run and choose the compatible shape; do not discover this by running a
-failing enrichment.
-Most current examples are SDK V2-first; keep the `--name` flag unless help
-proves you are on a legacy surface.
+`--name <task-slug>`. Include it on every `deepline enrich` run so outputs,
+play URLs, and reruns are traceable.
+
+If the installed surface is unclear, run `deepline --help` and
+`deepline enrich --help` before the first enrich run. Keep `--name` for current
+SDK-backed installs.
 
 For SDK-backed enrich commands, include a descriptive `--name`:
 
@@ -30,8 +30,6 @@ For SDK-backed enrich commands, include a descriptive `--name`:
 deepline enrich --input in.csv --output out.csv --name task-slug \
   --with '{"alias":"domain","tool":"run_javascript","payload":{"code":"return row.company_domain;"}}'
 ```
-
-For legacy V1 CLI commands, omit `--name` if help does not list it.
 
 ## Scenario table
 
@@ -68,9 +66,9 @@ For legacy V1 CLI commands, omit `--name` if help does not list it.
 - Domain lookup / homepage recovery is mechanical. Use `exa_search` with rich context or `serper_google_search`, not `deeplineagent`.
 - Persona lookup means "find candidate contacts at a company for a target role or seniority." Use the dedicated play, not generic research.
 - Validate after recovery or coalescing, not during each waterfall step.
-- For contact-to-email work, route by your strongest identifiers: name + domain -> `Name + domain -> work email` (or `First + last + domain -> work email`); name + company only (no domain) OR Sales Navigator contacts -> resolve domain first, then `name_and_domain_to_email_waterfall`; standard `/in/` LinkedIn URL + name -> `LinkedIn URL -> work email` (domain optional).
-- **Sales Navigator exports**: `linkedin_url` values in `/sales/lead/` format are rejected by every provider (dropleads, crustdata, deepline_native, PDL). Do not pass them directly to any email waterfall. Resolve the company domain first, then use `name_and_domain_to_email_waterfall`.
-- Contacts from a people search (e.g. dropleads_search_people) with **standard `/in/`** URLs -> `person_linkedin_to_email_waterfall` (`domain` optional). Does NOT apply to SN `/sales/lead/` URLs.
+- For contact-to-email work, route by your strongest identifiers: name + domain -> `Name + domain -> work email` (or `First + last + domain -> work email`); name + company only (no domain) OR Sales Navigator contacts -> resolve domain first, then `name-and-domain-to-email-waterfall`; standard `/in/` LinkedIn URL + name -> `LinkedIn URL -> work email` (domain optional).
+- **Sales Navigator exports**: `linkedin_url` values in `/sales/lead/` format are rejected by every provider (dropleads, crustdata, deepline_native, PDL). Do not pass them directly to any email waterfall. Resolve the company domain first, then use `name-and-domain-to-email-waterfall`.
+- Contacts from a people search (e.g. dropleads_search_people) with **standard `/in/`** URLs -> `person-linkedin-to-email` (`domain` optional). Does NOT apply to SN `/sales/lead/` URLs.
 - Validation interpretation: `valid` is deliverable, `catch_all` is usable but riskier, `invalid` should be dropped, and `unknown` is unresolved.
 - Phone recovery usually comes later in the pipeline than email or LinkedIn recovery.
 - Prefer inline code for short `run_javascript` transforms. Only move code into files when the logic is long, reused, or too awkward to keep inline.
@@ -81,7 +79,7 @@ For legacy V1 CLI commands, omit `--name` if help does not list it.
 
 ### Name + domain -> work email
 
-Play tool: `name_and_domain_to_email_waterfall`
+Play tool: `name-and-domain-to-email-waterfall`
 
 **Required payload:** `first_name`, `last_name`, `domain`. `company_name` is not part of the payload.
 
@@ -99,7 +97,7 @@ Play tool: `name_and_domain_to_email_waterfall`
 
 ```bash
 deepline enrich --input leads.csv --output leads_with_emails.csv --name name-domain-email-pilot --rows 0:1 \
-  --with '{"alias":"email","tool":"name_and_domain_to_email_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
+  --with '{"alias":"email","tool":"name-and-domain-to-email-waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
 ```
 
 **Domain-first resolution** — when you only have `company_name` or a SN `/sales/lead/` URL, resolve domain, then run the play (3 passes):
@@ -110,19 +108,18 @@ deepline enrich --input contacts.csv --output out.csv --name resolve-company-dom
 deepline enrich --input out.csv --in-place --name extract-company-domain \
   --with '{"alias":"domain","tool":"run_javascript","payload":{"code":"const cell=row.exa_raw;const raw=(cell&&typeof cell===\"object\"&&\"result\" in cell)?cell.result:cell;const results=Array.isArray(raw?.results)?raw.results:[];const url=(results[0]&&results[0].url)||\"\";const m=url.match(/^https?:\\/\\/(www\\.)?([^\\/]+)/);return row.company_domain||(m?m[2]:null)||null;"}}'
 deepline enrich --input out.csv --in-place --name name-domain-email-after-domain \
-  --with '{"alias":"email","tool":"name_and_domain_to_email_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
+  --with '{"alias":"email","tool":"name-and-domain-to-email-waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
 ```
 
 Exa `extract_js` doesn't work inline here, so `run_javascript` extracts the domain from the saved cell — unwrap `cell.result` first (the cell shape is `{ result, matched_result? }`).
 
 ### LinkedIn URL -> work email
 
-Play tool: `person_linkedin_to_email_waterfall`
+Play tool: `person-linkedin-to-email`
 
-**Required payload:** `linkedin_url`, `first_name`, `last_name`.
-**Optional:** `domain` — include when available to unlock extra deterministic finder steps before LinkedIn-native fallbacks.
+**Required payload:** `linkedin_url`.
 
-Use when contacts have a **standard `/in/`** LinkedIn URL (e.g. from `dropleads_search_people`). Domain is optional — the play works off the LinkedIn URL directly.
+Use when contacts have a **standard `/in/`** LinkedIn URL (e.g. from `dropleads_search_people`). The play works off the LinkedIn URL directly.
 
 **Do NOT use for Sales Navigator `/sales/lead/` URLs** — providers reject them. Resolve the company domain first, then use the name+domain play above.
 
@@ -130,7 +127,7 @@ Use when contacts have a **standard `/in/`** LinkedIn URL (e.g. from `dropleads_
 
 ```bash
 deepline enrich --input contacts.csv --output contacts_with_emails.csv --name linkedin-email-pilot --rows 0:1 \
-  --with '{"alias":"email","tool":"person_linkedin_to_email_waterfall","payload":{"linkedin_url":"{{linkedin_url}}","first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
+  --with '{"alias":"email","tool":"person-linkedin-to-email","payload":{"linkedin_url":"{{linkedin_url}}"}}'
 ```
 
 ### Email -> person/company context
@@ -151,26 +148,28 @@ deepline enrich --input inbound.csv --output inbound_enriched.csv --name email-c
 
 ### Personal email -> LinkedIn profile
 
-Play tool: `personal_email_to_linkedin_waterfall`. Required payload: `personal_email` only (name/company unknown, unlike the work-email plays).
+Play tool: `personal-email-to-linkedin`. Required payload: `personal_email` only (name/company unknown, unlike the work-email plays).
 
 Use it when a signup list has only personal emails and you want to know who they are. Returns `linkedin_url`, `name`, `company`, `title`; a profile is often more recoverable and useful than a work email here. The play normalizes Gmail first, then waterfalls `deepline_native` -> `forager` -> `findymail` -> `peopledatalabs`, charging per hit.
 
 The same play runs two ways:
 
 ```bash
-# v1 enrich (--with JSON, per CSV row)
 deepline enrich --input signups.csv --output out.csv --name personal-email-profile \
-  --with '{"alias":"profile","tool":"personal_email_to_linkedin_waterfall","payload":{"personal_email":"{{personal_email}}"}}'
+  --with '{"alias":"profile","tool":"personal-email-to-linkedin","payload":{"personal_email":"{{personal_email}}"}}'
 
-# v2 play (same keys, real values instead of {{...}})
-deepline plays run personal-email-to-linkedin-waterfall --input '{"personal_email":"ada@gmail.com"}'
+# Direct play run with real values instead of {{...}} placeholders
+deepline plays run prebuilt/personal-email-to-linkedin --input '{"personal_email":"ada@gmail.com"}'
 ```
 
-Porting v1 -> v2: v1 `tool` (underscores) becomes the v2 play name (hyphens); v1 `payload` becomes v2 `--input`; drop `{{column}}` placeholders. Bare personal email coverage is ~25-40%, so over-provision. If a row returns a company but no work email, chain `name_and_domain_to_email_waterfall`.
+For direct play runs, use the hyphenated play name and pass concrete input
+values instead of CSV placeholders. Bare personal email coverage is ~25-40%,
+so over-provision. If a row returns a company but no work email, chain
+`name-and-domain-to-email-waterfall`.
 
 ### Contact identity -> phone
 
-Play tool: `contact_to_phone_waterfall`
+Play tool: `person-to-phone`
 
 Why this play:
 
@@ -191,12 +190,12 @@ Example:
 
 ```bash
 deepline enrich --input contacts.csv --output contacts_with_phones.csv --name contact-phone-pilot --rows 0:1 \
-  --with '{"alias":"phone_from_contact","tool":"contact_to_phone_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}","email":"{{email}}","linkedin_url":"{{linkedin_url}}"}}'
+  --with '{"alias":"phone_from_contact","tool":"person-to-phone","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}","email":"{{email}}","linkedin_url":"{{linkedin_url}}"}}'
 ```
 
 ### Company -> persona lookup
 
-Play tool: `company_to_contact_by_role_waterfall`
+Play tool: `company-to-contact`
 
 Why this play:
 
@@ -250,7 +249,7 @@ Example:
 
 ```bash
 deepline enrich --input accounts.csv --output accounts_with_contacts.csv --name company-persona-pilot --rows 0:1 \
-  --with '{"alias":"role_contacts","tool":"company_to_contact_by_role_waterfall","payload":{"company_name":"{{company_name}}","domain":"{{domain}}","roles":"{{roles}}","seniority":"{{seniority}}"}}'
+  --with '{"alias":"role_contacts","tool":"company-to-contact","payload":{"company_name":"{{company_name}}","domain":"{{domain}}","roles":"{{roles}}","seniority":"{{seniority}}"}}'
 ```
 
 Apify example:

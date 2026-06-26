@@ -65,16 +65,14 @@ If the user asks for "max coverage", "highest match rate", "keep increasing cove
 
 ## Build Hash-Only Payload
 
-Choose the execution surface before building files:
+Confirm the play surface before building files:
 
 ```bash
 deepline --help
 deepline plays --help
 ```
 
-If `deepline plays` is available, use the V2 path. If it is not available but `deepline enrich` and `deepline tools` are available, use the V1 path. Report the selected path in the run notes so later agents know which surface produced the files.
-
-### V2 path
+If `deepline plays` is unavailable, stop and ask for the Deepline SDK CLI to be installed or updated. Do not build upload payloads through older command paths.
 
 Use the bundled play when the CSV already contains first-party emails plus provider hash or personal email columns:
 
@@ -88,46 +86,6 @@ Export both datasets after the run:
 deepline runs export <run-id> --dataset baseline_hash_only_audience --out "$WORKDIR/baseline_hash_only.csv"
 deepline runs export <run-id> --dataset enriched_hash_only_audience --out "$WORKDIR/enriched_hash_only.csv"
 ```
-
-### V1 path
-
-Use V1 when the installed CLI does not expose `deepline plays`. The V1 path is less compact, but it should still produce the same artifacts: baseline hash-only CSV, enriched hash-only CSV, provider coverage report, and no-double-hash audit.
-
-Discover current tool names before invoking provider work:
-
-```bash
-deepline tools search "aviato email hash" --json
-deepline tools search "limadata audience identifiers" --json
-deepline tools search "personal email linkedin" --json
-deepline tools search "google ads audiences" --json
-deepline tools search "meta audiences" --json
-```
-
-Run a free baseline transform first. Use the local command shape exposed by `deepline enrich --help`; this template shows the required intent, not a frozen parser contract:
-
-```bash
-deepline enrich --input "$WORKDIR/source.csv" --output "$WORKDIR/baseline_hash_only.csv" --rows 0:2 --with 'email_sha256=hash_email:{"input":"work_email"}'
-```
-
-Then run provider layers in bounded batches. Keep each provider output as its own CSV so coverage and cost are auditable:
-
-```bash
-deepline enrich --input "$WORKDIR/source.csv" --output "$WORKDIR/aviato_hashes.csv" --rows 0:50 --with 'aviato_email_sha256=<current_aviato_hash_tool>:{"linkedin_url":"{{linkedin_url}}","email":"{{work_email}}"}'
-deepline enrich --input "$WORKDIR/aviato_misses.csv" --output "$WORKDIR/limadata_hashes.csv" --rows 0:50 --with 'limadata_email_sha256=<current_limadata_hash_tool>:{"linkedin_url":"{{linkedin_url}}","email":"{{work_email}}"}'
-```
-
-`aviato_misses.csv` means rows missing an Aviato personal hash, not rows missing a work-email hash. Keep work-email rows in the enrichment pool until they receive a personal hash or the provider ladder is exhausted.
-
-For raw personal-email fallbacks, normalize and hash once before upload. Do not upload raw personal emails unless the user explicitly asked for raw-email upload and platform consent terms are accepted:
-
-```bash
-deepline enrich --input "$WORKDIR/hash_provider_misses.csv" --output "$WORKDIR/personal_email_fallbacks.csv" --rows 0:25 --with 'personal_email=<current_personal_email_tool>:{"linkedin_url":"{{linkedin_url}}","first_name":"{{first_name}}","last_name":"{{last_name}}","company":"{{company}}"}'
-deepline enrich --input "$WORKDIR/personal_email_fallbacks.csv" --output "$WORKDIR/enriched_hash_only.csv" --with 'email_sha256=hash_email:{"input":"personal_email"}'
-```
-
-`hash_provider_misses.csv` means rows still missing a personal email hash after Aviato/LimaData. It should include contacts with work-email hashes when they still lack a personal hash.
-
-If the V1 CLI has no built-in hash helper in the current install, stop and use the V2 play. Do not paste raw emails into upload rows as a shortcut.
 
 ## Audit Before Upload
 
@@ -145,14 +103,7 @@ Pass criteria:
 - provider hashes missing from payload: 0
 - double-hashed provider hashes present: 0
 
-On V1, run the same audit using the current validation or tool execution surface:
-
-```bash
-deepline tools search "audience hash validation" --json
-deepline tools execute <current_hash_audit_tool> --payload '{"payload_file":"'"$WORKDIR"'/enriched_hash_only.csv","provider_hash_file":"'"$WORKDIR"'/provider_hashes.csv","provider_hash_columns":["aviato_hash","limadata_hash","email_sha256","hashed_personal_email_sha256"]}' --json
-```
-
-If no validation tool is exposed, use the V2 audit play before upload. A live upload without a no-double-hash audit is not acceptable for this workflow.
+A live upload without a no-double-hash audit is not acceptable for this workflow.
 
 ## Upload To Facebook And Google
 
@@ -175,15 +126,6 @@ Notes:
 - Meta path syncs rows into an existing Custom Audience because the live tool surface may expose sync without create. If a create tool exists in the current catalog, create the Meta audience first, then pass its ID to the play.
 - Use `append` for Google on a newly created list.
 - Use `replace` for Meta so the custom audience mirrors the hash-only payload.
-
-For V1, use the current tool execution surface after account discovery. Keep enriched and unenriched as separate objects:
-
-```bash
-deepline tools execute google_ads_audiences_create_audience --payload '{"account_id":"<google_customer_id>","name":"<segment> unenriched hash-only <date>","membership_life_span_days":540,"upload_key_types":["CONTACT_ID"]}' --json
-deepline tools execute google_ads_audiences_sync_audience_members --payload '{"account_id":"<google_customer_id>","audience_id":"<unenriched_audience_id>","mode":"append","terms_of_service_accepted":true,"consent":{"ad_user_data":"GRANTED","ad_personalization":"GRANTED"},"rows":[...]}' --json
-deepline tools execute google_ads_audiences_create_audience --payload '{"account_id":"<google_customer_id>","name":"<segment> enriched hash-only <date>","membership_life_span_days":540,"upload_key_types":["CONTACT_ID"]}' --json
-deepline tools execute google_ads_audiences_sync_audience_members --payload '{"account_id":"<google_customer_id>","audience_id":"<enriched_audience_id>","mode":"append","terms_of_service_accepted":true,"consent":{"ad_user_data":"GRANTED","ad_personalization":"GRANTED"},"rows":[...]}' --json
-```
 
 Use the same create/sync/readback pattern for Meta with the current `meta_audiences` tools. If Meta create is not exposed, ask for an existing Custom Audience ID and sync into that audience only after the user confirms the account name and ID.
 

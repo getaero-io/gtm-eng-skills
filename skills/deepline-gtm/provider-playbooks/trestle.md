@@ -19,7 +19,7 @@ Trestle has two phone APIs:
 
 **When to use:**
 
-- Post-waterfall validation after `contact_to_phone_waterfall`
+- Post-waterfall validation after `person-to-phone`
 - Before cold calling to filter out disconnected/landline numbers
 - When you don't have or don't care about name matching
 

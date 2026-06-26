@@ -6,7 +6,7 @@ This script implements the contact discovery fallback chain required by
 Step 7 of the niche-signal-discovery pipeline. It runs through Deepline in
 two phases:
 
-  Phase 1: company_to_contact_by_role_waterfall (FREE tier).
+  Phase 1: company-to-contact (FREE tier).
            Dropleads + Deepline native + Icypeas + Prospeo + Crustdata.
            Works well for >200-employee US/EU companies with mature B2B data
            coverage. Returns LinkedIn URLs + titles; often no emails.
@@ -21,7 +21,7 @@ two phases:
            pull named contacts.
 
   Phase 3: For every named contact we have a LinkedIn URL for (from either
-           phase), run name_and_domain_to_email_waterfall to resolve a
+           phase), run name-and-domain-to-email-waterfall to resolve a
            corporate email. Validate the result against the company's apex
            domain — providers sometimes return stale emails from a previous
            employer (e.g. nick.romonoski@orbitalatk.com when Nick is now at
@@ -74,9 +74,20 @@ from dedupe_utils import extract_apex  # noqa: E402
 # Small helpers
 # ----------------------------------------------------------------------
 
+def _enrich_run_name(output_csv: str) -> str:
+    stem = os.path.splitext(os.path.basename(output_csv))[0]
+    slug = re.sub(r"[^a-zA-Z0-9]+", "-", stem).strip("-").lower()
+    return f"niche-signal-{slug or 'contacts'}"
+
+
 def _run_deepline_enrich(input_csv: str, output_csv: str, with_specs: list[str]) -> None:
     """Thin wrapper around `deepline enrich`. Raises on non-zero exit."""
-    cmd = ["deepline", "enrich", "--input", input_csv, "--output", output_csv]
+    cmd = [
+        "deepline", "enrich",
+        "--input", input_csv,
+        "--output", output_csv,
+        "--name", _enrich_run_name(output_csv),
+    ]
     for spec in with_specs:
         cmd += ["--with", spec]
     print(f"[find_contacts] running: {' '.join(cmd[:4])} (+{len(with_specs)} --with specs)",
@@ -124,7 +135,7 @@ def _slug_to_name(linkedin_url: str) -> str:
 
 
 # ----------------------------------------------------------------------
-# Phase 1: company_to_contact_by_role_waterfall
+# Phase 1: company-to-contact
 # ----------------------------------------------------------------------
 
 def phase1_waterfall(
@@ -143,7 +154,7 @@ def phase1_waterfall(
     seniority = seniority or ["Senior", "Director", "VP", "Manager"]
     spec = json.dumps({
         "alias": "contact",
-        "tool": "company_to_contact_by_role_waterfall",
+        "tool": "company-to-contact",
         "payload": {
             "domain": "{{domain}}",
             "company_name": "{{name}}",
@@ -159,11 +170,19 @@ def phase1_waterfall(
     for r in rows:
         parsed = _parse_json_field(r.get("contact", "") or "")
         items: list = []
-        if isinstance(parsed, dict) and isinstance(parsed.get("result"), list):
-            items = parsed["result"]
+        if isinstance(parsed, list):
+            items = parsed
+        elif isinstance(parsed, dict):
+            for value in parsed.values():
+                if isinstance(value, list):
+                    items = value
+                    break
+                if isinstance(value, dict) and isinstance(value.get("result"), list):
+                    items = value["result"]
+                    break
         for item in items[:limit]:
-            li = item.get("linkedin", "") or ""
-            full = item.get("full_name") or _slug_to_name(li)
+            li = item.get("linkedin", "") or item.get("linkedin_url", "") or item.get("profile_url", "") or ""
+            full = item.get("full_name") or item.get("name") or _slug_to_name(li)
             contacts.append({
                 "company": r.get("name", ""),
                 "domain": r.get("domain", ""),
@@ -324,7 +343,7 @@ def phase2_exa_people(
 def phase3_emails(contacts: list[dict], out_csv: str) -> list[dict]:
     """Resolve emails for every contact with a LinkedIn URL.
 
-    Uses name_and_domain_to_email_waterfall, which chains pattern validation +
+    Uses name-and-domain-to-email-waterfall, which chains pattern validation +
     deepline_native + crustdata + PDL. Then validates the returned email
     against the company's apex domain — providers occasionally return a
     stale email from a previous employer, and domain-mismatch is an
@@ -372,11 +391,12 @@ def phase3_emails(contacts: list[dict], out_csv: str) -> list[dict]:
 
     spec = json.dumps({
         "alias": "em",
-        "tool": "name_and_domain_to_email_waterfall",
+        "tool": "name-and-domain-to-email-waterfall",
         "payload": {
             "linkedin_url": "{{linkedin_url}}",
             "first_name": "{{first_name}}",
             "last_name": "{{last_name}}",
+            "domain": "{{domain}}",
         },
     })
     _run_deepline_enrich(input_csv, out_csv, [spec])
@@ -387,8 +407,18 @@ def phase3_emails(contacts: list[dict], out_csv: str) -> list[dict]:
         em_col = r.get("em", "") or ""
         parsed = _parse_json_field(em_col)
         email = ""
-        if isinstance(parsed, dict) and isinstance(parsed.get("result"), str):
-            email = parsed["result"].strip()
+        if isinstance(parsed, str):
+            email = parsed.strip()
+        elif isinstance(parsed, dict):
+            if isinstance(parsed.get("email"), str):
+                email = parsed["email"].strip()
+            elif isinstance(parsed.get("result"), str):
+                email = parsed["result"].strip()
+            elif isinstance(parsed.get("result"), dict) and isinstance(
+                parsed["result"].get("email"),
+                str,
+            ):
+                email = parsed["result"]["email"].strip()
 
         li = r.get("linkedin_url", "")
         domain = (r.get("domain", "") or "").lower()

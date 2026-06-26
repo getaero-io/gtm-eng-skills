@@ -8,7 +8,7 @@ Every Clay action maps to a specific Deepline CLI tool or native play. Use actua
 
 **For every Clay action, the selection order is:**
 
-1. **Native play first** — check if a native Deepline play covers the action (they're stable, multi-provider, and cost-optimized). Current native plays: `name_and_domain_to_email_waterfall`, `company_to_contact_by_role_waterfall`, and `contact_to_phone_waterfall`.
+1. **Native play first** — check if a native Deepline play covers the action (they're stable, multi-provider, and cost-optimized). Current native plays: `name-and-domain-to-email-waterfall`, `company-to-contact`, and `person-to-phone`.
 2. **Search for a dedicated tool** — `deepline tools search "<intent>"` before hardcoding any individual provider tool. New tools are added regularly. Examples: `deepline tools search "qualify person ICP"`, `deepline tools search "octave"`, `deepline tools search "email verify"`, `deepline tools search "add leads campaign"`.
 3. **Verify the tool exists** - `deepline tools describe <tool_id>`. If it errors, the tool doesn't exist yet - use the `deeplineagent` fallback from this doc.
 4. **Use the mapping below as a fallback** — when no native play or dedicated tool exists.
@@ -52,7 +52,7 @@ deepline tools describe <candidate_tool_id> # verify it exists + see payload sch
 | `findymail-find-work-email`                                 | `dropleads_email_finder` (waterfall fallback)                                                                                                                                                                                                                                                                                                                                                             | Covered by native play                                                                             |
 | `enrich-person` (PDL)                                       | `peopledatalabs_enrich_contact` (waterfall step)                                                                                                                                                                                                                                                                                                                                                          | Covered by native play                                                                             |
 | `dropcontact-enrich-person`                                 | `dropleads_email_finder` (waterfall step)                                                                                                                                                                                                                                                                                                                                                                 | Covered by native play                                                                             |
-| **Entire email waterfall group**                            | `name_and_domain_to_email_waterfall`                                                                                                                                                                                                                                                                                                                                                                      | One play replaces all 6 finders when you have a domain; include `linkedin_url` when available      |
+| **Entire email waterfall group**                            | `name-and-domain-to-email-waterfall`                                                                                                                                                                                                                                                                                                                                                                      | One play replaces all 6 finders when you have a domain; include `linkedin_url` when available      |
 | `use-ai` (no web, simple)                                   | `deeplineagent`                                                                                                                                                                                                                                                                                                                                                                                           | Match model tier                                                                                   |
 | `use-ai` (no web, structured)                               | `deeplineagent` + `jsonSchema`                                                                                                                                                                                                                                                                                                                                                                            |                                                                                                    |
 | `use-ai` (claygent + web)                                   | Pass 1: `exa_search` → Pass 2: `deeplineagent`                                                                                                                                                                                                                                                                                                                                                            | Always split research and synthesis                                                                |
@@ -128,7 +128,7 @@ The entire Clay waterfall group collapses to one native play. Pick based on avai
 **Have LinkedIn URL + name + domain** (preferred — highest hit rate):
 
 ```bash
---with '{"alias":"work_email","tool":"name_and_domain_to_email_waterfall","payload":{"linkedin_url":"{{linkedin_url}}","first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{company_domain}}"}}'
+--with '{"alias":"work_email","tool":"name-and-domain-to-email-waterfall","payload":{"linkedin_url":"{{linkedin_url}}","first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{company_domain}}"}}'
 ```
 
 Compiles to: `dropleads_email_finder → hunter_email_finder → leadmagic_email_finder → deepline_native_enrich_contact → crustdata_person_enrichment → peopledatalabs_enrich_contact`
@@ -136,13 +136,13 @@ Compiles to: `dropleads_email_finder → hunter_email_finder → leadmagic_email
 **Have name + company only**:
 
 ```bash
---with '{"alias":"work_email","tool":"name_and_domain_to_email_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{company_domain}}"}}'
+--with '{"alias":"work_email","tool":"name-and-domain-to-email-waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{company_domain}}"}}'
 ```
 
 **Have first + last + domain only** (cost-efficient — tries pattern validation first):
 
 ```bash
---with '{"alias":"work_email","tool":"name_and_domain_to_email_waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
+--with '{"alias":"work_email","tool":"name-and-domain-to-email-waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
 ```
 
 Compiles to: `leadmagic_email_validation (first.last@, firstlast@, first_last@) → dropleads_email_finder → hunter_email_finder → leadmagic_email_finder → deepline_native_enrich_contact → peopledatalabs_enrich_contact`
@@ -220,7 +220,7 @@ return { permutations: perms, comma_separated_list: perms.join(',') };
 --with '{"alias":"email_permutations","tool":"run_javascript","payload":{"code":"@$WORKDIR/email_permutations.js"}}'
 ```
 
-Prefer `name_and_domain_to_email_waterfall` over a hand-built waterfall when you already have a clean company domain.
+Prefer `name-and-domain-to-email-waterfall` over a hand-built waterfall when you already have a clean company domain.
 
 ---
 
@@ -367,10 +367,10 @@ Reference structured output fields in downstream passes as `{{col_name.field}}`.
 --with '{"alias":"exa_research","tool":"exa_search","payload":{"query":"{{company_name}} {{company_domain}} strategic initiatives GTM 2024 2025","num_results":5,"contents":{"text":true,"highlights":true}}}'
 ```
 
-**Pass 2 — Generation (separate `deepline enrich --in-place` call):**
+**Pass 2 — Generation (separate named in-place enrich call):**
 
 ```bash
-deepline enrich --input enriched.csv --in-place --rows 0:1 \
+deepline enrich --input enriched.csv --in-place --name clay-generation-pass --rows 0:1 \
   --with '{"alias":"strategic_initiatives","tool":"deeplineagent","payload":{"model":"anthropic/claude-sonnet-4.6","prompt":"<Clay prompt translated>\n\nResearch context:\n{{company_research}}","jsonSchema":{"type":"object","properties":{"top_5_initiatives":{"type":"string"},"top_3_sales_initiatives":{"type":"string"},"top_3_go_to_market_initiatives":{"type":"string"},"new_products":{"type":"string"},"hypothesis_of_potential_challenges":{"type":"string"}},"required":["top_5_initiatives"],"additionalProperties":false}}}'
 ```
 
