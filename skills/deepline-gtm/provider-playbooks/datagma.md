@@ -11,6 +11,8 @@ coverage, and job-change validation.
 - `datagma_enrich_person` and `datagma_enrich_company` remain valid compatibility aliases when older workflows expect the flat legacy Datagma response shape.
 - Use `datagma_find_email` when you only need a verified work email and want a
   narrower, cheaper workflow than full enrichment.
+- Do not use Datagma for personal-email-only waterfall steps. Public docs expose
+  verified work email and full enrichment, not a personal-email-only endpoint.
 - Use `datagma_search_phone_numbers` when you already have an email or social URL
   and want direct mobile numbers.
 - Use `datagma_job_change_detection` before outreach refreshes when you need to
@@ -36,6 +38,10 @@ most reliable. Prefer those over plain company-name searches.
 - `datagma_full_enrichment`, `datagma_job_change_detection`, and
   `datagma_search_phone_numbers` expose `creditBurn` in the response. Deepline
   uses that vendor-reported value rather than guessing.
+- Datagma does not document a per-call charge response header for these flows.
+  Where `creditBurn` is absent, Deepline falls back to endpoint-specific,
+  documented success fields rather than treating every non-empty profile as a
+  personal-email hit.
 - Catch-all email results are free on the public pricing page.
 
 ## Endpoint guidance

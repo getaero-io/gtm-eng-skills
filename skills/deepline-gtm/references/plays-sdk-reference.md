@@ -186,9 +186,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.110` |
-| API contract | `2026-06-dataset-column-cell-stale-hard-cutover` |
-| Latest supported SDK | `0.1.110` |
+| SDK version | `0.1.111` |
+| API contract | `2026-06-dataset-handle-results-hard-cutover` |
+| Latest supported SDK | `0.1.111` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.53` |
 | Generated sources | `sdk/src/client.ts`<br />`sdk/src/play.ts`<br />`shared_libs/play-runtime/cell-staleness.ts`<br />`shared_libs/play-runtime/tool-result-types.ts`<br />`shared_libs/plays/dataset.ts` |
@@ -885,7 +885,7 @@ Signature: `class DeeplineClient`
 | `observeRunEvents` | method | Observe one run's live events. Uses the Convex Run Snapshot subscription<br />transport first (ADR-0008), then falls back to the canonical SSE stream<br />when the subscription transport or its optional client modules are not<br />available. Pass `fallback: 'none'` to receive<br />`RunObserveTransportUnavailableError` instead. | `runId: string`<br />`options?: { signal?: AbortSignal; onNotice?: (message: string) => void; fallback?: 'sse' \| 'none'; }` | `AsyncGenerator<PlayLiveEvent>` |
 | `tailRun` | method | Read the canonical run stream until a terminal run status is observed.<br /><br />Tries the Convex Run Snapshot subscription transport first (ADR-0008);<br />when the server cannot serve it (grant endpoint missing/unconfigured or<br />Convex unreachable) it falls back — with one `onNotice` message — to the<br />support-window SSE stream below.<br /><br />Server stream windows are finite: they end cleanly at the function<br />ceiling even while the run keeps executing. A window that ends (cleanly<br />or via transient network error) without a terminal event triggers one<br />durable-status re-check followed by a backed-off reconnect, so long runs<br />tail to completion. Abort via `options.signal` to stop waiting. | `runId: string`<br />`options?: RunsTailOptions` | `Promise<PlayStatus>` |
 | `getRunLogs` | method | Fetch persisted logs for a run using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs logs <run-id> --limit 200 --json<br />``` | `runId: string`<br />`options?: RunsLogsOptions` | `Promise<RunsLogsResult>` |
-| `getPlaySheetRows` | method | Export persisted runtime-sheet rows for a play dataset/table namespace.<br /><br />This is the SDK form of exporting `ctx.dataset(...).run()` output for a<br />specific play and optional run id. | `input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; }` | `Promise<PlaySheetRowsResult>` |
+| `getPlaySheetRows` | method | Export persisted runtime-sheet rows for a play dataset/table namespace.<br /><br />This is the SDK form of exporting `ctx.dataset(...).run()` output for a<br />specific play and optional run id. | `input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; rowMode?: 'output' \| 'all'; }` | `Promise<PlaySheetRowsResult>` |
 | `stopRun` | method | Stop a run by id using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs stop <run-id> --reason "stale lock" --json<br />``` | `runId: string`<br />`options?: { reason?: string }` | `Promise<StopPlayRunResult>` |
 | `stopAllRuns` | method | Stop every active run visible to the current workspace.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs stop-all --reason "stale lock" --json<br />```<br /><br />Use this when a failed parent run left child or waiting runs active and you<br />need to clear the workspace run-slot state without knowing each run id. | `options?: { reason?: string; }` | `Promise<StopAllPlayRunsResult>` |
 | `listPlays` | method | List callable plays visible to the workspace.<br /><br />Pass `origin: "prebuilt"` for Deepline-managed prebuilts or<br />`origin: "owned"` for org-owned plays. | `options?: { origin?: 'prebuilt' \| 'owned'; grep?: string; grepMode?: 'all' \| 'any' \| 'phrase'; }` | `Promise<PlayListItem[]>` |
@@ -924,7 +924,7 @@ logs, and exporting durable dataset rows.
 | `list` | `(options: RunsListOptions) => Promise<PlayRunListItem[]>` | Yes | List runs for one play, optionally filtered by status. |
 | `tail` | `(runId: string, options?: RunsTailOptions) => Promise<PlayStatus>` | Yes | Stream run events and return the latest/terminal run status. |
 | `logs` | `(runId: string, options?: RunsLogsOptions) => Promise<RunsLogsResult>` | Yes | Fetch persisted log lines for a run. |
-| `exportDatasetRows` | `(input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; }) => Promise<PlaySheetRowsResult>` | Yes | Export persisted rows for a runtime-sheet dataset/table namespace. |
+| `exportDatasetRows` | `(input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; rowMode?: 'output' \| 'all'; }) => Promise<PlaySheetRowsResult>` | Yes | Export persisted rows for a runtime-sheet dataset/table namespace. |
 | `stop` | `( runId: string, options?: { reason?: string }, ) => Promise<StopPlayRunResult>` | Yes | Stop a running/waiting run. |
 | `stopAll` | `(options?: { reason?: string }) => Promise<StopAllPlayRunsResult>` | Yes | Stop active runs across the current workspace. |
 

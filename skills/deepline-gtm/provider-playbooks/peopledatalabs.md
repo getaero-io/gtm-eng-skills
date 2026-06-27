@@ -4,6 +4,10 @@ Use People Data Labs when you need explicit, auditable structured filters.
 - Use autocomplete and narrow incrementally to avoid over-constraining initial queries.
 - Prefer small pilot `size` runs and inspect returned fields before batch execution.
 - For `peopledatalabs_person_search` / `peopledatalabs_company_search` SQL: use `SELECT *` only and DO NOT include a `LIMIT` clause — PDL rejects any SQL with `LIMIT` as HTTP 400. Pass the `size` input parameter (1–100) to control how many records come back.
+- For personal-email-only use cases, require `personal_emails` before billing by passing PDL's `required=personal_emails` parameter. The default Person Enrichment API bills per matched person profile, even if no personal email is present.
+- PDL documents `x-call-credits-spent` as the per-call charge response header.
+  Deepline parses that header into `meta.creditsSpent` and prefers it for billing
+  before any fallback estimate.
 - In changed-company email recovery, treat PDL as the fallback after LeadMagic and Crust.
 - If earlier, cheaper steps already returned a usable email, skip PDL for that row.
 

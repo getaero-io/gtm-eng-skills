@@ -25,6 +25,18 @@ Starts an async enrichment job and polls until finished. Accepts any LinkedIn UR
 }
 ```
 
+For personal emails only:
+
+```json
+{
+  "linkedin_url": "https://www.linkedin.com/in/johndoe",
+  "enrichment_level": "partial",
+  "email_options": "personal"
+}
+```
+
+Wiza does not document an exact spend response header for reveals. The terminal GET result includes `credits.api_credits.total`; Deepline uses that exact result-body value when present. If a terminal result lacks Wiza's credits object, settlement falls back to returned contact fields, not just the requested enrichment level.
+
 For phones + emails:
 
 ```json
@@ -80,5 +92,6 @@ Typical flow: search → get LinkedIn URLs → feed into `wiza_reveal_person` to
 ## Anti-patterns
 
 - Don't use `enrichment_level: "full"` on large lists without budgeting phone credits separately
+- Don't use Wiza defaults for a personal-email-only workflow; pass `email_options: "personal"` to avoid work/generic email lookup.
 - Don't skip polling — reveals are async, status starts as "queued"
 - Don't expect more than 30 results from search per call

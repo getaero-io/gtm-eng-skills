@@ -6,9 +6,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.110` |
-| API contract | `2026-06-dataset-column-cell-stale-hard-cutover` |
-| Latest supported SDK | `0.1.110` |
+| SDK version | `0.1.111` |
+| API contract | `2026-06-dataset-handle-results-hard-cutover` |
+| Latest supported SDK | `0.1.111` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.53` |
 | Generated sources | `src/lib/sdk/api-routes.ts`<br />`sdk/src/types.ts`<br />`sdk/src/client.ts`<br />`sdk/src/release.ts` |
@@ -263,6 +263,14 @@ while True:
 | `POST` | `/api/v2/cli/send-session/chunk` | `sessions send` | SDK-facing route. | `src/app/api/v2/cli/send-session/chunk/route.ts` |
 | `POST` | `/api/v2/cli/send-session/finalize` | `sessions send` | SDK-facing route. | `src/app/api/v2/cli/send-session/finalize/route.ts` |
 | `GET` | `/api/v2/models/describe` | `describeModel` | SDK-facing route. | `src/app/api/v2/models/describe/route.ts`<br />`src/lib/deeplineagent/model-options.ts`<br />`src/lib/deeplineagent/generated/provider-options.ts` |
+| `POST` | `/api/v2/monitors/check` | `monitors check` | SDK-facing route. | `src/app/api/v2/monitors/check/route.ts` |
+| `POST` | `/api/v2/monitors/deploy` | `monitors deploy` | SDK-facing route. | `src/app/api/v2/monitors/deploy/route.ts` |
+| `GET` | `/api/v2/monitors/deployed` | `monitors deployed` | SDK-facing route. | `src/app/api/v2/monitors/deployed/route.ts` |
+| `DELETE` | `/api/v2/monitors/deployed/:key` | `monitors deployed delete` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/route.ts` |
+| `GET` | `/api/v2/monitors/deployed/:key` | `monitors deployed get` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/route.ts` |
+| `PATCH` | `/api/v2/monitors/deployed/:key` | `monitors deployed update` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/route.ts` |
+| `POST` | `/api/v2/monitors/deployed/:key/reactivate` | `monitors reactivate` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/reactivate/route.ts` |
+| `GET` | `/api/v2/monitors/tools` | `monitors tools` | SDK-facing route. | `src/app/api/v2/monitors/tools/route.ts` |
 | `DELETE` | `/api/v2/plays/:name/share` | `unpublishSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
 | `GET` | `/api/v2/plays/:name/share` | `getSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
 | `PATCH` | `/api/v2/plays/:name/share` | `updateSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
@@ -293,6 +301,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-sdk-run-export-all-row-mode` | Adds an optional rowMode=all query parameter to GET /api/v2/plays/:name/sheet and SDK runs.exportDatasetRows so SDK CLI run export and enrich CSV writeback can fetch every persisted row for a specific run when reconciling completed outpu... |
 | `2026-06-deeplineagent-provider-options-discovery` | Adds GET /api/v2/models/describe plus the SDK describeModel helper and SDK CLI `tools describe deeplineagent --model <provider/model>` discovery path for Deepline Agent model/provider option metadata. This is an additive discovery-only e... |
 | `2026-06-play-run-runtime-deploy-version-routing` | Threads an internal runtimeDeployVersion through POST /api/v2/plays/run start and immediate wait-for-completion handling so same-run coordinator calls can stay pinned to the Cloudflare Worker version that accepted the run while newer run... |
 | `2026-06-sdk-enrich-name-domain-waterfall-runtime` | Fixes SDK CLI `deepline enrich` generated play source so inline prebuilt play calls with an entirely blank templated payload are skipped before starting a child run, and shortens the V2 prebuilt name-and-domain-to-email-waterfall-batch r... |
@@ -300,7 +309,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-06-billing-run-provider-audit-fields` | Adds customer-safe run-level billing auditability to existing billing usage and ledger surfaces: GET /api/v2/billing/usage recent activity and GET /api/v2/billing/ledger entries/CSV now include additive Deepline-priced provider/action/ru... |
 | `2026-06-play-run-runtime-sheet-readiness-module` | Moves POST /api/v2/plays/run pre-start Runtime Sheet data-plane readiness from the legacy customer-db provisioning facade to the deeper runtime-sheet readiness module. This is an internal server-side readiness/repair implementation chang... |
 | `2026-06-sdk-enrich-run-if-condition-stats` | Fixes SDK CLI `deepline enrich` generated play source so direct `--with` and waterfall child `run_if_js` predicates are emitted as native dataset-column runIf gates, which makes V2 run summaries report skipped:condition while preserving... |
-| `2026-06-sdk-enrich-in-place-export-safety` | Hardens SDK CLI `deepline enrich` CSV export so `--in-place --all` overlays run output onto the original source CSV, refuses partial in-place writes that would shrink the local file, and keeps provider/failure result envelopes compact in... |
 
 ## Public Types
 
@@ -557,7 +565,7 @@ logs, and exporting durable dataset rows.
 | `list` | `(options: RunsListOptions) => Promise<PlayRunListItem[]>` | Yes | List runs for one play, optionally filtered by status. |
 | `tail` | `(runId: string, options?: RunsTailOptions) => Promise<PlayStatus>` | Yes | Stream run events and return the latest/terminal run status. |
 | `logs` | `(runId: string, options?: RunsLogsOptions) => Promise<RunsLogsResult>` | Yes | Fetch persisted log lines for a run. |
-| `exportDatasetRows` | `(input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; }) => Promise<PlaySheetRowsResult>` | Yes | Export persisted rows for a runtime-sheet dataset/table namespace. |
+| `exportDatasetRows` | `(input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; rowMode?: 'output' \| 'all'; }) => Promise<PlaySheetRowsResult>` | Yes | Export persisted rows for a runtime-sheet dataset/table namespace. |
 | `stop` | `( runId: string, options?: { reason?: string }, ) => Promise<StopPlayRunResult>` | Yes | Stop a running/waiting run. |
 | `stopAll` | `(options?: { reason?: string }) => Promise<StopAllPlayRunsResult>` | Yes | Stop active runs across the current workspace. |
 
