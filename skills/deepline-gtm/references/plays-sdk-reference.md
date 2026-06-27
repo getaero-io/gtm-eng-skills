@@ -758,9 +758,10 @@ response metadata lives under `toolResponse.meta`. Semantic single-value
 getters live under `extractedValues.<name>.get()`, and list getters live
 under `extractedLists.<name>.get()`.
 
-Use extractors first when a tool contract exposes them. Drop to
-`toolResponse.raw` when you need provider-specific fields or when debugging
-from persisted run rows.
+Use extractors first when a tool contract exposes them. Use list getters for
+row-shaped data. Drop to `toolResponse.raw` only for provider-specific scalar
+fields or bounded debugging context; persisted rows may clip declared lists to
+previews.
 
 Signature: `export type ToolExecuteResult< TResult = unknown, TMeta = Record<string, unknown>, TExtracted extends Record<string, unknown> = Partial<DeeplineGetterValueMap>, TLists extends Record<string, Record<string, unknown>> = Record< string, Record<string, unknown> >, > = ToolExecuteResultBase<TResult, TMeta> & ToolExecuteResultAccessors<TExtracted, TLists>;`
 
