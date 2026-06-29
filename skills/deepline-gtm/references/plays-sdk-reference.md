@@ -113,8 +113,8 @@ export default definePlay(
               key: account.domain,
             },
             description: 'Refresh one account signal for the owner.',
+            staleAfterSeconds: 86_400,
           }),
-        { staleAfterSeconds: 86_400 },
       )
       .run({
         key: 'domain',
@@ -478,7 +478,7 @@ run(options?: {
 |---|---|---:|---|
 | `name` | `Name` | Yes | Output column name. |
 | `resolver` | `\| StepResolver<OutputRow, Value> \| StepProgramResolver<OutputRow, Value>` | Yes | Computes the value for one row. |
-| `options` | `StepOptions<OutputRow, Value>` | Yes | Row gate and freshness options. |
+| `options` | `StepOptions<OutputRow, Value>` | Yes | Row gate options. |
 
 #### Column Overload 4 Returns
 
@@ -499,23 +499,6 @@ Execute the row-column program and return a durable dataset handle.
 The returned [PlayDataset](/sdk-v2/sdk-reference#playdataset) preserves one output row per input row,
 with original fields merged with the columns produced by `.withColumn(...)`.
 
-### `StaleAfterSeconds`
-
-Freshness policy for dataset cells and step-program columns.
-
-Use a positive whole number of seconds for a fixed TTL. Use a function when
-the next expiry depends on the value that was just produced. The function
-receives the completed cell value; return a positive whole number of seconds
-to set the next expiry, or `null` to keep that value indefinitely.
-
-Result-based policies are evaluated only for dataset/step-program cells. The
-scalar `ctx.step`, `ctx.fetch`, `ctx.runPlay`, and `ctx.tools.execute` APIs
-accept numeric TTLs.
-
-Signature: `export type StaleAfterSeconds<Value = unknown> = | number | ((value: Value) => number | null);`
-
-
-
 ### `DatasetColumnRunInput`
 
 Input object passed to an object-column `run` resolver.
@@ -534,8 +517,7 @@ Input object passed to an object-column `run` resolver.
 
 Object-column form for `.withColumn(...)`.
 
-Use this when a column needs `runIf`, typed `previousCell`, or a
-result-based `staleAfterSeconds(value)` policy.
+Use this when a column needs `runIf` or typed `previousCell`.
 
 #### Fields
 
@@ -543,9 +525,6 @@ result-based `staleAfterSeconds(value)` policy.
 |---|---|---:|---|
 | `run` | `(input: DatasetColumnRunInput<Row, Value>) => Value \| Promise<Value>` | Yes | Compute one cell value. Receives the previous stored value when rerunning. |
 | `runIf` | `(row: Row, index: number) => boolean \| Promise<boolean>` | No | Optional row-level gate. Skipped rows produce `null` for this column. |
-| `recompute` | `boolean` | No | Recompute this cell on each run instead of reusing its durable value. |
-| `recomputeOnError` | `boolean` | No | Recompute this cell when its durable value is an error-shaped object. |
-| `staleAfterSeconds` | `StaleAfterSeconds<Value>` | No | Fixed or value-dependent freshness policy for this cell. |
 
 
 ### `StepOptions`
@@ -557,9 +536,6 @@ Options for row-level `.withColumn(...)` and `steps().step(...)` entries.
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `runIf` | `(row: Row, index: number) => boolean \| Promise<boolean>` | No | Optional row-level gate. Skipped rows produce `null` for this column. |
-| `recompute` | `boolean` | No | Recompute this cell on each run instead of reusing its durable value. |
-| `recomputeOnError` | `boolean` | No | Recompute this cell when its durable value is an error-shaped object. |
-| `staleAfterSeconds` | `StaleAfterSeconds<Value>` | No | Fixed or value-dependent freshness policy for this cell. |
 
 
 ### `PreviousCell`

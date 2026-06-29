@@ -303,12 +303,12 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 |---|---|
 | `2026-06-execute-normalize-quoted-json-containers` | Fixes execute-result normalization so quoted JSON object/array strings are decoded before tool output reaches play runtime sheets. This preserves the existing SDK/API route paths, request shapes, response envelopes, auth semantics, comma... |
 | `2026-06-sdk-play-start-timeout-terminal-reconcile` | Fixes SDK CLI `deepline plays run --watch` and play-backed `deepline enrich` start-stream timeout handling so, when the start stream has already reported a run id, the CLI performs one final durable run-status read before throwing PLAY_W... |
+| `2026-06-failed-run-summary-export-row-mode` | Aligns failed-run Run Response Package dataset summaries with the existing `runs export` all-row contract: recovered terminal run packages now load durable sheet summaries with rowMode=all so rowCount and rowCounts.persisted match the CS... |
 | `2026-06-sdk-run-export-all-row-mode` | Adds an optional rowMode=all query parameter to GET /api/v2/plays/:name/sheet and SDK runs.exportDatasetRows so SDK CLI run export and enrich CSV writeback can fetch every persisted row for a specific run when reconciling completed outpu... |
 | `2026-06-sdk-sheet-batch-post-row-mode` | Extends the existing POST /api/v2/plays/:name/sheet batch viewport endpoint to accept the same optional rowMode=all selector as the GET sheet endpoint, and narrows all-row reads to terminal persisted rows (enriched or failed) so exports... |
 | `2026-06-deeplineagent-provider-options-discovery` | Adds GET /api/v2/models/describe plus the SDK describeModel helper and SDK CLI `tools describe deeplineagent --model <provider/model>` discovery path for Deepline Agent model/provider option metadata. This is an additive discovery-only e... |
 | `2026-06-play-run-runtime-deploy-version-routing` | Threads an internal runtimeDeployVersion through POST /api/v2/plays/run start and immediate wait-for-completion handling so same-run coordinator calls can stay pinned to the Cloudflare Worker version that accepted the run while newer run... |
 | `2026-06-sdk-enrich-name-domain-waterfall-runtime` | Fixes SDK CLI `deepline enrich` generated play source so inline prebuilt play calls with an entirely blank templated payload are skipped before starting a child run, and shortens the V2 prebuilt name-and-domain-to-email-waterfall-batch r... |
-| `2026-06-sdk-enrich-inline-child-email-fallback` | Fixes SDK CLI `deepline enrich` generated play source so inline prebuilt child plays such as person-linkedin-to-email execute through the V2 child-run path without treating internal parentRunId/rootRunId metadata as public play input, an... |
 
 ## Public Types
 
