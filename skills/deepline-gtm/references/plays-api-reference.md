@@ -6,9 +6,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.111` |
+| SDK version | `0.1.154` |
 | API contract | `2026-06-dataset-handle-results-hard-cutover` |
-| Latest supported SDK | `0.1.111` |
+| Latest supported SDK | `0.1.154` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.53` |
 | Generated sources | `src/lib/sdk/api-routes.ts`<br />`sdk/src/types.ts`<br />`sdk/src/client.ts`<br />`sdk/src/release.ts` |
@@ -301,6 +301,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-sdk-enrich-partial-export-recovery` | Fixes SDK CLI `deepline enrich` generated play source and CSV writeback so generated enrich rows carry a stripped source-row marker, sparse failed provider rows can merge back into the selected source CSV without dropping unprocessed row... |
 | `2026-06-execute-normalize-quoted-json-containers` | Fixes execute-result normalization so quoted JSON object/array strings are decoded before tool output reaches play runtime sheets. This preserves the existing SDK/API route paths, request shapes, response envelopes, auth semantics, comma... |
 | `2026-06-sdk-play-start-timeout-terminal-reconcile` | Fixes SDK CLI `deepline plays run --watch` and play-backed `deepline enrich` start-stream timeout handling so, when the start stream has already reported a run id, the CLI performs one final durable run-status read before throwing PLAY_W... |
 | `2026-06-failed-run-summary-export-row-mode` | Aligns failed-run Run Response Package dataset summaries with the existing `runs export` all-row contract: recovered terminal run packages now load durable sheet summaries with rowMode=all so rowCount and rowCounts.persisted match the CS... |
@@ -308,7 +309,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-06-sdk-sheet-batch-post-row-mode` | Extends the existing POST /api/v2/plays/:name/sheet batch viewport endpoint to accept the same optional rowMode=all selector as the GET sheet endpoint, and narrows all-row reads to terminal persisted rows (enriched or failed) so exports... |
 | `2026-06-deeplineagent-provider-options-discovery` | Adds GET /api/v2/models/describe plus the SDK describeModel helper and SDK CLI `tools describe deeplineagent --model <provider/model>` discovery path for Deepline Agent model/provider option metadata. This is an additive discovery-only e... |
 | `2026-06-play-run-runtime-deploy-version-routing` | Threads an internal runtimeDeployVersion through POST /api/v2/plays/run start and immediate wait-for-completion handling so same-run coordinator calls can stay pinned to the Cloudflare Worker version that accepted the run while newer run... |
-| `2026-06-sdk-enrich-name-domain-waterfall-runtime` | Fixes SDK CLI `deepline enrich` generated play source so inline prebuilt play calls with an entirely blank templated payload are skipped before starting a child run, and shortens the V2 prebuilt name-and-domain-to-email-waterfall-batch r... |
 
 ## Public Types
 

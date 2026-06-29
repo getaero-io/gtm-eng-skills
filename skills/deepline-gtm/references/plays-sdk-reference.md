@@ -186,9 +186,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.111` |
+| SDK version | `0.1.154` |
 | API contract | `2026-06-dataset-handle-results-hard-cutover` |
-| Latest supported SDK | `0.1.111` |
+| Latest supported SDK | `0.1.154` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.53` |
 | Generated sources | `sdk/src/client.ts`<br />`sdk/src/play.ts`<br />`shared_libs/play-runtime/cell-staleness.ts`<br />`shared_libs/play-runtime/tool-result-types.ts`<br />`shared_libs/plays/dataset.ts` |
@@ -633,13 +633,15 @@ Signature: `execute<TOutput = LoosePlayObject>( request: ToolExecutionRequest, )
 Keyword-style request object for `ctx.tools.execute(...)`.
 
 The `tool` value comes from live tool discovery. The `id` is the stable
-logical call name inside this play and participates in replay/idempotency.
+logical call name used for logs, metadata, and receipt attachment. Provider
+call reuse is keyed by play, tool, semantic input, auth scope, provider action
+version, and cache policy.
 
 #### Fields
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-| `id` | `string` | Yes | Stable logical id for this tool call within the play. |
+| `id` | `string` | Yes | Stable logical id for logs, metadata, and receipt attachment. |
 | `tool` | `string` | Yes | Current tool id from `deepline tools search` / `deepline tools describe`. |
 | `input` | `Record<string, unknown>` | Yes | JSON-serializable provider/tool input object. |
 | `description` | `string` | No | Human-readable description for logs and run inspection. |
