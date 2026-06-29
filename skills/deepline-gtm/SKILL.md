@@ -247,7 +247,7 @@ Strict format contract (blocking):
 1. Use the exact four section headers: Assumptions, CSV Preview (ASCII), Credits + Scope + Cap, Approval Question.
 2. If any required section is missing, remain in `AWAIT_APPROVAL` and do not run paid/cost-unknown actions.
 3. Only transition to `FULL_RUN` after an explicit user confirmation to the approval question.
-4. `run_javascript` is the non-AI path. `aiinference` is for general classification/structured reasoning, and `deeplineagent` is for context gathering / web research / signal extraction.
+4. `run_javascript` is the non-AI path. `ai_inference` is for general classification/structured reasoning, and `deeplineagent` is for context gathering / web research / signal extraction.
 
 Approval template:
 
