@@ -301,6 +301,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-play-run-runtime-release-tuple-routing` | Persists and reuses an internal runtime release tuple for POST /api/v2/plays/run so admitted runs keep their original coordinator URL and Cloudflare runtime version while new runs can move to a hash-scoped release. This is server-side ro... |
 | `2026-06-sdk-enrich-partial-export-recovery` | Fixes SDK CLI `deepline enrich` generated play source and CSV writeback so generated enrich rows carry a stripped source-row marker, sparse failed provider rows can merge back into the selected source CSV without dropping unprocessed row... |
 | `2026-06-execute-normalize-quoted-json-containers` | Fixes execute-result normalization so quoted JSON object/array strings are decoded before tool output reaches play runtime sheets. This preserves the existing SDK/API route paths, request shapes, response envelopes, auth semantics, comma... |
 | `2026-06-sdk-play-start-timeout-terminal-reconcile` | Fixes SDK CLI `deepline plays run --watch` and play-backed `deepline enrich` start-stream timeout handling so, when the start stream has already reported a run id, the CLI performs one final durable run-status read before throwing PLAY_W... |
@@ -308,7 +309,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-06-sdk-run-export-all-row-mode` | Adds an optional rowMode=all query parameter to GET /api/v2/plays/:name/sheet and SDK runs.exportDatasetRows so SDK CLI run export and enrich CSV writeback can fetch every persisted row for a specific run when reconciling completed outpu... |
 | `2026-06-sdk-sheet-batch-post-row-mode` | Extends the existing POST /api/v2/plays/:name/sheet batch viewport endpoint to accept the same optional rowMode=all selector as the GET sheet endpoint, and narrows all-row reads to terminal persisted rows (enriched or failed) so exports... |
 | `2026-06-deeplineagent-provider-options-discovery` | Adds GET /api/v2/models/describe plus the SDK describeModel helper and SDK CLI `tools describe deeplineagent --model <provider/model>` discovery path for Deepline Agent model/provider option metadata. This is an additive discovery-only e... |
-| `2026-06-play-run-runtime-deploy-version-routing` | Threads an internal runtimeDeployVersion through POST /api/v2/plays/run start and immediate wait-for-completion handling so same-run coordinator calls can stay pinned to the Cloudflare Worker version that accepted the run while newer run... |
 
 ## Public Types
 
