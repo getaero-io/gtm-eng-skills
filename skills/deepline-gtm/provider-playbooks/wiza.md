@@ -4,6 +4,10 @@
 
 Wiza for LinkedIn → email/phone enrichment. Key advantage over ContactOut: **accepts Sales Navigator and LinkedIn Recruiter URLs** in addition to standard LinkedIn profile URLs. Strong for outbound teams with Sales Nav lists.
 
+Wiza is backed by the upstream OpenAPI contract. Prefer OpenAPI-native payloads
+for new work; Deepline still accepts older aliases and normalizes them before
+the provider request.
+
 ## Provider characteristics
 
 - **Input required**: LinkedIn URL (including Sales Nav), email, or name+company
@@ -20,7 +24,9 @@ Starts an async enrichment job and polls until finished. Accepts any LinkedIn UR
 
 ```json
 {
-  "linkedin_url": "https://www.linkedin.com/in/johndoe",
+  "individual_reveal": {
+    "profile_url": "https://www.linkedin.com/in/johndoe"
+  },
   "enrichment_level": "partial"
 }
 ```
@@ -29,9 +35,13 @@ For personal emails only:
 
 ```json
 {
-  "linkedin_url": "https://www.linkedin.com/in/johndoe",
+  "individual_reveal": {
+    "profile_url": "https://www.linkedin.com/in/johndoe"
+  },
   "enrichment_level": "partial",
-  "email_options": "personal"
+  "email_options": {
+    "accept_personal": true
+  }
 }
 ```
 
@@ -41,7 +51,9 @@ For phones + emails:
 
 ```json
 {
-  "linkedin_url": "https://www.linkedin.com/in/johndoe",
+  "individual_reveal": {
+    "profile_url": "https://www.linkedin.com/in/johndoe"
+  },
   "enrichment_level": "full"
 }
 ```
@@ -64,10 +76,10 @@ Discover prospects by job title, level, company, industry, location. **Free** �
 ```json
 {
   "filters": {
-    "job_title": "VP of Sales",
-    "job_level": "vp",
-    "company_industry": "SaaS",
-    "person_location": "United States"
+    "job_title": [{ "v": "VP of Sales", "s": "i" }],
+    "job_title_level": ["VP"],
+    "company_industry": [{ "v": "SaaS", "s": "i" }],
+    "location": [{ "v": "United States", "b": "country", "s": "i" }]
   }
 }
 ```
@@ -95,3 +107,4 @@ Typical flow: search → get LinkedIn URLs → feed into `wiza_reveal_person` to
 - Don't use Wiza defaults for a personal-email-only workflow; pass `email_options: "personal"` to avoid work/generic email lookup.
 - Don't skip polling — reveals are async, status starts as "queued"
 - Don't expect more than 30 results from search per call
+- Don't send a bare location string in new code; use `{ "v": "...", "b": "city|state|country", "s": "i" }`. Legacy `person_location: "New York"` remains accepted and becomes `{ "v": "New York, New York, United States", "b": "city", "s": "i" }`.
