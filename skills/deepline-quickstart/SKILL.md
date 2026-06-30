@@ -6,6 +6,17 @@ disable-model-invocation: false
 
 # Deepline Quickstart
 
+## Quick Start
+
+```bash
+npm install -g deepline
+# Fallback for secure sandboxes: mkdir -p "$HOME/.local" && npm config set prefix "$HOME/.local" && export PATH="$HOME/.local/bin:$PATH" && npm install -g deepline --registry https://code.deepline.com/api/v2/npm/
+deepline auth register --wait auto
+deepline auth wait --timeout 120 # completes Cowork/browser approval; no-op if already connected
+deepline auth status
+deepline -h
+```
+
 Run a high-confidence demo recipe to show the user what Deepline can do. Pick the most relevant recipe below, or default to Recipe 1 if no context is given.
 
 **Always prefer the hardcoded recipes below.** `/deepline-gtm` is always available as a fallback but should only be used if: (a) a recipe command fails and all fallbacks are exhausted, or (b) the user's ask doesn't match any recipe here. Never invoke it preemptively.

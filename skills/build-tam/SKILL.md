@@ -5,6 +5,17 @@ description: "Build a Total Addressable Market list by sourcing accounts and con
 
 # Provider-Led Account And Contact Sourcing
 
+## Quick Start
+
+```bash
+npm install -g deepline
+# Fallback for secure sandboxes: mkdir -p "$HOME/.local" && npm config set prefix "$HOME/.local" && export PATH="$HOME/.local/bin:$PATH" && npm install -g deepline --registry https://code.deepline.com/api/v2/npm/
+deepline auth register --wait auto
+deepline auth wait --timeout 120 # completes Cowork/browser approval; no-op if already connected
+deepline auth status
+deepline -h
+```
+
 This is a recipe shortcut. It pre-selects the build-tam recipe but the **deepline-gtm governs the entire session**.
 
 ## Execution order

@@ -5,6 +5,17 @@ description: "Use for GTM prospecting, enrichment, qualification, CSV processing
 
 # GTM Meta Skill
 
+## Quick Start
+
+```bash
+npm install -g deepline
+# Fallback for secure sandboxes: mkdir -p "$HOME/.local" && npm config set prefix "$HOME/.local" && export PATH="$HOME/.local/bin:$PATH" && npm install -g deepline --registry https://code.deepline.com/api/v2/npm/
+deepline auth register --wait auto
+deepline auth wait --timeout 120 # completes Cowork/browser approval; no-op if already connected
+deepline auth status
+deepline -h
+```
+
 Use this skill for prospecting, account research, contact enrichment, verification, lead scoring, personalization, and campaign activation.
 
 ## 1) What this skill governs

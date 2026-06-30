@@ -5,6 +5,17 @@ description: "Use this skill when building, enriching, auditing, or uploading B2
 
 # Deepline Ads Audiences
 
+## Quick Start
+
+```bash
+npm install -g deepline
+# Fallback for secure sandboxes: mkdir -p "$HOME/.local" && npm config set prefix "$HOME/.local" && export PATH="$HOME/.local/bin:$PATH" && npm install -g deepline --registry https://code.deepline.com/api/v2/npm/
+deepline auth register --wait auto
+deepline auth wait --timeout 120 # completes Cowork/browser approval; no-op if already connected
+deepline auth status
+deepline -h
+```
+
 Build high-quality ABM paid ads audiences from first-party customer or prospect lists. This skill is for paid ads audience upload and evaluation, not outbound.
 
 Names in this skill are starting hints. Run `deepline tools search audience --json` and `deepline tools describe <tool_id> --json` before executing because tool names and payload shapes can change.

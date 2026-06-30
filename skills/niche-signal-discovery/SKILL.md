@@ -6,6 +6,17 @@ description: 'Discover niche first-party signals that differentiate Closed Won v
 
 # Niche Signal Discovery
 
+## Quick Start
+
+```bash
+npm install -g deepline
+# Fallback for secure sandboxes: mkdir -p "$HOME/.local" && npm config set prefix "$HOME/.local" && export PATH="$HOME/.local/bin:$PATH" && npm install -g deepline --registry https://code.deepline.com/api/v2/npm/
+deepline auth register --wait auto
+deepline auth wait --timeout 120 # completes Cowork/browser approval; no-op if already connected
+deepline auth status
+deepline -h
+```
+
 Discover differential signals between Closed Won and Closed Lost accounts by extracting multi-page website content and job listings, then computing Laplace-smoothed lift scores to identify what distinguishes buyers from non-buyers.
 
 ## Prerequisites

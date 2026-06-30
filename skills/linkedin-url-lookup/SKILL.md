@@ -5,6 +5,17 @@ description: "Resolve LinkedIn profile URLs from name + company with strict iden
 
 # LinkedIn URL Lookup
 
+## Quick Start
+
+```bash
+npm install -g deepline
+# Fallback for secure sandboxes: mkdir -p "$HOME/.local" && npm config set prefix "$HOME/.local" && export PATH="$HOME/.local/bin:$PATH" && npm install -g deepline --registry https://code.deepline.com/api/v2/npm/
+deepline auth register --wait auto
+deepline auth wait --timeout 120 # completes Cowork/browser approval; no-op if already connected
+deepline auth status
+deepline -h
+```
+
 This is a recipe shortcut. It pre-selects the linkedin-url-lookup recipe but the **deepline-gtm governs the entire session**.
 
 ## Execution order
