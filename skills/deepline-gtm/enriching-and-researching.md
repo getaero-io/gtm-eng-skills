@@ -250,7 +250,7 @@ Example:
 
 ```bash
 deepline enrich --input accounts.csv --output accounts_with_contacts.csv --name company-persona-pilot --rows 0:1 \
-  --with '{"alias":"role_contacts","tool":"company-to-contact","payload":{"company_name":"{{company_name}}","domain":"{{domain}}","roles":"{{roles}}","seniority":"{{seniority}}"}}'
+  --with '{"alias":"role_contacts","tool":"company-to-contact","payload":{"company_name":"{{company_name}}","domain":"{{domain}}","roles":["{{roles}}"],"seniority":"{{seniority}}"}}'
 ```
 
 Apify example:
