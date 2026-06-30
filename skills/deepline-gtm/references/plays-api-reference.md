@@ -288,6 +288,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-sdk-enrich-failed-run-csv-recovery` | Fixes SDK CLI `deepline enrich` CSV export so failed generated-enrich runs with an empty terminal preview but an identified deepline_enrich_rows durable table fetch all persisted backing rows before deciding whether the selected CSV rang... |
 | `2026-06-play-run-hatchet-deploy-admission` | Adds Hatchet-only deploy admission checks and durable start-admission serialization to POST /api/v2/plays/run so new Hatchet starts receive a bounded HTTP 503 with Retry-After while the Fly runtime worker is draining/deploying, and emits... |
 | `2026-06-sdk-enrich-rate-limit-chunking-in-place-safety` | Bounds SDK CLI play-backed `deepline enrich` provider retry storms by chunking small tool/child-play maps across Worker invocations, limiting bare provider 429s without Retry-After to two local attempts with shared provider backpressure,... |
 | `2026-06-play-run-runtime-release-tuple-routing` | Persists and reuses an internal runtime release tuple for POST /api/v2/plays/run so admitted runs keep their original coordinator URL and Cloudflare runtime version while new runs can move to a hash-scoped release. This is server-side ro... |
@@ -295,7 +296,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-06-execute-normalize-quoted-json-containers` | Fixes execute-result normalization so quoted JSON object/array strings are decoded before tool output reaches play runtime sheets. This preserves the existing SDK/API route paths, request shapes, response envelopes, auth semantics, comma... |
 | `2026-06-sdk-play-start-timeout-terminal-reconcile` | Fixes SDK CLI `deepline plays run --watch` and play-backed `deepline enrich` start-stream timeout handling so, when the start stream has already reported a run id, the CLI performs one final durable run-status read before throwing PLAY_W... |
 | `2026-06-failed-run-summary-export-row-mode` | Aligns failed-run Run Response Package dataset summaries with the existing `runs export` all-row contract: recovered terminal run packages now load durable sheet summaries with rowMode=all so rowCount and rowCounts.persisted match the CS... |
-| `2026-06-sdk-run-export-all-row-mode` | Adds an optional rowMode=all query parameter to GET /api/v2/plays/:name/sheet and SDK runs.exportDatasetRows so SDK CLI run export and enrich CSV writeback can fetch every persisted row for a specific run when reconciling completed outpu... |
 
 ## Public Types
 
