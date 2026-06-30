@@ -12,4 +12,20 @@ Default pattern:
 - Serper Maps for discovery and query tuning.
 - OpenWebNinja Local Business for the structured list you will enrich or export.
 
+Contact-email recovery pattern:
+
+- Start with Maps identity and the business website/contact page when the row has a normal homepage.
+- Treat Facebook and Instagram profiles as optional candidate sources, not mandatory steps. Consider them when the row's only website is a social profile, the official site is missing/thin, or a pilot/ground-truth sample suggests contact emails are in Facebook About blocks, Instagram profile contact fields, bios, link-in-bio pages, or recent posts.
+- Search ScrapeCreators without over-constraining to a category if profile tools are not showing up in the first pass:
+
+```bash
+deepline tools search "facebook profile email scrapecreators" --json
+deepline tools search "instagram profile bio email scrapecreators" --json
+deepline tools search scrapecreators --json
+```
+
+- If available, test `scrapecreators_facebook_profile`, `scrapecreators_facebook_profile_posts`, `scrapecreators_instagram_profile`, and `scrapecreators_instagram_user_posts` on a tiny sample before scaling. Fall back to Serper/Firecrawl/Apify or direct website extraction when no managed profile route fits.
+- Add audit columns such as `facebook_url`, `instagram_url`, `social_email`, `social_email_source`, `social_identity_evidence`, and `social_contact_confidence` instead of overwriting the canonical email directly.
+- Accept social profile contact data only when the profile identity matches at least two of business name, address, phone, website/menu/booking link, or Maps profile.
+
 Pilot first on one query and a small limit before scaling.

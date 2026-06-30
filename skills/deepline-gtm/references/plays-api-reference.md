@@ -364,6 +364,7 @@ Includes matching tools plus render/action hints used by the CLI and agents.
 | `search_terms` | `string[]` | No | Parsed search terms. |
 | `search_mode` | `'v1' \| 'v2'` | No | Search mode used. |
 | `search_fallback_to_category` | `boolean` | No | Whether search fell back to category matching. |
+| `emptyResult` | `{ reason: string; message: string; suggestions: Array<{ label: string; command: string; }>; }` | No | Explanation and next commands when filters/search succeed but match zero tools. |
 | `omitted_plays_hint` | `string` | No | Hint explaining omitted play results when searching tools only. |
 | `commandTemplates` | `{ describe?: string; execute?: string; }` | No | Copyable CLI command templates for follow-up discovery/execution. |
 | `render` | `{ sections?: Array<{ title: string; lines: string[]; }>; actions?: Array<{ label: string; command: string; }>; }` | No | Pre-rendered sections and actions for CLI/agent display. |
