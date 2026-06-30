@@ -7,7 +7,7 @@ description: "Use this skill when building, enriching, auditing, or uploading B2
 
 Build high-quality ABM paid ads audiences from first-party customer or prospect lists. This skill is for paid ads audience upload and evaluation, not outbound.
 
-Names in this skill are starting hints. Run `deepline tools search audience --json` and `deepline tools get <tool_id> --json` before executing because tool names and payload shapes can change.
+Names in this skill are starting hints. Run `deepline tools search audience --json` and `deepline tools describe <tool_id> --json` before executing because tool names and payload shapes can change.
 
 ## Before You Start
 
@@ -58,7 +58,14 @@ Never silently downgrade a `max_coverage` request to `cost_effective`. If a prov
 
 This skill includes copyable play templates under `plays/`. Use them when the user asks for a repeatable or shareable workflow, not just a one-off CLI run.
 
-Use the V2 play path when `deepline plays --help` is available. Use the V1 command path in `recipes/enrich-and-upload-facebook-google.md` when the installed CLI only supports `deepline enrich`, `deepline tools`, or legacy workflow commands. If neither path can run, stop and ask for the Deepline CLI or SDK CLI to be installed instead of approximating the upload.
+Before running a template, check the installed surface when it is unclear:
+
+```bash
+deepline --help
+deepline plays --help
+```
+
+Use `deepline plays` for the bundled templates. If `deepline plays` is unavailable, stop and ask for the Deepline SDK CLI to be installed or updated instead of approximating the upload through older command paths.
 
 | Play                                                      | Purpose                                                                                                                                                        | Input                                                                                                                                                                     |
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -172,7 +179,7 @@ This lets the user evaluate whether enrichment improved upload coverage without 
 
 When LinkedIn URLs are needed before personal-email/hash enrichment, use a measured query ladder instead of one exact-company query. In a high-priority ABM eval sample, exact account-name search recovered the known URL in the top five for `51.7%` of rows, while the account-or-LinkedIn-company query recovered `65.8%`. Quoted domain search was much worse (`5.8%`) and should not be a first-pass default.
 
-Start with the native `name_to_linkedin_url_waterfall` / `name-to-linkedin-url` play when available. It cleans company anchors with the same helper used by the API:
+Start with the native `person-to-linkedin` play when available. It cleans company anchors with the same helper used by the API:
 
 - `RTX Corporation` → `RTX`
 - `Lockheed Martin Corporation` → `Lockheed Martin`

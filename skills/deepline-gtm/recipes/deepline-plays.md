@@ -16,7 +16,7 @@ Read budget: normal tasks should use this recipe plus at most one plays referenc
 | A single existing prebuilt exactly solves the request                           | `deepline plays search` -> `deepline plays describe` -> direct `deepline plays run` |
 | Ordinary row enrichment, waterfall columns, CSV processing, or per-row research | `enriching-and-researching.md` and `deepline enrich`                                |
 | Company/contact/TAM sourcing strategy                                           | `finding-companies-and-contacts.md` and matching GTM recipe                         |
-| Persisted webhook/cron-style automation, orchestration, or fanout               | Stay in this recipe and author a custom play; do not use the legacy workflows command family |
+| Persisted webhook/cron-style automation, orchestration, or fanout               | Stay in this recipe and author a custom play with explicit inputs, idempotency, and run/export behavior |
 | Exact SDK or HTTP syntax is the only question                                   | Load the generated reference named in Exact Syntax Escrow below                     |
 
 ## Core Loop
