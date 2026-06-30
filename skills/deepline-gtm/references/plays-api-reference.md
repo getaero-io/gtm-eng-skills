@@ -288,6 +288,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-sdk-enrich-cell-meta-failure-reports` | Fixes SDK CLI `deepline enrich` CSV export and failure-report generation for durable sheet rows whose failed-cell details are carried in existing runtime cell metadata such as __deeplineCellMeta or __deeplineCellMetaPatch. This is compat... |
 | `2026-06-sdk-enrich-failed-run-csv-recovery` | Fixes SDK CLI `deepline enrich` CSV export so failed generated-enrich runs with an empty terminal preview but an identified deepline_enrich_rows durable table fetch all persisted backing rows before deciding whether the selected CSV rang... |
 | `2026-06-play-run-hatchet-deploy-admission` | Adds Hatchet-only deploy admission checks and durable start-admission serialization to POST /api/v2/plays/run so new Hatchet starts receive a bounded HTTP 503 with Retry-After while the Fly runtime worker is draining/deploying, and emits... |
 | `2026-06-sdk-enrich-rate-limit-chunking-in-place-safety` | Bounds SDK CLI play-backed `deepline enrich` provider retry storms by chunking small tool/child-play maps across Worker invocations, limiting bare provider 429s without Retry-After to two local attempts with shared provider backpressure,... |
@@ -295,7 +296,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-06-sdk-enrich-partial-export-recovery` | Fixes SDK CLI `deepline enrich` generated play source and CSV writeback so generated enrich rows carry a stripped source-row marker, sparse failed provider rows can merge back into the selected source CSV without dropping unprocessed row... |
 | `2026-06-execute-normalize-quoted-json-containers` | Fixes execute-result normalization so quoted JSON object/array strings are decoded before tool output reaches play runtime sheets. This preserves the existing SDK/API route paths, request shapes, response envelopes, auth semantics, comma... |
 | `2026-06-sdk-play-start-timeout-terminal-reconcile` | Fixes SDK CLI `deepline plays run --watch` and play-backed `deepline enrich` start-stream timeout handling so, when the start stream has already reported a run id, the CLI performs one final durable run-status read before throwing PLAY_W... |
-| `2026-06-failed-run-summary-export-row-mode` | Aligns failed-run Run Response Package dataset summaries with the existing `runs export` all-row contract: recovered terminal run packages now load durable sheet summaries with rowMode=all so rowCount and rowCounts.persisted match the CS... |
 
 ## Public Types
 
