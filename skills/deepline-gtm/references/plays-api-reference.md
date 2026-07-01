@@ -288,6 +288,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-runtime-sheet-db-scoped-dashboard-read` | Removes the dashboard-only run-scoped filtering path from GET/POST /api/v2/plays/:name/sheet so runtime sheet grids always read the durable DB-scoped table and use row run metadata only for UI decoration. This is compatible app-owned she... |
 | `2026-07-sdk-enrich-scaled-company-contact-reliability` | Fixes SDK CLI `deepline enrich --in-place` scaled play-backed execution by lowering auto-batch size for heavy company-to-contact plays, preserving recoverable CSV rows and failure reports across partial auto-batch failures, and extending... |
 | `2026-06-play-run-fixture-integration-mode` | Adds an optional integrationMode field to POST /api/v2/plays/run for strictly opt-in fixture/eval execution in non-production test contexts, plus matching SDK CLI opt-in plumbing. This is additive request metadata only: route path, metho... |
 | `2026-06-run-backed-live-canvas-static-pipeline` | Fills the existing optional pipeline field on GET /api/v2/plays/:name/live?mode=canvas from the newest run staticPipeline when a file/CLI-launched play is still run-backed and has no saved play definition. This is additive dashboard canv... |
@@ -295,7 +296,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-06-sdk-cowork-skip-agent-skills-sync` | Skips SDK CLI agent-skill auto-sync when the runtime is detected as Claude Cowork, keeps auth status guidance on `deepline auth register --wait auto`, and treats exact `/sessions` homes/session-scoped feedback as Cowork for attribution.... |
 | `2026-06-sdk-enrich-cell-meta-failure-reports` | Fixes SDK CLI `deepline enrich` CSV export and failure-report generation for durable sheet rows whose failed-cell details are carried in existing runtime cell metadata such as __deeplineCellMeta or __deeplineCellMetaPatch. This is compat... |
 | `2026-06-sdk-enrich-failed-run-csv-recovery` | Fixes SDK CLI `deepline enrich` CSV export so failed generated-enrich runs with an empty terminal preview but an identified deepline_enrich_rows durable table fetch all persisted backing rows before deciding whether the selected CSV rang... |
-| `2026-06-play-run-hatchet-deploy-admission` | Adds Hatchet-only deploy admission checks and durable start-admission serialization to POST /api/v2/plays/run so new Hatchet starts receive a bounded HTTP 503 with Retry-After while the Fly runtime worker is draining/deploying, and emits... |
 
 ## Public Types
 
