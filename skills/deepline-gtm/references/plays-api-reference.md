@@ -288,6 +288,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-06-play-run-fixture-integration-mode` | Adds an optional integrationMode field to POST /api/v2/plays/run for strictly opt-in fixture/eval execution in non-production test contexts, plus matching SDK CLI opt-in plumbing. This is additive request metadata only: route path, metho... |
 | `2026-06-run-backed-live-canvas-static-pipeline` | Fills the existing optional pipeline field on GET /api/v2/plays/:name/live?mode=canvas from the newest run staticPipeline when a file/CLI-launched play is still run-backed and has no saved play definition. This is additive dashboard canv... |
 | `2026-07-play-live-qualified-owned-ref-fallback` | Allows GET /api/v2/plays/:name/live to resolve qualified owned play references such as owner-slug/play-name by falling back to the current-org bare play name when the qualified lookup is missing. This is compatible dashboard/app route re... |
 | `2026-06-sdk-cowork-skip-agent-skills-sync` | Skips SDK CLI agent-skill auto-sync when the runtime is detected as Claude Cowork, keeps auth status guidance on `deepline auth register --wait auto`, and treats exact `/sessions` homes/session-scoped feedback as Cowork for attribution.... |
@@ -295,7 +296,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-06-sdk-enrich-failed-run-csv-recovery` | Fixes SDK CLI `deepline enrich` CSV export so failed generated-enrich runs with an empty terminal preview but an identified deepline_enrich_rows durable table fetch all persisted backing rows before deciding whether the selected CSV rang... |
 | `2026-06-play-run-hatchet-deploy-admission` | Adds Hatchet-only deploy admission checks and durable start-admission serialization to POST /api/v2/plays/run so new Hatchet starts receive a bounded HTTP 503 with Retry-After while the Fly runtime worker is draining/deploying, and emits... |
 | `2026-06-sdk-enrich-rate-limit-chunking-in-place-safety` | Bounds SDK CLI play-backed `deepline enrich` provider retry storms by chunking small tool/child-play maps across Worker invocations, limiting bare provider 429s without Retry-After to two local attempts with shared provider backpressure,... |
-| `2026-06-play-run-runtime-release-tuple-routing` | Persists and reuses an internal runtime release tuple for POST /api/v2/plays/run so admitted runs keep their original coordinator URL and Cloudflare runtime version while new runs can move to a hash-scoped release. This is server-side ro... |
 
 ## Public Types
 
@@ -424,6 +424,7 @@ Either `name` (for live plays) or `artifactStorageKey` (for packaged ad hoc runs
 | `force` | `boolean` | No | Compatibility flag; active sibling runs are allowed. |
 | `waitForCompletionMs` | `number` | No | Optionally let the start request wait briefly and return a terminal result. |
 | `profile` | `string` | No | Per-run execution profile override. The server defaults to workers_edge;<br />tests and runtime probes can pass a different profile here. Most callers<br />should leave this unset. |
+| `integrationMode` | `'live' \| 'eval_stub' \| 'fixture'` | No | Optional per-run provider execution mode for eval/smoke runs. |
 
 
 ### `PlayRunStart`
