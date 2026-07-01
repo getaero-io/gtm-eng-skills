@@ -650,6 +650,8 @@ version, and cache policy.
 | `description` | `string` | No | Human-readable description for logs and run inspection. |
 | `force` | `boolean` | No | Recompute this tool call instead of reusing a durable receipt/checkpoint. |
 | `staleAfterSeconds` | `number` | No | Numeric TTL in seconds for this tool checkpoint. |
+| `timeoutMs` | `number` | No | Runtime transport timeout in milliseconds. This is not sent to the provider. |
+| `receiptWaitMs` | `number` | No | Follower wait budget in milliseconds before a running receipt is reclaimable. |
 
 
 ### `ctx.fetch(key, url, init)`
