@@ -288,6 +288,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-sdk-play-start-runid-normalization` | Normalizes POST /api/v2/plays/run start responses that already contain the public runId field so SDK clients also populate the canonical PlayRunStart.workflowId alias. This is compatible SDK client boundary behavior only: route paths, me... |
 | `2026-07-runtime-sheet-db-scoped-dashboard-read` | Removes the dashboard-only run-scoped filtering path from GET/POST /api/v2/plays/:name/sheet so runtime sheet grids always read the durable DB-scoped table and use row run metadata only for UI decoration. This is compatible app-owned she... |
 | `2026-07-sdk-enrich-scaled-company-contact-reliability` | Fixes SDK CLI `deepline enrich --in-place` scaled play-backed execution by lowering auto-batch size for heavy company-to-contact plays, preserving recoverable CSV rows and failure reports across partial auto-batch failures, and extending... |
 | `2026-06-play-run-fixture-integration-mode` | Adds an optional integrationMode field to POST /api/v2/plays/run for strictly opt-in fixture/eval execution in non-production test contexts, plus matching SDK CLI opt-in plumbing. This is additive request metadata only: route path, metho... |
@@ -295,7 +296,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-07-play-live-qualified-owned-ref-fallback` | Allows GET /api/v2/plays/:name/live to resolve qualified owned play references such as owner-slug/play-name by falling back to the current-org bare play name when the qualified lookup is missing. This is compatible dashboard/app route re... |
 | `2026-06-sdk-cowork-skip-agent-skills-sync` | Skips SDK CLI agent-skill auto-sync when the runtime is detected as Claude Cowork, keeps auth status guidance on `deepline auth register --wait auto`, and treats exact `/sessions` homes/session-scoped feedback as Cowork for attribution.... |
 | `2026-06-sdk-enrich-cell-meta-failure-reports` | Fixes SDK CLI `deepline enrich` CSV export and failure-report generation for durable sheet rows whose failed-cell details are carried in existing runtime cell metadata such as __deeplineCellMeta or __deeplineCellMetaPatch. This is compat... |
-| `2026-06-sdk-enrich-failed-run-csv-recovery` | Fixes SDK CLI `deepline enrich` CSV export so failed generated-enrich runs with an empty terminal preview but an identified deepline_enrich_rows durable table fetch all persisted backing rows before deciding whether the selected CSV rang... |
 
 ## Public Types
 
