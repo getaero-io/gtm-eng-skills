@@ -75,7 +75,12 @@ for free; people-search is for when you already know the persona and need volume
   - Inside `run_javascript`, use the persisted row shape:
     `row.titles.output.titles` and
     `row.icp_match.result.object.matched_titles` / `row.icp_match.extracted_json.matched_titles`.
-  - When injecting the flattened array into a later payload, **quote the placeholder**:
+  - `title_lists[].titles` must be a real array at execution time, not a CSV string
+    that looks like JSON. If a CSV-sourced cell still reaches `search_contact` as
+    a string like `["VP Sales"]`, Deepline rejects it with a pre-provider `422 value must be
+    an array`; that should not bill. Add a `run_javascript` parse/materialize pass
+    immediately before `search_contact` when needed.
+  - When injecting a live array-valued cell into a later payload, **quote the placeholder**:
     `"titles": "{{matched_titles}}"` (the interpolator substitutes the real array).
 
 ## Pipeline

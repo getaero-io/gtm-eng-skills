@@ -14,7 +14,7 @@
 ## Provider Positioning
 
 - **`job_change`**: preferred job-change provider — charges only on confirmed moves.
-- **`search_contact`**: secondary people search. **Not free** — `0.56` Deepline credits per contact returned (free only when zero contacts come back). **Dropleads is the default people search and is free per call.** Use `search_contact` only when dropleads fails or is unavailable. Not yet tested enough to be the primary path.
+- **`search_contact`**: secondary people search. **Not free** — `0.56` Deepline credits per contact returned on successful calls. Zero returned contacts are free. Deepline `422` schema validation errors are rejected before provider execution and should not bill. **Dropleads is the default people search and is free per call.** Use `search_contact` only when dropleads fails or is unavailable. Not yet tested enough to be the primary path.
 - **`prospector` / `enrich_contact`**: use when Dropleads coverage is insufficient for the target segment.
 - **`enrich_company`**: `0.98` Deepline credits per call. Use when firmographic data is required and other sources have been exhausted.
 
@@ -66,7 +66,7 @@
 
 - **Not the default people search — dropleads is.** Use as a fallback when dropleads fails or returns no results.
 - Uses the dedicated Waterfall search key/budget (`60 RPM`), separate from the higher-throughput enrichment key.
-- **Pricing: `0.56` Deepline credits per contact returned (post-deduct, billed on success). Free only when zero results come back.** A `page_size: 10` call that returns 10 contacts costs `5.6` credits — keep `page_size` small (`1-3`) for targeted lookups.
+- **Pricing: `0.56` Deepline credits per contact returned (post-deduct, billed on success). Zero returned contacts are free. Deepline `422` schema validation errors, such as `title_lists[0].titles` not being an array, happen before provider execution and should not bill.** A `page_size: 10` call that returns 10 contacts costs `5.6` credits — keep `page_size` small (`1-3`) for targeted lookups.
 - Synchronous. Returns LinkedIn URLs only — email and phone are always redacted.
 - Treat it as a company-scoped LinkedIn candidate finder, not a clean org-chart API. It is good at surfacing plausible current people at a company, but broad title queries can still return adjacent or support roles.
 - Follow up with `enrich_contact` to get email/phone for returned LinkedIn URLs.
