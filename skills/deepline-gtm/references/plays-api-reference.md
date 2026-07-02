@@ -288,14 +288,14 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-play-run-force-cache-bypass` | Adds the optional POST /api/v2/plays/run forceToolRefresh flag for runtime-sheet row preparation and ctx.tools.execute durable receipt refresh, and updates the SDK CLI `deepline plays run --force` implementation to send it alongside the... |
 | `2026-07-sdk-play-start-runid-normalization` | Normalizes POST /api/v2/plays/run start responses that already contain the public runId field so SDK clients also populate the canonical PlayRunStart.workflowId alias. This is compatible SDK client boundary behavior only: route paths, me... |
+| `2026-07-sdk-compile-manifest-response-validation` | Hardens SDK client compilePlayManifest response handling by treating 2xx responses that omit compilerManifest as retryable malformed compile responses and, after retries, surfacing a precise API_RESPONSE_INVALID error with the bad respon... |
 | `2026-07-runtime-sheet-db-scoped-dashboard-read` | Removes the dashboard-only run-scoped filtering path from GET/POST /api/v2/plays/:name/sheet so runtime sheet grids always read the durable DB-scoped table and use row run metadata only for UI decoration. This is compatible app-owned she... |
 | `2026-07-sdk-enrich-scaled-company-contact-reliability` | Fixes SDK CLI `deepline enrich --in-place` scaled play-backed execution by lowering auto-batch size for heavy company-to-contact plays, preserving recoverable CSV rows and failure reports across partial auto-batch failures, and extending... |
 | `2026-06-play-run-fixture-integration-mode` | Adds an optional integrationMode field to POST /api/v2/plays/run for strictly opt-in fixture/eval execution in non-production test contexts, plus matching SDK CLI opt-in plumbing. This is additive request metadata only: route path, metho... |
 | `2026-06-run-backed-live-canvas-static-pipeline` | Fills the existing optional pipeline field on GET /api/v2/plays/:name/live?mode=canvas from the newest run staticPipeline when a file/CLI-launched play is still run-backed and has no saved play definition. This is additive dashboard canv... |
 | `2026-07-play-live-qualified-owned-ref-fallback` | Allows GET /api/v2/plays/:name/live to resolve qualified owned play references such as owner-slug/play-name by falling back to the current-org bare play name when the qualified lookup is missing. This is compatible dashboard/app route re... |
-| `2026-06-sdk-cowork-skip-agent-skills-sync` | Skips SDK CLI agent-skill auto-sync when the runtime is detected as Claude Cowork, keeps auth status guidance on `deepline auth register --wait auto`, and treats exact `/sessions` homes/session-scoped feedback as Cowork for attribution.... |
-| `2026-06-sdk-enrich-cell-meta-failure-reports` | Fixes SDK CLI `deepline enrich` CSV export and failure-report generation for durable sheet rows whose failed-cell details are carried in existing runtime cell metadata such as __deeplineCellMeta or __deeplineCellMetaPatch. This is compat... |
 
 ## Public Types
 
@@ -422,6 +422,7 @@ Either `name` (for live plays) or `artifactStorageKey` (for packaged ad hoc runs
 | `inputFile` | `unknown` | No | Staged file reference for the primary input file (e.g. CSV). |
 | `packagedFiles` | `unknown[]` | No | Additional staged file references (dependencies, data files). |
 | `force` | `boolean` | No | Compatibility flag; active sibling runs are allowed. |
+| `forceToolRefresh` | `boolean` | No | Explicit cache-bypass flag for durable dataset and tool-call reuse. |
 | `waitForCompletionMs` | `number` | No | Optionally let the start request wait briefly and return a terminal result. |
 | `profile` | `string` | No | Per-run execution profile override. The server defaults to workers_edge;<br />tests and runtime probes can pass a different profile here. Most callers<br />should leave this unset. |
 | `integrationMode` | `'live' \| 'eval_stub' \| 'fixture'` | No | Optional per-run provider execution mode for eval/smoke runs. |
