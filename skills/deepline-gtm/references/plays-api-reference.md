@@ -6,9 +6,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.154` |
+| SDK version | `0.1.175` |
 | API contract | `2026-06-dataset-handle-results-hard-cutover` |
-| Latest supported SDK | `0.1.154` |
+| Latest supported SDK | `0.1.175` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.53` |
 | Generated sources | `src/lib/sdk/api-routes.ts`<br />`sdk/src/types.ts`<br />`sdk/src/client.ts`<br />`sdk/src/release.ts` |
@@ -292,10 +292,10 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-07-sdk-play-start-runid-normalization` | Normalizes POST /api/v2/plays/run start responses that already contain the public runId field so SDK clients also populate the canonical PlayRunStart.workflowId alias. This is compatible SDK client boundary behavior only: route paths, me... |
 | `2026-07-sdk-enrich-ai-rerun-restage` | Fixes SDK CLI `deepline enrich` large reruns for AI-heavy outputs by lowering auto-batch sizing for ai_inference/deeplineagent configs, staging slim per-chunk runtime CSV inputs from only the rows being recomputed, and compacting persist... |
 | `2026-07-sdk-compile-manifest-response-validation` | Hardens SDK client compilePlayManifest response handling by treating 2xx responses that omit compilerManifest as retryable malformed compile responses and, after retries, surfacing a precise API_RESPONSE_INVALID error with the bad respon... |
+| `2026-07-sdk-enrich-empty-waterfall-failure` | Fixes SDK CLI `deepline enrich` reporting so requested waterfall enrichments that execute but produce no meaningful result across the selected rows exit nonzero with an enrich issue preview/report instead of exiting as a silent success,... |
 | `2026-07-runtime-sheet-db-scoped-dashboard-read` | Removes the dashboard-only run-scoped filtering path from GET/POST /api/v2/plays/:name/sheet so runtime sheet grids always read the durable DB-scoped table and use row run metadata only for UI decoration. This is compatible app-owned she... |
 | `2026-07-sdk-enrich-scaled-company-contact-reliability` | Fixes SDK CLI `deepline enrich --in-place` scaled play-backed execution by lowering auto-batch size for heavy company-to-contact plays, preserving recoverable CSV rows and failure reports across partial auto-batch failures, and extending... |
 | `2026-06-play-run-fixture-integration-mode` | Adds an optional integrationMode field to POST /api/v2/plays/run for strictly opt-in fixture/eval execution in non-production test contexts, plus matching SDK CLI opt-in plumbing. This is additive request metadata only: route path, metho... |
-| `2026-06-run-backed-live-canvas-static-pipeline` | Fills the existing optional pipeline field on GET /api/v2/plays/:name/live?mode=canvas from the newest run staticPipeline when a file/CLI-launched play is still run-backed and has no saved play definition. This is additive dashboard canv... |
 
 ## Public Types
 

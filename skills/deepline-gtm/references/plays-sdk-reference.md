@@ -186,9 +186,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.154` |
+| SDK version | `0.1.175` |
 | API contract | `2026-06-dataset-handle-results-hard-cutover` |
-| Latest supported SDK | `0.1.154` |
+| Latest supported SDK | `0.1.175` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.53` |
 | Generated sources | `sdk/src/client.ts`<br />`sdk/src/play.ts`<br />`shared_libs/play-runtime/cell-staleness.ts`<br />`shared_libs/play-runtime/tool-result-types.ts`<br />`shared_libs/plays/dataset.ts` |
