@@ -288,6 +288,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-sdk-enrich-exa-answer-auto-batch` | Fixes SDK CLI `deepline enrich` row-wise Exa Answer runs by classifying `exa_answer` as an AI-heavy enrich operation for local auto-batch sizing, so large CSV runs split below Worker subrequest limits instead of submitting one oversized... |
 | `2026-07-play-run-force-cache-bypass` | Adds the optional POST /api/v2/plays/run forceToolRefresh flag for runtime-sheet row preparation and ctx.tools.execute durable receipt refresh, and updates the SDK CLI `deepline plays run --force` implementation to send it alongside the... |
 | `2026-07-sdk-play-start-runid-normalization` | Normalizes POST /api/v2/plays/run start responses that already contain the public runId field so SDK clients also populate the canonical PlayRunStart.workflowId alias. This is compatible SDK client boundary behavior only: route paths, me... |
 | `2026-07-sdk-enrich-ai-rerun-restage` | Fixes SDK CLI `deepline enrich` large reruns for AI-heavy outputs by lowering auto-batch sizing for ai_inference/deeplineagent configs, staging slim per-chunk runtime CSV inputs from only the rows being recomputed, and compacting persist... |
@@ -295,7 +296,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-07-sdk-enrich-empty-waterfall-failure` | Fixes SDK CLI `deepline enrich` reporting so requested waterfall enrichments that execute but produce no meaningful result across the selected rows exit nonzero with an enrich issue preview/report instead of exiting as a silent success,... |
 | `2026-07-runtime-sheet-db-scoped-dashboard-read` | Removes the dashboard-only run-scoped filtering path from GET/POST /api/v2/plays/:name/sheet so runtime sheet grids always read the durable DB-scoped table and use row run metadata only for UI decoration. This is compatible app-owned she... |
 | `2026-07-sdk-enrich-scaled-company-contact-reliability` | Fixes SDK CLI `deepline enrich --in-place` scaled play-backed execution by lowering auto-batch size for heavy company-to-contact plays, preserving recoverable CSV rows and failure reports across partial auto-batch failures, and extending... |
-| `2026-06-play-run-fixture-integration-mode` | Adds an optional integrationMode field to POST /api/v2/plays/run for strictly opt-in fixture/eval execution in non-production test contexts, plus matching SDK CLI opt-in plumbing. This is additive request metadata only: route path, metho... |
 
 ## Public Types
 
