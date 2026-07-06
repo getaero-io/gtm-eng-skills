@@ -11,13 +11,13 @@ Read budget: normal tasks should use this recipe plus at most one plays referenc
 
 ## Negative Gates
 
-| If the task is...                                                               | Use instead                                                                         |
-| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| A single existing prebuilt exactly solves the request                           | `deepline plays search` -> `deepline plays describe` -> direct `deepline plays run` |
-| Ordinary row enrichment, waterfall columns, CSV processing, or per-row research | `enriching-and-researching.md` and `deepline enrich`                                |
-| Company/contact/TAM sourcing strategy                                           | `finding-companies-and-contacts.md` and matching GTM recipe                         |
+| If the task is...                                                               | Use instead                                                                                             |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| A single existing prebuilt exactly solves the request                           | `deepline plays search` -> `deepline plays describe` -> direct `deepline plays run`                     |
+| Ordinary row enrichment, waterfall columns, CSV processing, or per-row research | `enriching-and-researching.md` and `deepline enrich`                                                    |
+| Company/contact/TAM sourcing strategy                                           | `finding-companies-and-contacts.md` and matching GTM recipe                                             |
 | Persisted webhook/cron-style automation, orchestration, or fanout               | Stay in this recipe and author a custom play with explicit inputs, idempotency, and run/export behavior |
-| Exact SDK or HTTP syntax is the only question                                   | Load the generated reference named in Exact Syntax Escrow below                     |
+| Exact SDK or HTTP syntax is the only question                                   | Load the generated reference named in Exact Syntax Escrow below                                         |
 
 ## Core Loop
 
@@ -37,7 +37,7 @@ Safe planning-only commands: auth/health/balance, `plays search`, `plays describ
 | Existing play may fit exactly                                       | `deepline plays search "<job words>" --json`, then `deepline plays describe prebuilt/<name> --json` | Input/output/export/pricing/freshness match                 |
 | CSV needs aliases, validation, projection, or joins                 | inspect headers, describe candidate play, then `plays bootstrap` or author wrapper                  | `plays check` and pilot pass                                |
 | Custom multi-tool or multi-play orchestration                       | search/describe each tool/play contract, then author a `.play.ts`                                   | stable ids, durable datasets, and explicit final projection |
-| Webhook/cron-style automation or cloud workflow replacement         | author a custom play with explicit inputs, idempotency, and run/export behavior                     | `plays check`, small pilot, and clear trigger handoff        |
+| Webhook/cron-style automation or cloud workflow replacement         | author a custom play with explicit inputs, idempotency, and run/export behavior                     | `plays check`, small pilot, and clear trigger handoff       |
 | Company -> contacts -> email/phone fanout                           | use GTM sourcing docs first, then compose plays/tools only after the account/contact grain is clear | pilot proves account grain and contact identity             |
 | Billing, rerun, export, cached rows, failed rows, suspicious output | `runs get`, `runs export`, `runs logs`                                                              | no paid rerun until run metadata is understood              |
 
@@ -123,7 +123,8 @@ Authoring rules:
 - Use stable ids for paid work. Rename ids only to refresh wrong/stale provider data or changed semantics.
 - Prefer one paid operation per dataset cell. Put shaping, projection, `status`, `miss_reason`, display fields, and transformations in separate pure columns after the paid column.
 - Return datasets for CSV/exportable outputs.
-- Use declared getters. Do not parse raw payload paths when `extractedValues.*.get()` exists.
+- Use declared getters. Do not parse raw payload paths when `extractedValues.*.get()` or `extractedLists.*.get()` exists.
+- For query tools such as `query_customer_db` and `snowflake_run_query`, treat `toolResponse.raw.rows` as an inline preview/debug field. Use `result.extractedLists.rows.get()` and return that Dataset Handle for full-row export.
 - Project to flat user-facing columns with `status`, `miss_reason`, evidence/source, and requested output fields.
 
 ## Exact Syntax Escrow
