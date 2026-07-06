@@ -261,6 +261,7 @@ while True:
 | `POST` | `/api/v2/cli/send-session` | `sessions send` | SDK-facing route. | `src/app/api/v2/cli/send-session/route.ts` |
 | `POST` | `/api/v2/cli/send-session/chunk` | `sessions send` | SDK-facing route. | `src/app/api/v2/cli/send-session/chunk/route.ts` |
 | `POST` | `/api/v2/cli/send-session/finalize` | `sessions send` | SDK-facing route. | `src/app/api/v2/cli/send-session/finalize/route.ts` |
+| `POST` | `/api/v2/ingestion/repair` | `repairIngestionStorage` | SDK-facing route. | `src/app/api/v2/ingestion/repair/route.ts` |
 | `GET` | `/api/v2/models/describe` | `describeModel` | SDK-facing route. | `src/app/api/v2/models/describe/route.ts`<br />`src/lib/deeplineagent/model-options.ts`<br />`src/lib/deeplineagent/generated/provider-options.ts` |
 | `POST` | `/api/v2/monitors/check` | `monitors check` | SDK-facing route. | `src/app/api/v2/monitors/check/route.ts` |
 | `POST` | `/api/v2/monitors/deploy` | `monitors deploy` | SDK-facing route. | `src/app/api/v2/monitors/deploy/route.ts` |
@@ -275,6 +276,7 @@ while True:
 | `PATCH` | `/api/v2/plays/:name/share` | `updateSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
 | `POST` | `/api/v2/plays/:name/share` | `publishSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
 | `POST` | `/api/v2/plays/:name/share/regenerate` | `regenerateSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/regenerate/route.ts` |
+| `POST` | `/api/v2/plays/files/stage/mint` | `stagePlayFiles`<br />`mintStagedPlayFileUploads` | SDK-facing route. | `src/app/api/v2/plays/files/stage/mint/route.ts` |
 | `GET` | `/api/v2/sdk/compat` | `compat check` | SDK-facing route. | `src/app/api/v2/sdk/compat/route.ts` |
 | `GET` | `/api/v2/secrets` | `secrets list`<br />`secrets check`<br />`listSecrets` | SDK-facing route. | `src/app/api/v2/secrets/route.ts` |
 | `POST` | `/api/v2/secrets` | `secrets set` | SDK-facing route. | `src/app/api/v2/secrets/route.ts` |
@@ -288,14 +290,14 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-plays-files-stage-direct-storage-upload` | Adds the additive POST /api/v2/plays/files/stage/mint route (mintStagedPlayFileUploads client method) that returns per-file presigned R2 PUT targets (or an already-staged ref for content-addressed files the server already holds), and upd... |
+| `2026-07-billed-implies-durable-storage-repair` | Adds the POST /api/v2/ingestion/repair route (repairIngestionStorage client method, `deepline db repair` command) and a structured WORKSPACE_STORAGE_NOT_READY failure code (503 on POST /api/v2/plays/run, plus a normalized run-failure mes... |
+| `2026-07-play-run-coordinator-route-transient-streaming` | Hardens POST /api/v2/plays/run streaming starts so, after a durable run id has already been allocated, uncertain Cloudflare coordinator workflow-route transport failures are surfaced as an interrupted start stream instead of a synthetic... |
 | `2026-07-sdk-enrich-exa-answer-auto-batch` | Fixes SDK CLI `deepline enrich` row-wise Exa Answer runs by classifying `exa_answer` as an AI-heavy enrich operation for local auto-batch sizing, so large CSV runs split below Worker subrequest limits instead of submitting one oversized... |
 | `2026-07-play-run-force-cache-bypass` | Adds the optional POST /api/v2/plays/run forceToolRefresh flag for runtime-sheet row preparation and ctx.tools.execute durable receipt refresh, and updates the SDK CLI `deepline plays run --force` implementation to send it alongside the... |
 | `2026-07-sdk-play-start-runid-normalization` | Normalizes POST /api/v2/plays/run start responses that already contain the public runId field so SDK clients also populate the canonical PlayRunStart.workflowId alias. This is compatible SDK client boundary behavior only: route paths, me... |
 | `2026-07-sdk-enrich-ai-rerun-restage` | Fixes SDK CLI `deepline enrich` large reruns for AI-heavy outputs by lowering auto-batch sizing for ai_inference/deeplineagent configs, staging slim per-chunk runtime CSV inputs from only the rows being recomputed, and compacting persist... |
 | `2026-07-sdk-compile-manifest-response-validation` | Hardens SDK client compilePlayManifest response handling by treating 2xx responses that omit compilerManifest as retryable malformed compile responses and, after retries, surfacing a precise API_RESPONSE_INVALID error with the bad respon... |
-| `2026-07-sdk-enrich-empty-waterfall-failure` | Fixes SDK CLI `deepline enrich` reporting so requested waterfall enrichments that execute but produce no meaningful result across the selected rows exit nonzero with an enrich issue preview/report instead of exiting as a silent success,... |
-| `2026-07-runtime-sheet-db-scoped-dashboard-read` | Removes the dashboard-only run-scoped filtering path from GET/POST /api/v2/plays/:name/sheet so runtime sheet grids always read the durable DB-scoped table and use row run metadata only for UI decoration. This is compatible app-owned she... |
-| `2026-07-sdk-enrich-scaled-company-contact-reliability` | Fixes SDK CLI `deepline enrich --in-place` scaled play-backed execution by lowering auto-batch size for heavy company-to-contact plays, preserving recoverable CSV rows and failure reports across partial auto-batch failures, and extending... |
 
 ## Public Types
 
