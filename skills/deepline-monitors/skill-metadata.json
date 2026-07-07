@@ -1,0 +1,12 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Deepline Monitors (Signal Radars)",
+      "tags": [
+        "recipe"
+      ],
+      "providers": []
+    }
+  }
+}
