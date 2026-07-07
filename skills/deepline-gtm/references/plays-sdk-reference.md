@@ -297,9 +297,16 @@ simple file-backed plays.
 
 Optional trigger bindings for a play.
 
-Plays can be triggered by webhooks (with HMAC signature verification)
-or cron schedules. Bindings are declared as the third argument to
-[definePlay](/sdk-v2/sdk-reference#defineplay).
+A play can be triggered three ways, declared as the third argument to
+[definePlay](/sdk-v2/sdk-reference#defineplay):
+- `webhook` — an inbound HTTP call (with optional HMAC signature verification);
+- `cron` — a schedule; or
+- `sqlListeners` — a **monitor**: the play runs whenever a monitor writes a new
+  row to its output stream. This is how you build a play "on top of" a monitor
+  (e.g. run enrichment every time a watched company posts a new job). Each
+  listener binds to a monitor tool id + one of its output stream keys (see
+  `deepline monitors available <id>` for a tool's streams and row columns).
+  The changed row is delivered to the handler as the listener event's `after`.
 
 #### Fields
 

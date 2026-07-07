@@ -263,14 +263,15 @@ while True:
 | `POST` | `/api/v2/cli/send-session/finalize` | `sessions send` | SDK-facing route. | `src/app/api/v2/cli/send-session/finalize/route.ts` |
 | `POST` | `/api/v2/ingestion/repair` | `repairIngestionStorage` | SDK-facing route. | `src/app/api/v2/ingestion/repair/route.ts` |
 | `GET` | `/api/v2/models/describe` | `describeModel` | SDK-facing route. | `src/app/api/v2/models/describe/route.ts`<br />`src/lib/deeplineagent/model-options.ts`<br />`src/lib/deeplineagent/generated/provider-options.ts` |
+| `GET` | `/api/v2/monitors/access` | `monitors status` | SDK-facing route. | `src/app/api/v2/monitors/access/route.ts` |
 | `POST` | `/api/v2/monitors/check` | `monitors check` | SDK-facing route. | `src/app/api/v2/monitors/check/route.ts` |
 | `POST` | `/api/v2/monitors/deploy` | `monitors deploy` | SDK-facing route. | `src/app/api/v2/monitors/deploy/route.ts` |
-| `GET` | `/api/v2/monitors/deployed` | `monitors deployed` | SDK-facing route. | `src/app/api/v2/monitors/deployed/route.ts` |
-| `DELETE` | `/api/v2/monitors/deployed/:key` | `monitors deployed delete` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/route.ts` |
-| `GET` | `/api/v2/monitors/deployed/:key` | `monitors deployed get` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/route.ts` |
-| `PATCH` | `/api/v2/monitors/deployed/:key` | `monitors deployed update` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/route.ts` |
+| `GET` | `/api/v2/monitors/deployed` | `monitors list` | SDK-facing route. | `src/app/api/v2/monitors/deployed/route.ts` |
+| `DELETE` | `/api/v2/monitors/deployed/:key` | `monitors delete` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/route.ts` |
+| `GET` | `/api/v2/monitors/deployed/:key` | `monitors get` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/route.ts` |
+| `PATCH` | `/api/v2/monitors/deployed/:key` | `monitors update` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/route.ts` |
 | `POST` | `/api/v2/monitors/deployed/:key/reactivate` | `monitors reactivate` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/reactivate/route.ts` |
-| `GET` | `/api/v2/monitors/tools` | `monitors tools` | SDK-facing route. | `src/app/api/v2/monitors/tools/route.ts` |
+| `GET` | `/api/v2/monitors/tools` | `monitors available` | SDK-facing route. | `src/app/api/v2/monitors/tools/route.ts` |
 | `DELETE` | `/api/v2/plays/:name/share` | `unpublishSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
 | `GET` | `/api/v2/plays/:name/share` | `getSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
 | `PATCH` | `/api/v2/plays/:name/share` | `updateSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
