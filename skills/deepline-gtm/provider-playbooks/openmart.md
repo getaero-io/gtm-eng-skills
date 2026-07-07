@@ -11,4 +11,4 @@ Use Openmart for local-business and SMB workflows where store-level location dat
 - Openmart docs require `country` on each `/api/v2/brands/search` location entry.
 - The configured provider token should be rotated if it has been pasted into chat, logs, or other plaintext surfaces.
 
-Pricing note: Openmart provider spend is modeled at $0.0298 per Openmart credit. Local-business search is free on the current provider plan; business-ID search and brand search cost 0.3 credits per company record; enrich company costs 0.3 credits per store record; find people and known-person lookup cost 14 credits per phone found, 1 per email found, and 1 per name found; technographics costs 2 credits per company record.
+Pricing note: local-business search, business-ID search, and brand search cost 0.3 Openmart credits per returned company record; enrich company costs 0.3 credits per returned store record; find people and known-person lookup cost 8 credits per phone found and 3 credits per email found; technographics costs 2 credits when technologies are found. Openmart bills successful results only; failed calls and no-result calls should not consume provider credits.
