@@ -290,14 +290,14 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-sdk-enrich-durable-export-repair` | Fixes SDK CLI `deepline enrich` generated play execution and CSV export so workers call runtime APIs through the allowed /api/v2/plays/internal capability paths, selected-row exports from reused generated enrich sheets wait for the reque... |
+| `2026-07-play-list-compact-read-models` | Moves GET /api/v2/plays, GET /api/v2/plays/:name/live, GET /api/v2/plays/:name/runs, and GET /api/v2/plays/:name/versions dashboard/server reads onto compact Convex read models and bounded full-run/revision hydration so large play histor... |
+| `2026-07-cloudflare-coordinator-deploy-active-tuple-routing` | Keeps POST /api/v2/plays/run workers_edge/default starts compatible during Cloudflare coordinator deploys by letting new starts continue through the currently active runtime release tuple instead of returning deploy-admission 503s. This... |
 | `2026-07-plays-files-stage-direct-storage-upload` | Adds the additive POST /api/v2/plays/files/stage/mint route (mintStagedPlayFileUploads client method) that returns per-file presigned R2 PUT targets (or an already-staged ref for content-addressed files the server already holds), and upd... |
 | `2026-07-billed-implies-durable-storage-repair` | Adds the POST /api/v2/ingestion/repair route (repairIngestionStorage client method, `deepline db repair` command) and a structured WORKSPACE_STORAGE_NOT_READY failure code (503 on POST /api/v2/plays/run, plus a normalized run-failure mes... |
 | `2026-07-play-run-coordinator-route-transient-streaming` | Hardens POST /api/v2/plays/run streaming starts so, after a durable run id has already been allocated, uncertain Cloudflare coordinator workflow-route transport failures are surfaced as an interrupted start stream instead of a synthetic... |
 | `2026-07-sdk-enrich-exa-answer-auto-batch` | Fixes SDK CLI `deepline enrich` row-wise Exa Answer runs by classifying `exa_answer` as an AI-heavy enrich operation for local auto-batch sizing, so large CSV runs split below Worker subrequest limits instead of submitting one oversized... |
 | `2026-07-play-run-runtime-test-fault-header` | Adds a guarded internal x-deepline-test-fault request header path to POST /api/v2/plays/run so non-production runtime durability tests can register per-run fault seams before Worker launch. This is compatible test-only metadata: route pa... |
-| `2026-07-sdk-customer-db-dataset-tool-results` | Adds optional dataset response intent support to the SDK executeTool client options and high-level Deepline.tools.execute Customer DB Dataset Handle attachment for query_customer_db rows. This is compatible SDK/client behavior only: rout... |
-| `2026-07-play-run-force-cache-bypass` | Adds the optional POST /api/v2/plays/run forceToolRefresh flag for runtime-sheet row preparation and ctx.tools.execute durable receipt refresh, and updates the SDK CLI `deepline plays run --force` implementation to send it alongside the... |
-| `2026-07-sdk-play-start-runid-normalization` | Normalizes POST /api/v2/plays/run start responses that already contain the public runId field so SDK clients also populate the canonical PlayRunStart.workflowId alias. This is compatible SDK client boundary behavior only: route paths, me... |
 
 ## Public Types
 
