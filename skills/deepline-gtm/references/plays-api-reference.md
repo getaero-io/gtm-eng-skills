@@ -291,6 +291,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-sdk-enrich-nested-output-export-recovery` | Hardens SDK CLI `deepline enrich` and `runs export` CSV materialization for nested provider response objects by normalizing CSV cell values before csv-stringify sees them and by allowing generated enrich templates to dereference dotted p... |
 | `2026-07-sdk-enrich-runtime-persistence-recovery` | Hardens SDK CLI `deepline enrich` and generated enrich runtime recovery by lowering the default local auto-batch window, retrying transient Customer DB failure-detail lookups before degrading to a warning with the follow-up query command... |
 | `2026-07-sdk-enrich-durable-export-repair` | Fixes SDK CLI `deepline enrich` generated play execution and CSV export so workers call runtime APIs through the allowed /api/v2/plays/internal capability paths, selected-row exports from reused generated enrich sheets wait for the reque... |
 | `2026-07-play-list-compact-read-models` | Moves GET /api/v2/plays, GET /api/v2/plays/:name/live, GET /api/v2/plays/:name/runs, and GET /api/v2/plays/:name/versions dashboard/server reads onto compact Convex read models and bounded full-run/revision hydration so large play histor... |
@@ -298,7 +299,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-07-plays-files-stage-direct-storage-upload` | Adds the additive POST /api/v2/plays/files/stage/mint route (mintStagedPlayFileUploads client method) that returns per-file presigned R2 PUT targets (or an already-staged ref for content-addressed files the server already holds), and upd... |
 | `2026-07-billed-implies-durable-storage-repair` | Adds the POST /api/v2/ingestion/repair route (repairIngestionStorage client method, `deepline db repair` command) and a structured WORKSPACE_STORAGE_NOT_READY failure code (503 on POST /api/v2/plays/run, plus a normalized run-failure mes... |
 | `2026-07-play-run-coordinator-route-transient-streaming` | Hardens POST /api/v2/plays/run streaming starts so, after a durable run id has already been allocated, uncertain Cloudflare coordinator workflow-route transport failures are surfaced as an interrupted start stream instead of a synthetic... |
-| `2026-07-sdk-enrich-exa-answer-auto-batch` | Fixes SDK CLI `deepline enrich` row-wise Exa Answer runs by classifying `exa_answer` as an AI-heavy enrich operation for local auto-batch sizing, so large CSV runs split below Worker subrequest limits instead of submitting one oversized... |
 
 ## Public Types
 
