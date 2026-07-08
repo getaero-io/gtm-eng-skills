@@ -327,7 +327,12 @@ Load a staged CSV file as a durable dataset handle.
 Use this when a play receives a CSV path from the CLI or API and row work
 should continue through [DeeplinePlayRuntimeContext.dataset](/sdk-v2/sdk-reference#runtime-primitives). The path is
 normally an input field such as `input.csv`, populated by
-`deepline plays run my.play.ts --csv rows.csv`.
+`deepline plays run my.play.ts --csv rows.csv`. Prefer `input.csv` for row
+data so the CLI can run strict CSV preflight before starting a run.
+Pass-through flags can also target non-reserved field names. If a play
+intentionally calls `ctx.csv(input.file)`, use `--input
+'{"file":"rows.csv"}'` because `--file` is reserved for the play source
+path.
 
 Each CSV row becomes an object keyed by canonical column names. Use
 `options.columns` / `options.rename` to map user headers such as
