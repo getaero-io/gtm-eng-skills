@@ -292,14 +292,14 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-sdk-play-reference-missing-hints` | Improves SDK CLI missing-play diagnostics for `deepline plays check`, `describe`, `get`, `versions`, and named `plays run` targets by searching visible plays across prebuilt and owned namespaces and printing safe `Did you mean` / search... |
+| `2026-07-sdk-billing-history-play-subcharges` | Fixes SDK CLI `deepline billing history` CSV output to preserve the existing billing ledger response fields for play provider sub-charges instead of projecting only legacy top-level credit columns. This is compatible local CLI/export beh... |
+| `2026-07-sdk-enrich-batched-csv-row-order-merge` | Fixes SDK CLI `deepline enrich` batched CSV export so generated deepline_enrich_rows runs with selected source rows materialize durable backing rows before merging output columns, preserving row alignment when terminal previews are compl... |
 | `2026-07-play-run-child-manifest-preload-recovery` | Hardens POST /api/v2/plays/run workers_edge starts by making static child-play manifest preload best-effort while preserving runtime resolve_play authorization as the authoritative path for ctx.runPlay targets. This is compatible interna... |
 | `2026-07-sdk-billing-top-up-command` | Adds POST /api/v2/billing/top-up plus the SDK client topUpBillingBalance / billing.topUp helpers and `deepline billing top-up` CLI command for charging an already-saved Stripe payment method. This is an additive billing route, SDK method... |
 | `2026-07-sdk-enrich-export-source-row-order` | Fixes SDK CLI `deepline enrich` durable Runtime Sheet export materialization so coalesced rows are returned in original source-row order after duplicate runtime rows are merged. This is compatible local CLI/export behavior only: SDK/API... |
 | `2026-07-sdk-enrich-nested-output-export-recovery` | Hardens SDK CLI `deepline enrich` and `runs export` CSV materialization for nested provider response objects by normalizing CSV cell values before csv-stringify sees them and by allowing generated enrich templates to dereference dotted p... |
 | `2026-07-published-play-trigger-artifact-namespace` | Persists the existing server-derived play artifact R2 namespace while publishing or setting live org plays through POST /api/v2/plays/artifacts and POST /api/v2/plays/:name/live, so published cron and webhook trigger launches load the sa... |
-| `2026-07-sdk-enrich-runtime-persistence-recovery` | Hardens SDK CLI `deepline enrich` and generated enrich runtime recovery by lowering the default local auto-batch window, retrying transient Customer DB failure-detail lookups before degrading to a warning with the follow-up query command... |
-| `2026-07-sdk-enrich-durable-export-repair` | Fixes SDK CLI `deepline enrich` generated play execution and CSV export so workers call runtime APIs through the allowed /api/v2/plays/internal capability paths, selected-row exports from reused generated enrich sheets wait for the reque... |
-| `2026-07-play-list-compact-read-models` | Moves GET /api/v2/plays, GET /api/v2/plays/:name/live, GET /api/v2/plays/:name/runs, and GET /api/v2/plays/:name/versions dashboard/server reads onto compact Convex read models and bounded full-run/revision hydration so large play histor... |
 
 ## Public Types
 
