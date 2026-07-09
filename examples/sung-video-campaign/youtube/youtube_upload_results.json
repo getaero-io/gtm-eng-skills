@@ -1,0 +1,34 @@
+[
+  {
+    "slug": "waterfall-complexity",
+    "title": "Waterfall Enrichment with Apollo, Prospeo, and LeadMagic Without CSV Chaos",
+    "video_id": "OBgolIUXLhQ",
+    "url": "https://www.youtube.com/watch?v=OBgolIUXLhQ",
+    "privacy": "private",
+    "caption_uploaded": false
+  },
+  {
+    "slug": "provider-sprawl",
+    "title": "Build a TAM List Without Becoming the CSV Sherpa",
+    "video_id": "3gtXZ6UwimE",
+    "url": "https://www.youtube.com/watch?v=3gtXZ6UwimE",
+    "privacy": "private",
+    "caption_uploaded": false
+  },
+  {
+    "slug": "speedrun-time-to-integration",
+    "title": "Snowflake to CRM to Campaign Tool Without a Mini Engineering Project",
+    "video_id": "rckDRNylVg8",
+    "url": "https://www.youtube.com/watch?v=rckDRNylVg8",
+    "privacy": "private",
+    "caption_uploaded": false
+  },
+  {
+    "slug": "pipeline-as-code",
+    "title": "Pipeline as Code for GTM Account Mapping",
+    "video_id": "qecZWS4DerQ",
+    "url": "https://www.youtube.com/watch?v=qecZWS4DerQ",
+    "privacy": "private",
+    "caption_uploaded": false
+  }
+]
