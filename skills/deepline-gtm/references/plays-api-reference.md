@@ -291,14 +291,14 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-play-run-child-manifest-preload-recovery` | Hardens POST /api/v2/plays/run workers_edge starts by making static child-play manifest preload best-effort while preserving runtime resolve_play authorization as the authoritative path for ctx.runPlay targets. This is compatible interna... |
+| `2026-07-sdk-enrich-export-source-row-order` | Fixes SDK CLI `deepline enrich` durable Runtime Sheet export materialization so coalesced rows are returned in original source-row order after duplicate runtime rows are merged. This is compatible local CLI/export behavior only: SDK/API... |
 | `2026-07-sdk-enrich-nested-output-export-recovery` | Hardens SDK CLI `deepline enrich` and `runs export` CSV materialization for nested provider response objects by normalizing CSV cell values before csv-stringify sees them and by allowing generated enrich templates to dereference dotted p... |
+| `2026-07-published-play-trigger-artifact-namespace` | Persists the existing server-derived play artifact R2 namespace while publishing or setting live org plays through POST /api/v2/plays/artifacts and POST /api/v2/plays/:name/live, so published cron and webhook trigger launches load the sa... |
 | `2026-07-sdk-enrich-runtime-persistence-recovery` | Hardens SDK CLI `deepline enrich` and generated enrich runtime recovery by lowering the default local auto-batch window, retrying transient Customer DB failure-detail lookups before degrading to a warning with the follow-up query command... |
 | `2026-07-sdk-enrich-durable-export-repair` | Fixes SDK CLI `deepline enrich` generated play execution and CSV export so workers call runtime APIs through the allowed /api/v2/plays/internal capability paths, selected-row exports from reused generated enrich sheets wait for the reque... |
 | `2026-07-play-list-compact-read-models` | Moves GET /api/v2/plays, GET /api/v2/plays/:name/live, GET /api/v2/plays/:name/runs, and GET /api/v2/plays/:name/versions dashboard/server reads onto compact Convex read models and bounded full-run/revision hydration so large play histor... |
 | `2026-07-cloudflare-coordinator-deploy-active-tuple-routing` | Keeps POST /api/v2/plays/run workers_edge/default starts compatible during Cloudflare coordinator deploys by letting new starts continue through the currently active runtime release tuple instead of returning deploy-admission 503s. This... |
-| `2026-07-plays-files-stage-direct-storage-upload` | Adds the additive POST /api/v2/plays/files/stage/mint route (mintStagedPlayFileUploads client method) that returns per-file presigned R2 PUT targets (or an already-staged ref for content-addressed files the server already holds), and upd... |
-| `2026-07-billed-implies-durable-storage-repair` | Adds the POST /api/v2/ingestion/repair route (repairIngestionStorage client method, `deepline db repair` command) and a structured WORKSPACE_STORAGE_NOT_READY failure code (503 on POST /api/v2/plays/run, plus a normalized run-failure mes... |
-| `2026-07-play-run-coordinator-route-transient-streaming` | Hardens POST /api/v2/plays/run streaming starts so, after a durable run id has already been allocated, uncertain Cloudflare coordinator workflow-route transport failures are surfaced as an interrupted start stream instead of a synthetic... |
 
 ## Public Types
 
