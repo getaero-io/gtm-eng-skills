@@ -31,6 +31,14 @@ deepline enrich --input in.csv --output out.csv --name task-slug \
   --with '{"alias":"domain","tool":"run_javascript","payload":{"code":"return row.company_domain;"}}'
 ```
 
+Billing recovery: if `deepline billing balance` or any paid Deepline command
+reports zero credits, `no_billing`, or an insufficient-credits failure, stop
+paid work and ask the user whether they want to add Deepline credits. If the
+response includes a `recovery` object, quote `recovery.top_up_command` and
+`recovery.checkout_command` exactly in your answer, including `--json` and
+`--no-open`. Do not shorten them, and do not run either command until the user
+explicitly approves.
+
 ## Scenario table
 
 | Scenario                                                 | Use when                                                                                                   | Default play/tool                                         | Why                                                                                                                      |

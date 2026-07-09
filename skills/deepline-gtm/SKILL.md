@@ -299,7 +299,10 @@ deepline billing usage    # Show recent billing activity and grouped recent usag
 deepline billing limit    # Show the current monthly billing cap
 ```
 
-When credits at zero, link to https://code.deepline.com/dashboard/billing to top up.
+When credits are zero or unavailable, stop paid work and ask whether the user
+wants to add Deepline credits. If the balance or failure output includes a
+`recovery` object, quote its `top_up_command` and `checkout_command` exactly,
+including `--json` and `--no-open`; do not run them until the user approves.
 Do not hardcode a USD-to-credit exchange rate in the skill. Use live billing,
 pricing, or tool output when quoting credit costs.
 
