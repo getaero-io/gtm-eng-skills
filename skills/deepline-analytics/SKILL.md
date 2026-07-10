@@ -25,6 +25,28 @@ Use `deepline-gtm` instead when the task is prospecting, enrichment, contact fin
 
 If Snowflake credentials or a semantic layer are missing, stop and report the setup blocker. Guessing table names or falling straight to raw SQL hides the actual problem and usually produces incorrect business definitions.
 
+## Deepline Internal Analytics Sources
+
+For Deepline's own product, usage, and operational analytics, choose the source by question. Do not assume every Snowflake metric is dbt-modeled.
+
+| Source | Tables / dataset | Use for | Caveats |
+| --- | --- | --- | --- |
+| Convex replica raw ledger | `AERO_DB.CONVEX_RAW.*`, especially `PLAY_RUNS` and `INGESTION_PLANES` | Persisted app state, play-run status, prebuilt/custom play identity, customer database inventory/state | Loaded by the Convex-to-Snowflake replica. Authoritative historically, but can lag same-day activity. Raw tables may include sensitive app/customer fields. |
+| Convex replica reporting views | `AERO_DB.CONVEX.USAGE_EVENTS`, `BA_USER`, `BA_MEMBER` | Tool/enrich calls, Deepline credits, user/org identity | `USAGE_EVENTS` is the primitive billing/usage ledger. Provider spend must not be exposed. Some compatibility views are published selectively; verify freshness before relying on them. |
+| Axiom production logs | Dataset `vercel` | Real-time play/run failures, CLI outcomes, provider/tool errors, log-message failure classes | Real-time but log-shaped. Deduplicate run/request ids and compare against Snowflake when accuracy matters. |
+| RudderStack product events | `RUDDERSTACK.EVENTS.*` (`TRACKS`, `PAGES`, `IDENTIFIES`, event tables) | Product journey, page views, signup/auth lifecycle, attribution | Product analytics, not the operational ledger. Some browser events may be missing from Snowflake. |
+| dbt / transformed analytics marts | `AERO_DB.ANALYTICS*` schemas, for example `ANALYTICS.FCT_CUSTOMER_JOURNEY`, `DIM_ACCOUNT`, `CUSTOMER_STREAM`, and dbt views such as `STG_*` | Business-facing GTM, customer journey, CRM, TAM, and modeled analytics definitions | Use when the question asks for modeled business metrics. Do not use these as the default source for play-runtime health unless a modeled table is explicitly known to cover it. |
+
+Current product usage dashboard source of truth:
+
+- Play runs: Snowflake `AERO_DB.CONVEX_RAW.PLAY_RUNS` plus Axiom `vercel` logs with `[sdk-cli-observability] kind: 'play_run_completed'` and `[cli-failure-report] failure_kind: 'play_run_failed'`.
+- Legacy workflow runs: Snowflake `AERO_DB.CONVEX_RAW.WORKFLOW_RUNS` joined to `AERO_DB.CONVEX_RAW.WORKFLOWS`.
+- Tool/enrich calls: Snowflake `AERO_DB.CONVEX.USAGE_EVENTS` plus Axiom `vercel` logs with `[integrations.execute.outcome]`.
+- User/org dimensions and internal filters: prefer Snowflake `AERO_DB.CONVEX_RAW.BA_USER` and `AERO_DB.CONVEX_RAW.BA_MEMBER` for freshness; use reporting views only after checking freshness.
+- Customer database: Snowflake `AERO_DB.CONVEX.USAGE_EVENTS` for customer-db usage and `AERO_DB.CONVEX_RAW.INGESTION_PLANES` for table/plane inventory.
+
+That dashboard does not currently use `AERO_DB.ANALYTICS*` dbt/transformed models. If you add dbt-modeled metrics, document the model names, freshness, and grain next to the raw/Axiom parity metric.
+
 ## Decision Matrix
 
 | User asks... | Job | Start with |
