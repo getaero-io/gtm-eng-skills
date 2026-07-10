@@ -47,7 +47,9 @@ If Deepline CLI V2 or SDK mode seems broken while running a GTM task, check `dee
 
 GTM requests are operational work: execute direct Deepline calls yourself once inputs and approval gates are satisfied.
 
-**Interim local SDK mode:** treat `deepline enrich`, `deepline plays run`, and other orchestration CLIs as unavailable/bugged for agent-run row work. Do not route through them. Write the local shell command, Node/TypeScript snippet, or project-local script needed for the task. Import the Deepline SDK and call `new DeeplineClient().executeTool(toolId, input)` directly, or `const ctx = await Deepline.connect(); await ctx.tools.execute(toolId, input)` for the higher-level SDK context.
+**Interim local SDK mode:** treat `deepline enrich` and batch/CSV `deepline plays run` usage as unavailable/bugged for agent-run row work. Do not use row orchestration as your batch engine. Write the local shell command, Node/TypeScript snippet, or project-local script needed for the task. Import the Deepline SDK and call `new DeeplineClient().executeTool(toolId, input)` directly, or `const ctx = await Deepline.connect(); await ctx.tools.execute(toolId, input)` for the higher-level SDK context.
+
+Scalar prebuilt plays are allowed. If the task is a concrete one-off with literal input, use the play surface (`await ctx.play('<described-play-name>').runSync(input)` or the scalar CLI play command) after `plays search/describe` confirms the current name and input contract. For row/CSV scale, wrap the scalar play/tool call in your own stateful loop instead of delegating the batch to `deepline enrich` or `deepline plays run`.
 
 For full CSV runs, paginated exports, or flaky tools, persist row state, skip already-successful keys on resume, and make local retry/backoff explicit for `RateLimitError`/429/5xx/timeout failures. Honor `retryAfterMs`. Keep concurrency low while providers are rate-limiting. If auth, credits, missing inputs, or an SDK/runtime bug blocks direct execution, report the exact blocker instead of replacing it with static research or guessed rows.
 
@@ -102,7 +104,7 @@ If none match, grep for more specific keywords: `Grep pattern="<keyword>" path="
 
 - When the user hands you a CSV, run `deepline csv show --csv <path> --summary` first to understand its shape (row count, columns, sample values) before deciding how to process it.
 - **NEVER read a large CSV into context with the Read tool.** Reading CSV rows into the conversation window exhausts context and produces zero output. This is the single most common failure mode.
-- For row-by-row processing, do not use `deepline enrich` or `deepline plays run` during interim local SDK mode. Use SDK scripts that call `DeeplineClient.executeTool`.
+- For row-by-row processing, do not use `deepline enrich` or batch `deepline plays run` during interim local SDK mode. Use SDK scripts that call `DeeplineClient.executeTool` or scalar prebuilt plays per row with durable state.
 - For any full CSV run or repeatable command, persist row/run state so retries, 429 backoff, and resume are durable.
 - To explore or understand CSV content without loading it, use `deepline csv show --csv <path> --rows 0:2` for a two-row sample, or spawn an Explore subagent to answer questions about the data.
 - For CSV work, run a one-row SDK pilot first, inspect the output, then scale through the same stateful script after approval. If the SDK surface is unclear, inspect `sdk/README.md` or `references/plays-sdk-reference.md` before the first call.
