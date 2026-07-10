@@ -22,7 +22,7 @@ Use this skill for prospecting, account research, contact enrichment, verificati
 
 - Route GTM decisions, safety gates, and provider/quality defaults before execution.
 - Keep long command chains and tooling nuance in sub-docs; provider-specific implementation detail in `provider-playbooks/*.md`.
-- Provide clear entry points for both paid and non-paid workflows, including `--rows 0:1` one-row pilots.
+- Provide clear entry points for both paid and non-paid workflows, including one-row pilots.
 
 ## Process/goal
 
@@ -43,9 +43,17 @@ No-loss rule: moved guidance remains fully documented at its canonical level and
 
 If Deepline CLI V2 or SDK mode seems broken while running a GTM task, check `deepline switch status`. Use `deepline switch sdk` to move an installer-managed CLI to SDK mode, or `deepline switch python` to roll back to the Python CLI. Auth is host-scoped and should carry across both families.
 
+### Execution contract
+
+GTM requests are operational work: execute direct Deepline calls yourself once inputs and approval gates are satisfied.
+
+**Interim local SDK mode:** treat `deepline enrich`, `deepline plays run`, and other orchestration CLIs as unavailable/bugged for agent-run row work. Do not route through them. Write the local shell command, Node/TypeScript snippet, or project-local script needed for the task. Import the Deepline SDK and call `new DeeplineClient().executeTool(toolId, input)` directly, or `const ctx = await Deepline.connect(); await ctx.tools.execute(toolId, input)` for the higher-level SDK context.
+
+For full CSV runs, paginated exports, or flaky tools, persist row state, skip already-successful keys on resume, and make local retry/backoff explicit for `RateLimitError`/429/5xx/timeout failures. Honor `retryAfterMs`. Keep concurrency low while providers are rate-limiting. If auth, credits, missing inputs, or an SDK/runtime bug blocks direct execution, report the exact blocker instead of replacing it with static research or guessed rows.
+
 ## 2) Read behavior — MANDATORY before any execution
 
-**STOP. Do not call any provider, run any `deepline tools execute`, or write any search command until you have opened the correct sub-doc for your task.**
+**STOP. Do not call any provider through the SDK or write any search command until you have opened the correct sub-doc for your task.**
 
 These skill docs and sub-docs are not generic documentation — they are distilled from hundreds of real runs and encode exactly what works, what fails, and why. They contain validated parameter schemas, correct filter syntax, parallel execution patterns, tested sample payloads, and known pitfalls that took many iterations to discover. Think of them as shortcuts: reading a doc for 5 seconds saves you from 10 failed tool calls, wasted credits, and garbage output. Every time an agent skips reading the docs and tries to "figure it out" from first principles, it re-discovers the same failure modes that are already documented and solved.
 
@@ -62,12 +70,12 @@ SKILL.md is the routing layer — it tells you WHERE to go, not HOW to execute. 
 | When the task involves...                                                                                                                                                                                                                                                                                                                                                          | You MUST read this doc first                                                 | What it gives you (that SKILL.md doesn't)                                                                                                                                                                                                                                                                                            |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Finding companies, finding people, building lead lists, prospecting, portfolio/VC sourcing, contact finding at known companies, coverage completion at scale**                                                                                                                                                                                                                   | [finding-companies-and-contacts.md](finding-companies-and-contacts.md)       | Provider filter schemas, parallel execution patterns, provider mix tables, role-based search rules, subagent orchestration, at-scale coverage completion, portfolio/VC shortcuts, contact finding patterns.                                                                                                                          |
-| **Researching companies or people, understanding what they build, figuring out use cases, personalizing based on mission/product/industry, enriching a CSV, adding data columns, waterfall enrichment, finding emails/phones/LinkedIn, coalescing data, custom signals, `run_javascript` / `deeplineagent` steps, Apify actors — any task that adds or transforms row-level data** | [enriching-and-researching.md](enriching-and-researching.md)                 | `deepline enrich` syntax and all flags. Waterfall patterns with fallback chains. `run_javascript` / `deeplineagent` routing. Multi-pass pipeline patterns (research pass → generation pass). Coalescing patterns. Email/phone/LinkedIn waterfall orders. Custom signal buckets. Apify actor selection. GTM definitions and defaults. |
+| **Researching companies or people, understanding what they build, figuring out use cases, personalizing based on mission/product/industry, enriching a CSV, adding data columns, waterfall enrichment, finding emails/phones/LinkedIn, coalescing data, custom signals, SDK tool calls, Apify actors — any task that adds or transforms row-level data** | [enriching-and-researching.md](enriching-and-researching.md)                 | Interim local-SDK rules, provider routing, row-script patterns, waterfall fallback order, coalescing logic, custom signal buckets, Apify actor selection, GTM definitions, and defaults. |
 | **Creating custom Deepline plays/scripts that combine multiple tools and/or other plays**, map over CSV rows, add fallback logic, joins/projections, durable datasets, custom run/export behavior, webhook/cron-style orchestration, or a reusable `.play.ts` scratchpad. This is for composition and control flow, not ordinary single-column enrichment. | [recipes/deepline-plays.md](recipes/deepline-plays.md)                       | Direct vs compose decision, play search/describe discipline, bootstrap/wrap/fork rules, durable authoring basics, webhook/cron replacement routing, run/export/repair routing, and exact SDK/API reference pointers.                                                                                                                |
 | **Writing cold emails, personalizing outreach, lead scoring, qualification, sequence design, campaign copy, inspecting CSVs in Playground.** If the task also requires researching companies/people to inform the writing, read [enriching-and-researching.md](enriching-and-researching.md) too — it has the multi-pass pipeline pattern.                                         | [writing-outreach.md](writing-outreach.md)                                   | Prompt templates from `prompts.json`. Scoring rubrics. Email length/tone/structure rules. Personalization patterns. Qualification frameworks. Playground inspection commands.                                                                                                                                                        |
 | **Deepline Monitors / Signal Radars** — continuously capturing a provider's webhook events (email replies, new job postings, intent signals) into a Customer DB table, or deploying/listing/managing those upstream provider pipes. Event-driven streaming, NOT an on-demand enrich/sourcing run. **Conditional gate — only read the `deepline-monitors` recipe if BOTH hold:** (a) the task is actually about monitors/Signal Radars, AND (b) `deepline monitors status` exits 0 (the user has access). Run that status check FIRST; if it exits non-zero, do NOT read the recipe or attempt monitor commands — tell the user monitors access is granted by a Deepline admin via Admin → Rollouts. | [recipes/deepline-monitors.md](recipes/deepline-monitors.md) | What monitors/Signal Radars are, when to use them vs plays, the full `deepline monitors` command set (status, available, check, deploy, list, get, update, delete, reactivate), monitor definition shape, the provider-webhook → Customer DB → triggered-play data flow, and the access gating. |
 
-If you are hand-authoring enrich columns instead of using a native play, jump straight to the "Handmade step shape quick reference" section in [enriching-and-researching.md](enriching-and-researching.md). That section spells out the exact runtime contract for `run_javascript`, `extract_js`, `result`, and persisted `matched_result`.
+If you are hand-authoring row scripts instead of using a native play, jump straight to the direct execution section in [enriching-and-researching.md](enriching-and-researching.md). It spells out how to call SDK tools inline and persist row state.
 
 ### Recipes: step-by-step playbooks for specific tasks (check before executing)
 
@@ -94,9 +102,10 @@ If none match, grep for more specific keywords: `Grep pattern="<keyword>" path="
 
 - When the user hands you a CSV, run `deepline csv show --csv <path> --summary` first to understand its shape (row count, columns, sample values) before deciding how to process it.
 - **NEVER read a large CSV into context with the Read tool.** Reading CSV rows into the conversation window exhausts context and produces zero output. This is the single most common failure mode.
-- Use `deepline enrich` for any row-by-row processing (enrichment, rewriting, research, scoring).
+- For row-by-row processing, do not use `deepline enrich` or `deepline plays run` during interim local SDK mode. Use SDK scripts that call `DeeplineClient.executeTool`.
+- For any full CSV run or repeatable command, persist row/run state so retries, 429 backoff, and resume are durable.
 - To explore or understand CSV content without loading it, use `deepline csv show --csv <path> --rows 0:2` for a two-row sample, or spawn an Explore subagent to answer questions about the data.
-- For CSV enrichment, use `deepline enrich --input <csv> --output <csv> --name task-slug --rows 0:1 ...` for a one-row pilot, then rerun against the full file after inspecting output. If the installed surface is unclear, check `deepline --help` and `deepline enrich --help` before the first run rather than discovering the shape through a failed enrichment.
+- For CSV work, run a one-row SDK pilot first, inspect the output, then scale through the same stateful script after approval. If the SDK surface is unclear, inspect `sdk/README.md` or `references/plays-sdk-reference.md` before the first call.
 
 ### Tools
 
@@ -140,20 +149,14 @@ Avoid:
 - `deepline tools search stuff`
 - `deepline tools search search across filters`
 
-## 2.5) Why use Deepline Enrich
+## 2.5) Interim row-work mode
 
-When doing row by row processing (e.g. per customer, per lead, per linkedin url, etc)
+Until orchestration commands are healthy again, use local SDK execution for row work:
 
-Use `deepline enrich` as the default path.
-
-Why:
-
-- **Row-safe:** each pass is explicit and traceable.
-- **Observable:** run status, errors, and outputs are visible through Deepline run/play commands and dashboard links.
-- **Retry-safe:** rerun from a known pass, not full actor chains.
-- **Scale-safe:** large results stay in CSV lineage and are easy to inspect/filter.
-- **Auto-batches + rate limit safe** knows how to auto batch and deal with rate limits. Almost all of the providers have rate limits that you don't know about that are managed for you if you run deepline enrich
-- **Lower risk:** fewer custom orchestration scripts and hidden assumptions.
+- Discover the live tool contract with `DeeplineClient.searchTools()` / `getTool()`. CLI `deepline tools search` / `tools describe` is acceptable for discovery only, not execution.
+- Pilot one row by running a local script that imports `deepline` and calls `client.executeTool(toolId, input)`.
+- Scale with a project-local script that reads the CSV, writes an output CSV/JSONL, persists per-row status, and handles 429/5xx/timeouts with explicit `retryAfterMs`-aware backoff.
+- Keep provider concurrency conservative. A slower resumable script is better than blasting parallel calls into 429s and losing row state.
 
 ## 3) Core policy defaults
 
@@ -185,11 +188,11 @@ The slug must describe the task (e.g. `deepline/data/yc-cmo-outbound`, `deepline
 
 ### 3.3 Output policy and User Interaction Pattern
 
-- Always use `deepline enrich` for list enrichment or discovery at scale (>5 rows). It auto-opens a visual playground sheet so user can inspect rows, re-run blocks, and iterate.
-- Even for company → ICP person flows, enrich works: search and filter as part of the process, with providers like Apify to guide.
-- Even when you don't have a CSV, create one and use deepline enrich.
-- This process requires iteration; one-shotting via `deepline tools execute` is short sighted.
-- For `run_javascript` in `deepline enrich`, put JS in `payload.code`; the current row is auto-injected as `row` at runtime, so you usually should not pass `row` yourself.
+- Interim local SDK mode supersedes older row-command examples in this skill. Use local SDK tool execution for list enrichment or discovery at scale.
+- Even for company → ICP person flows, SDK execution works: search, inspect contracts, and call the provider tool directly from a stateful script.
+- Even when you don't have a CSV, create one, then run your own row loop over it.
+- This process requires iteration; one-shotting a single direct call is only the pilot, not the full workflow.
+- For deterministic transforms, write local JS/Python in the row script instead of relying on row-command transform helpers.
 - In chat, send the file path and run/play URL when available, not pasted CSV rows, unless explicitly requested.
 - Preserve lineage columns (especially `_metadata`) end-to-end. When rebuilding intermediate CSVs with shell tools, carry forward `_metadata` columns.
 - Never enrich a user-provided or source CSV in-place. Use `--output` to write to your working directory on the first pass, then `--in-place` on that output for subsequent passes. `--in-place` is for iterating on your own prior outputs — never on source files.
@@ -208,7 +211,7 @@ See [enriching-and-researching.md](enriching-and-researching.md) for `deepline c
 
 ### 4.1 Required run order
 
-1. Pilot on a narrow scope (example `--rows 0:1` for one row).
+1. Pilot on a narrow scope (one exact row from the user's input).
 2. Request explicit approval.
 3. Run full scope only after approval.
 
@@ -247,13 +250,13 @@ Include all of:
 1. Provider(s)
 2. Pilot summary and observed behavior
 3. Intent-level assumptions (3–5 one-line bullets)
-4. CSV preview from a real `deepline enrich --rows 0:1` one-row pilot
+4. CSV/JSON preview from a real one-row direct-call pilot
 5. Credits estimate / range
 6. Full-run scope size
 7. Max spend cap
 8. Approval question: `Approve full run?`
 
-Note: `deepline enrich` already prints the ASCII preview by default, so use that output directly.
+Use the direct-call pilot output or your row script's preview as the ASCII preview.
 
 Strict format contract (blocking):
 
@@ -271,7 +274,7 @@ Assumptions
 - <intent assumption 2>
 
 CSV Preview (ASCII)
-<paste verbatim output from deepline enrich --rows 0:1>
+<paste verbatim output from the one-row direct-call pilot>
 Credits + Scope + Cap
 
 - Provider: <name>
@@ -286,7 +289,7 @@ Approve full run?
 
 ### 4.4 Mandatory checkpoint
 
-- Must run a real pilot on the exact CSV for full run (`--rows 0:1`, end exclusive).
+- Must run a real pilot on the exact CSV for full run (one exact input row, selected in the local script).
 - Must include ASCII preview verbatim in approval.
 - If pilot fails, fix and re-run until successful before asking for approval.
 - Ask for approval in chat after the pilot. Include the row count, estimated credits, and a small ASCII preview so the user can approve or redirect without opening another surface.
@@ -311,7 +314,7 @@ pricing, or tool output when quoting credit costs.
 **Reminder: you should have already read the relevant sub-doc from Section 2 before reaching this point. If you haven't, go back and read it now. This section is a quick-reference summary, NOT a substitute for the sub-docs.**
 
 - **Search / discovery** → You MUST have [finding-companies-and-contacts.md](finding-companies-and-contacts.md) open. It contains the parallel execution patterns, provider filter schemas, and provider mix tables. Start with `deepline tools search <intent>` and execute field-matched provider calls in parallel; when the `deepline-list-builder` subagent is available, use subagent-based parallel search orchestration as the preferred pattern. Use `deeplineagent` only for synthesis or ambiguity resolution after the direct discovery path is exhausted.
-- **Enrich / waterfall / coalesce** → You MUST have [enriching-and-researching.md](enriching-and-researching.md) open. It contains `deepline enrich` syntax, play routing guidance, waterfall column patterns, and coalescing logic. Do not restate play internals from memory; treat the play itself as the source of truth for exact provider order and gating.
+- **Enrich / waterfall / coalesce** → You MUST have [enriching-and-researching.md](enriching-and-researching.md) open. It contains interim local-SDK routing, tool execution script patterns, waterfall column patterns, and coalescing logic. Do not restate provider contracts from memory; inspect live tool metadata before execution.
 - **Custom signals / messaging** → Read [enriching-and-researching.md](enriching-and-researching.md) (custom signals section). Use `run_javascript` for deterministic transforms/template logic and `deeplineagent` for AI work. Start from `prompts.json`.
 - **Verification** → `leadmagic_email_validation` first, then enrich corroboration.
 - **LinkedIn scraping** -> Apify actors, by far the best. Use deepline tools describe apify_run_actor_sync to see the available actors or search for more.
@@ -332,7 +335,7 @@ Critical: keep [writing-outreach.md](writing-outreach.md) workflow context activ
 
 ### Operational troubleshooting: rate limits and CLI health
 
-- Use `deepline enrich` for heavy row-by-row work whenever possible. It has built-in rate-limit handling (adaptive retries/backoff) for standard upstream limits. If you are building a homegrown script, assume it does not include the same automatic protection unless you explicitly implement it.
+- Interim local SDK mode: do not use row/play orchestration commands for heavy row-by-row work. Call SDK tools from a stateful script, and explicitly implement adaptive retries/backoff for 429s and transient upstream failures.
 - If enrichment or CLI behavior is unstable, rerun the installer to ensure the latest CLI/client wiring is in place:
 
 ```bash
@@ -349,9 +352,15 @@ curl -s "https://code.deepline.com/api/v2/cli/install" | bash
 6. Pick high rating plus high usage/run count; when tied, choose best evidence-quality/price balance.
 7. Honor `operatorNotes` over public ratings when conflicting.
 
-```bash
-deepline tools execute apify_list_store_actors --input '{"search":"linkedin company employees scraper","sortBy":"relevance","limit":20}'
-deepline tools execute apify_get_actor_input_schema --input '{"actorId":"bebity/linkedin-jobs-scraper"}'
+```ts
+await client.executeTool('apify_list_store_actors', {
+  search: 'linkedin company employees scraper',
+  sortBy: 'relevance',
+  limit: 20,
+});
+await client.executeTool('apify_get_actor_input_schema', {
+  actorId: 'bebity/linkedin-jobs-scraper',
+});
 ```
 
 ## 7) Feedback & session sharing
