@@ -293,13 +293,13 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | Change | Reason |
 |---|---|
 | `2026-07-internal-production-play-fixture-mode` | Allows POST /api/v2/plays/run to honor the existing optional fixture integration mode in production only when the authenticated actor has a verified internal Deepline email, so production-scale CI can exercise the real tools.execute path... |
+| `2026-07-play-run-internal-absurd-release-override` | Allows POST /api/v2/plays/run to accept an internal-token-authenticated x-deepline-absurd-release header when the request explicitly selects the absurd profile, enabling exact-SHA release-lane canaries. This is compatible internal routin... |
 | `2026-07-sdk-play-run-absurd-profile-guidance` | Clarifies SDK CLI `deepline plays run` help text and examples that production runs default to workers_edge and that `--profile absurd` is an explicit runtime selection. This is documentation-only CLI output: the existing --profile flag,... |
 | `2026-07-sdk-admin-lanes-and-child-release-header` | Adds platform-admin-only `deepline admin lanes list/show/retire-check` and `deepline admin releases activate` CLI commands over new admin endpoints, and teaches `/api/v2/plays/run` to read an optional internal `x-deepline-absurd-release`... |
+| `2026-07-sdk-play-stream-terminal-reconciliation` | Hardens SDK CLI Absurd play start streams by reconciling streamed terminal events with the canonical durable run status before exiting, so a stale failed event cannot hide a still-running Absurd execution. This is compatible local CLI re... |
 | `2026-07-sdk-play-reference-missing-hints` | Improves SDK CLI missing-play diagnostics for `deepline plays check`, `describe`, `get`, `versions`, and named `plays run` targets by searching visible plays across prebuilt and owned namespaces and printing safe `Did you mean` / search... |
 | `2026-07-sdk-billing-history-play-subcharges` | Fixes SDK CLI `deepline billing history` CSV output to preserve the existing billing ledger response fields for play provider sub-charges instead of projecting only legacy top-level credit columns. This is compatible local CLI/export beh... |
 | `2026-07-sdk-enrich-batched-csv-row-order-merge` | Fixes SDK CLI `deepline enrich` batched CSV export so generated deepline_enrich_rows runs with selected source rows materialize durable backing rows before merging output columns, preserving row alignment when terminal previews are compl... |
-| `2026-07-play-run-child-manifest-preload-recovery` | Hardens POST /api/v2/plays/run workers_edge starts by making static child-play manifest preload best-effort while preserving runtime resolve_play authorization as the authoritative path for ctx.runPlay targets. This is compatible interna... |
-| `2026-07-sdk-billing-top-up-command` | Adds POST /api/v2/billing/top-up plus the SDK client topUpBillingBalance / billing.topUp helpers and `deepline billing top-up` CLI command for charging an already-saved Stripe payment method. This is an additive billing route, SDK method... |
 
 ## Public Types
 
