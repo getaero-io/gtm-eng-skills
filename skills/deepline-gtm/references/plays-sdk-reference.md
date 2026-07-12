@@ -548,7 +548,7 @@ Options for row-level `.withColumn(...)` and `steps().step(...)` entries.
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `runIf` | `(row: Row, index: number) => boolean \| Promise<boolean>` | No | Optional row-level gate. Skipped rows produce `null` for this column. |
-| `recompute` | `boolean` | No | Legacy dataset-column recompute flag accepted for older authored plays.<br /><br />Prefer putting freshness on the actual reusable call<br />(`ctx.tools.execute`, `ctx.step`, `ctx.fetch`, or `ctx.runPlay`). |
+| `recompute` | `boolean` | No | Legacy dataset-column recompute flag accepted for older authored plays.<br /><br />Prefer putting freshness on the actual reusable call<br />(`ctx.tools.execute`, `ctx.step`, or `ctx.fetch`). |
 | `recomputeOnError` | `boolean` | No | Legacy error-recompute flag accepted for older authored plays. |
 | `staleAfterSeconds` | `number` | No | Legacy cell staleness metadata accepted for older authored plays. |
 
@@ -610,7 +610,7 @@ normalization, and no-result behavior. Do not invoke plays through
 
 `key` is the stable child-call identity for idempotency and traceability.
 
-Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayReferenceLike, input: Record<string, unknown>, options: { description: string; staleAfterSeconds?: number }, ): Promise<TOutput>;`
+Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayReferenceLike, input: Record<string, unknown>, options: { description: string }, ): Promise<TOutput>;`
 
 #### Parameters
 
@@ -619,7 +619,7 @@ Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayRefer
 | `key` | `string` | Yes | Stable child-call key. |
 | `playRef` | `string \| PlayReferenceLike` | Yes | Registered play name, play handle, or file-backed play reference. |
 | `input` | `Record<string, unknown>` | Yes | Input object passed to the child play. |
-| `options` | `{ description: string; staleAfterSeconds?: number }` | Yes | Child play options. |
+| `options` | `{ description: string }` | Yes | Child play options. |
 
 #### Returns
 
