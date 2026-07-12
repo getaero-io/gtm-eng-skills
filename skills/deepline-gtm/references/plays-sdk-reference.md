@@ -313,6 +313,7 @@ A play can be triggered three ways, declared as the third argument to
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `description` | `string` | No | Human-readable one-line description of what this play does.<br /><br />New SDK-authored file workflows require this in `plays check`, `plays run<br />--file`, and `plays publish <file>`. The server API keeps it optional so<br />older clients can continue to register revisions during the migration. |
+| `inline` | `boolean` | No | Allow compilers to bundle this named handler directly without a child run. |
 | `billing` | `{ maxCreditsPerRun?: number; }` | No | Optional per-run billing controls enforced by the runtime. |
 | `webhook` | `{ hmac?: { algorithm?: 'sha256'; header?: string; secretEnv: string; }; }` | No | Webhook trigger with optional HMAC signature verification. |
 | `cron` | `{ schedule: string; timezone?: string; }` | No | Cron schedule trigger. |

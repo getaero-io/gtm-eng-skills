@@ -292,6 +292,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-sdk-enrich-certified-inline-play-compilation` | Allows the SDK CLI enrich compiler to embed a build-certified inline handler for an explicitly inline-capable prebuilt play instead of always emitting a row-scoped child run. This is compatible generated-play topology and local execution... |
 | `2026-07-plays-check-imported-plays-local-composition` | Adds an optional importedPlays array to POST /api/v2/plays/check (and the checkPlayArtifact SDK input) carrying sibling plays from the local bundle graph, so `deepline plays check` splices unpublished local children into the checked plan... |
 | `2026-07-absurd-release-override-fail-loud-validation` | Makes POST /api/v2/plays/run reject an x-deepline-absurd-release override with 403 when internal authorization is absent and 400 when the release id is malformed, instead of silently ignoring that internal-only routing request. This is c... |
 | `2026-07-internal-production-play-fixture-mode` | Allows POST /api/v2/plays/run to honor the existing optional fixture integration mode in production only when the authenticated actor has a verified internal Deepline email, so production-scale CI can exercise the real tools.execute path... |
@@ -299,7 +300,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-07-sdk-play-run-absurd-profile-guidance` | Clarifies SDK CLI `deepline plays run` help text and examples that production runs default to workers_edge and that `--profile absurd` is an explicit runtime selection. This is documentation-only CLI output: the existing --profile flag,... |
 | `2026-07-sdk-admin-lanes-and-child-release-header` | Adds platform-admin-only `deepline admin lanes list/show/retire-check` and `deepline admin releases activate` CLI commands over new admin endpoints, and teaches `/api/v2/plays/run` to read an optional internal `x-deepline-absurd-release`... |
 | `2026-07-sdk-play-stream-terminal-reconciliation` | Hardens SDK CLI Absurd play start streams by reconciling streamed terminal events with the canonical durable run status before exiting, so a stale failed event cannot hide a still-running Absurd execution. This is compatible local CLI re... |
-| `2026-07-sdk-play-reference-missing-hints` | Improves SDK CLI missing-play diagnostics for `deepline plays check`, `describe`, `get`, `versions`, and named `plays run` targets by searching visible plays across prebuilt and owned namespaces and printing safe `Did you mean` / search... |
 
 ## Public Types
 
