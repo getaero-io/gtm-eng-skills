@@ -6,52 +6,30 @@ This doc does **not** cover list building, source discovery, or TAM/provider sco
 
 ## Core rule
 
-Interim local SDK mode: row orchestration commands are bugged/unavailable for agent-run batch work. Do not use `deepline enrich` or batch `deepline plays run` as the CSV execution path.
+If a play exists, use it first. Use manual provider chains only when:
 
-Call provider tools or scalar prebuilt plays from a local Node/TypeScript script using the Deepline SDK. Use manual provider chains only when:
-
+- no play exists
 - you need to customize provider order or extractor behavior
 - you are testing a niche provider path
-- no single provider tool covers the field
-- the prebuilt play is not directly runnable for the shape you need
 
-For CSV work, write or use a project-local script that loops rows, calls `client.executeTool(...)` or a scalar prebuilt play per row, writes outputs incrementally, and persists per-row status.
+Run `deepline enrich` in the foreground so you don't waste tokens while it completes.
 
-## Local SDK Surface
+## CLI Surface
 
-Use SDK calls until orchestration commands are healthy again:
+Deepline's SDK-backed `enrich` command requires a stable play name:
+`--name <task-slug>`. Include it on every `deepline enrich` run so outputs,
+play URLs, and reruns are traceable.
 
-- `new DeeplineClient().searchTools(...)` / `.getTool(toolId)` to discover contracts.
-- `new DeeplineClient().executeTool(toolId, input)` for execution.
-- `const ctx = await Deepline.connect(); await ctx.tools.execute(toolId, input)` is the higher-level equivalent.
-- `const output = await ctx.play('<described-play-name>').runSync(input)` is fine for scalar prebuilt plays after `plays search/describe` confirms the name and input contract.
-- The SDK resolves auth from `DEEPLINE_API_KEY`, `DEEPLINE_HOST_URL`, `.env.deepline`, or saved CLI auth. Do not source `.env.local`.
+If the installed surface is unclear, run `deepline --help` and
+`deepline enrich --help` before the first enrich run. Keep `--name` for current
+SDK-backed installs.
 
-Minimal one-row pilot:
-
-```ts
-import { DeeplineClient, RateLimitError } from 'deepline';
-
-const client = new DeeplineClient();
-const result = await client.executeTool('<tool-id>', { field: 'value' });
-console.log(JSON.stringify(result.toolResponse?.raw ?? result, null, 2));
-```
-
-Direct `client.executeTool(...)` calls are caller-owned for rate limits: pass an explicit retry option when appropriate and still wrap row execution yourself. Catch `RateLimitError`, wait `error.retryAfterMs`, persist the retry state, and resume from saved row state instead of restarting the file.
-
-## Local SDK command/script shape
-
-Write the local command or script that fits the job. Do not look for a bundled runner. The agent is expected to inspect the input CSV, inspect the SDK/tool contract, then author the smallest useful Node/TypeScript command or project-local script that calls `client.executeTool(...)` inline.
+For SDK-backed enrich commands, include a descriptive `--name`:
 
 ```bash
-WORKDIR="deepline/data/<descriptive-slug>" && mkdir -p "$WORKDIR"
-cd "$WORKDIR" && npm init -y && npm install deepline
-node ./run.mjs
+deepline enrich --input in.csv --output out.csv --name task-slug \
+  --with '{"alias":"domain","tool":"run_javascript","payload":{"code":"return row.company_domain;"}}'
 ```
-
-Use the package manager already present in the user's project when possible. The only hard requirement is that the script can resolve `import { DeeplineClient } from 'deepline'`: install `deepline` locally in the work directory, use the project's existing dependency, or point the command at the repo-local SDK package when working inside the Deepline repo. Do not assume the globally installed `deepline` CLI makes the SDK importable.
-
-For CSVs and multi-step waterfalls, write the script yourself: read rows, call one or more executable `executeTool(...)` steps or scalar prebuilt plays per row, write JSONL/CSV output incrementally, and persist row status for resume. Keep concurrency `1` or low while providers 429. Honor `RateLimitError.retryAfterMs` and make retry/backoff explicit in the local loop.
 
 Billing recovery: if `deepline billing balance` or any paid Deepline command
 reports zero credits, `no_billing`, or an insufficient-credits failure, stop
@@ -61,26 +39,33 @@ response includes a `recovery` object, quote `recovery.top_up_command` and
 `--no-open`. Do not shorten them, and do not run either command until the user
 explicitly approves.
 
-## What to use when
+## Scenario table
 
-Names below are starting hints. Confirm the live name and schema with play/tool discovery before calling. Scalar prebuilt calls are fine for concrete one-offs; CSV/batch work should loop over rows locally with durable state.
-
-| You have / need                                      | Start with                                        | Decompose to provider tools when...                            |
-| ---------------------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------- |
-| first + last + domain -> work email                  | `name-and-domain-to-email-waterfall` scalar play  | You need custom provider order, validation, or fallback gating   |
-| Sales Nav URL or company name only -> email          | resolve domain with `exa_search`, then email play | Domain resolution is ambiguous or you need evidence columns      |
-| standard `/in/` LinkedIn URL -> work email           | `person-linkedin-to-email` scalar play            | You need custom matching, domain gating, or provider inspection  |
-| personal email -> LinkedIn/company/title             | `personal-email-to-linkedin` scalar play          | You need provider-specific evidence or custom fallback behavior  |
-| company/domain -> people by role/seniority           | `company-to-contact` scalar play                  | You need exact title logic, unusual personas, or provider choice |
-| verified person identity -> mobile phone             | `person-to-phone` scalar play                     | You need custom validation, line-type gating, or cheaper probes  |
-| LinkedIn post -> reactors/commenters                 | `linkedin-post-to-engagers` scalar play           | You need comments-only, full profiles, or custom actor settings  |
-| name + position/headline -> ICP tier                 | `engagers-to-icp-qualification` scalar play       | You need web/company research before scoring                    |
-| direct firmographics, search, transforms, validation | executable provider/local tools                   | No prebuilt covers the field cleanly                            |
-| research/synthesis/personalization inputs            | `deeplineagent` plus local transforms             | A mechanical provider field already answers the question         |
+| Scenario                                                 | Use when                                                                                                   | Default play/tool                                         | Why                                                                                                                      |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Name + domain -> work email                              | You have name + domain (or can resolve domain from company_name / Sales Nav URL first)                     | `Name + domain -> work email`                             | Canonical deterministic path. Handles both direct and domain-first-then-waterfall cases.                                 |
+| LinkedIn URL -> work email                               | Standard `/in/` LinkedIn URL + name. `domain` optional; include if known for extra coverage.               | `LinkedIn URL -> work email`                              | Works with or without domain. Do NOT use for SN `/sales/lead/` URLs — resolve domain first and use the name+domain play. |
+| Email -> person/company context                          | You have an inbound or work email and need person + company details                                        | `Email -> person/company context`                         | Good for hydrating context from a single strong identifier.                                                              |
+| Personal email -> LinkedIn profile                       | Bare personal email (Gmail/GitHub signup); you need LinkedIn + name + company, not a work email            | `Personal email -> LinkedIn profile`                      | Reverse identity resolution; best for personal-email-only lists.                                                         |
+| Company -> persona lookup                                | You have an account and need candidate contacts by role or seniority                                       | `Company -> persona lookup`                               | Canonical play for company-to-persona lookup                                                                             |
+| Company name only -> resolve domain first                | You need to recover homepage/domain before downstream enrichment                                           | `Company name only -> resolve domain first`               | Domain lookup is mechanical and should not start with `deeplineagent`                                                    |
+| Validate a recovered email                               | An email lookup has already run                                                                            | `Notes`                                                   | Validation belongs after recovery or coalescing, not before                                                              |
+| Manual email waterfall                                   | You need custom provider order or play customization                                                       | `Manual email waterfall`                                  | Lets you control ordering and spend                                                                                      |
+| Find a LinkedIn URL for a known person                   | You have name, domain, and role context                                                                    | `Notes`                                                   | Cheap deterministic lookup when the query is specific                                                                    |
+| Pull rich LinkedIn or work-history data                  | The URL is already known and you need structured profile data                                              | `Notes`                                                   | Structured output beats ad hoc web synthesis                                                                             |
+| Find a mobile phone number                               | A verified person identity already exists                                                                  | `Notes`                                                   | Best later in the pipeline after identity is strong                                                                      |
+| Mechanical company enrichment                            | You need direct structured account data                                                                    | `Notes`                                                   | Cheaper and cleaner, often more accurate than `deeplineagent` for firmographics                                          |
+| Coalesce competing provider outputs                      | Multiple columns target the same field                                                                     | `Notes`                                                   | Deterministic canonicalization after parallel providers                                                                  |
+| Per-row factual account research                         | You need custom research or synthesis that provider fields do not cover                                    | `Custom enrichment with run_javascript and deeplineagent` | Use `deeplineagent` for AI work and `run_javascript` for deterministic transforms                                        |
+| Research pass before writing                             | You need company or person research to support later copy                                                  | `Custom enrichment with run_javascript and deeplineagent` | Research belongs here and should feed a later writing step                                                               |
+| Generate copy after research                             | The research column already exists and you now need messaging, first lines, scoring copy, or sequence text | `writing-outreach.md`                                     | Copywriting should route to the outreach doc, usually with `deeplineagent` once the research column exists               |
+| LinkedIn post URL -> list of engagers                    | You have a LinkedIn post URL and want all reactors/commenters                                              | `linkedin_post_to_engagers`                               | Scrape all reactors/commenters from a LinkedIn post. Returns structured engager list.                                    |
+| List of people with name + position -> ICP qualification | You have person rows with name and headline and need tier classification                                   | `engagers_to_icp_qualification`                           | Classify leads against ICP using headline/position via deeplineagent                                                     |
+| **Personal email discovery**                             | User explicitly asks for personal emails (Gmail, Hotmail, etc.) - NOT work emails                          | `Personal email discovery`                                | Use Fullenrich or BetterContact. Do not substitute work-email providers.                                                 |
 
 ## Notes
 
-- Interim local SDK mode supersedes older batch orchestration defaults for agent-run row work. Scalar prebuilt play calls are still fine when they have concrete input and a confirmed contract.
+- Plays are the default surface for common enrichment jobs.
 - **Personal vs work emails:** When the user asks for personal emails, they mean Gmail/Hotmail/Yahoo, not work emails. Use Fullenrich (`contact.personal_emails`) or BetterContact; do not substitute Hunter, LeadMagic, or other work-email providers.
 - Direct provider tools are preferred for mechanical fields when no play exists.
 - When multiple providers recover the same mechanical field, prefer the route that bills on returned results or successful hits. Use request-priced, page-priced, or broad AI passes only after a tiny pilot proves they return usable rows.
@@ -90,9 +75,9 @@ Names below are starting hints. Confirm the live name and schema with play/tool 
 - For local SMB or restaurant contact emails, do not start with name + domain work-email waterfalls unless you have a named person. Prefer the small-business prospecting recipe first: Maps identity, website/contact extraction, then optional Facebook/Instagram profile contact fields when the row or pilot suggests social profiles are the best public source. ScrapeCreators profile tools are candidate routes, not required steps.
 - Persona lookup means "find candidate contacts at a company for a target role or seniority." Use the dedicated play, not generic research.
 - Validate after recovery or coalescing, not during each waterfall step.
-- For contact-to-email work, route by your strongest identifiers: name + domain -> manual SDK work-email waterfall; name + company only (no domain) OR Sales Navigator contacts -> resolve domain first, then the manual SDK work-email waterfall; standard `/in/` LinkedIn URL + name -> inspect the executable LinkedIn-to-email provider chain before calling SDK tools.
-- **Sales Navigator exports**: `linkedin_url` values in `/sales/lead/` format are rejected by every provider (dropleads, crustdata, deepline_native, PDL). Do not pass them directly to email tools. Resolve the company domain first, then run the manual SDK work-email waterfall.
-- Contacts from a people search (e.g. dropleads_search_people) with **standard `/in/`** URLs -> inspect the current scalar LinkedIn-to-email prebuilt play and executable provider tools before calling SDK tools. Use the scalar prebuilt when it fits the exact row input; decompose to provider tools when you need custom ordering or extractor logic.
+- For contact-to-email work, route by your strongest identifiers: name + domain -> `Name + domain -> work email` (or `First + last + domain -> work email`); name + company only (no domain) OR Sales Navigator contacts -> resolve domain first, then `name-and-domain-to-email-waterfall`; standard `/in/` LinkedIn URL + name -> `LinkedIn URL -> work email` (domain optional).
+- **Sales Navigator exports**: `linkedin_url` values in `/sales/lead/` format are rejected by every provider (dropleads, crustdata, deepline_native, PDL). Do not pass them directly to any email waterfall. Resolve the company domain first, then use `name-and-domain-to-email-waterfall`.
+- Contacts from a people search (e.g. dropleads_search_people) with **standard `/in/`** URLs -> `person-linkedin-to-email` (`domain` optional). Does NOT apply to SN `/sales/lead/` URLs.
 - Validation interpretation: `valid` is deliverable, `catch_all` is usable but riskier, `invalid` should be dropped, and `unknown` is unresolved.
 - Phone recovery usually comes later in the pipeline than email or LinkedIn recovery.
 - Prefer inline code for short `run_javascript` transforms. Only move code into files when the logic is long, reused, or too awkward to keep inline.
@@ -101,29 +86,9 @@ Names below are starting hints. Confirm the live name and schema with play/tool 
 
 ## Plays
 
-### Interim local-SDK translation
-
-Some older examples were authored for row orchestration commands. That path is bugged for current agent-run batch work. Translate payloads into SDK calls only after resolving a real executable tool id with `searchTools(...)` / `getTool(...)` or a real scalar prebuilt with `plays search/describe`.
-
-Use the right surface:
-
-- Direct provider/local tool: `await client.executeTool(toolId, input)` or `await ctx.tools.execute(toolId, input)`.
-- Scalar prebuilt play with concrete input: `await ctx.play('<described-play-name>').runSync(input)` or a scalar CLI play command after describe confirms the contract.
-- CSV/batch work: your own local loop over rows, calling the scalar tool/play per row with persisted status and retry/backoff.
-
-If `executeTool(...)` rejects a name as `PLAY_ALIAS_USED_AS_TOOL`, that does not mean the prebuilt is unusable. Use the play surface for a scalar call or decompose it into provider tools for a custom row loop.
-
-```ts
-const result = await client.executeTool('<tool-id>', {
-  field: row.field,
-});
-```
-
-For CSV scale, write a local row loop that fills the JSON with each row's values, calls the SDK, writes output incrementally, and records row status for resume.
-
 ### Name + domain -> work email
 
-Current/legacy prebuilt hint: `name-and-domain-to-email-waterfall`. Confirm the live name and input contract with play discovery before use. For a scalar one-off, run the prebuilt through the play surface. For CSV scale or custom provider ordering, use the manual SDK waterfall below.
+Play tool: `name-and-domain-to-email-waterfall`
 
 **Required payload:** `first_name`, `last_name`, `domain`. `company_name` is not part of the payload.
 
@@ -131,23 +96,35 @@ Current/legacy prebuilt hint: `name-and-domain-to-email-waterfall`. Confirm the 
 
 | You have                                                  | Action                                            |
 | --------------------------------------------------------- | ------------------------------------------------- |
-| name + domain                                             | Run the manual SDK waterfall below                |
-| name + company_name (no domain) or SN `/sales/lead/` URLs | Resolve domain first (below), then run the waterfall |
-| standard `/in/` LinkedIn URL + name                       | Skip this pattern — use `LinkedIn URL -> work email` |
+| name + domain                                             | Use the play directly                             |
+| name + company_name (no domain) or SN `/sales/lead/` URLs | Resolve domain first (below), then use the play   |
+| standard `/in/` LinkedIn URL + name                       | Skip this play — use `LinkedIn URL -> work email` |
 
-**Manual SDK waterfall.** Call executable provider tools in order and stop on the first strong hit: `dropleads_email_finder -> hunter_email_finder -> leadmagic_email_finder -> crustdata_persondb_search -> peopledatalabs_enrich_contact`. Only treat `valid` hits as wins; `catch_all` is usable for outreach but not an automatic win.
+**Play internals.** Runs common validated patterns first; only `valid` hits count. Falls through to `dropleads_email_finder -> hunter_email_finder -> leadmagic_email_finder -> crustdata_persondb_search -> peopledatalabs_enrich_contact`. `catch_all` is usable for outreach but not an automatic win inside the play.
 
-**Example:** call `client.executeTool('dropleads_email_finder', { first_name, last_name, company_domain: domain })`; if it misses or returns only weak evidence, call the next executable provider tool from the waterfall with its inspected input schema.
+**Example:**
+
+```bash
+deepline enrich --input leads.csv --output leads_with_emails.csv --name name-domain-email-pilot --rows 0:1 \
+  --with '{"alias":"email","tool":"name-and-domain-to-email-waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
+```
 
 **Domain-first resolution** — when you only have `company_name` or a SN `/sales/lead/` URL, resolve domain, then run the play (3 passes):
 
-Use `client.executeTool('exa_search', { query, numResults: 1 })`, extract the domain locally in JS, then run the manual work-email waterfall.
+```bash
+deepline enrich --input contacts.csv --output out.csv --name resolve-company-domain \
+  --with '{"alias":"exa_raw","tool":"exa_search","payload":{"query":"{{company_name}} official website","numResults":1}}'
+deepline enrich --input out.csv --in-place --name extract-company-domain \
+  --with '{"alias":"domain","tool":"run_javascript","payload":{"code":"const cell=row.exa_raw;const raw=(cell&&typeof cell===\"object\"&&\"result\" in cell)?cell.result:cell;const results=Array.isArray(raw?.results)?raw.results:[];const url=(results[0]&&results[0].url)||\"\";const m=url.match(/^https?:\\/\\/(www\\.)?([^\\/]+)/);return row.company_domain||(m?m[2]:null)||null;"}}'
+deepline enrich --input out.csv --in-place --name name-domain-email-after-domain \
+  --with '{"alias":"email","tool":"name-and-domain-to-email-waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
+```
 
 Exa `extract_js` doesn't work inline here, so `run_javascript` extracts the domain from the saved cell — unwrap `cell.result` first (the cell shape is `{ result, matched_result? }`).
 
 ### LinkedIn URL -> work email
 
-Current/legacy prebuilt hint: `person-linkedin-to-email`. Confirm the live name and input contract with play discovery. For a scalar one-off with a standard `/in/` URL, the prebuilt is fine; for CSV scale or custom matching, inspect executable provider tools and wrap the calls in your local loop.
+Play tool: `person-linkedin-to-email`
 
 **Required payload:** `linkedin_url`.
 
@@ -157,11 +134,14 @@ Use when contacts have a **standard `/in/`** LinkedIn URL (e.g. from `dropleads_
 
 **Example:**
 
-_Legacy row-command example removed. Use the local-SDK translation above._
+```bash
+deepline enrich --input contacts.csv --output contacts_with_emails.csv --name linkedin-email-pilot --rows 0:1 \
+  --with '{"alias":"email","tool":"person-linkedin-to-email","payload":{"linkedin_url":"{{linkedin_url}}"}}'
+```
 
 ### Email -> person/company context
 
-Executable tool: `deepline_native_enrich_contact`
+Play tool: `deepline_native_enrich_contact`
 
 Why this play:
 
@@ -170,23 +150,35 @@ Why this play:
 
 Example:
 
-_Legacy row-command example removed. Use the local-SDK translation above._
+```bash
+deepline enrich --input inbound.csv --output inbound_enriched.csv --name email-context-pilot --rows 0:1 \
+  --with '{"alias":"person_context","tool":"deepline_native_enrich_contact","payload":{"email":"{{email}}"}}'
+```
 
 ### Personal email -> LinkedIn profile
 
-Current/legacy prebuilt hint: `personal-email-to-linkedin`. Required payload: `personal_email` only (name/company unknown, unlike the work-email flows). Confirm the live name and input contract with play discovery; use it directly for scalar one-offs and wrap it per row for CSV scale.
+Play tool: `personal-email-to-linkedin`. Required payload: `personal_email` only (name/company unknown, unlike the work-email plays).
 
 Use it when a signup list has only personal emails and you want to know who they are. Returns `linkedin_url`, `name`, `company`, `title`; a profile is often more recoverable and useful than a work email here. The play normalizes Gmail first, then waterfalls `deepline_native` -> `forager` -> `findymail` -> `peopledatalabs`, charging per hit.
 
 The same play runs two ways:
 
-_Legacy row-command example removed. Use the local-SDK translation above._
+```bash
+deepline enrich --input signups.csv --output out.csv --name personal-email-profile \
+  --with '{"alias":"profile","tool":"personal-email-to-linkedin","payload":{"personal_email":"{{personal_email}}"}}'
 
-Bare personal email coverage is ~25-40%, so over-provision. If a row returns a company but no work email, chain the manual name+domain work-email waterfall above.
+# Direct play run with real values instead of {{...}} placeholders
+deepline plays run prebuilt/personal-email-to-linkedin --input '{"personal_email":"ada@gmail.com"}'
+```
+
+For direct play runs, use the hyphenated play name and pass concrete input
+values instead of CSV placeholders. Bare personal email coverage is ~25-40%,
+so over-provision. If a row returns a company but no work email, chain
+`name-and-domain-to-email-waterfall`.
 
 ### Contact identity -> phone
 
-Current/legacy prebuilt hint: `person-to-phone`. Confirm the live name and input contract with play discovery. Use the scalar prebuilt when the native ordering fits; inspect executable phone provider tools first when you need custom ordering, validation, or gating.
+Play tool: `person-to-phone`
 
 Why this play:
 
@@ -205,11 +197,14 @@ Play details:
 
 Example:
 
-_Legacy row-command example removed. Use the local-SDK translation above._
+```bash
+deepline enrich --input contacts.csv --output contacts_with_phones.csv --name contact-phone-pilot --rows 0:1 \
+  --with '{"alias":"phone_from_contact","tool":"person-to-phone","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}","email":"{{email}}","linkedin_url":"{{linkedin_url}}"}}'
+```
 
 ### Company -> persona lookup
 
-Current/legacy prebuilt hint: `company-to-contact`. Confirm the live name and input contract with play discovery. Use the scalar prebuilt when the native company-to-persona behavior fits; inspect executable company/persona provider tools first when you need custom role logic or provider ordering.
+Play tool: `company-to-contact`
 
 Why this play:
 
@@ -261,42 +256,38 @@ deepline tools search --categories company_search --search_terms "structured fil
 
 Example:
 
-_Legacy row-command example removed. Use the local-SDK translation above._
+```bash
+deepline enrich --input accounts.csv --output accounts_with_contacts.csv --name company-persona-pilot --rows 0:1 \
+  --with '{"alias":"role_contacts","tool":"company-to-contact","payload":{"company_name":"{{company_name}}","domain":"{{domain}}","roles":["{{roles}}"],"seniority":"{{seniority}}"}}'
+```
 
 Apify example:
 
-```ts
-await client.executeTool('apify_run_actor_sync', {
-  actorId: 'apimaestro/linkedin-company-employees-scraper-no-cookies',
-  input: {
-    identifier: 'https://www.linkedin.com/company/openai/',
-    max_employees: 100,
-  },
-  timeoutMs: 180000,
-});
+```bash
+deepline tools execute apify_run_actor_sync --input '{"actorId":"apimaestro/linkedin-company-employees-scraper-no-cookies","input":{"identifier":"https://www.linkedin.com/company/openai/","max_employees":100},"timeoutMs":180000}'
 ```
 
 ### LinkedIn post URL -> list of engagers
 
-Executable tool: `linkedin_post_to_engagers`
+Play tool: `linkedin_post_to_engagers`
 
-Scrapes reactors/commenters from a LinkedIn post. No actor discovery or pagination needed. Call it with `client.executeTool(...)`; for batches, loop over rows in a script.
+Scrapes reactors/commenters from a LinkedIn post. No actor discovery or pagination needed. Can be called via `deepline tools execute` (single post) or `deepline enrich` (batch).
 Do NOT use if you need comments only (use `unseenuser/linkedin-post-comment-reaction-extractor-no-cookies`) or full profiles (add a separate scraping step after).
 
-```ts
-await client.executeTool('linkedin_post_to_engagers', {
-  post_url: 'https://www.linkedin.com/posts/...',
-  max_items: 1000,
-});
+```bash
+deepline tools execute linkedin_post_to_engagers --input '{"post_url":"https://www.linkedin.com/posts/...","max_items":1000}'
 ```
 
 ### List of people with name + position -> ICP qualification
 
-Executable tool: `engagers_to_icp_qualification`
+Play tool: `engagers_to_icp_qualification`
 
 Classifies a person against an ICP using name + position/headline. Returns `{icp_tier, icp_reason}`. Do NOT use if qualification needs company size, funding, or web research — use a custom `deeplineagent` prompt instead.
 
-_Legacy row-command example removed. Use the local-SDK translation above._
+```bash
+deepline enrich --input engagers.csv --output qualified.csv --name engagers-icp-qualification --rows 0:5 \
+  --with '{"alias":"icp","tool":"engagers_to_icp_qualification","payload":{"first_name":"{{FIRST_NAME}}","last_name":"{{LAST_NAME}}","position":"{{POSITION}}","icp_description":"Tier 1: VP/Head of Engineering, CTO at B2B SaaS. Tier 2: Senior engineers. Tier 3: everyone else."}}'
+```
 
 ### Company name only -> resolve domain first
 
@@ -320,7 +311,10 @@ Routing rule:
 
 Example:
 
-_Legacy row-command example removed. Use the local-SDK translation above._
+```bash
+deepline enrich --input accounts.csv --output accounts_with_domains.csv --name company-domain-resolution-pilot --rows 0:1 \
+  --with '{"alias":"homepage_search","tool":"serper_google_search","payload":{"query":"\"{{company_name}}\" official site","num":5}}'
+```
 
 ### Manual email waterfall
 
@@ -328,7 +322,7 @@ Problem category: custom provider ordering or custom extraction behavior.
 Input profile: varies by target field.  
 Output target: same as the native play, but with explicit provider control.
 
-Default surface: a local SDK loop that calls direct executable provider tools with `client.executeTool(...)`.
+Default surface: `--with-waterfall` plus direct providers
 
 Why this play:
 
@@ -338,17 +332,25 @@ Why this play:
 
 Key waterfall rules:
 
-- Always pilot one row first, then scale after the shape looks right.
+- Always pilot first with `--rows 0:1`, then scale after the shape looks right.
 - Stop after the pilot if the first rows show low usable coverage, wrong-person/company matches, missing getters, or high cost per recovered value. Change provider order or gates before full fanout.
-- Every waterfall step needs local extraction logic after `executeTool(...)`. Before writing it: inspect the tool contract with `client.getTool(toolId)` or `deepline tools describe <tool>` and prefer the tool's documented extractors/list accessors. For raw fallbacks, SDK output lives at `toolExecutionResult.toolResponse.raw`; only drill into provider-specific nesting when the tool's own payload truly has a nested field.
-- Model waterfall control flow in ordinary code: call provider A, extract a usable value, return early on success, otherwise call provider B, then provider C. Persist each attempted provider and final value per row so retries can resume without duplicating successful calls.
+- Every waterfall step needs its own `extract_js`. Before writing it: run `deepline tools describe <tool>` and prefer the usage guidance's extracted/list accessors. For raw fallbacks, V2 tool output lives at `toolExecutionResult.toolResponse.raw`; only drill into provider-specific nesting when the tool's own payload truly has a nested field. Use `@path/to/file.js` for multi-line or regex-heavy JS — inline JS in `--with` JSON breaks on escapes.
+- Close each waterfall with `--end-waterfall` before starting another one.
 - Do not run email waterfalls without minimum match data: name + company, name + domain, or a strong LinkedIn-seeded identity.
 - If you need different validation behavior, remember the native cost-aware play only accepts pattern hits when the validator says `valid`.
-- Gating: implement row-level conditions in local code before calling a paid tool. Skip rows with insufficient inputs and record the skip reason.
+- Gating: `--with` accepts exactly these keys: `alias`, `tool`, `payload`, `extract_js`. Gate conditional logic with a preceding `run_javascript` step whenever you need row-level conditions.
 
 Example:
 
-_Legacy row-command example removed. Use the local-SDK translation above._
+```bash
+deepline enrich --input leads.csv --in-place --name manual-email-waterfall-pilot --rows 0:1 \
+  --with-waterfall "email" \
+  --with '{"alias":"dropleads","tool":"dropleads_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company_name}}","company_domain":"{{domain}}"},"extract_js":"(output_data) => extract(\"dropleads_email_finder\", output_data, \"email\")"}' \
+  --with '{"alias":"hunter","tool":"hunter_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"},"extract_js":"(output_data) => extract(\"hunter_email_finder\", output_data, \"email\")"}' \
+  --with '{"alias":"leadmagic","tool":"leadmagic_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"},"extract_js":"(output_data) => extract(\"leadmagic_email_finder\", output_data, \"email\")"}' \
+  --end-waterfall \
+  --with '{"alias":"email_validation","tool":"leadmagic_email_validation","payload":{"email":"{{email}}"}}'
+```
 
 If `extract_js` returns raw objects instead of scalars, you can store the raw response and use `run_javascript` in a second pass to parse it. When debugging, remember the extractor input is wrapped as `{ result: ... }`, while persisted enrich cells usually contain both `result` and `matched_result`.
 
@@ -407,13 +409,45 @@ Default rule:
 - split research and generation into separate passes when both are needed
 - keep research here; route actual copywriting to `writing-outreach.md`
 
-### Legacy row-command shape reference
+### Handmade step shape quick reference
 
-Use this only to translate old examples to direct scripts. Do not execute legacy row commands during interim direct mode.
+Use this when you are hand-authoring `deepline enrich` steps instead of relying on a native play.
 
-- `run_javascript` old payloads put JS in `payload.code`; in local scripts, just write JS directly.
-- Old `extract_js` saw `{ result: <raw tool output> }`; SDK scripts should inspect `toolResponse.raw` and extract in ordinary code.
-- Old persisted cells may contain `result` plus `matched_result`; prefer `matched_result` when present, then fall back to the raw provider payload.
+- `run_javascript` payload schema: `{"alias":"x","tool":"run_javascript","payload":{"code":"..."}}`
+- Inside `run_javascript`, the current row is available as `row`. Read prior columns with `row["column_name"]` or `row.column_name`.
+- `run_javascript` returns whatever your JS returns. For example:
+  - scalar: `return "acme.com"`
+  - object: `return { domain: "acme.com", source: "exa" }`
+  - list: `return [{ email: "ada@example.com" }]`
+- Provider step with extractor schema: `{"alias":"x","tool":"some_provider","payload":{...},"extract_js":"(output_data) => ..."}`
+- `extract_js` input shape is always wrapped: `output_data = { result: <raw tool output> }`
+- So inside `extract_js`, author against `output_data.result.*`, not the raw payload root.
+- Use `extract("tool_id", output_data, "field")` and `extractList("tool_id", output_data, { keys: [...] })` when possible instead of manually drilling paths.
+- Persisted enrich cell shape is different from extractor input.
+- For provider-backed enrich columns, the saved cell usually contains the raw provider payload under `result`.
+- `matched_result` is the normalized extracted value when Deepline materializes one, for example from result getters or waterfall extraction. It is not the runtime input to `extract_js`; it is a saved post-extraction convenience field.
+- That means:
+  - in `extract_js`, read `output_data.result`
+  - in later `run_javascript` passes over saved CSV rows, read `row["some_column"].result`
+  - if the saved cell also has `matched_result`, prefer it as the normalized value you already extracted
+  - only drill into provider-specific nesting after reading the documented raw output root, and only when that provider's raw payload truly has that nested field
+
+Minimal examples:
+
+```bash
+deepline enrich --input in.csv --output out.csv --name js-domain-transform \
+  --with '{"alias":"domain","tool":"run_javascript","payload":{"code":"return row.company_name ? row.company_name.toLowerCase().replace(/\\s+/g, \"\") + \".com\" : null;"}}'
+```
+
+```bash
+deepline enrich --input in.csv --output out.csv --name hunter-email-raw \
+  --with '{"alias":"email_raw","tool":"hunter_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"},"extract_js":"(output_data) => extract(\"hunter_email_finder\", output_data, \"email\")"}'
+```
+
+```bash
+deepline enrich --input out.csv --in-place --name email-domain-transform \
+  --with '{"alias":"email_domain","tool":"run_javascript","payload":{"code":"const cell=row.email_raw;const raw=(cell&&typeof cell===\"object\"&&\"result\" in cell)?cell.result:cell;const email=cell?.matched_result||raw?.email||raw?.data?.email||null;return email?email.split(\"@\")[1]:null;"}}'
+```
 
 ### Tiny disambiguation
 
@@ -448,11 +482,49 @@ jq -r '."5 interesting facts about a candidate"' .skills/deepline-gtm/prompts.js
 4. If the next step is copy, sequence writing, scoring copy, or messaging, switch to `writing-outreach.md` and use the research column there.
 5. Keep outputs structured with `jsonSchema` when the column is meant to feed later steps.
 
-### Structured output and direct-call realities
+### Example: inline custom research column with `deeplineagent`
 
-- SDK `client.executeTool(...)` returns an execution envelope, not just the bare provider object. For most tools, read provider output from `toolResponse.raw`. `deeplineagent` currently returns its AI payload at top-level `result` on the prod SDK CLI, so normalize with `const raw = result.toolResponse?.raw ?? result.result ?? result`; structured JSON then lives at `raw.result.object` or `raw.extracted_json`, and plain text lives at `raw.result.text` or `raw.output`.
-- Direct tool/play paths have their own JSON shape; inspect actual output before writing flattening JavaScript.
-- If you need deterministic field-level reuse, add a local JS/Python flattening step that emits a scalar column, then pass that scalar into later direct calls.
+```bash
+deepline enrich --input accounts.csv --in-place --name account-research-pilot --rows 0:1 \
+  --with '{"alias":"account_research","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Research {{company_name}} ({{domain}}). Return JSON with what_they_build and who_they_sell_to. Keep it brief and use Deepline-managed tools only if needed.","jsonSchema":{"type":"object","properties":{"what_they_build":{"type":"string"},"who_they_sell_to":{"type":"string"}},"required":["what_they_build","who_they_sell_to"],"additionalProperties":false}}}'
+```
+
+### Example: research pass before writing
+
+```bash
+deepline enrich --input leads.csv --output leads_researched.csv --name company-research-pilot --rows 0:1 \
+  --with '{"alias":"company_research","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Research {{company_name}} ({{domain}}). Return JSON with key pain_points for a buyer considering data enrichment, scoring, or GTM workflow tooling. Keep it brief and use Deepline-managed tools only if needed.","jsonSchema":{"type":"object","properties":{"pain_points":{"type":"string"}},"required":["pain_points"],"additionalProperties":false}}}'
+```
+
+### Example: classify an existing research column with `deeplineagent`
+
+```bash
+deepline enrich --input leads_researched.csv --in-place --name account-tier-pilot --rows 0:1 \
+  --with '{"alias":"account_tier","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Using only the provided context, classify {{company_name}} into one of: high_fit, medium_fit, low_fit. Context: {{company_research}}","jsonSchema":{"type":"object","properties":{"tier":{"type":"string","enum":["high_fit","medium_fit","low_fit"]},"reason":{"type":"string"}},"required":["tier","reason"],"additionalProperties":false}}}'
+```
+
+### Structured output and interpolation realities
+
+- Direct `deepline tools execute --json` returns an execution envelope, not just the bare provider object. For most tools, read provider output from `toolResponse.raw`. `deeplineagent` currently returns its AI payload at top-level `result` on the prod SDK CLI, so normalize with `const raw = result.toolResponse?.raw ?? result.result ?? result`; structured JSON then lives at `raw.result.object` or `raw.extracted_json`, and plain text lives at `raw.result.text` or `raw.output`.
+- In `deepline enrich`, `{{company_research}}` is the safest way to pass a prior `deeplineagent` column into another AI prompt.
+- Do not assume `{{company_research.pain_points}}` works for `deeplineagent` structured-output columns in `deepline enrich`. Those cells currently carry an AI result wrapper, so downstream field access is not as clean as a plain flat JSON cell.
+- Direct `tools execute` paths and `enrich` row paths are different surfaces; inspect the actual JSON shape before writing flattening JavaScript.
+- If you need deterministic field-level reuse, add a `run_javascript` flatten pass that emits a new scalar column, then interpolate that scalar column in later steps.
+- `row` exists only inside `run_javascript` code. Use `{{company_research}}` in payload templates, and use `row["company_research"]` inside `payload.code`.
+
+### Example: flatten a structured research field before reuse
+
+```bash
+deepline enrich --input leads_researched.csv --in-place --name flatten-pain-points --rows 0:1 \
+  --with '{"alias":"company_pain_points","tool":"run_javascript","payload":{"code":"const research = row[\"company_research\"]; const extracted = research?.output || research?.extracted_json || research?.result?.object || research; return extracted?.pain_points || null;"}}'
+```
+
+Then use the flattened scalar in later prompts:
+
+```bash
+deepline enrich --input leads_researched.csv --in-place --name account-tier-from-pain-points --rows 0:1 \
+  --with '{"alias":"account_tier","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Using only the provided context, classify {{company_name}} into one of: high_fit, medium_fit, low_fit. Pain points: {{company_pain_points}}","jsonSchema":{"type":"object","properties":{"tier":{"type":"string","enum":["high_fit","medium_fit","low_fit"]},"reason":{"type":"string"}},"required":["tier","reason"],"additionalProperties":false}}}'
+```
 
 ### Example: adapt a saved prompt from prompts.json
 
@@ -462,7 +534,12 @@ Start by printing the prompt text:
 jq -r '."5 interesting facts about a candidate"' .skills/deepline-gtm/prompts.json
 ```
 
-Then adapt it into a direct `deeplineagent` SDK call for research or custom-signal work.
+Then adapt it into a row-level enrich call for research or custom-signal work:
+
+```bash
+deepline enrich --input contacts.csv --in-place --name candidate-facts-pilot --rows 0:1 \
+  --with '{"alias":"candidate_facts","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Using the style of the saved prompt \"5 interesting facts about a candidate\", find five short, source-backed facts about {{full_name}} at {{company_name}}. Use Deepline-managed tools if needed. Return JSON {facts: string[]}.","jsonSchema":{"type":"object","properties":{"facts":{"type":"array","items":{"type":"string"}}},"required":["facts"],"additionalProperties":false}}}'
+```
 
 For actual email copy, personalized first lines, sequence writing, or scoring language, stop here and route to `writing-outreach.md` with the research columns you just created.
 
