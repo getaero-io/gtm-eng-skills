@@ -292,14 +292,14 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-play-runtime-absurd-default-cloudflare-disabled` | Changes the enabled POST /api/v2/plays/run execution profile from workers_edge to absurd and returns 503 with code PLAY_RUNTIME_PROVIDER_DISABLED when workers_edge is requested explicitly. This is an operational runtime cutover, not a wi... |
+| `2026-07-sdk-enrich-single-durable-run` | Removes SDK CLI `deepline enrich` local CSV auto-batching, temporary batch CSV staging, and recovery manifests so each invocation submits one durable V2/Absurd play run and lets the runtime own internal map chunking. This is compatible l... |
 | `2026-07-sdk-enrich-certified-inline-play-compilation` | Allows the SDK CLI enrich compiler to embed a build-certified inline handler for an explicitly inline-capable prebuilt play instead of always emitting a row-scoped child run. This is compatible generated-play topology and local execution... |
 | `2026-07-plays-check-imported-plays-local-composition` | Adds an optional importedPlays array to POST /api/v2/plays/check (and the checkPlayArtifact SDK input) carrying sibling plays from the local bundle graph, so `deepline plays check` splices unpublished local children into the checked plan... |
 | `2026-07-play-rerun-recovery-and-run-log-access` | Adds optional failed-log selection to the existing GET /api/v2/runs/:runId/logs route, optional failedLogs/onEvent SDK fields, the additive `deepline runs get --log-failed` and `runs logs --failed` flags, and more useful output for the e... |
 | `2026-07-absurd-release-override-fail-loud-validation` | Makes POST /api/v2/plays/run reject an x-deepline-absurd-release override with 403 when internal authorization is absent and 400 when the release id is malformed, instead of silently ignoring that internal-only routing request. This is c... |
 | `2026-07-internal-production-play-fixture-mode` | Allows POST /api/v2/plays/run to honor the existing optional fixture integration mode in production only when the authenticated actor has a verified internal Deepline email, so production-scale CI can exercise the real tools.execute path... |
 | `2026-07-play-run-internal-absurd-release-override` | Allows POST /api/v2/plays/run to accept an internal-token-authenticated x-deepline-absurd-release header when the request explicitly selects the absurd profile, enabling exact-SHA release-lane canaries. This is compatible internal routin... |
-| `2026-07-sdk-play-run-absurd-profile-guidance` | Clarifies SDK CLI `deepline plays run` help text and examples that production runs default to workers_edge and that `--profile absurd` is an explicit runtime selection. This is documentation-only CLI output: the existing --profile flag,... |
-| `2026-07-sdk-admin-lanes-and-child-release-header` | Adds platform-admin-only `deepline admin lanes list/show/retire-check` and `deepline admin releases activate` CLI commands over new admin endpoints, and teaches `/api/v2/plays/run` to read an optional internal `x-deepline-absurd-release`... |
 
 ## Public Types
 
@@ -428,7 +428,7 @@ Either `name` (for live plays) or `artifactStorageKey` (for packaged ad hoc runs
 | `force` | `boolean` | No | Compatibility flag; active sibling runs are allowed. |
 | `forceToolRefresh` | `boolean` | No | Explicit cache-bypass flag for durable dataset and tool-call reuse. |
 | `waitForCompletionMs` | `number` | No | Optionally let the start request wait briefly and return a terminal result. |
-| `profile` | `string` | No | Per-run execution profile override. The server defaults to workers_edge;<br />tests and runtime probes can pass a different profile here. Most callers<br />should leave this unset. |
+| `profile` | `string` | No | Per-run execution profile override. The server defaults to absurd. The<br />workers_edge profile is disabled; most callers should leave this unset. |
 | `integrationMode` | `'live' \| 'eval_stub' \| 'fixture'` | No | Optional per-run provider execution mode for eval/smoke runs. |
 | `testPolicyOverrides` | `Record<string, unknown>` | No | Internal/dev-only runtime policy overrides for black-box durability tests. |
 
