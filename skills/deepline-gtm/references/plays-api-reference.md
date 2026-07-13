@@ -292,14 +292,14 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-play-live-latest-run-snapshot` | Adds an optional latestRunSnapshot field to GET /api/v2/plays/:name/live for the dashboard polling path. The field is derived from the existing durable latest run and supplies a complete progress snapshot without opening a second subscri... |
+| `2026-07-sdk-enrich-absurd-sheet-contract-rebundle` | Fixes POST /api/v2/plays/run when it re-bundles an ad-hoc ESM SDK CLI artifact for the Absurd CJS runtime: the server now carries the already-verified compiler static pipeline into the canonical run snapshot, preserving generated enrich... |
 | `2026-07-play-runtime-absurd-default-cloudflare-disabled` | Changes the enabled POST /api/v2/plays/run execution profile from workers_edge to absurd and returns 503 with code PLAY_RUNTIME_PROVIDER_DISABLED when workers_edge is requested explicitly. This is an operational runtime cutover, not a wi... |
 | `2026-07-sdk-enrich-single-durable-run` | Removes SDK CLI `deepline enrich` local CSV auto-batching, temporary batch CSV staging, and recovery manifests so each invocation submits one durable V2/Absurd play run and lets the runtime own internal map chunking. This is compatible l... |
 | `2026-07-sdk-enrich-certified-inline-play-compilation` | Allows the SDK CLI enrich compiler to embed a build-certified inline handler for an explicitly inline-capable prebuilt play instead of always emitting a row-scoped child run. This is compatible generated-play topology and local execution... |
 | `2026-07-plays-check-imported-plays-local-composition` | Adds an optional importedPlays array to POST /api/v2/plays/check (and the checkPlayArtifact SDK input) carrying sibling plays from the local bundle graph, so `deepline plays check` splices unpublished local children into the checked plan... |
 | `2026-07-play-rerun-recovery-and-run-log-access` | Adds optional failed-log selection to the existing GET /api/v2/runs/:runId/logs route, optional failedLogs/onEvent SDK fields, the additive `deepline runs get --log-failed` and `runs logs --failed` flags, and more useful output for the e... |
 | `2026-07-absurd-release-override-fail-loud-validation` | Makes POST /api/v2/plays/run reject an x-deepline-absurd-release override with 403 when internal authorization is absent and 400 when the release id is malformed, instead of silently ignoring that internal-only routing request. This is c... |
-| `2026-07-internal-production-play-fixture-mode` | Allows POST /api/v2/plays/run to honor the existing optional fixture integration mode in production only when the authenticated actor has a verified internal Deepline email, so production-scale CI can exercise the real tools.execute path... |
-| `2026-07-play-run-internal-absurd-release-override` | Allows POST /api/v2/plays/run to accept an internal-token-authenticated x-deepline-absurd-release header when the request explicitly selects the absurd profile, enabling exact-SHA release-lane canaries. This is compatible internal routin... |
 
 ## Public Types
 
