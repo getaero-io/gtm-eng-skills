@@ -611,7 +611,7 @@ normalization, and no-result behavior. Do not invoke plays through
 
 `key` is the stable child-call identity for idempotency and traceability.
 
-Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayReferenceLike, input: Record<string, unknown>, options: { description: string }, ): Promise<TOutput>;`
+Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayReferenceLike, input: Record<string, unknown>, options?: PlayCallOptions, ): Promise<TOutput>;`
 
 #### Parameters
 
@@ -620,7 +620,7 @@ Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayRefer
 | `key` | `string` | Yes | Stable child-call key. |
 | `playRef` | `string \| PlayReferenceLike` | Yes | Registered play name, play handle, or file-backed play reference. |
 | `input` | `Record<string, unknown>` | Yes | Input object passed to the child play. |
-| `options` | `{ description: string }` | Yes | Child play options. |
+| `options` | `PlayCallOptions` | No | Child play options. |
 
 #### Returns
 
@@ -866,7 +866,7 @@ Signature: `class DeeplineClient`
 | `cancelPlay` | method | Cancel a running play execution.<br /><br />Sends a stop request for the run. | `workflowId: string` - Public Deepline play-run id to cancel | `Promise<void>` |
 | `stopPlay` | method | Stop a running play execution, including open HITL waits. | `workflowId: string` - Public Deepline play-run id to stop<br />`options?: { reason?: string }` | `Promise<StopPlayRunResult>` |
 | `listPlayRuns` | method | List recent runs for a named play.<br /><br />Returns runs sorted by start time (newest first), including workflow IDs,<br />status, timestamps, and metadata. | `playName: string` - The play name to query | `Promise<PlayRunListItem[]>` |
-| `getRunStatus` | method | Get a run by id using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs get <run-id> --json<br />``` | `runId: string`<br />`options?: { full?: boolean }` | `Promise<PlayStatus>` |
+| `getRunStatus` | method | Get a run by id using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs get <run-id> --json<br />``` | `runId: string`<br />`options?: RunsGetOptions` | `Promise<PlayStatus>` |
 | `listRuns` | method | List play runs using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs list --play <play-name> --status failed --json<br />``` | `options: RunsListOptions` | `Promise<PlayRunListItem[]>` |
 | `observeRunEvents` | method | Observe one run's live events. Uses the Convex Run Snapshot subscription<br />transport first (ADR-0008), then falls back to the canonical SSE stream<br />when the subscription transport or its optional client modules are not<br />available. Pass `fallback: 'none'` to receive<br />`RunObserveTransportUnavailableError` instead. | `runId: string`<br />`options?: { signal?: AbortSignal; onNotice?: (message: string) => void; fallback?: 'sse' \| 'none'; }` | `AsyncGenerator<PlayLiveEvent>` |
 | `tailRun` | method | Read the canonical run stream until a terminal run status is observed.<br /><br />Tries the Convex Run Snapshot subscription transport first (ADR-0008);<br />when the server cannot serve it (grant endpoint missing/unconfigured or<br />Convex unreachable) it falls back — with one `onNotice` message — to the<br />support-window SSE stream below.<br /><br />Server stream windows are finite: they end cleanly at the function<br />ceiling even while the run keeps executing. A window that ends (cleanly<br />or via transient network error) without a terminal event triggers one<br />durable-status re-check followed by a backed-off reconnect, so long runs<br />tail to completion. Abort via `options.signal` to stop waiting. | `runId: string`<br />`options?: RunsTailOptions` | `Promise<PlayStatus>` |
@@ -907,7 +907,7 @@ logs, and exporting durable dataset rows.
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-| `get` | `(runId: string, options?: { full?: boolean }) => Promise<PlayStatus>` | Yes | Get current run status by public run id. |
+| `get` | `(runId: string, options?: RunsGetOptions) => Promise<PlayStatus>` | Yes | Get current run status by public run id. |
 | `list` | `(options: RunsListOptions) => Promise<PlayRunListItem[]>` | Yes | List runs for one play, optionally filtered by status. |
 | `tail` | `(runId: string, options?: RunsTailOptions) => Promise<PlayStatus>` | Yes | Stream run events and return the latest/terminal run status. |
 | `logs` | `(runId: string, options?: RunsLogsOptions) => Promise<RunsLogsResult>` | Yes | Fetch persisted log lines for a run. |

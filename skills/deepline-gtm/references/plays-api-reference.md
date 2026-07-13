@@ -294,12 +294,12 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 |---|---|
 | `2026-07-sdk-enrich-certified-inline-play-compilation` | Allows the SDK CLI enrich compiler to embed a build-certified inline handler for an explicitly inline-capable prebuilt play instead of always emitting a row-scoped child run. This is compatible generated-play topology and local execution... |
 | `2026-07-plays-check-imported-plays-local-composition` | Adds an optional importedPlays array to POST /api/v2/plays/check (and the checkPlayArtifact SDK input) carrying sibling plays from the local bundle graph, so `deepline plays check` splices unpublished local children into the checked plan... |
+| `2026-07-play-rerun-recovery-and-run-log-access` | Adds optional failed-log selection to the existing GET /api/v2/runs/:runId/logs route, optional failedLogs/onEvent SDK fields, the additive `deepline runs get --log-failed` and `runs logs --failed` flags, and more useful output for the e... |
 | `2026-07-absurd-release-override-fail-loud-validation` | Makes POST /api/v2/plays/run reject an x-deepline-absurd-release override with 403 when internal authorization is absent and 400 when the release id is malformed, instead of silently ignoring that internal-only routing request. This is c... |
 | `2026-07-internal-production-play-fixture-mode` | Allows POST /api/v2/plays/run to honor the existing optional fixture integration mode in production only when the authenticated actor has a verified internal Deepline email, so production-scale CI can exercise the real tools.execute path... |
 | `2026-07-play-run-internal-absurd-release-override` | Allows POST /api/v2/plays/run to accept an internal-token-authenticated x-deepline-absurd-release header when the request explicitly selects the absurd profile, enabling exact-SHA release-lane canaries. This is compatible internal routin... |
 | `2026-07-sdk-play-run-absurd-profile-guidance` | Clarifies SDK CLI `deepline plays run` help text and examples that production runs default to workers_edge and that `--profile absurd` is an explicit runtime selection. This is documentation-only CLI output: the existing --profile flag,... |
 | `2026-07-sdk-admin-lanes-and-child-release-header` | Adds platform-admin-only `deepline admin lanes list/show/retire-check` and `deepline admin releases activate` CLI commands over new admin endpoints, and teaches `/api/v2/plays/run` to read an optional internal `x-deepline-absurd-release`... |
-| `2026-07-sdk-play-stream-terminal-reconciliation` | Hardens SDK CLI Absurd play start streams by reconciling streamed terminal events with the canonical durable run status before exiting, so a stale failed event cannot hide a still-running Absurd execution. This is compatible local CLI re... |
 
 ## Public Types
 
@@ -470,6 +470,7 @@ Poll this until `status` reaches a terminal state:
 | `runId` | `string` | Yes | Public play-run identifier. |
 | `apiVersion` | `number` | No | Public Deepline play-run API version. |
 | `name` | `string` | No | Saved play name for this run, when available. |
+| `revisionId` | `string` | No | Exact saved revision launched for this run, when applicable. |
 | `playName` | `string` | No | Alias for `name` used by run/result APIs. |
 | `dashboardUrl` | `string` | No | Dashboard URL for inspecting the play and its run output in the app. |
 | `status` | `\| 'queued' \| 'running' \| 'waiting' \| 'completed' \| 'failed' \| 'cancelled'` | Yes | Product-level play-run state. |
@@ -482,6 +483,8 @@ Poll this until `status` reaches a terminal state:
 | `contract` | `Record<string, unknown> \| null` | No | Canonical run contract snapshot metadata, when available. |
 | `wait` | `{ kind: 'integration_event' \| 'sleep'; boundaryId?: string; eventKey?: string; until?: number; } \| null` | No | If the run is blocked on a durable boundary, expose the public wait state. |
 | `next` | `PlayRunPackage['next'] \| Record<string, unknown>` | No | Structured follow-up actions for inspect/query/export. |
+| `failedLogs` | `{ runId: string; totalCount: number; returnedCount: number; firstSequence: number \| null; lastSequence: number \| null; truncated: boolean; hasMore: boolean; entries: string[]; view?: 'failed'; association?: 'terminal_failure_window' \| 'retained_before_truncation'; warning?: string; next?: { logs: string }; logsTruncated?: boolean; }` | No | Bounded terminal-failure log window requested by `runs.get`. |
+| `rerunCommand` | `string` | No | Exact ordinary `plays run` command that can rerun a failed execution. |
 
 
 ### `PlayRunPackage`
@@ -501,7 +504,9 @@ internals.
 | `run` | `{ id: string; playName: string; status: string; dashboardUrl?: string; updatedAt?: number \| null; startedAt?: number \| null; finishedAt?: number \| null; durationMs?: number \| null; error?: string; }` | Yes | Run identity, status, timing, and dashboard metadata. |
 | `steps` | `Array<Record<string, unknown>>` | Yes | Step-level summaries emitted by the runtime. |
 | `outputs` | `Record<string, Record<string, unknown>>` | Yes | Named output summaries, including dataset handles and scalar outputs. |
-| `next` | `{ inspect?: PlayRunActionPackage; export?: PlayRunActionPackage; query?: PlayRunActionPackage; }` | No | Follow-up actions a caller can perform against the run. |
+| `datasets` | `Array<{ kind: 'dataset'; datasetId?: string; path: string; tableNamespace?: string; rowCount?: number; recovered?: true; preview?: Record<string, unknown>; actions?: Record<string, PlayRunActionPackage>; }>` | No | Every durable Dataset Handle explicitly registered by this run. |
+| `logs` | `{ tail: string[]; totalCount: number; returnedCount: number; truncated?: boolean; }` | No | Small retained tail of customer and runtime logs; fetch the full stream through `runs.logs`. |
+| `next` | `{ inspect?: PlayRunActionPackage; export?: PlayRunActionPackage; query?: PlayRunActionPackage; logs?: PlayRunActionPackage; }` | No | Follow-up actions a caller can perform against the run. |
 
 
 ### `PlayRunListItem`
@@ -556,7 +561,7 @@ logs, and exporting durable dataset rows.
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-| `get` | `(runId: string, options?: { full?: boolean }) => Promise<PlayStatus>` | Yes | Get current run status by public run id. |
+| `get` | `(runId: string, options?: RunsGetOptions) => Promise<PlayStatus>` | Yes | Get current run status by public run id. |
 | `list` | `(options: RunsListOptions) => Promise<PlayRunListItem[]>` | Yes | List runs for one play, optionally filtered by status. |
 | `tail` | `(runId: string, options?: RunsTailOptions) => Promise<PlayStatus>` | Yes | Stream run events and return the latest/terminal run status. |
 | `logs` | `(runId: string, options?: RunsLogsOptions) => Promise<RunsLogsResult>` | Yes | Fetch persisted log lines for a run. |
