@@ -480,8 +480,8 @@ return { score, tier };
 ```bash
 deepline tools execute smartlead_api_request --payload '{
   "method": "POST",
-  "endpoint": "/v1/campaigns/<campaign_id>/leads",
-  "data": {
+  "path": "/v1/campaigns/<campaign_id>/leads",
+  "body": {
     "lead_list": [
       {
         "email": "{{final_email}}",
@@ -498,7 +498,7 @@ deepline tools execute smartlead_api_request --payload '{
 Or inside `deepline enrich`:
 
 ```bash
---with '{"alias":"campaign_push","tool":"smartlead_api_request","payload":{"method":"POST","endpoint":"/v1/campaigns/<campaign_id>/leads","data":{"lead_list":[{"email":"{{final_email}}","first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company_name}}"}]}}}'
+--with '{"alias":"campaign_push","tool":"smartlead_api_request","payload":{"method":"POST","path":"/v1/campaigns/<campaign_id>/leads","body":{"lead_list":[{"email":"{{final_email}}","first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company_name}}"]}}}'
 ```
 
 ### `add-lead-to-campaign` (Instantly)

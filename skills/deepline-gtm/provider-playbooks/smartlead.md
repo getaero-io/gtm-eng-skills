@@ -102,7 +102,7 @@ deepline tools execute smartlead_auto_generate_mailboxes --payload '{"vendor_id"
 ### Generic API Request
 
 ```bash
-deepline tools execute smartlead_api_request --payload '{"method":"GET","endpoint":"/v1/campaigns"}'
+deepline tools execute smartlead_api_request --payload '{"method":"GET","path":"/v1/campaigns"}'
 ```
 
 ## Response Shape Contract

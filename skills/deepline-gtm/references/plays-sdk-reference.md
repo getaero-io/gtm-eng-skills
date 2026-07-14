@@ -186,11 +186,11 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.175` |
+| SDK version | `0.1.220` |
 | API contract | `2026-06-dataset-handle-results-hard-cutover` |
-| Latest supported SDK | `0.1.175` |
+| Latest supported SDK | `0.1.220` |
 | Minimum supported SDK | `0.1.53` |
-| Deprecated below | `0.1.53` |
+| Deprecated below | `0.1.219` |
 | Generated sources | `sdk/src/client.ts`<br />`sdk/src/play.ts`<br />`shared_libs/play-runtime/cell-staleness.ts`<br />`shared_libs/play-runtime/tool-result-types.ts`<br />`shared_libs/plays/dataset.ts` |
 | Coverage | Runtime SDK surface: `Deepline.connect`, `DeeplineContext`, `DeeplineClient`, play authoring, in-play `ctx.*` primitives, provider/tool calls, named play handles, run handles, datasets, and tool result accessors. |
 | Not covered | Full CLI command help, provider-specific input/output schemas, dashboard-only routes, and marketing/tutorial guides. Use `references/plays-api-reference.md` for generated HTTP route contracts. |
