@@ -292,14 +292,14 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-sdk-play-start-no-implicit-retry` | Disables implicit transport retries and alternate-URL fallback for the existing DeeplineClient.startPlayRun POST /api/v2/plays/run mutation because an ambiguous timeout can occur after the server has already created the root run. This is... |
 | `2026-07-monitor-dependent-plays-observability` | Adds an app-owned GET /api/v2/monitors/deployed/:key/dependents endpoint for the Signal Radar detail page. The endpoint is additive, uses the existing monitor authorization boundary, derives stream identity from the org-owned stored moni... |
 | `2026-07-play-live-latest-run-snapshot` | Adds an optional latestRunSnapshot field to GET /api/v2/plays/:name/live for the dashboard polling path. The field is derived from the existing durable latest run and supplies a complete progress snapshot without opening a second subscri... |
 | `2026-07-revert-absurd-sheet-contract-rebundle` | Reverts the server-side Absurd CJS rebundle changes from #2774 after they caused broad runtime completion timeouts. This restores the previously deployed execution path without changing POST /api/v2/plays/run route, method, accepted requ... |
+| `2026-07-absurd-sheet-contract-rebundle-preservation` | Restores only the verified compiler static-pipeline handoff during POST /api/v2/plays/run ESM-to-CJS rebundling for Absurd, so a runtime sheet keeps its source-derived contract after the server refreshes its executable artifact. This is... |
 | `2026-07-play-runtime-absurd-default-cloudflare-disabled` | Changes the enabled POST /api/v2/plays/run execution profile from workers_edge to absurd and returns 503 with code PLAY_RUNTIME_PROVIDER_DISABLED when workers_edge is requested explicitly. This is an operational runtime cutover, not a wi... |
 | `2026-07-sdk-enrich-single-durable-run` | Removes SDK CLI `deepline enrich` local CSV auto-batching, temporary batch CSV staging, and recovery manifests so each invocation submits one durable V2/Absurd play run and lets the runtime own internal map chunking. This is compatible l... |
 | `2026-07-sdk-enrich-certified-inline-play-compilation` | Allows the SDK CLI enrich compiler to embed a build-certified inline handler for an explicitly inline-capable prebuilt play instead of always emitting a row-scoped child run. This is compatible generated-play topology and local execution... |
-| `2026-07-plays-check-imported-plays-local-composition` | Adds an optional importedPlays array to POST /api/v2/plays/check (and the checkPlayArtifact SDK input) carrying sibling plays from the local bundle graph, so `deepline plays check` splices unpublished local children into the checked plan... |
-| `2026-07-play-rerun-recovery-and-run-log-access` | Adds optional failed-log selection to the existing GET /api/v2/runs/:runId/logs route, optional failedLogs/onEvent SDK fields, the additive `deepline runs get --log-failed` and `runs logs --failed` flags, and more useful output for the e... |
 
 ## Public Types
 
