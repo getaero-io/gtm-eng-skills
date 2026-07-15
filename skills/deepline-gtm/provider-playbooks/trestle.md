@@ -14,7 +14,7 @@ Trestle has two phone APIs:
 - `is_valid` — is this a real phone number?
 - `line_type` — Mobile, Landline, FixedVOIP, NonFixedVOIP, etc.
 - `carrier` — service provider name
-- `activity_score` — 0-100, where 70+ is active, <=30 is stale/disconnected
+- `activity_score` — 0-100, where 70+ is active and 30 or below is stale/disconnected
 - `is_prepaid` — prepaid account status
 
 **When to use:**
