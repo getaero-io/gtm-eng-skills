@@ -122,6 +122,7 @@ Authoring rules:
 - Do not use local `fs`, raw `fetch`, shell commands, env reads, `Date.now`, or `Math.random` inside play bodies; replay can re-run the body and corrupt state.
 - Use stable ids for paid work. Rename ids only to refresh wrong/stale provider data or changed semantics.
 - Prefer one paid operation per dataset cell. Put shaping, projection, `status`, `miss_reason`, display fields, and transformations in separate pure columns after the paid column.
+- For recurring sourcing, use `.run({ key: 'domain', mode: 'net_new' })` on the candidate table. It atomically returns only previously unseen domains; ordinary `upsert` reruns return known rows too. This cannot suppress rows at a provider before that provider returns them.
 - Return datasets for CSV/exportable outputs.
 - Use declared getters. Do not parse raw payload paths when `extractedValues.*.get()` or `extractedLists.*.get()` exists.
 - For query tools such as `query_customer_db` and `snowflake_run_query`, treat `toolResponse.raw.rows` as an inline preview/debug field. Use `result.extractedLists.rows.get()` and return that Dataset Handle for full-row export.

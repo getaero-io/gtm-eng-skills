@@ -292,14 +292,14 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-sdk-play-run-authored-stack-output` | Adds bounded authored source stack frames to human-readable `deepline plays run` terminal output when the existing structured run package contains a failed-run stack. This is compatible local CLI diagnostics only: SDK/API routes, methods... |
+| `2026-07-sdk-enrich-run-javascript-inline-precedence` | Makes newly published deepline enrich generated play source prioritize eligible deterministic run_javascript step code over generic native-play metadata. This is a compatible local generated-source correction only: API routes, methods, r... |
+| `2026-07-sdk-enrich-interruption-recovery` | Makes newly published deepline enrich clients retain the existing durable run id after the start stream reports it, then print existing runs get and runs export recovery commands when the local process receives SIGINT or SIGTERM. This is... |
 | `2026-07-plays-check-publish-artifact-attestation` | Adds optional sourceHash and limits fields to POST /api/v2/plays/check responses, plus the additive deepline plays publish --expected-artifact and --dry-run flags. Existing check response fields, publish request and response protocols, c... |
 | `2026-07-play-revision-storage-limit-preflight` | Makes the existing POST /api/v2/plays/artifacts publish route reject a revision that cannot fit in Convex persisted storage before uploading its artifact, and makes POST /api/v2/plays/run reject the same inline ad-hoc revision before sch... |
 | `2026-07-sdk-compat-deprecated-auto-update` | Changes GET /api/v2/sdk/compat so SDK CLI versions below the explicit deprecatedBelow threshold automatically run their existing self-update path without blocking the current command. This is compatible update-policy behavior: route path... |
 | `2026-07-sdk-play-start-no-implicit-retry` | Disables implicit transport retries and alternate-URL fallback for the existing DeeplineClient.startPlayRun POST /api/v2/plays/run mutation because an ambiguous timeout can occur after the server has already created the root run. This is... |
 | `2026-07-monitor-dependent-plays-observability` | Adds an app-owned GET /api/v2/monitors/deployed/:key/dependents endpoint for the Signal Radar detail page. The endpoint is additive, uses the existing monitor authorization boundary, derives stream identity from the org-owned stored moni... |
-| `2026-07-play-live-latest-run-snapshot` | Adds an optional latestRunSnapshot field to GET /api/v2/plays/:name/live for the dashboard polling path. The field is derived from the existing durable latest run and supplies a complete progress snapshot without opening a second subscri... |
-| `2026-07-revert-absurd-sheet-contract-rebundle` | Reverts the server-side Absurd CJS rebundle changes from #2774 after they caused broad runtime completion timeouts. This restores the previously deployed execution path without changing POST /api/v2/plays/run route, method, accepted requ... |
-| `2026-07-absurd-sheet-contract-rebundle-preservation` | Restores only the verified compiler static-pipeline handoff during POST /api/v2/plays/run ESM-to-CJS rebundling for Absurd, so a runtime sheet keeps its source-derived contract after the server refreshes its executable artifact. This is... |
 
 ## Public Types
 

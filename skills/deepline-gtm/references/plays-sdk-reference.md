@@ -442,6 +442,7 @@ withColumn<Name extends string, Value>(
 
 run(options?: {
     description?: string;
+    mode?: 'upsert' | 'net_new';
     key?:
       | (keyof InputRow & string)
       | readonly (keyof InputRow & string)[]
@@ -501,7 +502,7 @@ run(options?: {
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-| `options` | `{ description?: string; key?: \| (keyof InputRow & string) \| readonly (keyof InputRow & string)[] \| (( row: InputRow, index: number, ) => string \| number \| readonly unknown[]); }` | No | Run options. |
+| `options` | `{ description?: string; mode?: 'upsert' \| 'net_new'; key?: \| (keyof InputRow & string) \| readonly (keyof InputRow & string)[] \| (( row: InputRow, index: number, ) => string \| number \| readonly unknown[]); }` | No | Run options. |
 
 #### Run Returns
 
