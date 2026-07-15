@@ -7,7 +7,7 @@ description: 'ACCESS-GATED beta. Deepline Monitors (dashboard name: Signal Radar
 
 Monitors are **access-gated provider event feeds**. In the dashboard they are
 called **Signal Radars**; the CLI and API call them **monitors**. A monitor
-provisions an upstream provider resource (a TamRadar radar, an Instantly webhook
+provisions an upstream provider resource (a Deepline signal radar, an Instantly webhook
 subscription, a TheirStack saved search, …); the provider posts webhooks to a
 Deepline callback, and matching rows land in a table in your Customer DB. There
 is **no run to kick off** — a monitor streams as events arrive.
