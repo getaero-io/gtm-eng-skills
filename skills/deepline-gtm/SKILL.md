@@ -1,6 +1,6 @@
 ---
 name: deepline-gtm
-description: "Use for GTM prospecting, enrichment, qualification, CSV processing, lead/account/contact research, public/social pre-research, waterfall enrichment, email/LinkedIn lookup, personalization, scoring, campaigns, and Deepline plays/scripts. Providers: adyntel, ai_ark, allegrow, apify, attio, aviato, bettercontact, bloomberry, bluesky, builtwith, cloudflare, contactout, crustdata, crustdata-v2, crustdata-v3, customer_db, dataforseo, datagma, deepline_native, deeplineagent, discolike, dropleads, emailbison, enformion, exa, findymail, firecrawl, forager, fullenrich, generic_http, google_ads_audiences, hackernews, heyreach, hubspot, hunter, icypeas, instantly, ipqs, leadmagic, lemlist, limadata, linkedin_ads_audiences, linkedin_scraper, lusha, meta_audiences, openmart, opensosdata, openwebninja, parallel, peopledatalabs, predictleads, prospeo, rocketreach, salesforce, scrapecreators, sentrion, serper, slack, smartlead, snowflake, sumble, theirstack, trestle, twitterapi, upcell, wiza, wizleads, zerobounce."
+description: "Use for GTM prospecting, enrichment, qualification, lead/account/contact research, waterfall enrichment, email/LinkedIn lookup, personalization, scoring, campaigns, CSV work, and Deepline plays/scripts. Source discovery: deepline-pre-research. Providers: adyntel, ai_ark, allegrow, apify, attio, aviato, bettercontact, bloomberry, bluesky, builtwith, cloudflare, contactout, crustdata, crustdata-v2, crustdata-v3, customer_db, dataforseo, datagma, deepline_native, deeplineagent, discolike, dropleads, emailbison, enformion, exa, findymail, firecrawl, forager, fullenrich, generic_http, google_ads_audiences, hackernews, heyreach, hubspot, hunter, icypeas, instantly, ipqs, leadmagic, lemlist, limadata, linkedin_ads_audiences, linkedin_scraper, lusha, meta_audiences, openmart, opensosdata, openwebninja, parallel, peopledatalabs, predictleads, prospeo, rocketreach, salesforce, scrapecreators, sentrion, serper, slack, smartlead, snowflake, sumble, theirstack, trestle, twitterapi, upcell, wiza, wizleads, zerobounce."
 ---
 
 # GTM Meta Skill
@@ -85,8 +85,9 @@ When a recipe matches: **follow it step-by-step as your execution plan.** Recipe
 | `find-qualified-titles.md`      | "Find all job titles at these companies" / "find the marketing-ops/RevOps/Salesforce buyers": pull each company's real title roster (free `company_titles`), LLM-filter to the ICP, then find contacts with tiered (LinkedIn, email, phone) reveal |
 | `linkedin-url-lookup.md`        | Resolving a person's LinkedIn profile URL from their name and company with strict identity validation                                      |
 | `portfolio-prospecting.md`      | Finding companies backed by a specific investor or accelerator, then finding contacts and building personalized outbound                   |
-| `public-social-research.md`     | Finding public community language, launch feedback, competitor mentions, and market signals across X/Twitter, Hacker News, and Bluesky    |
 | `small-business-prospecting.md` | Finding local small businesses or storefront/service-area companies using Maps-style search. Doctors, services business, restaurants, etc. |
+
+> **Public/social source discovery, community-language pulls, pre-research source planning, or provider-coverage/cost comparison → use the standalone `deepline-pre-research` skill, not a recipe here.** It owns X/Twitter, Reddit, Hacker News, Bluesky, and public-registry fanout plus the source-plan + Deepline-cost synthesis.
 
 If none match, grep for more specific keywords: `Grep pattern="<keyword>" path="<directory containing this SKILL.md>/recipes/" glob="*.md" output_mode="files_with_matches"`
 

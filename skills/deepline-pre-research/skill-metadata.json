@@ -1,0 +1,94 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Deepline Pre-Research",
+      "tags": ["research", "provider-strategy", "source-discovery", "gtm"],
+      "providers": []
+    },
+    "THIRD_PARTY_NOTICES.md": {
+      "kind": "notice",
+      "title": "Third-Party Notices",
+      "tags": ["license", "attribution", "notices"],
+      "providers": []
+    },
+    "references/source-map.md": {
+      "kind": "guide",
+      "title": "Source Map",
+      "tags": ["providers", "sources", "cost", "crm"],
+      "providers": [
+        "serper",
+        "exa",
+        "parallel",
+        "firecrawl",
+        "apify",
+        "salesforce",
+        "hubspot",
+        "attio",
+        "snowflake"
+      ]
+    },
+    "references/last30days-gtm-corpus.md": {
+      "kind": "guide",
+      "title": "Last30Days GTM Corpus",
+      "tags": ["gtm", "logs", "datasets", "source-discovery"],
+      "providers": []
+    },
+    "references/fanout-consolidation.md": {
+      "kind": "guide",
+      "title": "Fanout And Consolidation",
+      "tags": ["search", "dedupe", "evaluation", "source-discovery"],
+      "providers": []
+    },
+    "references/query-design.md": {
+      "kind": "guide",
+      "title": "Query Design",
+      "tags": ["search", "query-design", "source-discovery"],
+      "providers": []
+    },
+    "scripts/evaluate_examples.py": {
+      "kind": "script",
+      "title": "Side-By-Side Coverage Evaluator",
+      "tags": ["evaluation", "last30days", "coverage"],
+      "providers": []
+    },
+    "scripts/query_design.py": {
+      "kind": "script",
+      "title": "Query Design Planner",
+      "tags": ["search", "query-design", "fanout"],
+      "providers": []
+    },
+    "evals/side-by-side.md": {
+      "kind": "evaluation",
+      "title": "Side-By-Side Eval Report",
+      "tags": ["evaluation", "last30days", "coverage"],
+      "providers": []
+    },
+    "evals/side-by-side.json": {
+      "kind": "evaluation",
+      "title": "Side-By-Side Eval Data",
+      "tags": ["evaluation", "last30days", "coverage"],
+      "providers": []
+    },
+    "evals/last30days-public-private-corpus.json": {
+      "kind": "evaluation",
+      "title": "Last30Days Public And Private Prompt Corpus",
+      "tags": ["evaluation", "last30days", "public-data", "private-data"],
+      "providers": [
+        "scrapecreators",
+        "twitterapi",
+        "hackernews",
+        "bluesky",
+        "salesforce",
+        "hubspot",
+        "snowflake"
+      ]
+    },
+    "evals/last30days-public-private-corpus.md": {
+      "kind": "evaluation",
+      "title": "Last30Days Public And Private Corpus Summary",
+      "tags": ["evaluation", "last30days", "public-data", "private-data"],
+      "providers": []
+    }
+  }
+}
