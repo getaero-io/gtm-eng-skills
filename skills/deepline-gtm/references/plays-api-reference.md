@@ -292,6 +292,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-plays-run-inline-child-cutover` | Removes the internal-only scheduled ctx.runPlay launch lineage from POST /api/v2/plays/run. The public route path, method, authenticated request fields, successful and error response envelopes, SDK client methods, CLI commands and flags,... |
 | `2026-07-apify-sync-timeout-recovery` | Makes newly published SDK and CLI clients keep the existing apify_run_actor_sync execute request open through its documented sync wait budget, then renders additive poll commands when the existing server returns a running recovery respon... |
 | `2026-07-sdk-play-durable-wait-notice` | Adds one stderr notice when an existing deepline plays run/watch stream reports a durable waiting state, including the existing runs get recovery command. This is compatible local CLI observability only: command names and flags, API rout... |
 | `2026-07-sdk-play-run-authored-stack-output` | Adds bounded authored source stack frames to human-readable `deepline plays run` terminal output when the existing structured run package contains a failed-run stack. This is compatible local CLI diagnostics only: SDK/API routes, methods... |
@@ -299,7 +300,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-07-sdk-enrich-interruption-recovery` | Makes newly published deepline enrich clients retain the existing durable run id after the start stream reports it, then print existing runs get and runs export recovery commands when the local process receives SIGINT or SIGTERM. This is... |
 | `2026-07-plays-check-publish-artifact-attestation` | Adds optional sourceHash and limits fields to POST /api/v2/plays/check responses, plus the additive deepline plays publish --expected-artifact and --dry-run flags. Existing check response fields, publish request and response protocols, c... |
 | `2026-07-play-revision-storage-limit-preflight` | Makes the existing POST /api/v2/plays/artifacts publish route reject a revision that cannot fit in Convex persisted storage before uploading its artifact, and makes POST /api/v2/plays/run reject the same inline ad-hoc revision before sch... |
-| `2026-07-sdk-compat-deprecated-auto-update` | Changes GET /api/v2/sdk/compat so SDK CLI versions below the explicit deprecatedBelow threshold automatically run their existing self-update path without blocking the current command. This is compatible update-policy behavior: route path... |
 
 ## Public Types
 
