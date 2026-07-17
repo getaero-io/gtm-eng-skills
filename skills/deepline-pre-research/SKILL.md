@@ -169,7 +169,7 @@ The selected recipe prompts the agent to call `/api/v2/pre-research/plan`, inspe
 
 ### 4. Search For Deepline Candidate Tools
 
-Run several focused searches, usually in parallel:
+Run several focused searches, usually in parallel. `deepline tools search` accepts an optional intent query, but requires either that query or one of `--categories` / `--search_terms`; those filters accept comma-separated values. Use `--json` for machine-readable output. There is no `--prefix` flag, so put a provider name in the query instead.
 
 ```bash
 deepline tools search "web search news source discovery" --categories research --search_terms "web search,news,recency,source discovery"

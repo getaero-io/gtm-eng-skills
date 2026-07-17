@@ -18,7 +18,7 @@ deepline -h
 
 Build high-quality ABM paid ads audiences from first-party customer or prospect lists. This skill is for paid ads audience upload and evaluation, not outbound.
 
-Names in this skill are starting hints. Run `deepline tools search audience --json` and `deepline tools describe <tool_id> --json` before executing because tool names and payload shapes can change.
+Names in this skill are starting hints. Run `deepline tools search audience --json` and `deepline tools describe <tool_id> --json` before executing because tool names and payload shapes can change. Tool search accepts an intent query or, for structured filtering, `--categories` and/or `--search_terms`; a filter-only search needs at least one of those flags. Use commas for multiple filter values, and put provider names in the query rather than using a `--prefix` flag.
 
 ## Before You Start
 

@@ -101,13 +101,13 @@ If none match, grep for more specific keywords: `Grep pattern="<keyword>" path="
 
 ### Tools
 
-For signal-driven discovery (investor, funding, hiring, headcount, industry, geo, tech stack, compliance), start with `deepline tools search`. Do not guess fields.
+For signal-driven discovery (investor, funding, hiring, headcount, industry, geo, tech stack, compliance), start with `deepline tools search`. Do not guess fields. Its syntax is `deepline tools search [query] [--categories <categories>] [--search_terms <terms>] [--json]`: provide a query, or at least one of `--categories` and `--search_terms`. The query is optional only for structured filtering. Use commas for multiple categories or search terms. There is no `--prefix` flag; include a provider name in the query when needed.
 
 Search 2-4 synonyms, execute in parallel:
 
 ```bash
 deepline tools search investor
-deepline tools search investor --prefix crustdata
+deepline tools search "crustdata investor"
 deepline tools search --categories company_search --search_terms "structured filters,icp"
 deepline tools search --categories people_search --search_terms "title filters,linkedin"
 ```
@@ -139,7 +139,7 @@ Good:
 Avoid:
 
 - `deepline tools search stuff`
-- `deepline tools search search across filters`
+- `deepline tools search "search across filters"`
 
 ## 2.5) Why use Deepline Enrich
 

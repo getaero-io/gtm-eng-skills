@@ -37,7 +37,7 @@ Escalate only when you need a filter the current step lacks.
 
 ## Tool discovery
 
-Use `deepline tools search` once near the top when the scenario is clear but the exact tool family is not.
+Use `deepline tools search` once near the top when the scenario is clear but the exact tool family is not. Provide an intent query, or omit it only when `--categories` or `--search_terms` supplies the structured search; both filters accept comma-separated values. Provider names belong in the query, not in a `--prefix` flag.
 
 Prefer category-constrained searches. More search terms helps with recall. Then inspect the strongest candidates.
 
