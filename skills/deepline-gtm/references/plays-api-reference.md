@@ -294,12 +294,12 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 |---|---|
 | `2026-07-sdk-enrich-execution-failure-propagation` | Makes newly published deepline enrich generated plays propagate an existing failed tool or child-play result instead of treating it as a waterfall miss, and removes generated catch-and-rethrow wrappers that added no behavior. This is a c... |
 | `2026-07-plays-run-inline-child-cutover` | Removes the internal-only scheduled ctx.runPlay launch lineage from POST /api/v2/plays/run. The public route path, method, authenticated request fields, successful and error response envelopes, SDK client methods, CLI commands and flags,... |
+| `2026-07-cli-vercel-tail-only-watch` | Moves newly published deepline plays run --watch from the optional direct Convex Run Observe Grant subscription to the existing authenticated GET /api/v2/runs/:runId/tail SSE route only after the Vercel start stream confirms scheduler su... |
 | `2026-07-play-run-start-unavailable-diagnostics` | Normalizes a transient Deepline run-service outage before POST /api/v2/plays/run creates a run into an actionable PLAY_RUN_START_UNAVAILABLE failure with additive execution-stage, dispatch, provider-contact, charge-state, and retryabilit... |
 | `2026-07-apify-sync-timeout-recovery` | Makes newly published SDK and CLI clients keep the existing apify_run_actor_sync execute request open through its documented sync wait budget, then renders additive poll commands when the existing server returns a running recovery respon... |
 | `2026-07-sdk-play-durable-wait-notice` | Adds one stderr notice when an existing deepline plays run/watch stream reports a durable waiting state, including the existing runs get recovery command. This is compatible local CLI observability only: command names and flags, API rout... |
 | `2026-07-sdk-play-run-authored-stack-output` | Adds bounded authored source stack frames to human-readable `deepline plays run` terminal output when the existing structured run package contains a failed-run stack. This is compatible local CLI diagnostics only: SDK/API routes, methods... |
 | `2026-07-sdk-enrich-run-javascript-inline-precedence` | Makes newly published deepline enrich generated play source prioritize eligible deterministic run_javascript step code over generic native-play metadata. This is a compatible local generated-source correction only: API routes, methods, r... |
-| `2026-07-sdk-enrich-interruption-recovery` | Makes newly published deepline enrich clients retain the existing durable run id after the start stream reports it, then print existing runs get and runs export recovery commands when the local process receives SIGINT or SIGTERM. This is... |
 
 ## Public Types
 
