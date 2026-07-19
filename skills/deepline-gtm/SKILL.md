@@ -30,6 +30,8 @@ Customer is generally trying to go from "I have an ICP" to "Here's a list of pro
 
 **Discovery order: companies first, then people.** When the task requires finding contacts at companies matching criteria (portfolio, ICP, hiring signal), discover the company set first, then find people at each company. Do not start with broad people-search queries.
 
+**Known companies + nuanced roles: qualify the real title roster first.** For requests such as "AI leadership at Mount Sinai," "job titles at these companies," or "find the RevOps buyers at these accounts," read and follow [`recipes/find-qualified-titles.md`](recipes/find-qualified-titles.md): `company_titles` -> qualify exact roster titles -> `deepline_native_search_contact` with `title_lists`. Use Exa afterward for public-profile gaps and DropLeads last for supplemental database rows. Broad audience sizing remains a valid DropLeads use case.
+
 ### Documentation hierarchy
 
 - Level 1 (`SKILL.md`): decision model, guardrails, approval gates, links to sub-docs.
@@ -82,7 +84,7 @@ When a recipe matches: **follow it step-by-step as your execution plan.** Recipe
 | `clay-to-deepline.md`           | Converting a Clay table into local Deepline enrich scripts (extraction, mapping, parity validation)                                        |
 | `deepline-monitors.md`          | **ACCESS-GATED.** Deepline Monitors (dashboard: Signal Radars): continuously capturing a provider's webhook events into a Customer DB table and triggering plays. Run `deepline monitors status --json` first; only exit 1 with `has_access: false` is a clean rollout denial. Diagnose auth, configuration, and server failures by their actual exit code. |
 | `deepline-plays.md`             | Creating custom `.play.ts` scripts that compose multiple tools/plays, durable datasets, fallback logic, joins/projections, webhook/cron-style orchestration, and custom run/export behavior |
-| `find-qualified-titles.md`      | "Find all job titles at these companies" / "find the marketing-ops/RevOps/Salesforce buyers": pull each company's real title roster (free `company_titles`), LLM-filter to the ICP, then find contacts with tiered (LinkedIn, email, phone) reveal |
+| `find-qualified-titles.md`      | **Primary path** for nuanced roles at known companies: "AI leadership at Mount Sinai", "find all job titles at these companies", or "find the marketing-ops/RevOps/Salesforce buyers". Pull each company's real title roster (free `company_titles`), qualify exact titles, then find contacts with tiered (LinkedIn, email, phone) reveal. |
 | `linkedin-url-lookup.md`        | Resolving a person's LinkedIn profile URL from their name and company with strict identity validation                                      |
 | `portfolio-prospecting.md`      | Finding companies backed by a specific investor or accelerator, then finding contacts and building personalized outbound                   |
 | `small-business-prospecting.md` | Finding local small businesses or storefront/service-area companies using Maps-style search. Doctors, services business, restaurants, etc. |

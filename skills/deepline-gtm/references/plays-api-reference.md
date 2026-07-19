@@ -200,7 +200,7 @@ while True:
 
 | Method | Path | SDK/client surface | Purpose | Source |
 |---|---|---|---|---|
-| `POST` | `/api/v2/db/query` | `queryCustomerDb` | Run a bounded query against the customer data plane. | `src/app/api/v2/db/query/route.ts` |
+| `POST` | `/api/v2/db/query` | `db.query`<br />`queryCustomerDb` | Run a bounded query against the customer data plane. | `src/app/api/v2/db/query/route.ts` |
 
 ### Play Runs
 
@@ -292,14 +292,14 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-full-run-result-single-canonical-shape` | Adds an explicit SDK capability for canonical full GET /api/v2/runs/:runId results. New clients receive the authored result once under result. Installed clients without the capability retain result.output, but dataset values inside that... |
 | `2026-07-sdk-enrich-nested-email-getter` | Makes newly published deepline enrich generated plays resolve generic pick("email") through the existing normalized email key paths after durable result serialization, including the established person.email.email provider shape. This is... |
 | `2026-07-sdk-skills-sync-recovery-diagnostics` | Makes newly published SDK CLI clients detect unavailable bunx/npx installers before attempting agent-skill sync, then print one version-deduplicated full-depth repair command while retaining the stale local version until installation suc... |
+| `2026-07-run-scoped-sheet-export-repair` | Restores the existing optional runId filter on GET /api/v2/plays/:name/sheet for installed SDK runs export calls while omitted runId and POST batch reads remain database-scoped dashboard views. The response adds an effective scope marker... |
 | `2026-07-sdk-enrich-execution-failure-propagation` | Makes newly published deepline enrich generated plays propagate an existing failed tool or child-play result instead of treating it as a waterfall miss, and removes generated catch-and-rethrow wrappers that added no behavior. This is a c... |
 | `2026-07-plays-run-inline-child-cutover` | Removes the internal-only scheduled ctx.runPlay launch lineage from POST /api/v2/plays/run. The public route path, method, authenticated request fields, successful and error response envelopes, SDK client methods, CLI commands and flags,... |
 | `2026-07-cli-vercel-tail-only-watch` | Moves newly published deepline plays run --watch from the optional direct Convex Run Observe Grant subscription to the existing authenticated GET /api/v2/runs/:runId/tail SSE route only after the Vercel start stream confirms scheduler su... |
 | `2026-07-play-run-start-unavailable-diagnostics` | Normalizes a transient Deepline run-service outage before POST /api/v2/plays/run creates a run into an actionable PLAY_RUN_START_UNAVAILABLE failure with additive execution-stage, dispatch, provider-contact, charge-state, and retryabilit... |
-| `2026-07-apify-sync-timeout-recovery` | Makes newly published SDK and CLI clients keep the existing apify_run_actor_sync execute request open through its documented sync wait budget, then renders additive poll commands when the existing server returns a running recovery respon... |
-| `2026-07-sdk-play-durable-wait-notice` | Adds one stderr notice when an existing deepline plays run/watch stream reports a durable waiting state, including the existing runs get recovery command. This is compatible local CLI observability only: command names and flags, API rout... |
 
 ## Public Types
 
@@ -504,9 +504,9 @@ internals.
 | `run` | `{ id: string; playName: string; status: string; dashboardUrl?: string; updatedAt?: number \| null; startedAt?: number \| null; finishedAt?: number \| null; durationMs?: number \| null; error?: string; }` | Yes | Run identity, status, timing, and dashboard metadata. |
 | `steps` | `Array<Record<string, unknown>>` | Yes | Step-level summaries emitted by the runtime. |
 | `outputs` | `Record<string, Record<string, unknown>>` | Yes | Named output summaries, including dataset handles and scalar outputs. |
-| `datasets` | `Array<{ kind: 'dataset'; datasetId?: string; path: string; tableNamespace?: string; rowCount?: number; recovered?: true; preview?: Record<string, unknown>; actions?: Record<string, PlayRunActionPackage>; }>` | No | Every durable Dataset Handle explicitly registered by this run. |
+| `datasets` | `Array<{ kind: 'dataset'; datasetId?: string; path: string; tableNamespace?: string; rowCount?: number; sqlTableName?: string; sqlQualifiedTableName?: string; recovered?: true; exportUnavailable?: { reason: 'empty_dataset' \| 'shared_table_namespace'; message: string; }; preview?: Record<string, unknown>; actions?: PlayRunDatasetActions; }>` | No | Every durable Dataset Handle explicitly registered by this run. |
 | `logs` | `{ tail: string[]; totalCount: number; returnedCount: number; truncated?: boolean; }` | No | Small retained tail of customer and runtime logs; fetch the full stream through `runs.logs`. |
-| `next` | `{ inspect?: PlayRunActionPackage; export?: PlayRunActionPackage; query?: PlayRunActionPackage; logs?: PlayRunActionPackage; }` | No | Follow-up actions a caller can perform against the run. |
+| `next` | `{ inspect?: PlayRunActionPackage; full?: PlayRunActionPackage; billing?: PlayRunActionPackage; export?: PlayRunActionPackage; query?: PlayRunActionPackage; logs?: PlayRunActionPackage; }` | No | Follow-up actions a caller can perform against the run. |
 
 
 ### `PlayRunListItem`
@@ -572,7 +572,7 @@ logs, and exporting durable dataset rows.
 
 ### `CustomerDbQueryResult`
 
-Result returned by `DeeplineClient.queryCustomerDb`.
+Result returned by `DeeplineClient.db.query`.
 
 Rows are intentionally untyped because the schema depends on the caller's SQL
 query and selected customer tables.
@@ -581,6 +581,7 @@ query and selected customer tables.
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
+| `scope` | `{ kind: 'database'; mutability: 'current' }` | No | This query reads the current mutable customer database, not one run snapshot. |
 | `command` | `string` | Yes | Database command executed by the query endpoint. |
 | `row_count` | `number \| null` | Yes | Total affected row count when reported by the database. |
 | `row_count_returned` | `number` | Yes | Number of rows included in this response. |

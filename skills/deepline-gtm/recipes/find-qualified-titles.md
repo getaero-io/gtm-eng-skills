@@ -21,6 +21,8 @@ the whole payoff of qualifying against the real roster first.
 
 ## When to use
 
+- **Primary path** when the user asks for nuanced functions or real job titles at named
+  companies, such as "AI leadership at Mount Sinai."
 - "Find all job titles at these companies" / "what roles exist at X".
 - "Find the marketing ops / RevOps / Salesforce buyers at these accounts."
 - "Find qualified titles" - user has accounts + an ICP and wants the real owners of a function.
@@ -156,6 +158,21 @@ Cost note: if the user wants emails on _most_ contacts up front, `prospector` (b
 support exact `title_lists`, so you lose the roster-exact precision. Use `search_contact`
 when you want exact-title precision and LinkedIn-first; consider `prospector` only when
 broad boolean matching is acceptable and you want emails in one shot.
+
+## Supplemental coverage after the roster path
+
+Run supplemental providers only after the roster-qualified `search_contact` pass:
+
+- `exa_people_search` can find public web/profile entities missing from contact
+  databases. Verify the current employer and title before treating a result as a match.
+- `dropleads_search_people` can add database rows or contact data, but keep it
+  supplemental for nuanced titles. Its keyword filters can miss a real roster title
+  such as "Director, Mount Sinai AI Assurance Lab" when the guessed keywords do not
+  occur in the title.
+
+For broad market sizing rather than named-company title qualification,
+`dropleads_get_lead_count` and `dropleads_search_people` remain appropriate primary
+tools.
 
 ## Notes
 

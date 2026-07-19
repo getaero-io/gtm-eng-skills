@@ -233,13 +233,19 @@ Use this section when the user already has target companies and needs candidate 
 
 Recommended course of action:
 
-1. Use broad function keywords plus seniority.
-2. Prefer company domains over company names when you know them.
-3. For tiny startups, switch away from classic people DBs sooner.
-4. Stop at candidate contacts here.
-5. If the task becomes "fill in emails or enrich these rows", hand off to `enriching-and-researching.md`.
+1. For nuanced roles or real titles at named companies, follow [`recipes/find-qualified-titles.md`](recipes/find-qualified-titles.md): `company_titles` -> qualify exact roster titles -> `deepline_native_search_contact` with `title_lists`.
+2. Use `exa_people_search` after the roster/database pass to fill public-profile gaps.
+3. Use `dropleads_search_people` afterward to add supplemental database rows or contact data.
+4. Use broad function keywords plus seniority when no roster exists or the user wants broad audience sizing.
+5. Prefer company domains over company names when you know them.
+6. Stop at candidate contacts here. If the task becomes "fill in emails or enrich these rows", hand off to `enriching-and-researching.md`.
 
-### Mid/large company people search
+### Broad audience search and sizing
+
+DropLeads remains useful when the user wants a segment count, a broad sample, or
+coverage beyond the roster-qualified results. It is not the primary path for nuanced
+titles at a named company because keyword filters can miss titles such as "Director,
+Mount Sinai AI Assurance Lab."
 
 ```bash
 deepline tools execute dropleads_search_people --payload '{"filters":{"companyDomains":["stripe.com"],"jobTitles":["Growth","Sales","Revenue"],"seniority":["VP","Director"],"personalCountries":{"include":["United States"]}},"pagination":{"page":1,"limit":5}}'
@@ -269,12 +275,13 @@ Use `company_name` to pass the target company as structured input — it appends
 
 ## Role-based contact search
 
-**Never use exact job titles for people search filters.** Titles vary wildly across companies (especially startups) — exact-match filters miss adjacent real titles.
+**Do not guess exact job titles for broad people-search filters.** Titles vary wildly across companies, especially startups, so guessed exact-match filters miss adjacent real titles.
 
 - **Bad:** `jobTitles: ["Head of Growth", "VP RevOps", "GTM Engineer"]` — misses "Director of Growth Marketing", "Revenue Operations Lead", etc.
 - **Good:** `jobTitles: ["Growth"]` + `seniority: ["VP", "Director"]` — catches all growth-related senior roles via fuzzy matching.
+- **Best for known companies:** obtain verbatim titles from `company_titles`, qualify that roster, then pass the selected exact strings through `title_lists`.
 
-Pattern: 1–2 broad function keywords (Growth, Sales, Revenue, Security, Fraud, Identity, RevOps, Marketing) + seniority for level. Works across Dropleads and CrustData.
+For broad searches without a roster, use 1-2 function keywords (Growth, Sales, Revenue, Security, Fraud, Identity, RevOps, Marketing) plus seniority. This works across DropLeads and CrustData.
 
 For <500-employee companies, narrow title filters often return 0; use broad keyword + seniority. Dropleads has near-zero coverage for <50-emp startups — switch to `exa_people_search` (see Tiny-startup fallback above).
 
