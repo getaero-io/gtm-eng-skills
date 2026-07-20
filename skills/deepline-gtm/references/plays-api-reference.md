@@ -292,6 +292,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-ingestion-repair-runtime-relations` | Makes the existing POST /api/v2/ingestion/repair route explicitly recreate missing play-runtime receipt, summary, dataset-catalog, and version-sequence relations after converging workspace storage. This is a compatible server-side recove... |
 | `2026-07-full-run-result-single-canonical-shape` | Adds an explicit SDK capability for canonical full GET /api/v2/runs/:runId results. New clients receive the authored result once under result. Installed clients without the capability retain result.output, but dataset values inside that... |
 | `2026-07-sdk-enrich-nested-email-getter` | Makes newly published deepline enrich generated plays resolve generic pick("email") through the existing normalized email key paths after durable result serialization, including the established person.email.email provider shape. This is... |
 | `2026-07-sdk-skills-sync-recovery-diagnostics` | Makes newly published SDK CLI clients detect unavailable bunx/npx installers before attempting agent-skill sync, then print one version-deduplicated full-depth repair command while retaining the stale local version until installation suc... |
@@ -299,7 +300,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-07-sdk-enrich-execution-failure-propagation` | Makes newly published deepline enrich generated plays propagate an existing failed tool or child-play result instead of treating it as a waterfall miss, and removes generated catch-and-rethrow wrappers that added no behavior. This is a c... |
 | `2026-07-plays-run-inline-child-cutover` | Removes the internal-only scheduled ctx.runPlay launch lineage from POST /api/v2/plays/run. The public route path, method, authenticated request fields, successful and error response envelopes, SDK client methods, CLI commands and flags,... |
 | `2026-07-cli-vercel-tail-only-watch` | Moves newly published deepline plays run --watch from the optional direct Convex Run Observe Grant subscription to the existing authenticated GET /api/v2/runs/:runId/tail SSE route only after the Vercel start stream confirms scheduler su... |
-| `2026-07-play-run-start-unavailable-diagnostics` | Normalizes a transient Deepline run-service outage before POST /api/v2/plays/run creates a run into an actionable PLAY_RUN_START_UNAVAILABLE failure with additive execution-stage, dispatch, provider-contact, charge-state, and retryabilit... |
 
 ## Public Types
 
