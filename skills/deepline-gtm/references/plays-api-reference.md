@@ -6,9 +6,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.238` |
-| API contract | `2026-06-dataset-handle-results-hard-cutover` |
-| Latest supported SDK | `0.1.238` |
+| SDK version | `0.1.241` |
+| API contract | `2026-07-immutable-cjs-play-artifacts-hard-cutover` |
+| Latest supported SDK | `0.1.241` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.219` |
 | Generated sources | `src/lib/sdk/api-routes.ts`<br />`sdk/src/types.ts`<br />`sdk/src/client.ts`<br />`sdk/src/release.ts` |
@@ -292,14 +292,14 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-play-delete-sql-listener-migration-fence` | Makes the existing DELETE /api/v2/plays/:name route leave an internal disabled SQL-listener control row while removing a published play, preventing a concurrent live-artifact repair from restoring the deleted listener. This is compatible... |
+| `2026-07-play-launch-artifact-readiness` | Makes the existing POST /api/v2/plays/run route consume the exact immutable artifact admitted during Play preflight and publish, and return the existing 409 PLAY_REVISION_NOT_LAUNCH_READY error for incompatible stored or submitted artifa... |
 | `2026-07-ingestion-repair-runtime-relations` | Makes the existing POST /api/v2/ingestion/repair route explicitly recreate missing play-runtime receipt, summary, dataset-catalog, and version-sequence relations after converging workspace storage. This is a compatible server-side recove... |
 | `2026-07-full-run-result-single-canonical-shape` | Adds an explicit SDK capability for canonical full GET /api/v2/runs/:runId results. New clients receive the authored result once under result. Installed clients without the capability retain result.output, but dataset values inside that... |
 | `2026-07-sdk-enrich-nested-email-getter` | Makes newly published deepline enrich generated plays resolve generic pick("email") through the existing normalized email key paths after durable result serialization, including the established person.email.email provider shape. This is... |
 | `2026-07-sdk-skills-sync-recovery-diagnostics` | Makes newly published SDK CLI clients detect unavailable bunx/npx installers before attempting agent-skill sync, then print one version-deduplicated full-depth repair command while retaining the stale local version until installation suc... |
 | `2026-07-run-scoped-sheet-export-repair` | Restores the existing optional runId filter on GET /api/v2/plays/:name/sheet for installed SDK runs export calls while omitted runId and POST batch reads remain database-scoped dashboard views. The response adds an effective scope marker... |
 | `2026-07-sdk-enrich-execution-failure-propagation` | Makes newly published deepline enrich generated plays propagate an existing failed tool or child-play result instead of treating it as a waterfall miss, and removes generated catch-and-rethrow wrappers that added no behavior. This is a c... |
-| `2026-07-plays-run-inline-child-cutover` | Removes the internal-only scheduled ctx.runPlay launch lineage from POST /api/v2/plays/run. The public route path, method, authenticated request fields, successful and error response envelopes, SDK client methods, CLI commands and flags,... |
-| `2026-07-cli-vercel-tail-only-watch` | Moves newly published deepline plays run --watch from the optional direct Convex Run Observe Grant subscription to the existing authenticated GET /api/v2/runs/:runId/tail SSE route only after the Vercel start stream confirms scheduler su... |
 
 ## Public Types
 
