@@ -5,12 +5,11 @@ description: 'ACCESS-GATED beta. Deepline Monitors are provider event feeds (job
 
 # Deepline Monitors
 
-Monitors are **access-gated provider event feeds**. In the dashboard they are
-called **Monitors**. A monitor provisions an upstream provider resource (a
-Deepline signal feed, an Instantly webhook subscription, a TheirStack saved
-search, …); the provider posts webhooks to a Deepline callback, and matching
-rows land in a table in your Customer DB. There is **no run to kick off** — a
-monitor streams as events arrive.
+Monitors are **access-gated Deepline-native signal feeds**. In the dashboard
+they are called **Monitors**. The customer launch currently includes the
+Company Radar and Contact Radar only. A monitor provisions a Deepline-managed
+feed; events land in a table in your Customer DB. There is **no run to kick
+off** — a monitor streams as events arrive.
 
 ## Step 0 — access gate (do this first)
 
@@ -247,18 +246,20 @@ A definition is a single JSON object:
 
 ```json
 {
-  "key": "campaign-events",
-  "tool": "instantly.campaign_events",
-  "name": "Reply capture",
-  "payload": { "campaign_id": "camp_123" },
+  "key": "company-job-openings",
+  "tool": "deepline_native.company_radar",
+  "name": "Company job openings",
+  "payload": {
+    "domain": "stripe.com",
+    "radar_type": "company_job_openings"
+  },
   "controls": {}
 }
 ```
 
 - `key` — public monitor instance id (you reference it in `get`/`update`/`delete`).
-- `tool` — `<provider>.<capability>` (e.g. `lemlist.campaign_events`,
-  `theirstack.saved_search_webhook`). Get valid ids and the `payload_schema`
-  from `deepline monitors available`.
+- `tool` — a live Deepline-native tool id. Get the valid ids and each
+  `payload_schema` from `deepline monitors available`.
 - `payload` — tool-specific; must match that tool's `payload_schema`.
 - `name` — optional human label. `controls` — optional Deepline lifecycle metadata.
 
@@ -270,11 +271,11 @@ to each new row. A play subscribes with a `sqlListeners` trigger:
 ```ts
 sqlListeners: [
   {
-    id: 'replies',
-    tool: 'instantly.campaign_events',
-    stream: 'webhook_events',
+    id: 'company-job-openings',
+    tool: 'deepline_native.company_radar',
+    stream: 'company_job_openings',
     operations: ['INSERT'],
-    where: { after: { event_type: { eq: 'reply_received' } } },
+    where: { after: { domain: { eq: 'stripe.com' } } },
   },
 ];
 ```

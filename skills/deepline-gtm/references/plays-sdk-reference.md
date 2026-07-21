@@ -186,9 +186,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.244` |
-| API contract | `2026-07-cjs-absurd-only-play-runtime-hard-cutover` |
-| Checked-in SDK fallback | `0.1.244` |
+| SDK version | `0.1.252` |
+| API contract | `2026-07-native-monitor-launch-hard-cutover` |
+| Checked-in SDK fallback | `0.1.252` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.219` |
 | Generated sources | `sdk/src/client.ts`<br />`sdk/src/play.ts`<br />`shared_libs/play-runtime/cell-staleness.ts`<br />`shared_libs/play-runtime/tool-result-types.ts`<br />`shared_libs/plays/dataset.ts` |
