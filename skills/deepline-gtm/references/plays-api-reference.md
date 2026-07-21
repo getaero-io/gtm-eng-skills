@@ -6,9 +6,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.241` |
-| API contract | `2026-07-immutable-cjs-play-artifacts-hard-cutover` |
-| Latest supported SDK | `0.1.241` |
+| SDK version | `0.1.242` |
+| API contract | `2026-07-cjs-absurd-only-play-runtime-hard-cutover` |
+| Latest supported SDK | `0.1.242` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.219` |
 | Generated sources | `src/lib/sdk/api-routes.ts`<br />`sdk/src/types.ts`<br />`sdk/src/client.ts`<br />`sdk/src/release.ts` |
@@ -428,7 +428,7 @@ Either `name` (for live plays) or `artifactStorageKey` (for packaged ad hoc runs
 | `force` | `boolean` | No | Compatibility flag; active sibling runs are allowed. |
 | `forceToolRefresh` | `boolean` | No | Explicit cache-bypass flag for durable dataset and tool-call reuse. |
 | `waitForCompletionMs` | `number` | No | Optionally let the start request wait briefly and return a terminal result. |
-| `profile` | `string` | No | Per-run execution profile override. The server defaults to absurd. The<br />workers_edge profile is disabled; most callers should leave this unset. |
+| `profile` | `string` | No | Per-run execution profile override. The server defaults to absurd. The<br />Only `absurd` is accepted; most callers should leave this unset. |
 | `integrationMode` | `'live' \| 'eval_stub' \| 'fixture'` | No | Optional per-run provider execution mode for eval/smoke runs. |
 | `testPolicyOverrides` | `Record<string, unknown>` | No | Internal/dev-only runtime policy overrides for black-box durability tests. |
 
