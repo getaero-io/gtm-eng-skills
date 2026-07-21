@@ -80,18 +80,7 @@ Extract:
 
 Tell the user the parsed scope before provider calls.
 
-### 2. Publish A Session Plan
-
-Before tool execution:
-
-```bash
-deepline session start --steps '["Parse segment","Run public-source fanout","Find hidden datasets","Synthesize what matters","Search Deepline routes","Estimate cost","Recommend workflow handoff"]' --user-prompt "Original user request"
-deepline session start --update 0 --status running
-```
-
-Keep the Session UI current with `deepline session status --message "..."`.
-
-### 2.5. Prefer External APIs, Not Scraping
+### 2. Prefer External APIs, Not Scraping
 
 Do not default to browser scraping, raw x.com scraping, or unvetted actors. Prefer managed external APIs and private connectors:
 

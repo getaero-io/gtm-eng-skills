@@ -157,7 +157,6 @@ Use current tool metadata, not provider websites, for Deepline-facing estimates:
 ```bash
 deepline tools describe <tool-id> --json
 deepline billing balance
-deepline session usage --json
 ```
 
 Estimate separately:
