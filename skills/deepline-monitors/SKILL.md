@@ -1,9 +1,9 @@
 ---
 name: deepline-monitors
-description: "ACCESS-GATED beta. Deepline Monitors (dashboard name: Signal Radars) — provider event feeds (job posts, email replies, funding, intent) that stream into your warehouse and trigger plays. Only use if you have monitor access: run `deepline monitors status` first; if it reports no access, do NOT use this recipe — every command returns monitor_access_required. Ask a Deepline admin (Admin → Rollouts) for access."
+description: "ACCESS-GATED beta. Deepline Monitors are provider event feeds (job posts, email replies, funding, intent) that stream into your warehouse and trigger plays. Only use if you have monitor access: run `deepline monitors status` first; if it reports no access, do NOT use this recipe — every command returns monitor_access_required. Ask a Deepline admin (Admin → Rollouts) for access."
 ---
 
-# Deepline Monitors (Signal Radars)
+# Deepline Monitors
 
 ## Quick Start
 

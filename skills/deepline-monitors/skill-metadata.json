@@ -2,7 +2,7 @@
   "documents": {
     "SKILL.md": {
       "kind": "entrypoint",
-      "title": "Deepline Monitors (Signal Radars)",
+      "title": "Deepline Monitors",
       "tags": [
         "recipe"
       ],

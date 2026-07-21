@@ -293,13 +293,13 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | Change | Reason |
 |---|---|
 | `2026-07-prebuilt-run-system-scope` | Fixes POST /api/v2/plays/run so an explicit prebuilt/<name> reference reads the Deepline system definition even when legacy org data contains the same unqualified name, and rejects explicit revision IDs that belong to another definition.... |
+| `2026-07-play-runtime-environment-selector` | Adds an optional internal preview-runtime selection to POST /api/v2/plays/run and makes newly published SDK clients populate it only when DEEPLINE_RUNTIME_ENVIRONMENT=preview and a caller-named DEEPLINE_RUNTIME_NAMESPACE are explicitly s... |
 | `2026-07-revert-dashboard-monitor-inventory` | Reverts the unshipped dashboard monitor-inventory and plays-list presentation changes from #2863. This restores the prior human-readable `deepline monitors available` text and removes the app-owned opt-in include_latest_runs dashboard li... |
 | `2026-07-runtime-sheet-artifact-contract-hardening` | Hardens the existing play artifact, check, and run routes so immutable artifacts bind the static Runtime Sheet contract, launch planning validates exact per-dataset sessions before dispatch, and trusted dynamic dataset access must be dec... |
 | `2026-07-play-delete-sql-listener-migration-fence` | Makes the existing DELETE /api/v2/plays/:name route leave an internal disabled SQL-listener control row while removing a published play, preventing a concurrent live-artifact repair from restoring the deleted listener. This is compatible... |
 | `2026-07-play-launch-artifact-readiness` | Makes the existing POST /api/v2/plays/run route consume the exact immutable artifact admitted during Play preflight and publish, and return the existing 409 PLAY_REVISION_NOT_LAUNCH_READY error for incompatible stored or submitted artifa... |
 | `2026-07-ingestion-repair-runtime-relations` | Makes the existing POST /api/v2/ingestion/repair route explicitly recreate missing play-runtime receipt, summary, dataset-catalog, and version-sequence relations after converging workspace storage. This is a compatible server-side recove... |
 | `2026-07-full-run-result-single-canonical-shape` | Adds an explicit SDK capability for canonical full GET /api/v2/runs/:runId results. New clients receive the authored result once under result. Installed clients without the capability retain result.output, but dataset values inside that... |
-| `2026-07-sdk-enrich-nested-email-getter` | Makes newly published deepline enrich generated plays resolve generic pick("email") through the existing normalized email key paths after durable result serialization, including the established person.email.email provider shape. This is... |
 
 ## Public Types
 
@@ -430,6 +430,7 @@ Either `name` (for live plays) or `artifactStorageKey` (for packaged ad hoc runs
 | `waitForCompletionMs` | `number` | No | Optionally let the start request wait briefly and return a terminal result. |
 | `profile` | `string` | No | Per-run execution profile override. The server defaults to absurd. The<br />Only `absurd` is accepted; most callers should leave this unset. |
 | `integrationMode` | `'live' \| 'eval_stub' \| 'fixture'` | No | Optional per-run provider execution mode for eval/smoke runs. |
+| `runtime` | `PlayRuntimeSelection` | No | Internal runtime estate selection. The app host remains unchanged. |
 | `testPolicyOverrides` | `Record<string, unknown>` | No | Internal/dev-only runtime policy overrides for black-box durability tests. |
 
 

@@ -1,30 +1,34 @@
 ---
 name: deepline-monitors
-description: 'ACCESS-GATED beta. Deepline Monitors (dashboard name: Signal Radars) — provider event feeds (job posts, email replies, funding, intent) that stream into your warehouse and trigger plays. Only use if you have monitor access: run `deepline monitors status` first; if it reports no access, do NOT use this recipe — every command returns monitor_access_required. Ask a Deepline admin (Admin → Rollouts) for access.'
+description: 'ACCESS-GATED beta. Deepline Monitors are provider event feeds (job posts, email replies, funding, intent) that stream into your warehouse and trigger plays. Only use if you have monitor access: run `deepline monitors status` first; if it reports no access, do NOT use this recipe — every command returns monitor_access_required. Ask a Deepline admin (Admin → Rollouts) for access.'
 ---
 
-# Deepline Monitors (Signal Radars)
+# Deepline Monitors
 
 Monitors are **access-gated provider event feeds**. In the dashboard they are
-called **Signal Radars**; the CLI and API call them **monitors**. A monitor
-provisions an upstream provider resource (a Deepline signal radar, an Instantly webhook
-subscription, a TheirStack saved search, …); the provider posts webhooks to a
-Deepline callback, and matching rows land in a table in your Customer DB. There
-is **no run to kick off** — a monitor streams as events arrive.
+called **Monitors**. A monitor provisions an upstream provider resource (a
+Deepline signal feed, an Instantly webhook subscription, a TheirStack saved
+search, …); the provider posts webhooks to a Deepline callback, and matching
+rows land in a table in your Customer DB. There is **no run to kick off** — a
+monitor streams as events arrive.
 
 ## Step 0 — access gate (do this first)
 
-Monitors are a rollout-gated beta. **Before any other monitor command**, run:
+Monitors are a production rollout-gated beta. Local and preview runtimes admit
+every authenticated actor; production admits Deepline/GetAero email domains and
+the admin-managed email rollout. **Before any other monitor command**, run:
 
 ```bash
 deepline monitors status
 ```
 
 - Exit code `0` and `✓ You have access to Deepline Monitors` → proceed.
-- Non-zero exit / `✗ No access` → **STOP.** Do NOT run `available`, `check`,
+- Exit code `1` / `✗ No access` → **STOP.** Do NOT run `available`, `check`,
   `deploy`, `list`, or any other monitor command — each returns a
-  `monitor_access_required` error. Tell the user monitor access is granted by a
-  Deepline admin via **Admin → Rollouts** and that they should request it there.
+  `monitor_access_required` error. In production, tell the user access is
+  granted by a Deepline admin via **Admin → Rollouts** and that they should
+  request it there. Other non-zero exits are auth, configuration, or server
+  failures and must be diagnosed by their actual code.
 
 `deepline monitors status --json` emits `{ "has_access": boolean, "reason": string }`
 for programmatic branching. The status check itself works for anyone with a valid
@@ -33,7 +37,7 @@ step on a failed check.
 
 ## Monitors vs plays
 
-- **Monitor (Signal Radar)** = the upstream feed. It _produces_ a stream of
+- **Monitor** = the upstream feed. It _produces_ a stream of
   provider events into a Customer DB table. It has no schedule and no manual run;
   it fires whenever the provider sends a webhook.
 - **Play** = the logic that _reacts_. A play binds to the monitor's table with a
@@ -58,7 +62,7 @@ All commands accept `--json` (also automatic when stdout is piped).
 | `deepline monitors deploy '<definition>'`  | Deploy a monitor (positional JSON, `--file <path>`, or `--file -`). Mutates workspace state and may spend Deepline credits. `--dry-run` shows the plan (validity, deploy cost in Deepline credits, existing monitors that may already cover the scope) without deploying.            |
 | `deepline monitors list`                   | List the monitors you HAVE deployed. `--status active\|disabled\|all` (default `active`), `--limit`, `--compact`.                                                                                                                                                                    |
 | `deepline monitors get <key>`              | Show one deployed monitor by its public key. Read-only.                                                                                                                                                                                                                              |
-| `deepline monitors update <key> '<patch>'` | Update a deployed monitor (`<patch>` is a JSON object of fields; also `--file`). E.g. `'{"controls":{"enabled":false}}'` to disable.                                                                                                                                                 |
+| `deepline monitors update <key> '<patch>'` | Update a deployed monitor (`<patch>` is a JSON object of fields; also `--file`).                                                                                                                                                                                                     |
 | `deepline monitors delete <key>`           | Delete a deployed monitor. Deprovisions the upstream resource by default; `--local-only` removes just the Deepline record. Prompts y/N in a terminal; non-interactive runs must pass `--yes`. `--dry-run` previews the plan.                                                         |
 | `deepline monitors reactivate <key>`       | Reactivate a previously disabled deployed monitor. May spend Deepline credits; `--dry-run` shows the cost first.                                                                                                                                                                     |
 
@@ -84,6 +88,12 @@ that repair is required; do not repeat the mutation blindly. When the server
 cannot identify a safe fix, `next_action` points back to this section: diagnose
 the exact auth, permission, configuration, connection, or server failure rather
 than guessing or calling it missing rollout access.
+
+A monitor suspended for insufficient credits stays disabled until explicit
+reactivation. Ask the user to add credits, run `monitors reactivate <key>
+--dry-run`, show the approval summary, and reactivate only after approval. While
+suspended, callbacks may remain captured for audit, but typed Customer DB rows
+and connected plays do not run.
 
 ## Workflow
 
