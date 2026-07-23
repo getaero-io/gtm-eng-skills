@@ -1,12 +1,37 @@
 {
+  "title": "Deepline Plays",
   "documents": {
     "SKILL.md": {
       "kind": "entrypoint",
-      "title": "Deepline Plays Recipe",
-      "tags": [
-        "recipe"
-      ],
+      "title": "Deepline Plays",
+      "tags": ["sdk", "gtm", "plays", "v2"],
       "providers": []
     }
+  },
+  "prefixes": {
+    "jobs/": {
+      "kind": "guide",
+      "title": "Job Guide",
+      "tags": ["gtm", "workflow"],
+      "providers": []
+    },
+    "references/": {
+      "kind": "reference",
+      "title": "Reference",
+      "tags": ["cli", "debugging"],
+      "providers": []
+    },
+    "shared/": {
+      "kind": "guide",
+      "title": "Shared Guide",
+      "tags": ["sdk", "plays"],
+      "providers": []
+    }
+  },
+  "default_document": {
+    "kind": "other",
+    "title": "Document",
+    "tags": [],
+    "providers": []
   }
 }
