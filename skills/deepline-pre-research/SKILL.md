@@ -19,7 +19,7 @@ deepline -h
 
 ## CLI resolution
 
-Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/INSTALL.md` to set up Deepline.
+Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/SKILL.md` to set up Deepline.
 
 Find the highest-signal GTM data sources, public evidence, and market language for a research or enrichment job before building the pipeline. This is a standalone Deepline skill that should behave like `last30days` with a GTM data lens: broad source coverage, recency, community signals, citations, source stats, and a grounded "What I learned" synthesis. In Deepline, the report first explains what the research found; only after that does it translate the findings into Deepline tool contracts, private/proprietary joins, and Deepline-facing cost.
 
@@ -151,14 +151,13 @@ curl -s "$DEEPLINE_API_BASE_URL/api/v2/pre-research/test" \
 
 The endpoint returns the query plan, source coverage, current Deepline tool candidates, sanitized Deepline-facing pricing metadata, explicit provider gaps, and approval gate. It does not execute paid provider calls.
 
-For SDK V2 users, this is the recipe-backed path:
+For SDK V2 users, ask the installed Deepline GTM skill to build the source plan:
 
-```bash
-deepline quickstart
-# Pick "Pre-Research Source Plan"
+```text
+/deepline-gtm Build a pre-research source plan for my GTM problem before running paid provider calls.
 ```
 
-The selected recipe prompts the agent to call `/api/v2/pre-research/plan`, inspect the returned `providerRequirements`, and only then decide whether to run probes or build a play.
+The skill prompts the agent to call `/api/v2/pre-research/plan`, inspect the returned `providerRequirements`, and only then decide whether to run probes or build a play.
 
 ### 4. Search For Deepline Candidate Tools
 

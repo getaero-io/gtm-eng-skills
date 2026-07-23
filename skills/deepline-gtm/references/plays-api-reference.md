@@ -6,9 +6,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.253` |
-| API contract | `2026-07-native-monitor-launch-hard-cutover` |
-| Checked-in SDK fallback | `0.1.253` |
+| SDK version | `0.1.254` |
+| API contract | `2026-07-admin-cli-local-cutover` |
+| Checked-in SDK fallback | `0.1.254` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.219` |
 | Generated sources | `src/lib/sdk/api-routes.ts`<br />`sdk/src/types.ts`<br />`sdk/src/client.ts`<br />`sdk/src/release.ts` |
