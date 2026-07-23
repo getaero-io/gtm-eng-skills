@@ -7,7 +7,7 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 | Field | Value |
 |---|---|
 | SDK version | `0.1.254` |
-| API contract | `2026-07-admin-cli-local-cutover` |
+| SDK HTTP API | `v2` |
 | Checked-in SDK fallback | `0.1.254` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.219` |
@@ -288,7 +288,7 @@ while True:
 
 ## Recent Compatible API Changes
 
-These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive changes that did not require an SDK API-contract bump. The full ledger lives in `src/lib/sdk/api-routes.ts`.
+These entries come from the compatible SDK/API change ledger and explain additive changes that did not require an SDK API-contract bump. Each change lives in `src/lib/sdk/compatible-changes/` so concurrent PRs do not edit a shared ledger file.
 
 | Change | Reason |
 |---|---|
@@ -487,6 +487,11 @@ Poll this until `status` reaches a terminal state:
 | `next` | `PlayRunPackage['next'] \| Record<string, unknown>` | No | Structured follow-up actions for inspect/query/export. |
 | `failedLogs` | `{ runId: string; totalCount: number; returnedCount: number; firstSequence: number \| null; lastSequence: number \| null; truncated: boolean; hasMore: boolean; entries: string[]; view?: 'failed'; association?: 'terminal_failure_window' \| 'retained_before_truncation'; warning?: string; next?: { logs: string }; logsTruncated?: boolean; }` | No | Bounded terminal-failure log window requested by `runs.get`. |
 | `rerunCommand` | `string` | No | Exact ordinary `plays run` command that can rerun a failed execution. |
+| `billing` | `RunBillingSummary` | No | Projected settled-charge billing for the run. Returned by `runs.get`.<br />`totalCredits`/`providerEvents` describe THIS run only; `rollup` (present<br />with `--full`) carries the true subtree cost including ctx.runPlay children.<br />Deepline credits only — provider spend is never exposed. |
+| `billingTotalCreditsRollup` | `number` | No | True subtree cost in Deepline credits (this run + every descendant run),<br />mirrored to the top level for convenience. Present only with `--full`. |
+| `billingChildCredits` | `number` | No | Deepline credits attributable to descendant runs only. Present with `--full`. |
+| `billingRollupIncomplete` | `boolean` | No | True when the child-run billing rollup could not be fully resolved. |
+| `childRuns` | `ChildRunSummary[]` | No | Durable summaries of ctx.runPlay children, returned by `runs.get --full`. |
 
 
 ### `PlayRunPackage`
