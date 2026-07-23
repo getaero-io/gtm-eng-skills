@@ -292,6 +292,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-play-detached-runtime-progress` | Corrects the customer-visible status and CLI progress wording for a Play that is actively executing in a detached runtime receipt: it reports running rather than waiting, and identifies that execution state instead of incorrectly suggest... |
 | `2026-07-agent-led-cli-onboarding` | Adds setup, skills, and doctor CLI commands, folder-scoped browser-auth persistence, npm-based installation guidance, and scoped update and verification behavior while retiring the separate mutable SDK shell-installer route. This is comp... |
 | `2026-07-play-cost-estimates` | Adds an opt-in include_cost_estimates query parameter and optional costEstimate response field to GET /api/v2/plays, and adds the same optional field to GET /api/v2/plays/:name/live. This is additive and backward compatible: route paths,... |
 | `2026-07-sdk-enrich-direct-tool-runtime-context` | Makes newly published deepline enrich generated plays type their legacy direct-tool helper against the existing DeeplinePlayRuntimeContext tools capability instead of an incompatible hand-written execute signature. This is a compatible l... |
@@ -299,7 +300,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-07-sdk-play-page-open-opt-in` | Makes newly published deepline plays run and enrich clients print the play page URL by default and require the new --open flag to launch a browser; the retired --no-open flag now fails loudly. The API contract is unchanged: route paths,... |
 | `2026-07-prebuilt-run-system-scope` | Fixes POST /api/v2/plays/run so an explicit prebuilt/<name> reference reads the Deepline system definition even when legacy org data contains the same unqualified name, and rejects explicit revision IDs that belong to another definition.... |
 | `2026-07-play-runtime-environment-selector` | Adds an optional internal preview-runtime selection to POST /api/v2/plays/run and makes newly published SDK clients populate it only when DEEPLINE_RUNTIME_ENVIRONMENT=preview and a caller-named DEEPLINE_RUNTIME_NAMESPACE are explicitly s... |
-| `2026-07-bounded-exact-play-run-results` | Preserves complete authored play returns within the 5 MiB customer-output budget, hydrates scheduler-backed terminal results on full run reads, and adds bounded preview and warning metadata to run-list, live-status, and CLI output. This... |
 
 ## Public Types
 
