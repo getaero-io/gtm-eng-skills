@@ -129,6 +129,8 @@ Use category filters when tool type matters more than provider breadth. Common c
 - `email_verify`: email verification / deliverability
 - `email_finder`: email lookup / discovery
 - `phone_finder`: phone lookup / discovery
+- `phone_verify`: phone validation, line type, carrier, or reachability checks
+- `smb`: local-business, storefront, and small-business workflows
 - `research`: company research, ad intel, job search, technographics, web research
 - `automation`: workflow-style tools, browser/actor runs, batch automation
 - `outbound_tools`: all Lemlist/Smartlead/Instantly/HeyReach style actions
@@ -146,6 +148,39 @@ Avoid:
 
 - `deepline tools search stuff`
 - `deepline tools search "search across filters"`
+
+### Account signal tags
+
+Tool categories describe operational capability. Tags are the simple discovery
+surface: a tool can carry any number of tags and callers can filter with
+`GET /api/v2/tools?tags=technographics,funding`. Comma-separated tags are
+combined with AND, so `tags=email_finder,billed_on_match` finds only email
+finders that charge on a returned match. The response includes the small,
+curated `availableTags` list.
+
+- `firmographics`: company profile, size, geography, ownership
+- `funding`: rounds, investors, revenue, IPO, ticker
+- `hiring`: jobs, headcount, and growth
+- `technographics`: technology stack and vendor use
+- `web`: traffic, SEO, keywords, backlinks
+- `ads`: advertising and creative signals
+- `intent`: launches, news, partnerships, events
+- `people`: employees, leadership, roles, org charts
+- `contact`: email, phone, identity resolution
+- `competitive`: competitors, customers, lookalikes, market context
+- `social`: posts, reactions, community activity
+- `research`: web scraping, search, and custom research
+
+Common capability tags are also available: `enrichment`, `people_enrich`,
+`company_enrich`, `contact_enrich`, `email_finder`, `phone_finder`,
+`email_verify`, `phone_verify`, and `identity_resolution`. `billed_on_match`
+means the tool's pricing model is `per_result`: a Deepline charge is incurred
+only when the tool produces a match. Do not assume all finder tools have that
+behavior; filter for the tag or read the returned pricing unit.
+
+Tags are additive labels, not buckets. Do not force a tag when the tool ID,
+category, or provider-authored tags do not support it. Keep evidence, source,
+date, and confidence with the underlying signal.
 
 ## 2.5) Why use Deepline Enrich
 
