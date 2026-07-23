@@ -17,6 +17,10 @@ deepline auth status
 deepline -h
 ```
 
+## CLI resolution
+
+Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/SKILL.md` to set up Deepline.
+
 Use this skill to answer customer analytics questions through Deepline's warehouse and semantic-layer tools. The goal is not just to run SQL; it is to preserve the customer's business definitions by starting from the semantic layer, validating the query path, and reporting exactly what metric definitions and filters were used.
 
 ## Before You Start
@@ -29,13 +33,13 @@ If Snowflake credentials or a semantic layer are missing, stop and report the se
 
 For Deepline's own product, usage, and operational analytics, choose the source by question. Do not assume every Snowflake metric is dbt-modeled.
 
-| Source | Tables / dataset | Use for | Caveats |
-| --- | --- | --- | --- |
-| Convex replica raw ledger | `AERO_DB.CONVEX_RAW.*`, especially `PLAY_RUNS` and `INGESTION_PLANES` | Persisted app state, play-run status, prebuilt/custom play identity, customer database inventory/state | Loaded by the Convex-to-Snowflake replica. Authoritative historically, but can lag same-day activity. Raw tables may include sensitive app/customer fields. |
-| Convex replica reporting views | `AERO_DB.CONVEX.USAGE_EVENTS`, `BA_USER`, `BA_MEMBER` | Tool/enrich calls, Deepline credits, user/org identity | `USAGE_EVENTS` is the primitive billing/usage ledger. Provider spend must not be exposed. Some compatibility views are published selectively; verify freshness before relying on them. |
-| Axiom production logs | Dataset `vercel` | Real-time play/run failures, CLI outcomes, provider/tool errors, log-message failure classes | Real-time but log-shaped. Deduplicate run/request ids and compare against Snowflake when accuracy matters. |
-| RudderStack product events | `RUDDERSTACK.EVENTS.*` (`TRACKS`, `PAGES`, `IDENTIFIES`, event tables) | Product journey, page views, signup/auth lifecycle, attribution | Product analytics, not the operational ledger. Some browser events may be missing from Snowflake. |
-| dbt / transformed analytics marts | `AERO_DB.ANALYTICS*` schemas, for example `ANALYTICS.FCT_CUSTOMER_JOURNEY`, `DIM_ACCOUNT`, `CUSTOMER_STREAM`, and dbt views such as `STG_*` | Business-facing GTM, customer journey, CRM, TAM, and modeled analytics definitions | Use when the question asks for modeled business metrics. Do not use these as the default source for play-runtime health unless a modeled table is explicitly known to cover it. |
+| Source                            | Tables / dataset                                                                                                                            | Use for                                                                                                | Caveats                                                                                                                                                                                |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Convex replica raw ledger         | `AERO_DB.CONVEX_RAW.*`, especially `PLAY_RUNS` and `INGESTION_PLANES`                                                                       | Persisted app state, play-run status, prebuilt/custom play identity, customer database inventory/state | Loaded by the Convex-to-Snowflake replica. Authoritative historically, but can lag same-day activity. Raw tables may include sensitive app/customer fields.                            |
+| Convex replica reporting views    | `AERO_DB.CONVEX.USAGE_EVENTS`, `BA_USER`, `BA_MEMBER`                                                                                       | Tool/enrich calls, Deepline credits, user/org identity                                                 | `USAGE_EVENTS` is the primitive billing/usage ledger. Provider spend must not be exposed. Some compatibility views are published selectively; verify freshness before relying on them. |
+| Axiom production logs             | Dataset `vercel`                                                                                                                            | Real-time play/run failures, CLI outcomes, provider/tool errors, log-message failure classes           | Real-time but log-shaped. Deduplicate run/request ids and compare against Snowflake when accuracy matters.                                                                             |
+| RudderStack product events        | `RUDDERSTACK.EVENTS.*` (`TRACKS`, `PAGES`, `IDENTIFIES`, event tables)                                                                      | Product journey, page views, signup/auth lifecycle, attribution                                        | Product analytics, not the operational ledger. Some browser events may be missing from Snowflake.                                                                                      |
+| dbt / transformed analytics marts | `AERO_DB.ANALYTICS*` schemas, for example `ANALYTICS.FCT_CUSTOMER_JOURNEY`, `DIM_ACCOUNT`, `CUSTOMER_STREAM`, and dbt views such as `STG_*` | Business-facing GTM, customer journey, CRM, TAM, and modeled analytics definitions                     | Use when the question asks for modeled business metrics. Do not use these as the default source for play-runtime health unless a modeled table is explicitly known to cover it.        |
 
 Current product usage dashboard source of truth:
 
@@ -49,14 +53,14 @@ That dashboard does not currently use `AERO_DB.ANALYTICS*` dbt/transformed model
 
 ## Decision Matrix
 
-| User asks... | Job | Start with |
-| --- | --- | --- |
-| "What is total pipeline by quarter?" | Metric breakdown | `snowflake_get_semantic_layer`, then `snowflake_run_semantic_query` |
-| "Break revenue down by product/month" | Dimensional analysis | Inspect semantic tables for revenue metrics and time dimensions |
-| "How many opportunities / accounts / calls..." | Simple count metric | Find the semantic count metric before writing SQL |
-| "Why does this number look wrong?" | Debug/validation | Run semantic query, inspect returned SQL, then compare with raw SQL only if needed |
-| "Query this specific warehouse table" | SQL fallback | Check whether it is represented in the semantic layer; otherwise use `snowflake_run_query` |
-| "Upload/edit/read the semantic layer" | Admin setup | Use `snowflake_update_semantic_layer` / `snowflake_get_semantic_layer`, then return here for querying |
+| User asks...                                   | Job                  | Start with                                                                                            |
+| ---------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------- |
+| "What is total pipeline by quarter?"           | Metric breakdown     | `snowflake_get_semantic_layer`, then `snowflake_run_semantic_query`                                   |
+| "Break revenue down by product/month"          | Dimensional analysis | Inspect semantic tables for revenue metrics and time dimensions                                       |
+| "How many opportunities / accounts / calls..." | Simple count metric  | Find the semantic count metric before writing SQL                                                     |
+| "Why does this number look wrong?"             | Debug/validation     | Run semantic query, inspect returned SQL, then compare with raw SQL only if needed                    |
+| "Query this specific warehouse table"          | SQL fallback         | Check whether it is represented in the semantic layer; otherwise use `snowflake_run_query`            |
+| "Upload/edit/read the semantic layer"          | Admin setup          | Use `snowflake_update_semantic_layer` / `snowflake_get_semantic_layer`, then return here for querying |
 
 ## Standard Loop
 
@@ -186,19 +190,19 @@ Read the YAML like a business contract:
 Bad — invents SQL inside `filters`, so the renderer looks for a named filter with that whole string:
 
 ```json
-{"filters": ["stage_name = 'Closed Won'"]}
+{ "filters": ["stage_name = 'Closed Won'"] }
 ```
 
 Good — uses a named semantic filter when one exists:
 
 ```json
-{"filters": ["exclude_renewal_opportunities"]}
+{ "filters": ["exclude_renewal_opportunities"] }
 ```
 
 Good — if no named filter exists, keep the semantic metric/table and put the raw predicate in `custom_filter_expressions`:
 
 ```json
-{"custom_filter_expressions": ["stage_name = 'Closed Won'"]}
+{ "custom_filter_expressions": ["stage_name = 'Closed Won'"] }
 ```
 
 ## Examples
@@ -240,15 +244,15 @@ deepline tools execute snowflake_get_semantic_layer --payload '{"includeYaml": t
 
 Treat errors as diagnostic signal, not noise to hide.
 
-| Error pattern | Meaning | Response |
-| --- | --- | --- |
-| `SNOWFLAKE_CREDENTIALS_REQUIRED` | Workspace has no Snowflake credentials | Ask user to connect Snowflake; do not retry different payloads |
-| "No Snowflake semantic layer is configured" | No saved layer for this workspace | Ask for/upload semantic layer before querying |
-| "table not found" in renderer | `table_name` is not a semantic table | Re-read YAML and use a table under `tables:` |
-| "metric/dimension/filter not found" | Payload invented or misspelled a semantic object | Re-read YAML; use canonical names |
-| SQL compilation `invalid identifier` | Rendered SQL references a warehouse column not available in the active Snowflake schema, or a renderer exposure bug | Show the rendered SQL/error; compare with raw SQL only after preserving the semantic intent |
-| Results include blank/null buckets | Data has null dimension values or label expression permits blanks | Report the bucket and consider a named `has_*` filter if present |
-| `limited: true` | Returned rows were truncated by `rowLimit` | Say the output is limited; rerun with a higher limit if the user needs all groups |
+| Error pattern                               | Meaning                                                                                                             | Response                                                                                    |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `SNOWFLAKE_CREDENTIALS_REQUIRED`            | Workspace has no Snowflake credentials                                                                              | Ask user to connect Snowflake; do not retry different payloads                              |
+| "No Snowflake semantic layer is configured" | No saved layer for this workspace                                                                                   | Ask for/upload semantic layer before querying                                               |
+| "table not found" in renderer               | `table_name` is not a semantic table                                                                                | Re-read YAML and use a table under `tables:`                                                |
+| "metric/dimension/filter not found"         | Payload invented or misspelled a semantic object                                                                    | Re-read YAML; use canonical names                                                           |
+| SQL compilation `invalid identifier`        | Rendered SQL references a warehouse column not available in the active Snowflake schema, or a renderer exposure bug | Show the rendered SQL/error; compare with raw SQL only after preserving the semantic intent |
+| Results include blank/null buckets          | Data has null dimension values or label expression permits blanks                                                   | Report the bucket and consider a named `has_*` filter if present                            |
+| `limited: true`                             | Returned rows were truncated by `rowLimit`                                                                          | Say the output is limited; rerun with a higher limit if the user needs all groups           |
 
 When a semantic query fails, fix the table/metric/dimension/filter and rerun before claiming an answer. If you fall back to raw SQL, state that it is a fallback and preserve the semantic metric definition you started from.
 

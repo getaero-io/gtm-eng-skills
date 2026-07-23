@@ -16,6 +16,10 @@ deepline auth status
 deepline -h
 ```
 
+## CLI resolution
+
+Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/SKILL.md` to set up Deepline.
+
 Use this skill for prospecting, account research, contact enrichment, verification, lead scoring, personalization, and campaign activation.
 
 ## 1) What this skill governs
@@ -343,10 +347,11 @@ Critical: keep [writing-outreach.md](writing-outreach.md) workflow context activ
 ### Operational troubleshooting: rate limits and CLI health
 
 - Use `deepline enrich` for heavy row-by-row work whenever possible. It has built-in rate-limit handling (adaptive retries/backoff) for standard upstream limits. If you are building a homegrown script, assume it does not include the same automatic protection unless you explicitly implement it.
-- If enrichment or CLI behavior is unstable, rerun the installer to ensure the latest CLI/client wiring is in place:
+- If enrichment or CLI behavior is unstable, update the CLI and reinstall the Deepline skills:
 
 ```bash
-curl -s "https://code.deepline.com/api/v2/cli/install" | bash
+deepline update
+deepline skills
 ```
 
 **Sites requiring auth:** Don't use Apify. Tell the user to use Claude in Chrome or guide them through Inspect Element to get a curl command with headers (user is non-technical).

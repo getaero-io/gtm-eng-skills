@@ -1,6 +1,6 @@
 ---
 name: deepline-pre-research
-description: "Use when the user wants a last30days-style pre-research pass in Deepline: discover the critical public, private, CRM, workflow, social, and web data sources for a research/enrichment job; compare provider coverage; estimate Deepline credit cost; recommend the source plan before building or running the workflow; or build custom language/messaging from buyer, competitor, community, and CRM evidence. Triggers: pre-research, source discovery, provider strategy, research data sources, ScrapeCreators, X/Twitter data, Reddit comments, public and private datasets, CRM data, workflow data, custom language, messaging language, pain language."
+description: 'Use when the user wants a last30days-style pre-research pass in Deepline: discover the critical public, private, CRM, workflow, social, and web data sources for a research/enrichment job; compare provider coverage; estimate Deepline credit cost; recommend the source plan before building or running the workflow; or build custom language/messaging from buyer, competitor, community, and CRM evidence. Triggers: pre-research, source discovery, provider strategy, research data sources, ScrapeCreators, X/Twitter data, Reddit comments, public and private datasets, CRM data, workflow data, custom language, messaging language, pain language.'
 disable-model-invocation: false
 ---
 
@@ -16,6 +16,10 @@ deepline auth wait --timeout 120 # completes Cowork/browser approval; no-op if a
 deepline auth status
 deepline -h
 ```
+
+## CLI resolution
+
+Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/SKILL.md` to set up Deepline.
 
 Find the highest-signal GTM data sources, public evidence, and market language for a research or enrichment job before building the pipeline. This is a standalone Deepline skill that should behave like `last30days` with a GTM data lens: broad source coverage, recency, community signals, citations, source stats, and a grounded "What I learned" synthesis. In Deepline, the report first explains what the research found; only after that does it translate the findings into Deepline tool contracts, private/proprietary joins, and Deepline-facing cost.
 
@@ -84,18 +88,18 @@ Tell the user the parsed scope before provider calls.
 
 Do not default to browser scraping, raw x.com scraping, or unvetted actors. Prefer managed external APIs and private connectors:
 
-| Source family | Preferred provider | Credential needed | Notes |
-| --- | --- | --- | --- |
-| Reddit threads/comments | `scrapecreators` | Deepline integration API key | Required for managed Reddit comments/thread coverage. |
-| TikTok / Instagram / YouTube fallback | `scrapecreators` | Deepline integration API key | Preferred managed API for captions, engagement, and transcript fallback. Search ScrapeCreators unfiltered when profile/contact tools matter; some profile tools are categorized as `admin`, not `research`. |
-| X/Twitter | `twitterapi` | Deepline integration API key | Managed X/Twitter search; avoids scraping x.com. |
-| Web/news/docs | `serper` | Deepline integration API key or `SERPER_API_KEY` for server-owned dev/prod use | Search API, not search-page scraping. |
-| Web extraction fallback | `firecrawl` or `exa` | Deepline integration API key | Use after URL discovery; do not use for blind scrape-at-scale. |
-| Hacker News | `hackernews` | none | Public Algolia API. |
-| Bluesky | `bluesky` | none | Public AppView API. |
-| CRM/private | Salesforce, HubSpot, Attio | Deepline OAuth/private connector | Query customer-authorized APIs, not UI scraping. |
-| Warehouse/product/workflow | Snowflake/customer DB/workflow runtime | Deepline private connector | Use scoped warehouse/runtime access. |
-| Last-resort social actor fallback | `apify` | Deepline integration API key | Optional fallback only after explicit approval and provider gap status. |
+| Source family                         | Preferred provider                     | Credential needed                                                              | Notes                                                                                                                                                                                                       |
+| ------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reddit threads/comments               | `scrapecreators`                       | Deepline integration API key                                                   | Required for managed Reddit comments/thread coverage.                                                                                                                                                       |
+| TikTok / Instagram / YouTube fallback | `scrapecreators`                       | Deepline integration API key                                                   | Preferred managed API for captions, engagement, and transcript fallback. Search ScrapeCreators unfiltered when profile/contact tools matter; some profile tools are categorized as `admin`, not `research`. |
+| X/Twitter                             | `twitterapi`                           | Deepline integration API key                                                   | Managed X/Twitter search; avoids scraping x.com.                                                                                                                                                            |
+| Web/news/docs                         | `serper`                               | Deepline integration API key or `SERPER_API_KEY` for server-owned dev/prod use | Search API, not search-page scraping.                                                                                                                                                                       |
+| Web extraction fallback               | `firecrawl` or `exa`                   | Deepline integration API key                                                   | Use after URL discovery; do not use for blind scrape-at-scale.                                                                                                                                              |
+| Hacker News                           | `hackernews`                           | none                                                                           | Public Algolia API.                                                                                                                                                                                         |
+| Bluesky                               | `bluesky`                              | none                                                                           | Public AppView API.                                                                                                                                                                                         |
+| CRM/private                           | Salesforce, HubSpot, Attio             | Deepline OAuth/private connector                                               | Query customer-authorized APIs, not UI scraping.                                                                                                                                                            |
+| Warehouse/product/workflow            | Snowflake/customer DB/workflow runtime | Deepline private connector                                                     | Use scoped warehouse/runtime access.                                                                                                                                                                        |
+| Last-resort social actor fallback     | `apify`                                | Deepline integration API key                                                   | Optional fallback only after explicit approval and provider gap status.                                                                                                                                     |
 
 Treat any route not covered by a described Deepline tool contract, key/auth plan, test endpoint, and Deepline-facing pricing as unapproved until after the public research synthesis is complete.
 
@@ -234,10 +238,10 @@ Do not skip a family just because it is inconvenient. Missing coverage is part o
 
 ### 4.55. Artifact Resolution Gate
 
-Before writing the report, verify every materializable public dataset has been resolved from a *family* to an *artifact*. For each recommended public dataset/registry, confirm you can fill this row from something you actually searched or fetched this session:
+Before writing the report, verify every materializable public dataset has been resolved from a _family_ to an _artifact_. For each recommended public dataset/registry, confirm you can fill this row from something you actually searched or fetched this session:
 
 | Dataset | Exact file/endpoint | Canonical URL | Easier mirror | OSS parser/repo | Vertical stat registry (NAICS/QCEW/CBP) |
-| --- | --- | --- | --- | --- | --- |
+| ------- | ------------------- | ------------- | ------------- | --------------- | --------------------------------------- |
 
 Rules:
 
@@ -324,9 +328,11 @@ Use the same output discipline as `last30days` agent mode. The report should fee
 
 ```markdown
 ## Research Report: <topic>
+
 Generated: <date> | Sources: Reddit, X, YouTube, TikTok, Instagram, HN, Polymarket, Web, Public registries, Deepline catalog
 
 ### Key Findings
+
 - <3-5 highest-signal findings grounded in public/source evidence>
 
 ### What I learned
@@ -338,51 +344,63 @@ Generated: <date> | Sources: Reddit, X, YouTube, TikTok, Instagram, HN, Polymark
 **<Theme 3>** - <1-2 sentences.>
 
 KEY PATTERNS from the research:
+
 1. <Pattern, source family, and why it matters for GTM>
 2. <Pattern, source family, and why it matters for GTM>
 3. <Pattern, source family, and why it matters for GTM>
 
 ### GTM Data Sources Found
+
 | Source family | Best source / route | Status | Rows / join keys | Caveat |
-| --- | --- | --- | --- | --- |
+| ------------- | ------------------- | ------ | ---------------- | ------ |
 
 ### Materializable Datasets (exact artifacts)
+
 | Dataset | Exact file/endpoint | URL | Mirror | OSS parser/repo | Stat registry (NAICS/QCEW/CBP) |
-| --- | --- | --- | --- | --- | --- |
+| ------- | ------------------- | --- | ------ | --------------- | ------------------------------ |
+
 <!-- One row per public dataset you can turn into rows. No "family" placeholders — exact filename, canonical URL, mirror, and an existing parser repo where one exists. This table is the answer when the ask is "give me the dataset/github". -->
 
-
 ### Market Language
+
 | Source | What to extract | How to use it | Guardrail |
-| --- | --- | --- | --- |
+| ------ | --------------- | ------------- | --------- |
 
 ### Proprietary Data To Join Later
+
 | Dataset | Owner / connector | Join key | Why it changes the answer |
-| --- | --- | --- | --- |
+| ------- | ----------------- | -------- | ------------------------- |
 
 ### Deepline Route
+
 | Public source family | Route status | Deepline route | Probe needed | Cost basis |
-| --- | --- | --- | --- | --- |
+| -------------------- | ------------ | -------------- | ------------ | ---------- |
 
 ### Gaps To Add
+
 | Missing source | Why it matters | Suggested provider/integration | Required fields |
-| --- | --- | --- | --- |
+| -------------- | -------------- | ------------------------------ | --------------- |
 
 ### Recommended Workflow
+
 1. <first retrieval/probe>
 2. <second retrieval/probe>
 3. <synthesis/scoring/join step>
 
 ### Stats
+
 ---
+
 ✅ All agents reported back!
 ├─ <source family>: <count / coverage / engagement when available>
 ├─ <source family>: <count / coverage / engagement when available>
 ├─ 🌐 Web/Public data: <pages, registries, directories, datasets>
 └─ 🗣️ Top sources: <handles, communities, registries, domains, datasets>
+
 ---
 
 ### Cost Estimate
+
 - Pilot: <credits or range>
 - Full run: <credits or range and assumptions>
 - Unknowns: <what must be described/probed before quoting>
@@ -392,7 +410,9 @@ For `--agent`-style or non-interactive use, stop after the report. For interacti
 
 ```markdown
 ---
+
 I'm now an expert on <topic>. Some things I can help with:
+
 - <specific follow-up grounded in the findings>
 - <specific workflow/probe to run next>
 - <specific segment or source to go deeper on>

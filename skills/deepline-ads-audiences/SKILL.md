@@ -16,6 +16,10 @@ deepline auth status
 deepline -h
 ```
 
+## CLI resolution
+
+Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/SKILL.md` to set up Deepline.
+
 Build high-quality ABM paid ads audiences from first-party customer or prospect lists. This skill is for paid ads audience upload and evaluation, not outbound.
 
 Names in this skill are starting hints. Run `deepline tools search audience --json` and `deepline tools describe <tool_id> --json` before executing because tool names and payload shapes can change. Tool search accepts an intent query or, for structured filtering, `--categories` and/or `--search_terms`; a filter-only search needs at least one of those flags. Use commas for multiple filter values, and put provider names in the query rather than using a `--prefix` flag.
@@ -58,10 +62,10 @@ This skill is not for cold outbound, sequencing, or copywriting. Personal emails
 
 Choose the coverage mode before spending credits. Record it in the run notes.
 
-| Mode | Use when | Waterfall | Stop condition |
-| --- | --- | --- | --- |
-| `cost_effective` | User asks for the default, low-cost, or first-pass enrichment. | Work-email baseline → Aviato personal hashes on all eligible rows → LimaData personal hashes on remaining personal-hash misses. | Stop after Aviato/LimaData, report contacts still missing personal hashes, then ask before expanded fallback. |
-| `max_coverage` | User asks for highest match rate, max coverage, or to keep increasing coverage. | Work-email baseline → phone hashes already present → LinkedIn repair → Aviato personal hashes for all eligible rows → LimaData personal hashes → raw personal-email waterfall → platform upload variants. | Stop when no approved provider remains, budget cap is hit, marginal lift is below threshold, or rights/geo constraints block more enrichment. |
+| Mode             | Use when                                                                        | Waterfall                                                                                                                                                                                                 | Stop condition                                                                                                                                |
+| ---------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cost_effective` | User asks for the default, low-cost, or first-pass enrichment.                  | Work-email baseline → Aviato personal hashes on all eligible rows → LimaData personal hashes on remaining personal-hash misses.                                                                           | Stop after Aviato/LimaData, report contacts still missing personal hashes, then ask before expanded fallback.                                 |
+| `max_coverage`   | User asks for highest match rate, max coverage, or to keep increasing coverage. | Work-email baseline → phone hashes already present → LinkedIn repair → Aviato personal hashes for all eligible rows → LimaData personal hashes → raw personal-email waterfall → platform upload variants. | Stop when no approved provider remains, budget cap is hit, marginal lift is below threshold, or rights/geo constraints block more enrichment. |
 
 Never silently downgrade a `max_coverage` request to `cost_effective`. If a provider or credential is unavailable, report the gap and continue with the next approved provider rather than stopping early.
 
@@ -84,7 +88,7 @@ Use `deepline plays` for the bundled templates. If `deepline plays` is unavailab
 | `plays/audit-no-double-hash.play.ts`                      | Verify the final upload payload is hash-only, deduped, populated, includes provider hashes as-is, and does not contain hash-of-hash mistakes.                  | `{ "payloadFile": "upload.csv", "providerHashFile": "provider-hashes.csv", "providerHashColumns": ["aviato_hash", "limadata_hash"] }`                                     |
 | `plays/upload-google-hash-only-audience.play.ts`          | Create a Google Customer Match list, upload hash-only rows, and read status back.                                                                              | `{ "file": "upload.csv", "account_id": "1234567890", "audience_name": "Segment enriched 2026-06-09" }`                                                                    |
 | `plays/upload-facebook-google-hash-only-audience.play.ts` | Upload the same validated hash-only rows to Google and an existing Meta/Facebook Custom Audience.                                                              | `{ "file": "upload.csv", "google_account_id": "1234567890", "meta_ad_account_id": "act_123", "meta_audience_id": "456", "audience_name": "Segment enriched 2026-06-09" }` |
-| `plays/report-google-coverage-lift.play.ts`               | After Google match rates populate, calculate coverage lift, estimated matched identifiers, spend efficiency, and a follow-up note.                             | `{ "account_name": "Customer Google Ads", "account_id": "1234567890", "baseline": {...}, "comparisons": [...] }`                                                           |
+| `plays/report-google-coverage-lift.play.ts`               | After Google match rates populate, calculate coverage lift, estimated matched identifiers, spend efficiency, and a follow-up note.                             | `{ "account_name": "Customer Google Ads", "account_id": "1234567890", "baseline": {...}, "comparisons": [...] }`                                                          |
 
 Recommended sequence:
 

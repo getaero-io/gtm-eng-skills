@@ -292,6 +292,7 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 
 | Change | Reason |
 |---|---|
+| `2026-07-agent-led-cli-onboarding` | Adds setup, skills, and doctor CLI commands, folder-scoped browser-auth persistence, npm-based installation guidance, and scoped update and verification behavior while retiring the separate mutable SDK shell-installer route. This is comp... |
 | `2026-07-play-cost-estimates` | Adds an opt-in include_cost_estimates query parameter and optional costEstimate response field to GET /api/v2/plays, and adds the same optional field to GET /api/v2/plays/:name/live. This is additive and backward compatible: route paths,... |
 | `2026-07-sdk-enrich-direct-tool-runtime-context` | Makes newly published deepline enrich generated plays type their legacy direct-tool helper against the existing DeeplinePlayRuntimeContext tools capability instead of an incompatible hand-written execute signature. This is a compatible l... |
 | `2026-07-sdk-enrich-no-ambient-pick` | Makes newly published deepline enrich generated plays pass the existing DeeplinePlayRuntimeContext directly to their direct-tool helper instead of relying on TypeScript's ambient Pick utility type. This is a compatible local generated-so... |
@@ -299,7 +300,6 @@ These entries come from `COMPATIBLE_SDK_API_CHANGES` and explain additive change
 | `2026-07-prebuilt-run-system-scope` | Fixes POST /api/v2/plays/run so an explicit prebuilt/<name> reference reads the Deepline system definition even when legacy org data contains the same unqualified name, and rejects explicit revision IDs that belong to another definition.... |
 | `2026-07-play-runtime-environment-selector` | Adds an optional internal preview-runtime selection to POST /api/v2/plays/run and makes newly published SDK clients populate it only when DEEPLINE_RUNTIME_ENVIRONMENT=preview and a caller-named DEEPLINE_RUNTIME_NAMESPACE are explicitly s... |
 | `2026-07-bounded-exact-play-run-results` | Preserves complete authored play returns within the 5 MiB customer-output budget, hydrates scheduler-backed terminal results on full run reads, and adds bounded preview and warning metadata to run-list, live-status, and CLI output. This... |
-| `2026-07-revert-dashboard-monitor-inventory` | Reverts the unshipped dashboard monitor-inventory and plays-list presentation changes from #2863. This restores the prior human-readable `deepline monitors available` text and removes the app-owned opt-in include_latest_runs dashboard li... |
 
 ## Public Types
 
