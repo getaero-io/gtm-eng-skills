@@ -513,7 +513,7 @@ internals.
 |---|---|---:|---|
 | `schemaVersion` | `1` | Yes | Package schema version. |
 | `kind` | `'play_run'` | Yes | Package discriminator. |
-| `run` | `{ id: string; playName: string; status: string; dashboardUrl?: string; updatedAt?: number \| null; startedAt?: number \| null; finishedAt?: number \| null; durationMs?: number \| null; error?: string; }` | Yes | Run identity, status, timing, and dashboard metadata. |
+| `run` | `{ id: string; playName: string; status: string; dashboardUrl?: string; updatedAt?: number \| null; startedAt?: number \| null; finishedAt?: number \| null; durationMs?: number \| null; error?: string; activity?: PlayRunActivityProjection \| null; }` | Yes | Run identity, status, timing, and dashboard metadata. |
 | `warnings` | `string[]` | No | Bounded customer-safe warnings about output projection or availability. |
 | `steps` | `Array<Record<string, unknown>>` | Yes | Step-level summaries emitted by the runtime. |
 | `outputs` | `Record<string, Record<string, unknown>>` | Yes | Named output summaries, including dataset handles and scalar outputs. |
