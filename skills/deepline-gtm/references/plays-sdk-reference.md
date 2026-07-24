@@ -612,7 +612,7 @@ normalization, and no-result behavior. Do not invoke plays through
 
 `key` is the stable child-call identity for idempotency and traceability.
 
-Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayReferenceLike, input: Record<string, unknown>, options?: PlayCallOptions, ): Promise<TOutput>;`
+Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayReferenceLike, input: Record<string, unknown>, options: PlayCallOptions, ): Promise<TOutput>;`
 
 #### Parameters
 
@@ -621,7 +621,7 @@ Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayRefer
 | `key` | `string` | Yes | Stable child-call key. |
 | `playRef` | `string \| PlayReferenceLike` | Yes | Registered play name, play handle, or file-backed play reference. |
 | `input` | `Record<string, unknown>` | Yes | Input object passed to the child play. |
-| `options` | `PlayCallOptions` | No | Child play options. |
+| `options` | `PlayCallOptions` | Yes | Child play options. |
 
 #### Returns
 
@@ -845,6 +845,7 @@ Signature: `class DeeplineClient`
 | `listSecrets` | method | List secret metadata visible to the current workspace. |  | `Promise<PlaySecretMetadata[]>` |
 | `checkSecret` | method | Check whether a named secret exists, is active, and has a stored value. | `name: string` - Secret name. It is normalized to uppercase before lookup. | `Promise<PlaySecretMetadata \| null>` |
 | `listTools` | method | List all available tools.<br /><br />Returns tool definitions including ID, provider, description, input/output schemas,<br />and list extractor paths for automatic CSV conversion. | `options?: { categories?: string; tags?: string; grep?: string; grepMode?: 'all' \| 'any' \| 'phrase'; compact?: boolean; }` | `Promise<ToolDefinition[]>` |
+| `listProviders` | method | List discoverable providers without requiring a local plugin catalog. | `options?: { changed?: boolean; }` | `Promise<ProviderDefinition[]>` |
 | `searchTools` | method | Search available tools using Deepline's ranked backend search.<br /><br />This is the same discovery surface used by the CLI: it ranks across<br />tool metadata, categories, agent guidance, and input schema fields. | `options?: ToolSearchOptions` | `Promise<ToolSearchResult>` |
 | `getTool` | method | Get detailed metadata for a single tool.<br /><br />Returns everything from `ToolDefinition` plus pricing info, sample<br />inputs/outputs, failure modes, and cost estimates. | `toolId: string` - Tool identifier (e.g. `"dropleads_search_people"`) | `Promise<ToolMetadata>` |
 | `describeModel` | method | Describe a Deepline Agent model and its provider-specific option surface.<br /><br />Combines live AI Gateway model metadata with Deepline's generated AI SDK<br />provider option registry so agents can construct `providerOptions`<br />payloads before executing `deeplineagent`.<br /><br />The returned option schemas describe accepted provider option shapes, not<br />guaranteed support for every model. Runtime AI SDK/Gateway errors remain<br />authoritative for model-gated values. | `model: string` - Gateway model id such as `"openai/gpt-5.5"` | `Promise<DeeplineAgentModelDescription>` |

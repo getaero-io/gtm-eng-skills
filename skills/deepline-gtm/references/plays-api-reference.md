@@ -194,6 +194,7 @@ while True:
 | `GET` | `/api/v2/integrations/:toolId/get` | `getTool` | Describe one provider-backed tool, including schema, pricing, guidance, and extractors. | `src/app/api/v2/integrations/get/route.ts` |
 | `GET` | `/api/v2/integrations/list` | `searchTools` | Compatibility discovery route for integration/tool listing. | `src/app/api/v2/integrations/list/route.ts` |
 | `GET` | `/api/v2/tools` | `listTools` | List callable provider/tool definitions. | `src/app/api/v2/tools/route.ts` |
+| `GET` | `/api/v2/tools/providers` | `listProviders` | SDK-facing route. | `src/app/api/v2/tools/providers/route.ts` |
 | `GET` | `/api/v2/tools/search` | `searchTools` | Search callable provider/tool definitions with ranked metadata search. | `src/app/api/v2/tools/search/route.ts` |
 
 ### Customer Data
