@@ -1,6 +1,6 @@
 ---
 name: deepline-monitors
-description: 'ACCESS-GATED beta. Deepline Monitors are provider event feeds (job posts, email replies, funding, intent) that stream into your warehouse and trigger plays. Only use if you have monitor access: run `deepline monitors status` first; if it reports no access, do NOT use this recipe — every command returns monitor_access_required. Ask a Deepline admin (Admin → Rollouts) for access.'
+description: 'ACCESS-GATED beta. Deepline Monitors are provider event feeds (job posts, email replies, funding, intent) that stream into your warehouse and trigger plays. Only use if you have monitor access: run `deepline monitors status` first; if it reports no access, do NOT use this recipe — ask a Deepline admin (Admin → Rollouts) for access.'
 ---
 
 # Deepline Monitors
@@ -13,26 +13,21 @@ off** — a monitor streams as events arrive.
 
 ## Step 0 — access gate (do this first)
 
-Monitors are a production rollout-gated beta. Local and preview runtimes admit
-every authenticated actor; production admits Deepline/GetAero email domains and
-the admin-managed email rollout. **Before any other monitor command**, run:
+Monitors are an access-gated beta. **Before any other monitor command**, confirm
+access:
 
 ```bash
 deepline monitors status
 ```
 
-- Exit code `0` and `✓ You have access to Deepline Monitors` → proceed.
-- Exit code `1` / `✗ No access` → **STOP.** Do NOT run `available`, `check`,
-  `deploy`, `list`, or any other monitor command — each returns a
-  `monitor_access_required` error. In production, tell the user access is
-  granted by a Deepline admin via **Admin → Rollouts** and that they should
-  request it there. Other non-zero exits are auth, configuration, or server
-  failures and must be diagnosed by their actual code.
+- **You have access** → proceed.
+- **No access** → **STOP.** Do not run any other monitor command. Tell the user
+  monitor access is granted by a Deepline admin (Admin → Rollouts) and that they
+  should request it there.
 
-`deepline monitors status --json` emits `{ "has_access": boolean, "reason": string }`
-for programmatic branching. The status check itself works for anyone with a valid
-Deepline login/API key — only the _answer_ is gated. Do not proceed past this
-step on a failed check.
+Anyone with a valid Deepline login can run the check; only the answer is gated.
+`--json` returns `{ "has_access": boolean, "reason": string }` — branch on
+`has_access`.
 
 ## Monitors vs plays
 
@@ -49,56 +44,131 @@ events (email replies, new job postings, funding rounds, intent signals) into
 their warehouse. Reach for a play when the user wants to _act on_ those events,
 or for any on-demand or scheduled enrichment/sourcing task.
 
+## Find monitor types and read their filters
+
+Monitor types live on the `tools` surface, alongside every other capability.
+Browse them, then read one type's exact filters + stream columns:
+
+```bash
+# Browse the monitor types you can deploy
+deepline tools list --categories monitors
+deepline tools search "company radar"
+
+# Read the full contract for ONE type
+deepline tools get deepline_native.company_radar
+```
+
+(`deepline monitors available [tool-id]` is a legacy alias for the same
+discovery — prefer `tools`.)
+
+The contract for a type gives you everything you need to deploy and to filter:
+
+- **payload_schema** — the deploy-time filters you set in the monitor `payload`
+  (typed: required fields, allowed values).
+- **stream columns** — the row fields a play filters on with `sqlListeners.where`
+  (the post-ingestion filter surface).
+- **pricing** — Deepline credits per accepted event.
+- **a deploy example** — `deepline monitors deploy '<def>'`.
+
+A monitor type is deployed, not executed: `deepline tools execute <monitor-type>`
+is rejected and points you at `deepline monitors deploy`.
+
 ## Command set
 
 All commands accept `--json` (also automatic when stdout is piped).
 
 | Command                                    | What it does                                                                                                                                                                                                                                                                         |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `deepline monitors status`                 | Report whether you have monitor access. Exit 0 + `has_access: true` = access; exit 1 + `has_access: false` = rollout denial. Other exits are errors, not access decisions. **Run first.**                                                                                            |
-| `deepline monitors available [tool-id]`    | The catalog of monitor types you CAN deploy. Read-only. **Compact by default** (id + name + `deployed: N`); pass `--full` for the complete catalog (payload schemas + output streams). Pass a tool id positionally to describe one. Filter with `--provider`, `--search`, `--limit`. |
+| `deepline monitors status`                 | Report whether you have monitor access (`has_access`). **Run first.**                                                                                                                                                                                                                |
+| `deepline tools list --categories monitors` / `tools get <tool-id>` | **Preferred** discovery. Browse the monitor types you can deploy, and read one type's payload schema + stream columns + pricing. See "Find monitor types and read their filters". |
+| `deepline monitors available [tool-id]`    | Legacy alias of the `tools` discovery above (still works). Read-only; `--full` or a tool id for one type's full contract.                                                                                                                                                            |
 | `deepline monitors check '<definition>'`   | Validate a monitor definition without deploying. Read-only; spends nothing. Also accepts `--file <path>` or `--file -` (stdin).                                                                                                                                                      |
 | `deepline monitors deploy '<definition>'`  | Deploy a monitor (positional JSON, `--file <path>`, or `--file -`). Mutates workspace state and may spend Deepline credits. `--dry-run` shows the plan (validity, deploy cost in Deepline credits, existing monitors that may already cover the scope) without deploying.            |
-| `deepline monitors list`                   | List the monitors you HAVE deployed. `--status active\|disabled\|all` (default `active`), `--limit`, `--compact`.                                                                                                                                                                    |
+| `deepline monitors list`                   | List the monitors you HAVE deployed. `--status active\|disabled\|all` (default `active`), `--limit`, `--cursor`, `--compact`. Response carries `total` (true registry count, not the page size), `returned`, `is_truncated`, and `next_cursor`. When `is_truncated` is true, page with `--cursor <next_cursor>` until it is false — see "Reuse before you deploy."                                                       |
 | `deepline monitors get <key>`              | Show one deployed monitor by its public key. Read-only.                                                                                                                                                                                                                              |
 | `deepline monitors update <key> '<patch>'` | Update a deployed monitor (`<patch>` is a JSON object of fields; also `--file`).                                                                                                                                                                                                     |
 | `deepline monitors delete <key>`           | Delete a deployed monitor. Deprovisions the upstream resource by default; `--local-only` removes just the Deepline record. Prompts y/N in a terminal; non-interactive runs must pass `--yes`. `--dry-run` previews the plan.                                                         |
 | `deepline monitors reactivate <key>`       | Reactivate a previously disabled deployed monitor. May spend Deepline credits; `--dry-run` shows the cost first.                                                                                                                                                                     |
 
-Typed exit codes: 0 success, 2 usage, 3 auth/permission, 4 not found, 5 server
-failure, 7 validation failed (`monitors status` keeps its exit-1-on-no-access
-contract).
 
-## Recover from errors by code
+## Monitors as code (SDK)
 
-Monitor API errors include a server-owned `next_action`. Follow it before
-improvising or retrying. The two common recovery paths are:
+Monitors are **fully expressible as SDK code**, not CLI-only. The CLI is a thin
+terminal surface over the same product model: every `deepline monitors` verb maps
+to a `client.monitors.*` method, and monitor definitions have a typed authoring
+helper, `defineMonitor`, that mirrors `definePlay`. Reach for the SDK when the
+monitor lifecycle is part of a script, an agent loop, or a play repo — the same
+access gate, endpoints, and pricing apply.
 
-- `ingestion_plane_not_ready`: wait for the returned `retry_after_ms`, then
-  retry the same read or check once.
-- `monitor_tool_not_found`: run `deepline monitors available --json` and choose
-  a catalog tool id. A missing deployed monitor instead routes to
-  `deepline monitors list --status all --json`.
+```ts
+import { DeeplineClient, defineMonitor } from 'deepline';
 
-For validation errors, fix every returned issue path and rerun `monitors check`.
-For billing denial, report the required credits, balance, and shortfall, then
-stop. For settlement or cleanup failure, inspect the monitor state and report
-that repair is required; do not repeat the mutation blindly. When the server
-cannot identify a safe fix, `next_action` points back to this section: diagnose
-the exact auth, permission, configuration, connection, or server failure rather
-than guessing or calling it missing rollout access.
+const client = new DeeplineClient();
 
-A monitor suspended for insufficient credits stays disabled until explicit
-reactivation. Ask the user to add credits, run `monitors reactivate <key>
+// Access gate first — same contract as `deepline monitors status`.
+const access = await client.monitors.status(); // { has_access, reason }
+if (!access.has_access) throw new Error(access.reason ?? 'No monitor access');
+
+// Discover deployable monitor types (compact list, or describe one by id).
+const catalog = await client.monitors.available(); // list mode
+const radar = await client.monitors.available('deepline_native.company_radar');
+
+// Author a typed definition (compile-time checked key/tool/payload/controls).
+const monitor = defineMonitor({
+  key: 'company-job-openings',
+  tool: 'deepline_native.company_radar',
+  name: 'Company job openings',
+  payload: { domain: 'stripe.com', radar_type: 'company_job_openings' },
+});
+
+// Validate (no spend), preview the deploy plan, then deploy for real.
+const check = await client.monitors.check(monitor);
+const plan = await client.monitors.deploy(monitor, { dryRun: true });
+const deployed = await client.monitors.deploy(monitor);
+
+// Lifecycle — one method per CLI verb.
+const list = await client.monitors.list({ status: 'all' }); // total/is_truncated/next_cursor
+const detail = await client.monitors.get('company-job-openings');
+const dependents = await client.monitors.dependents('company-job-openings');
+await client.monitors.update('company-job-openings', { name: 'Renamed' });
+await client.monitors.reactivate('company-job-openings', { dryRun: true });
+await client.monitors.delete('company-job-openings', { localOnly: true, dryRun: true });
+```
+
+Every read-only method (`status`, `available`, `check`, `list`, `get`,
+`dependents`, and any `{ dryRun: true }` mutation preview) is safe to call
+without approval. `deploy`, `update`, `reactivate`, and `delete` mutate workspace
+or provider state and can spend credits — get explicit approval first, exactly as
+with the CLI (see "Get approval before mutations"). The reuse, shared-stream, and
+per-event pricing rules below apply to the SDK path unchanged.
+
+## Recover from errors
+
+Monitor errors return an actionable next step — follow it before retrying.
+
+- **Transient / not ready yet**: wait briefly, then retry the same read or check
+  once.
+- **Unknown monitor type**: re-browse the catalog
+  (`deepline tools list --categories monitors`) and pick a valid tool id. A
+  missing _deployed_ monitor instead → `deepline monitors list --status all`.
+- **Validation errors**: fix every reported field and rerun `monitors check`.
+- **Not enough credits**: report the required credits, balance, and shortfall,
+  then stop and ask the user to add Deepline credits.
+- **Settlement / cleanup failure**: inspect the monitor state and report that
+  repair is needed; don't blindly repeat the mutation.
+
+A monitor suspended for insufficient credits stays disabled until you explicitly
+reactivate it. Ask the user to add credits, run `monitors reactivate <key>
 --dry-run`, show the approval summary, and reactivate only after approval. While
-suspended, callbacks may remain captured for audit, but typed Customer DB rows
-and connected plays do not run.
+suspended, connected plays do not run.
 
 ## Workflow
 
 1. Run `status`.
-2. Run `available` and read filters, streams, and pricing.
-3. Run `list --status all` and `get` to inspect reuse and dependents.
+2. Run `tools list --categories monitors` and `tools get <type>` to read filters,
+   stream columns, and pricing (see "Find monitor types and read their filters").
+3. Run `monitors list --status all` and `monitors get <key>` to inspect reuse and
+   dependents.
 4. Compare the monitor with a scheduled play over provider actions; ask the user
    when the cost/scope tradeoff is material.
 5. Run `check`, then the mutation's built-in dry-run when one exists.
@@ -117,6 +187,16 @@ not deploy another monitor expecting it to create an isolated play channel. A
 disabled-but-matching monitor → `deepline monitors reactivate <key>`, not a
 fresh deploy.
 
+> **The reuse check must see the WHOLE registry, or it is worthless.** The list
+> response reports `total` (the true registry count for the status filter),
+> `returned`, and `is_truncated`. If `is_truncated` is `true`, you are looking at
+> a partial page — a "no matching monitor" conclusion off a truncated page is how
+> a duplicate paid monitor gets deployed onto an already-covered stream. Either
+> raise `--limit` above `total`, or page with the returned `next_cursor`
+> (`deepline monitors list --status all --cursor <next_cursor> --json`) until
+> `is_truncated` is `false` and `next_cursor` is `null`. Only then is "no match"
+> trustworthy.
+
 ## Shared streams and downstream blast radius
 
 A deployed monitor is not an isolated trigger channel. It writes provider events
@@ -127,8 +207,8 @@ does not create an isolated channel for its events.
 
 Before creating, updating, disabling, reactivating, or deleting a monitor:
 
-1. Read its output streams with `monitors available <tool-id> --json` or
-   `monitors get <key> --json`.
+1. Read its output streams with `deepline tools get <tool-id> --json` (type-level
+   `streams[]`) or `monitors get <key> --json` (a deployed instance).
 2. Run `monitors list --status all --json` and inspect other monitors using the
    same tool and stream.
 3. Inspect the dependent published plays returned by `monitors get`.
@@ -179,8 +259,9 @@ them, recommend the shared broader feed and state the price consequence.
 
 ## Get approval before mutations
 
-Run `status`, `available`, `list`, `get`, `check`, and dependency inspection
-without approval because they are read-only. Creating, updating, reactivating,
+Run `status`, `tools list`/`tools get` (type discovery), `monitors list`,
+`monitors get`, `check`, and dependency inspection without approval because they
+are read-only. Creating, updating, reactivating,
 or deleting a monitor changes workspace or provider state and can spend credits.
 Show the final scope and selected pricing basis. For deploy, reactivate, and
 delete, also show the built-in dry-run result. Update has no dry-run, so use the
@@ -259,9 +340,14 @@ A definition is a single JSON object:
 
 - `key` — public monitor instance id (you reference it in `get`/`update`/`delete`).
 - `tool` — a live Deepline-native tool id. Get the valid ids and each
-  `payload_schema` from `deepline monitors available`.
+  `payload_schema` from `deepline tools list --categories monitors` /
+  `deepline tools get <tool-id>`.
 - `payload` — tool-specific; must match that tool's `payload_schema`.
 - `name` — optional human label. `controls` — optional Deepline lifecycle metadata.
+
+The same object is what `defineMonitor({ ... })` returns (typed) and what
+`client.monitors.check`/`deploy` accept — the CLI JSON and the SDK definition are
+one shape. See "Monitors as code (SDK)".
 
 ## Build a play on top of a monitor
 
@@ -280,9 +366,9 @@ sqlListeners: [
 ];
 ```
 
-1. `deepline monitors available <id>` lists, per output **stream**, the `stream`
-   key you bind to, the Customer DB **table**, and the **row columns** on
-   `event.after`. Bind to a data stream (kind `event`/`signal`), not one marked
+1. `deepline tools get <tool-id>` lists, per output **stream**, the `stream` key
+   you bind to, the Customer DB **table**, and the typed **row columns** you
+   filter on. Bind to a data stream (kind `event`/`signal`), not one marked
    `[binding metadata]`.
 2. Reuse before you deploy (see above). Deploy only when nothing covers your scope.
 3. Author the play with the `sqlListeners` trigger (or start from
@@ -300,8 +386,9 @@ a separate call before writing when the table contract is unknown.
 
 ## Spend
 
-Only report **Deepline** credit spend. Read the live `available`, `check`, and
-`get` pricing fields instead of assuming every monitor bills the same way. A
+Only report **Deepline** credit spend. Read the live `tools get <type>`,
+`check`, and `get` pricing fields instead of assuming every monitor bills the
+same way. A
 monitor can charge on deploy/reactivation, on each accepted provider event, or
 on a recurring renewal. Event volume therefore matters for event-priced
 monitors; apply the canonical per-event pricing callout in **Choose scope and

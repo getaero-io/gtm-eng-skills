@@ -934,3 +934,29 @@ commands and programmatic callers share the same surface.
 | `plans` | `() => Promise<BillingPlansResult>` | Yes | Published plans plus the plan you are on ("what plans exist and what am I on"). |
 | `subscription` | `{ status: () => Promise<BillingSubscriptionStatus>; cancel: (options?: { undo?: boolean; }) => Promise<BillingSubscriptionCancelResult>; }` | Yes |  |
 | `invoices` | `{ list: (options?: { limit?: number }) => Promise<BillingInvoicesResult>; }` | Yes |  |
+
+
+### `client.monitors`
+
+Public monitors namespace exposed as `client.monitors`.
+
+Mirrors the /api/v2/monitors resource family so the monitors CLI and
+programmatic callers share one product surface — every `deepline monitors`
+verb maps to a method here. Monitors are fully expressible as SDK code: author
+a definition with `defineMonitor`, then check/deploy/list/get/update/
+delete/reactivate through this namespace.
+
+#### Fields
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `status` | `() => Promise<MonitorsAccessStatus>` | Yes | Whether the current workspace can use monitors (`{ has_access, reason }`). |
+| `available` | `( toolIdOrOptions?: string \| (MonitorsAvailableOptions & { tool?: string }), options?: MonitorsAvailableOptions, ) => Promise<MonitorsAvailableResult>` | Yes | The deployable monitor tools catalog. Call with no tool id for the list, or<br />with a tool id (positional or `{ tool }`) to describe one tool's full<br />payload/stream contract. |
+| `check` | `(definition: MonitorDefinition) => Promise<MonitorCheckResult>` | Yes | Validate a monitor definition without deploying it (no spend). |
+| `deploy` | `( definition: MonitorDefinition, options?: { dryRun?: boolean }, ) => Promise<MonitorDeployResult>` | Yes | Deploy a monitor from a definition. May spend Deepline credits. |
+| `list` | `(options?: MonitorsListOptions) => Promise<MonitorsListResult>` | Yes | List deployed monitors (active by default). |
+| `get` | `(key: string) => Promise<MonitorDetail>` | Yes | Fetch one deployed monitor by public key (without dependents). |
+| `dependents` | `(key: string) => Promise<MonitorDependents>` | Yes | List the published plays depending on one monitor's output streams. |
+| `update` | `( key: string, patch: Record<string, unknown>, ) => Promise<MonitorUpdateResult>` | Yes | Update a deployed monitor by public key. |
+| `delete` | `( key: string, options?: { localOnly?: boolean; dryRun?: boolean }, ) => Promise<MonitorDeleteResult>` | Yes | Delete a deployed monitor by public key. Deprovisions the upstream provider<br />resource unless `localOnly` is set. `dryRun` returns the delete plan. |
+| `reactivate` | `( key: string, options?: { dryRun?: boolean }, ) => Promise<MonitorReactivateResult>` | Yes | Reactivate a disabled monitor. `dryRun` returns the reactivation cost. |
