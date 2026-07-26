@@ -56,6 +56,8 @@ const enriched = await ctx
 
 Drop to `ctx.tools.execute(...)` only when you need one explicit provider call the prebuilt does not expose. For manual provider fallback, pick the order by measuring marginal coverage per cost on a golden set (`../shared/correctness.md`), not by vendor reputation; give each attempt a stable `id` and stop on first useful result. Prefer `steps(...).step(...).return(...)` so every attempt becomes its own visible, cached column.
 
+**Probe the discovery provider's real output before hand-authoring.** The reruns in a custom composition come from provider output shape, not logic. Run the discovery tool once (`deepline tools execute <ref> --input '{...}' --json`), inspect the real payload, then **derive the row key from a guaranteed-present field** (a domain, a stable id) and **assume identifiers can be null** — a LinkedIn URL, a phone, a secondary email are all optionally absent. Keying a `ctx.dataset` on an identifier that some rows lack is what cost a CTO pilot its rerun loop: blank-LinkedIn rows broke the row key, forcing an edit→preflight→run cycle a five-second probe would have prevented.
+
 ### Durable enrichment gotchas
 
 - **Sales Navigator URLs do not work in email waterfalls.** `linkedin.com/sales/lead/...` URLs are rejected by every provider that accepts a LinkedIn URL — they are scoped to a Sales Navigator session and have no public-profile equivalent. Feeding them into a waterfall returns zero matches everywhere, even though the same person's `/in/` URL would resolve. Detect the form (`/linkedin\.com\/sales\/lead\//`), resolve the company domain first, then use name + domain.
@@ -67,6 +69,21 @@ Drop to `ctx.tools.execute(...)` only when you need one explicit provider call t
 - **Email domain ≠ company domain.** After recovery, compare each row's email domain against the company domain it should belong to. Mismatches are often previous-employer or wrong-person matches; more than ~20% mismatch means the contact-finding step needs re-running with better company disambiguation.
 
 Inside a play, tool results serialize like `deepline tools execute --json`: execution metadata is top-level, raw provider data is `toolResponse.raw`, tool metadata is `toolResponse.meta`, semantic extractions are `extractedValues` / `extractedLists`.
+
+## Start cheap, measure coverage, escalate — proactively
+
+The cheapest capable route (a single prebuilt) is tier 1 — start there. But coverage is a property of the data, not the provider: one provider leaves rows empty that another fills. Do not return the first cheap answer and stop; measure coverage and decide out loud.
+
+1. **Run the cheapest capable route on the pilot** (a single prebuilt/waterfall — not `route-fanout`).
+2. **Report two numbers, honestly:**
+   - **Coverage** = fill rate, read straight from the run package: `dataset_execution_stats[<column>].non_empty` (formatted `"N/M (X%)"`, e.g. `"34/50 (68%)"`) and `rowCounts.{persisted, succeeded, failed}` via `deepline runs get <id> --full --json`. The runtime computed it; don't recompute it. Multi-dataset runs surface `dataset_execution_stats_list`. Per-column execution buckets (`completed:executed`, `completed:reused`, `skipped:missed`, `failed`) explain a low fill: `skipped:missed` is honest empties, not a bug.
+   - **Cost as marginal per unit** (~X credits/email), NOT the run total. A small pilot's total is inflated by fixed compute and validators (e.g. zerobounce) that amortize over scale — "11 credits for 2 emails" is a fixed-cost artifact, not the per-email price. Quote "~Y credits/email at scale," and name any expensive validator the user could drop.
+3. **Decide by coverage — this is the point:**
+   - **High (≥ ~85%):** ship. Mention the uplift option once ("I can try to lift the last few % with more providers — say the word").
+   - **Moderate (~60–85%):** proactively **offer** the uplift — "coverage is 68%; fanning out more providers typically adds 20–30% for ~Y more credits/row. Want me to?"
+   - **Low (< ~60%):** don't make the user ask — **escalate automatically** to a wider fan-out, report the lifted coverage, and get approval before scaling the extra spend. A single cheap provider clearly wasn't enough.
+
+**`route-fanout` is the escalation engine** — it fans out many providers in parallel and fuses them (`plays/route-fanout.play.ts`). It is overkill for a trivial case where one provider suffices (it pays for breadth you don't need), and it is exactly right when coverage demands breadth. So: cheap prebuilt first, `route-fanout` when the coverage number says the single route isn't enough. The rung mechanics below are how that escalation actually runs.
 
 ## When the primary route misses
 
@@ -104,7 +121,10 @@ const research = await ctx.tools.execute({
 });
 ```
 
-Tier/ICP classification is the same tool with an enum `jsonSchema` and a `reason` field, grounded only on the provided context. For ICP-engagement classification on a list of people (reactors on a post), confirm a prebuilt with `deepline plays search "icp" --json`.
+Scoring and qualification are native, two paths, both `deeplineagent` under the hood. There is no `deepline_native` scoring action, and `route-fanout` fusion is a route-*selection* mechanism, not a score; don't use it to score.
+
+- **Person vs ICP → tier:** run the prebuilt `prebuilt/engagers-to-icp-qualification`. Its output is `{ icp_tier: 'tier1' | 'tier2' | 'tier3', icp_reason }`: a structured tier plus a one-sentence reason, exactly the ICP-engagement classification a list of reactors needs.
+- **Anything else** (account/company fit, a custom lead score, a ranking): call `deeplineagent` with a constrained `jsonSchema` (the block above), or `enrich --with '{"tool":"deeplineagent","payload":{"prompt":...,"jsonSchema":...}}'`. Use an enum for a tier plus a `reason` field, grounded only on the provided context.
 
 **Flatten structured output before deterministic reuse.** `deeplineagent` structured columns are wrapped in a result envelope. Interpolating `{{column}}` into another prompt usually works; field-level `{{column.field}}` does not. When a downstream step needs a field, add a plain-TypeScript flatten column that emits a scalar — the structured payload is at `toolResponse.raw.extracted_json`.
 
