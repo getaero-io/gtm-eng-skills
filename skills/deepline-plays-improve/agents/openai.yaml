@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Deepline Plays Improve'
+  short_description: 'Review, evaluate, and improve Play results'
+  default_prompt: 'Use $deepline-plays-improve to review this Play, evaluate it against Sheet labels, and iterate safely.'
