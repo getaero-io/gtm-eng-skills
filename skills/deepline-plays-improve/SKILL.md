@@ -91,29 +91,32 @@ the durable Dataset Handle and exports every persisted row.
 ### 2. Export a polished review Sheet
 
 Use one operation key per intended export. Reuse it only to retry that exact
-export:
+export. Set `SKILL_DIR` to the directory containing the installed `SKILL.md`
+you are reading. Do not assume the user's project contains Deepline's source
+tree:
 
 ```bash
 EXPORT_KEY="review-$(date -u +%Y%m%dT%H%M%SZ)-initial"
+: "${SKILL_DIR:?Set SKILL_DIR to the directory containing this installed SKILL.md}"
+PRESENTATION="$(node "$SKILL_DIR/scripts/review-sheet-presentation.mjs")"
 
-deepline tools execute google_workspace_export_dataset --input "{
-  \"dataset\": {
-    \"run_id\": \"$RUN_ID\",
-    \"path\": \"result.rows\"
-  },
-  \"destination\": {
-    \"spreadsheet_title\": \"Play review\",
-    \"tab_name\": \"Initial results\",
-    \"mode\": \"new_tab\"
-  },
-  \"presentation\": {
-    \"auto_fit_columns\": true,
-    \"freeze_header\": true,
-    \"wrap_header\": true,
-    \"summary_tab\": true
-  },
-  \"operation_key\": \"$EXPORT_KEY\"
-}" --json | tee "$WORKDIR/deepline-review-export.json"
+EXPORT_INPUT="$(jq -n \
+  --arg run_id "$RUN_ID" \
+  --arg operation_key "$EXPORT_KEY" \
+  --argjson presentation "$PRESENTATION" \
+  '{
+    dataset: {run_id: $run_id, path: "result.rows"},
+    destination: {
+      spreadsheet_title: "Play review",
+      tab_name: "Initial results",
+      mode: "new_tab"
+    },
+    presentation: $presentation,
+    operation_key: $operation_key
+  }')"
+deepline tools execute google_workspace_export_dataset \
+  --input "$EXPORT_INPUT" --json |
+  tee "$WORKDIR/deepline-review-export.json"
 ```
 
 Open the returned private `spreadsheet_url`. The file already lives in the
@@ -123,6 +126,13 @@ If the organization has never used Google Workspace before, this tool call
 provisions the private Shared Drive automatically. Every later Workspace tool
 call ensures the same Drive remains ready. Do not ask the user to create a
 Drive, copy a Drive ID, or run a bootstrap command.
+
+The helper owns the review presentation: a frozen blue header, auto-sized
+columns, a light-yellow notes column, and a formatted summary tab. The export
+tool owns data movement and accepts the helper's policy-bounded native Sheets
+requests. Edit or replace the helper when a workflow needs another layout.
+Do not put data writes, sheet deletion, sharing, or permission changes in
+`presentation.requests`; the tool rejects them.
 
 ```bash
 SPREADSHEET_ID="$(jq -r '.toolResponse.raw.spreadsheet_id' \
@@ -211,25 +221,26 @@ between those calls. Export the revised dataset as a new tab:
 
 ```bash
 FOLLOW_UP_KEY="review-$(date -u +%Y%m%dT%H%M%SZ)-follow-up"
+: "${SKILL_DIR:?Set SKILL_DIR to the directory containing this installed SKILL.md}"
+PRESENTATION="$(node "$SKILL_DIR/scripts/review-sheet-presentation.mjs")"
 
-deepline tools execute google_workspace_export_dataset --input "{
-  \"dataset\": {
-    \"run_id\": \"$NEW_RUN_ID\",
-    \"path\": \"result.rows\"
-  },
-  \"destination\": {
-    \"spreadsheet_id\": \"$SPREADSHEET_ID\",
-    \"tab_name\": \"Revised results\",
-    \"mode\": \"new_tab\"
-  },
-  \"presentation\": {
-    \"auto_fit_columns\": true,
-    \"freeze_header\": true,
-    \"wrap_header\": true,
-    \"summary_tab\": true
-  },
-  \"operation_key\": \"$FOLLOW_UP_KEY\"
-}" --json
+FOLLOW_UP_INPUT="$(jq -n \
+  --arg run_id "$NEW_RUN_ID" \
+  --arg spreadsheet_id "$SPREADSHEET_ID" \
+  --arg operation_key "$FOLLOW_UP_KEY" \
+  --argjson presentation "$PRESENTATION" \
+  '{
+    dataset: {run_id: $run_id, path: "result.rows"},
+    destination: {
+      spreadsheet_id: $spreadsheet_id,
+      tab_name: "Revised results",
+      mode: "new_tab"
+    },
+    presentation: $presentation,
+    operation_key: $operation_key
+  }')"
+deepline tools execute google_workspace_export_dataset \
+  --input "$FOLLOW_UP_INPUT" --json
 ```
 
 An identical retry resumes the same export. A changed range returns
