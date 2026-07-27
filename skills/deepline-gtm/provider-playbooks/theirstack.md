@@ -26,9 +26,11 @@
 
 3. **Hiring signals:** Use `theirstack_job_search` to find companies actively hiring for specific roles or technologies. Always provide `posted_at_max_age_days` or a company filter — the API requires at least one.
 
-4. **Tech stack enrichment:** Use `theirstack_technographics` for a single known company — provide `company_domain` when possible (most reliable identifier).
+4. **Count before a large search:** Use `theirstack_job_search` with `include_total_results: true`, `blur_company_data: true`, and `limit: 1`. Totals require TheirStack to scan the full matching dataset, so broad filters or long date windows can take up to two minutes.
 
-5. **Check credits:** Use `theirstack_credit_balance` before large batch runs.
+5. **Tech stack enrichment:** Use `theirstack_technographics` for a single known company — provide `company_domain` when possible (most reliable identifier).
+
+6. **Check credits:** Use `theirstack_credit_balance` before large batch runs.
 
 ## Key Filters
 
@@ -53,3 +55,4 @@
 - Reusing `keyword_slug_or` from technographics in `theirstack_company_search` → use `company_keyword_slug_or` instead
 - Using Prospeo-style MX filters such as `company_email_provider` in `theirstack_company_search` → TheirStack does not support email-provider filtering
 - Setting `limit` too high on company search → expensive
+- Fetching years of job results in one request → use non-overlapping windows of 180 days or less; keep `include_total_results: false` when totals are not needed
