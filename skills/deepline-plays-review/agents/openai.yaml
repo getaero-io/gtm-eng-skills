@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Review and Improve Deepline Plays'
+  short_description: 'Review, evaluate, and improve Play results'
+  default_prompt: 'Use $deepline-plays-review to put this Play result in front of a human, absorb their feedback, and iterate safely.'
