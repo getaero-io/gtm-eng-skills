@@ -11,7 +11,7 @@ Use Apify when you need controlled web automation/scraping workflows.
 - Use `apify_run_actor` only when you need non-blocking execution, then poll run status before fetching outputs.
 - Validate payload shape with a tiny run before scaling row counts.
 
-## Structured public X data
+## Structured Public X Data
 
 Use these managed routes when the task needs public X evidence:
 
