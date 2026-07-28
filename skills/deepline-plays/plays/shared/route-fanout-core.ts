@@ -1,3 +1,5 @@
+import { ToolExecutionError } from 'deepline';
+
 // Pure, deterministic core for the fan-out / fuse / judge skeleton.
 //
 // Every function here is side-effect free and I/O free so it can run inside a
@@ -892,7 +894,8 @@ export type RouteDef<Row> = {
 };
 
 // The SDK per-row context surface the engine touches. Kept structural so the
-// core stays SDK-import-free (the play passes the real rowCtx through).
+// play passes the real rowCtx through without coupling this module to context
+// implementation details.
 export type RouteRowCtx = {
   tools: {
     execute: (args: {
@@ -911,9 +914,18 @@ export type RouteRowCtx = {
 };
 
 export function isCredentialError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error ?? '');
-  return /credential|unauthor|api key|not connected|forbidden|401|403/i.test(
-    message,
+  if (error instanceof ToolExecutionError) {
+    return (
+      error.category === 'authentication' || error.category === 'authorization'
+    );
+  }
+  // Schema-0 child Plays preserve the historical ToolHttpError contract.
+  // Keep this narrow status fallback until schema 0 leaves the support window.
+  return (
+    error instanceof Error &&
+    error.name === 'ToolHttpError' &&
+    'status' in error &&
+    (error.status === 401 || error.status === 403)
   );
 }
 
@@ -921,19 +933,21 @@ export function isCredentialError(error: unknown): boolean {
 // EXIST — a config bug in the route list, NOT a normal provider "no data" or
 // transient failure. It must fail LOUD, not isolate silently as "no data".
 //
-// Two runtime shapes (verified against the runtime's tool + runPlay paths):
-//   - tool/fetch/agent route -> ctx.tools.execute throws a ToolHttpError whose
-//     message is `tool <id> 404 attempt N/M: ...Unknown tool: <id>...`. The 404
-//     status + "Unknown tool"/UNKNOWN_TOOL body text are the tell.
-//   - play route -> ctx.runPlay throws `Unable to resolve play "<name>"...` /
-//     `requires a resolvable play name`.
-// A credential gap (401/403) is deliberately EXCLUDED: it is a missing-credential
-// outcome (FIX 3), not a dead ref, and must keep its own quiet isolation.
+// Tool execution has a typed code. ctx.runPlay resolution does not yet share the
+// tool-error contract, so only that separate boundary retains message matching.
 export function isUnknownRefError(error: unknown): boolean {
-  if (isCredentialError(error)) return false;
+  if (error instanceof ToolExecutionError) {
+    return error.code === 'UNKNOWN_TOOL';
+  }
   const message = error instanceof Error ? error.message : String(error ?? '');
-  // Unknown tool id (404 UNKNOWN_TOOL from the integrations execute path).
+  // Schema-0 ToolHttpError has no public code. Restrict legacy message
+  // decoding to its branded shape and 404 status; arbitrary provider errors
+  // never enter this compatibility branch.
   if (
+    error instanceof Error &&
+    error.name === 'ToolHttpError' &&
+    'status' in error &&
+    error.status === 404 &&
     /unknown tool|UNKNOWN_TOOL|does not resolve to a public executable tool/i.test(
       message,
     )

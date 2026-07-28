@@ -101,7 +101,7 @@ deepline plays run plays/route-fanout.play.ts \
 - **A reranked #1 is not a true fact.** A research run ranked a credible source top, but a dubious lone-source "\$965B valuation" survived; the real answer ("\$380B") held only because three independent sources corroborated it. Corroborate numbers; don't trust rank (LAW 5).
 - **An all-null email column can mean the play never resolves emails.** `company-to-contact` returns identity only (`email: null` always) — you must chain the email waterfall. Don't read all-null as "no emails found."
 - **The trust gate trades recall for precision.** The email identity gate withheld correct fused answers as `verify_next` while letting one wrong answer through. Unshipped ≠ wrong and shipped ≠ all-correct — read the tags, and re-check borderline rows before concluding.
-- **Trust the runtime; a transient error is not a data miss.** The runtime auto-retries rate-limit and transient 5xx errors and isolates a single-row failure (it never fails the run), so a blip you see mid-run is not an empty cell. Don't record it as null and don't retry-storm around it: let it settle and keep going. The governor owns concurrency, not you.
+- **Trust the runtime; a transient error is not a data miss.** The runtime retries safe transient calls. If retries are exhausted, the provider failure stays loud unless the Play explicitly catches `ProviderTransientError` to continue a read waterfall. Never turn validation, authentication, billing, Deepline, or unknown failures into nulls. Keep the final waterfall leg loud. The governor owns concurrency, not you.
 
 ## Surface lifecycle
 

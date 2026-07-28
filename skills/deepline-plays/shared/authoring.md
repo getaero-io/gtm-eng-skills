@@ -12,6 +12,7 @@ Exact SDK signatures (`definePlay`, `ctx.*`, `PlayDataset`, tool-result shapes, 
 - Idempotency and replay
 - Design inputs for CLI use
 - Compose row programs
+- Handle provider failures
 - Parallelism
 - Common authoring traps
 
@@ -160,6 +161,31 @@ const enriched = await ctx
 ```
 
 When follow-up fields depend on a `ctx.runPlay(...)` result, put them in a second `ctx.dataset` stage with a distinct key — do not read a just-produced `fields.email` value in the same stage. Use `ctx.tools.execute` when one provider call is exactly the step you need; for ordered provider fallback, write explicit `steps(...).step(...).return(...)` so each attempt is visible and cached. Do not call a prebuilt play through `ctx.tools.execute` — plays and tools are separate namespaces; use `ctx.runPlay`.
+
+## Handle provider failures
+
+New Plays receive typed tool failures. A read waterfall needs one catch:
+
+```
+import { ProviderTransientError } from 'deepline';
+
+try {
+  return await primaryProvider();
+} catch (error) {
+  if (!(error instanceof ProviderTransientError)) throw error;
+}
+return fallbackProvider();
+```
+
+`ProviderTransientError` means a provider-owned rate limit, network failure, or
+upstream failure. It does not include bad input, missing credentials, billing,
+Deepline infrastructure, or unknown failures. Keep the final provider outside
+the catch so an exhausted waterfall fails loudly.
+
+Do not match `error.message`, catch every `ToolExecutionError`, or use
+`retryable` as a fallthrough flag. `retryable` only says the same semantic call
+is safe to repeat. See the [SDK reference](https://deepline.com/docs/sdk-v2/sdk-reference#errors-and-provider-fallthrough)
+for the full field contract and the explicit legacy-contract option.
 
 ## Parallelism: ordinary promises, inside the play
 

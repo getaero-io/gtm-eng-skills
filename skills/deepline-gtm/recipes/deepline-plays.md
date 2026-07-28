@@ -128,6 +128,26 @@ Authoring rules:
 - For query tools such as `query_customer_db` and `snowflake_run_query`, treat `toolResponse.raw.rows` as an inline preview/debug field. Use `result.extractedLists.rows.get()` and return that Dataset Handle for full-row export.
 - Project to flat user-facing columns with `status`, `miss_reason`, evidence/source, and requested output fields.
 
+### Provider fallthrough
+
+New Plays receive typed tool failures. Catch only `ProviderTransientError` when
+another read provider can answer the same question. Let validation,
+authentication, billing, Deepline, and unknown failures stop the Play. Keep the
+last provider call outside the catch so an exhausted waterfall fails loudly.
+
+```
+try {
+  return await primary();
+} catch (error) {
+  if (!(error instanceof ProviderTransientError)) throw error;
+}
+return fallback();
+```
+
+Do not branch on error messages or catch `ToolExecutionError` as a generic
+fallthrough signal. The generated SDK reference documents every stable field,
+the `retryable` distinction, and the explicit legacy-contract option.
+
 ## Exact Syntax Escrow
 
 Load these only when the task needs exact syntax or repair details:

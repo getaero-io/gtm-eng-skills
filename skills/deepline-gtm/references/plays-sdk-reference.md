@@ -86,6 +86,60 @@ export default definePlay(
 );
 ```
 
+### Fall Through A Transient Provider Failure
+
+Catch only `ProviderTransientError` when another read provider can answer the same question. Validation, authentication, billing, Deepline, unknown, and final-provider failures stay loud.
+
+Source: `docs-examples/sdk-v2/provider-fallback.play.ts`
+
+```ts
+import { definePlay, ProviderTransientError } from 'deepline';
+
+type Input = {
+  firstName: string;
+  lastName: string;
+  domain: string;
+};
+
+export default definePlay(
+  'docs-provider-fallback',
+  async (ctx, input: Input) => {
+    try {
+      const primary = await ctx.tools.execute({
+        id: 'primary_email',
+        tool: 'hunter_email_finder',
+        input: {
+          first_name: input.firstName,
+          last_name: input.lastName,
+          domain: input.domain,
+        },
+        description: 'Try the primary email provider.',
+      });
+      return { email: primary.extractedValues.email?.get() ?? null };
+    } catch (error) {
+      if (!(error instanceof ProviderTransientError)) throw error;
+    }
+
+    const fallback = await ctx.tools.execute({
+      id: 'fallback_email',
+      tool: 'leadmagic_email_finder',
+      input: {
+        first_name: input.firstName,
+        last_name: input.lastName,
+        domain: input.domain,
+        company_domain: input.domain,
+      },
+      description: 'Try the fallback email provider.',
+    });
+    return { email: fallback.extractedValues.email?.get() ?? null };
+  },
+  {
+    description:
+      'Find an email with one safe provider-failure fallback and loud terminal errors.',
+  },
+);
+```
+
 ### Schedule A Dataset Refresh
 
 Source: `docs-examples/sdk-v2/nightly-account-refresh.play.ts`
@@ -191,7 +245,7 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 | Checked-in SDK fallback | `0.1.254` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.219` |
-| Generated sources | `sdk/src/client.ts`<br />`sdk/src/play.ts`<br />`shared_libs/play-runtime/cell-staleness.ts`<br />`shared_libs/play-runtime/tool-result-types.ts`<br />`shared_libs/plays/dataset.ts` |
+| Generated sources | `sdk/src/client.ts`<br />`sdk/src/errors.ts`<br />`sdk/src/play.ts`<br />`shared_libs/play-runtime/cell-staleness.ts`<br />`shared_libs/play-runtime/tool-result-types.ts`<br />`shared_libs/plays/dataset.ts`<br />`shared_libs/tool-execution-error.ts` |
 | Coverage | Runtime SDK surface: `Deepline.connect`, `DeeplineContext`, `DeeplineClient`, play authoring, in-play `ctx.*` primitives, provider/tool calls, named play handles, run handles, datasets, and tool result accessors. |
 | Not covered | Full CLI command help, provider-specific input/output schemas, dashboard-only routes, and marketing/tutorial guides. Use `references/plays-api-reference.md` for generated HTTP route contracts. |
 
@@ -765,6 +819,257 @@ previews.
 Signature: `export type ToolExecuteResult< TResult = unknown, TMeta = Record<string, unknown>, TExtracted extends Record<string, unknown> = Partial<DeeplineGetterValueMap>, TLists extends Record<string, Record<string, unknown>> = Record< string, Record<string, unknown> >, > = ToolExecuteResultBase<TResult, TMeta> & ToolExecuteResultAccessors<TExtracted, TLists>;`
 
 
+
+## Errors And Provider Fallthrough
+
+New Plays receive typed tool errors. Existing published artifacts keep the error contract stored with their revision.
+
+For a read waterfall, catch only `ProviderTransientError` and keep the final provider call loud. For structured diagnostics, narrow to `ToolExecutionError` and branch on its stable fields. Never branch on `error.message`.
+
+A newly authored Play can explicitly retain legacy errors with `compatibility: { toolErrorSchemaVersion: 0 }` in its `definePlay` options. Use that only while migrating old message-based handling.
+
+### `DeeplineError`
+
+Base error class shared by the SDK and play runtime.
+
+The global brand preserves `instanceof DeeplineError` when a bundled play
+and the runtime load separate physical copies of this module.
+
+Signature: `class DeeplineError extends Error`
+
+#### Members
+
+| Member | Kind | Purpose | Parameters | Returns / type |
+|---|---|---|---|---|
+| `constructor` | constructor | Construct a Deepline error.<br /><br />SDK and runtime code construct these errors. Application and Play code<br />normally catches the public subclasses instead. | `message: string` - Human-readable failure summary.<br />`statusCode?: number` - HTTP status when one exists.<br />`code?: string` - Stable machine-readable code when one exists.<br />`details?: Record<string, unknown>` - Local diagnostic context; never a portable error contract. |  |
+| `statusCode` | property | HTTP status when the failure crossed an HTTP boundary. |  | `number` |
+| `code` | property | Stable machine-readable error code when one exists. |  | `string` |
+| `details` | property | Local diagnostic context; not a portable error contract. |  | `Record<string, unknown>` |
+
+### `ToolExecutionErrorOrigin`
+
+The boundary responsible for a failed tool call.
+
+Use `provider` to distinguish a provider answer from caller input and
+Deepline infrastructure. `unknown` fails closed and must not trigger a
+waterfall fallback.
+
+Signature: `export type ToolExecutionErrorOrigin = | 'caller' | 'provider' | 'deepline' | 'unknown';`
+
+
+
+### `ToolExecutionErrorCategory`
+
+The stable reason family for a failed tool call.
+
+Branch on this field only after narrowing to `ToolExecutionError`. Catch
+`ProviderTransientError` when the policy is simply “try the next read
+provider”; it is the safer and shorter waterfall contract.
+
+Signature: `export type ToolExecutionErrorCategory = | 'validation' | 'authentication' | 'authorization' | 'rate_limit' | 'network' | 'upstream' | 'billing' | 'conflict' | 'internal' | 'unknown';`
+
+
+
+### `ToolExecutionNetworkKind`
+
+The transport failure observed when `category` is `network`.
+
+This is `null` for failures that are not network failures.
+
+Signature: `export type ToolExecutionNetworkKind = | 'timeout' | 'dns' | 'connect' | 'reset' | 'unavailable' | 'unknown';`
+
+
+
+### `ToolExecutionNetworkScope`
+
+The request boundary on which a network failure occurred.
+
+`deepline_to_provider` is provider-side. Client and runtime scopes are
+Deepline transport failures and never qualify as provider fallthrough.
+
+Signature: `export type ToolExecutionNetworkScope = | 'client_to_deepline' | 'runtime_to_deepline' | 'deepline_to_provider';`
+
+
+
+### `ProviderTransientErrorCategory`
+
+Provider-owned failure categories that may fall through to another read
+provider.
+
+Signature: `export type ProviderTransientErrorCategory = | 'rate_limit' | 'network' | 'upstream';`
+
+
+
+### `ToolExecutionFailureV1`
+
+Portable version-1 `tool_error` payload.
+
+This allowlisted shape crosses the API, runtime, and SDK boundaries.
+`message` remains on the Error object and is deliberately not a policy
+field.
+
+#### Fields
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `schemaVersion` | `typeof TOOL_EXECUTION_ERROR_SCHEMA_VERSION` | Yes | Payload version. |
+| `toolId` | `string` | Yes | Public tool id passed to `tools.execute`. |
+| `provider` | `string \| null` | Yes | Provider responsible for the operation, or `null`. |
+| `operation` | `string \| null` | Yes | Provider operation name, or `null`. |
+| `code` | `string \| null` | Yes | Stable machine-readable failure code, or `null`. |
+| `origin` | `ToolExecutionErrorOrigin` | Yes | Boundary responsible for the failure. |
+| `category` | `ToolExecutionErrorCategory` | Yes | Stable reason family. |
+| `retryable` | `boolean` | Yes | Whether repeating the same semantic call is delivery-safe. |
+| `statusCode` | `number \| null` | Yes | HTTP status when one exists, or `null`. |
+| `requestId` | `string \| null` | Yes | Provider or Deepline request id, or `null`. |
+| `retryAfterMs` | `number \| null` | Yes | Suggested same-call retry delay in milliseconds, or `null`. |
+| `networkKind` | `ToolExecutionNetworkKind \| null` | Yes | Network failure kind, or `null`. |
+| `networkScope` | `ToolExecutionNetworkScope \| null` | Yes | Network boundary that failed, or `null`. |
+
+
+### `ToolExecutionErrorOptions`
+
+Constructor input for a structured tool failure.
+
+Deepline creates these values while decoding the versioned wire payload.
+Customer code normally reads `ToolExecutionError` fields instead of
+constructing an error.
+
+Signature: `export type ToolExecutionErrorOptions = Omit< ToolExecutionFailureV1, 'schemaVersion' > & { details?: Record<string, unknown>; };`
+
+
+
+### `ToolExecutionError`
+
+A failed `tools.execute` call with stable, allowlisted provenance.
+
+`retryable` means Deepline's delivery/idempotency contract says it is safe
+to repeat the same semantic call. It does not describe durable receipt
+repairability and does not make arbitrary side-effecting fallbacks safe.
+
+In a Play, catch `ProviderTransientError` to continue a read waterfall and
+let every other `ToolExecutionError` remain loud. In an SDK client, catch
+this base class when you need structured diagnostics for every tool failure.
+
+Signature: `class ToolExecutionError extends DeeplineError`
+
+#### Members
+
+| Member | Kind | Purpose | Parameters | Returns / type |
+|---|---|---|---|---|
+| `constructor` | constructor | Construct a structured tool error.<br /><br />Deepline constructs this from the versioned `tool_error` payload.<br />Application and Play code should catch it rather than create it. | `message: string`<br />`options: ToolExecutionErrorOptions` |  |
+| `toolId` | property | Public tool id passed to `tools.execute`. |  | `string` |
+| `provider` | property | Provider responsible for the operation, or `null` when unattributed. |  | `string \| null` |
+| `operation` | property | Provider operation name, or `null` when unavailable. |  | `string \| null` |
+| `origin` | property | Boundary responsible for the failure. |  | `ToolExecutionErrorOrigin` |
+| `category` | property | Stable reason family for policy and diagnostics. |  | `ToolExecutionErrorCategory` |
+| `retryable` | property | Whether repeating the same semantic call is delivery-safe.<br /><br />This does not mean the error may be ignored. Waterfall fallthrough is<br />represented by `ProviderTransientError`. |  | `boolean` |
+| `requestId` | property | Provider or Deepline request id, or `null` when unavailable. |  | `string \| null` |
+| `retryAfterMs` | property | Suggested same-call retry delay in milliseconds, or `null`. |  | `number \| null` |
+| `networkKind` | property | Network failure kind, or `null` for non-network failures. |  | `ToolExecutionNetworkKind \| null` |
+| `networkScope` | property | Network boundary that failed, or `null` for non-network failures. |  | `ToolExecutionNetworkScope \| null` |
+
+### `ProviderTransientError`
+
+A provider-owned transient failure that is safe to handle as an empty
+waterfall leg. Validation, auth, billing, Deepline, and unknown failures
+never satisfy this type.
+
+`retryable` remains independent: it says whether the same semantic call may
+be repeated safely. Falling through to a different read provider depends on
+this class, not on `retryable`.
+
+Signature: `class ProviderTransientError extends ToolExecutionError`
+
+#### Members
+
+| Member | Kind | Purpose | Parameters | Returns / type |
+|---|---|---|---|---|
+| `constructor` | constructor | Constructed by Deepline when a provider-owned transient failure arrives. | `message: string`<br />`options: Omit<ToolExecutionErrorOptions, 'origin' \| 'category'> & { category: ProviderTransientErrorCategory; }` |  |
+| `origin` | property | Provider attribution is guaranteed for this subtype. |  | `"provider"` |
+| `category` | property | Provider failure category that made this error eligible for fallthrough. |  | `ProviderTransientErrorCategory` |
+
+### `AuthError`
+
+Thrown when the API rejects the request due to an invalid or missing API key.
+
+This maps to HTTP 401/403 responses. The SDK never retries auth errors —
+they fail immediately.
+
+Fix: run `deepline auth register` to obtain a valid key, or pass one via
+the `apiKey` option or `DEEPLINE_API_KEY` environment variable.
+
+Signature: `class AuthError extends DeeplineError`
+
+#### Members
+
+| Member | Kind | Purpose | Parameters | Returns / type |
+|---|---|---|---|---|
+| `constructor` | constructor | Constructed by the SDK when Deepline rejects the caller's credentials. | `message?: string` |  |
+
+### `RateLimitError`
+
+Thrown when the API returns HTTP 429 (Too Many Requests).
+
+The SDK retries rate-limited requests automatically up to `maxRetries` times
+with exponential backoff. This error is only thrown when all retries are exhausted.
+
+Use `RateLimitError.retryAfterMs` to implement your own backoff if needed.
+
+Signature: `class RateLimitError extends DeeplineError`
+
+#### Members
+
+| Member | Kind | Purpose | Parameters | Returns / type |
+|---|---|---|---|---|
+| `constructor` | constructor | Constructed by the SDK after exhausting HTTP-level rate-limit retries. | `retryAfterMs?: number`<br />`message?: string` |  |
+| `retryAfterMs` | property | Milliseconds to wait before retrying, from the `Retry-After` response header. Defaults to 5000. |  | `number` |
+
+### `ToolRateLimitError`
+
+Tool-specific 429 preserving both historical RateLimitError catches and the
+structured ToolExecutionError ontology. JavaScript has one prototype chain,
+so this class extends RateLimitError and carries ToolExecutionError's stable
+cross-bundle brand.
+
+This class appears in external SDK calls after HTTP 429 retries are
+exhausted. It also satisfies `instanceof ToolExecutionError` and, for a
+provider-owned rate limit, `instanceof ProviderTransientError`. Authored
+Plays should use `ProviderTransientError`; they do not need this
+compatibility class.
+
+Signature: `class ToolRateLimitError extends RateLimitError`
+
+#### Members
+
+| Member | Kind | Purpose | Parameters | Returns / type |
+|---|---|---|---|---|
+| `constructor` | constructor | Constructed by the SDK after a structured tool HTTP 429. | `message: string`<br />`options: ToolExecutionErrorOptions` |  |
+| `toolId` | property | Public tool id passed to `tools.execute`. |  | `string` |
+| `provider` | property | Provider responsible for the operation, or `null`. |  | `string \| null` |
+| `operation` | property | Provider operation name, or `null`. |  | `string \| null` |
+| `code` | property | Stable machine-readable failure code when one exists. |  | `string \| undefined` |
+| `origin` | property | Boundary responsible for the failure. |  | `ToolExecutionError['origin']` |
+| `category` | property | Stable reason family for policy and diagnostics. |  | `ToolExecutionError['category']` |
+| `retryable` | property | Whether repeating the same semantic call is delivery-safe. |  | `boolean` |
+| `requestId` | property | Provider or Deepline request id, or `null`. |  | `string \| null` |
+| `networkKind` | property | Network failure kind, or `null` for non-network failures. |  | `ToolExecutionError['networkKind']` |
+| `networkScope` | property | Network boundary that failed, or `null` for non-network failures. |  | `ToolExecutionError['networkScope']` |
+
+### `ConfigError`
+
+Thrown when the SDK cannot resolve a valid configuration.
+
+Most commonly: no API key found in any of the resolution sources
+(explicit option, environment variable, CLI env files).
+
+Signature: `class ConfigError extends DeeplineError`
+
+#### Members
+
+| Member | Kind | Purpose | Parameters | Returns / type |
+|---|---|---|---|---|
+| `constructor` | constructor | Construct a local SDK configuration failure. | `message: string` |  |
 
 ## Tool And Provider Calls
 
