@@ -993,7 +993,9 @@ Signature: `class ProviderTransientError extends ToolExecutionError`
 
 Thrown when the API rejects the request due to an invalid or missing API key.
 
-This maps to HTTP 401/403 responses. The SDK never retries auth errors —
+This maps to HTTP 401 responses. HTTP 403 means the caller was authenticated
+but lacks permission, so the SDK preserves the server's API error instead.
+The SDK never retries auth errors —
 they fail immediately.
 
 Fix: run `deepline auth register` to obtain a valid key, or pass one via
