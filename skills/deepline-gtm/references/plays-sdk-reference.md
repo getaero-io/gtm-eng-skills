@@ -291,6 +291,7 @@ simple file-backed plays.
 | `run` | `(ctx: DeeplinePlayRuntimeContext, input: TInput) => Promise<TOutput>` | Yes | Play function. |
 | `bindings` | `PlayBindings` | No | Trigger bindings. |
 | `billing` | `PlayBindings['billing']` | No | Billing options. |
+| `compatibility` | `PlayBindings['compatibility']` | No | Runtime compatibility override. Omit for the current typed contract. |
 
 
 ### `PlayBindings`
@@ -313,6 +314,7 @@ A play can be triggered three ways, declared as the third argument to
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `description` | `string` | No | Human-readable one-line description of what this play does.<br /><br />New SDK-authored file workflows require this in `plays check`, `plays run<br />--file`, and `plays publish <file>`. The server API keeps it optional so<br />older clients can continue to register revisions during the migration. |
+| `compatibility` | `{ toolErrorSchemaVersion: ToolExecutionErrorSchemaVersion; }` | No | Public behavior that must remain pinned for this play artifact.<br /><br />New plays default to typed tool errors (`1`). Set `toolErrorSchemaVersion`<br />to `0` only while migrating code that depends on legacy error names,<br />messages, or classes. |
 | `inline` | `boolean` | No | Allow compilers to bundle this named handler directly without a child run. |
 | `billing` | `{ maxCreditsPerRun?: number; }` | No | Optional per-run billing controls enforced by the runtime. |
 | `webhook` | `{ hmac?: { algorithm?: 'sha256'; header?: string; secretEnv: string; }; }` | No | Webhook trigger with optional HMAC signature verification. |
@@ -612,7 +614,7 @@ normalization, and no-result behavior. Do not invoke plays through
 
 `key` is the stable child-call identity for idempotency and traceability.
 
-Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayReferenceLike, input: Record<string, unknown>, options: PlayCallOptions, ): Promise<TOutput>;`
+Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayReferenceLike, input: Record<string, unknown>, options?: PlayCallOptions, ): Promise<TOutput>;`
 
 #### Parameters
 
@@ -621,7 +623,7 @@ Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayRefer
 | `key` | `string` | Yes | Stable child-call key. |
 | `playRef` | `string \| PlayReferenceLike` | Yes | Registered play name, play handle, or file-backed play reference. |
 | `input` | `Record<string, unknown>` | Yes | Input object passed to the child play. |
-| `options` | `PlayCallOptions` | Yes | Child play options. |
+| `options` | `PlayCallOptions` | No | Child play options. |
 
 #### Returns
 
