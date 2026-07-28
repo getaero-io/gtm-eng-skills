@@ -10,7 +10,8 @@ To replicate `last30days`-style functionality inside Deepline, every pre-researc
 | --- | --- | --- | --- |
 | Reddit threads | post URL, subreddit, title/body, author when available, score/upvotes, comments count, created date | public-source discovery first; translate to catalog route after synthesis | generic route or gap |
 | Reddit comments | comment text, comment URL/permalink, author when available, upvotes, parent post, created date | ScrapeCreators-style provider or vetted `apify` actor | gap unless catalog finds native support |
-| X/Twitter posts | post URL/id, handle, text, timestamp, likes, reposts, replies, quote count, optional entity handle search | public-source discovery first; translate to catalog route after synthesis | generic route or gap |
+| X/Twitter posts | post URL/id, handle, text, timestamp, likes, reposts, replies, quote count, optional entity handle search | Apify [`xquik/x-tweet-scraper`](https://apify.com/xquik/x-tweet-scraper), after schema inspection and a bounded pilot | managed route |
+| X/Twitter audiences | stable user ID, handle, relationship, target metadata, optional cross-target overlap | Apify [`xquik/x-follower-scraper`](https://apify.com/xquik/x-follower-scraper), only when relationship evidence is necessary | managed route |
 | YouTube search/transcripts | video URL/id, channel, title, publish date, views/likes, transcript excerpts | public-source discovery first; translate to catalog route after synthesis | generic route or gap |
 | TikTok | video URL/id, creator, caption/transcript, hashtags, timestamp, views/likes/comments | ScrapeCreators-style provider or `apify` actor | gap or generic route |
 | Instagram Reels/posts | URL/id, creator, caption/transcript, timestamp, views/likes/comments | ScrapeCreators-style provider or `apify` actor | gap or generic route |
@@ -64,7 +65,8 @@ Deepline adaptation:
 | General web/news/source discovery | `serper`, `exa`, `parallel`, `deeplineagent`, `firecrawl` | Use search to discover URLs; use extraction for known pages or JS-rendered sources. |
 | Public registries / niche datasets | `serper`, `exa`, `parallel`, `firecrawl`, `generic_http`, `deeplineagent` | Treat public registries as materializable sources even without native Deepline tools. Example: NPI registry/provider taxonomy data can be found and pulled through generic web/API search/extraction, then joined by NPI, organization name, address, phone, and taxonomy. |
 | Reddit threads/comments | Discover public/community evidence first; search Deepline catalog after synthesis to pick the execution route | If full Reddit comments are core, recommend a native ScrapeCreators-style provider or a vetted Apify actor. |
-| X/Twitter posts | Discover public/social evidence first; search catalog after synthesis for X/Twitter/social execution | Browser cookies are not an acceptable backend Deepline integration pattern. Prefer official/BYOK or managed provider integration. |
+| X/Twitter posts | Use `xquik/x-tweet-scraper` after inspecting its live schema; pilot with an explicit mode and `maxItems` | Browser cookies are not an acceptable backend Deepline integration pattern. Preserve source URLs and separate diagnostic rows. |
+| X/Twitter audiences | Use `xquik/x-follower-scraper` only for an explicit relationship or overlap question | Bound both total and per-target results. Do not infer protected or sensitive traits from relationship data. |
 | YouTube search/transcripts | Discover video/transcript evidence first; search catalog after synthesis for transcript execution | Preserve channel, URL, views, publish date, and transcript excerpts. |
 | TikTok/Instagram | Discover short-form/social evidence first; search catalog after synthesis for execution route | Use captions/transcripts plus engagement. For local-business contact workflows, also consider Instagram profile bio links/contact fields as candidate contact-data signals. Search ScrapeCreators unfiltered because profile tools may be categorized as `admin`, not `research`. Avoid unauthenticated brittle scraping at scale. |
 | Facebook pages/profiles | Discover public page/profile contact details when local businesses, restaurants, storefronts, or social-first companies may publish email/phone/website there | Candidate route through ScrapeCreators profile tools or generic web extraction. Search ScrapeCreators unfiltered because Facebook profile tools may be categorized as `admin`, not `research`. Preserve profile URL and identity evidence. |
@@ -136,7 +138,7 @@ Guardrails:
 These are likely additions if Deepline wants true `last30days` parity:
 
 - `scrapecreators`: Reddit full comments, TikTok, Instagram, YouTube backup. Useful because one API covers several high-signal community sources.
-- Native X/Twitter search: official/BYOK or managed provider route. Do not build around local browser cookies for cloud workflows.
+- Broader native X/Twitter access beyond the managed Xquik post and audience routes. Do not build around local browser cookies for cloud workflows.
 - Native Hacker News Algolia: cheap, no-auth, structured comments/stories.
 - Native Polymarket Gamma: cheap/no-auth market discovery with odds and movement.
 - Native Bluesky: app-password/BYOK flow for public posts.

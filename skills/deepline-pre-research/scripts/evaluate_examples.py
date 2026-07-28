@@ -244,7 +244,7 @@ SOURCE_FAMILIES_CHECKED = (
 
 REMAINING_PROVIDER_GAPS = (
     ("Reddit full comments", "apify actor or scrapecreators if catalog supports", "Native scrapecreators connector"),
-    ("X/Twitter posts", "apify actor or BYOK route if catalog supports", "Native BYOK or managed X provider"),
+    ("X/Twitter coverage beyond Xquik post and audience routes", "managed Xquik routes or BYOK route", "Broader native BYOK provider"),
     ("TikTok captions/transcripts", "apify actor or scrapecreators gap", "scrapecreators native support or vetted apify actor"),
     ("Instagram Reels/posts", "apify actor or scrapecreators gap", "scrapecreators native support or vetted apify actor"),
     ("YouTube transcripts", "apify actor / web extraction", "Native YouTube transcript/search provider"),
