@@ -8,7 +8,9 @@ coverage, and job-change validation.
 
 - Use `datagma_full_enrichment` when you have a strong identifier such as a
   LinkedIn URL, a professional email, or a domain-backed full name.
-- `datagma_enrich_person` and `datagma_enrich_company` remain valid compatibility aliases when older workflows expect the flat legacy Datagma response shape.
+- `datagma_enrich_person` remains a compatibility alias for the flat legacy
+  response. `datagma_enrich_company` returns the native Datagma response body;
+  use its canonical Deepline getters for company name and domain.
 - Use `datagma_find_email` when you only need a verified work email and want a
   narrower, cheaper workflow than full enrichment.
 - Do not use Datagma for personal-email-only waterfall steps. Public docs expose
