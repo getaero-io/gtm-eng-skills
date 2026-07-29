@@ -345,7 +345,7 @@ simple file-backed plays.
 | `run` | `(ctx: DeeplinePlayRuntimeContext, input: TInput) => Promise<TOutput>` | Yes | Play function. |
 | `bindings` | `PlayBindings` | No | Trigger bindings. |
 | `billing` | `PlayBindings['billing']` | No | Billing options. |
-| `runtime` | `PlayBindings['runtime']` | No | Requested sandbox envelope; the server enforces the final allowed limits. |
+| `runtime` | `PlayBindings['runtime']` | No | Requested prebuilt sandbox and runtime deadline. |
 | `compatibility` | `PlayBindings['compatibility']` | No | Runtime compatibility override. Omit for the current typed contract. |
 
 
@@ -372,7 +372,7 @@ A play can be triggered three ways, declared as the third argument to
 | `compatibility` | `{ toolErrorSchemaVersion: ToolExecutionErrorSchemaVersion; }` | No | Public behavior that must remain pinned for this play artifact.<br /><br />New plays default to typed tool errors (`1`). Set `toolErrorSchemaVersion`<br />to `0` only while migrating code that depends on legacy error names,<br />messages, or classes. |
 | `inline` | `boolean` | No | Allow compilers to bundle this named handler directly without a child run. |
 | `billing` | `{ maxCreditsPerRun?: number; }` | No | Optional per-run billing controls enforced by the runtime. |
-| `runtime` | `{ timeout?: string; memory?: string; cpu?: number; disk?: string; }` | No | Requested sandbox envelope; the server enforces the final allowed limits. |
+| `runtime` | `{ timeout?: string; size?: 'standard'; }` | No | Requested prebuilt sandbox and runtime deadline. |
 | `webhook` | `{ hmac?: { algorithm?: 'sha256'; header?: string; secretEnv: string; }; }` | No | Webhook trigger with optional HMAC signature verification. |
 | `cron` | `{ schedule: string; timezone?: string; }` | No | Cron schedule trigger. |
 | `sqlListeners` | `SqlListenerDeclaration[]` | No | Customer DB row-change listeners that wake this play when published. |
