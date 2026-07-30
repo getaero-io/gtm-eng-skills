@@ -33,25 +33,18 @@ personal and work credential lanes.
 
 Managed-key routing follows ContactOut's endpoint entitlements:
 `GET /v1/people/linkedin` and the work-email status checker use the work key;
-`POST /v1/people/identifiers` uses Deepline's managed hashed key; enrich, search,
-domain, and personal-status endpoints use the personal/default key. The
-connector does not currently expose either LinkedIn batch endpoint.
+`POST /v1/people/identifiers` is disabled; enrich, search, domain, and
+personal-status endpoints use the personal/default key. The connector does not
+currently expose either LinkedIn batch endpoint.
 
 ContactOut does not document a per-call charge response header for this endpoint. Deepline billing is therefore locked to the documented response fields: one email credit when any returned email bucket is non-empty, plus one phone credit when a phone bucket is non-empty.
 
 ### contactout_get_hashed_email_identifiers
 
-Use this action to convert a batch of 5–100 LinkedIn profile URLs into hashed
-email identifiers for privacy-safe audience matching. ContactOut may return
-multiple hashes for one matched profile, but bills one email credit for that
-matched profile. This action always uses Deepline's managed hashed API key
-because ContactOut has not exposed it to customer API keys yet.
-
-The response is a flat hash list and does not expose the matched-profile count.
-Deepline does not bill this action and absorbs the ContactOut provider cost. The
-connector cannot report exact matched-profile usage until ContactOut supplies
-an exact settlement signal; counting hashes could overbill a profile with
-multiple hashes.
+This action is disabled. ContactOut returns a flat hash list, may return multiple
+hashes for one profile, and does not expose the matched-profile count required
+to charge exactly 4¢ per matched profile. Re-enable it only after ContactOut
+supplies a request-scoped match count or profile-to-hash mapping.
 
 ### contactout_check_email_status (FREE convenience helper)
 
