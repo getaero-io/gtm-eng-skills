@@ -6,7 +6,7 @@
 - **Email status hierarchy:** deliverable > catch_all_safe > catch_all_not_safe > undeliverable. Only trust deliverable and catch_all_safe for outreach.
 - **Batch up to 100 contacts** per enrichment request using `bettercontact_bulk_enrich`.
 - Use the launcher response `id` as the `request_id` for `bettercontact_get_result`.
-- **Rate limit:** 60 requests per minute per API key, shared across all endpoints.
+- **Rate limit:** 600 requests per minute per API key, shared across all endpoints. This is BetterContact's confirmed going-forward limit; its public rate-limit page still shows the previous 60 RPM value.
 
 ## Pricing
 
