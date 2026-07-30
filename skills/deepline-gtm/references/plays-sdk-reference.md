@@ -240,9 +240,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.1.254` |
+| SDK version | `0.2.0` |
 | SDK HTTP API | `v2` |
-| Checked-in SDK fallback | `0.1.254` |
+| Checked-in SDK fallback | `0.2.0` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.219` |
 | Generated sources | `sdk/src/client.ts`<br />`sdk/src/errors.ts`<br />`sdk/src/play.ts`<br />`shared_libs/play-runtime/cell-staleness.ts`<br />`shared_libs/play-runtime/tool-result-types.ts`<br />`shared_libs/plays/dataset.ts`<br />`shared_libs/tool-execution-error.ts` |
@@ -789,14 +789,14 @@ Deepline keeps row progress, retries, memory use, and table output under
 runtime control. Use `count()` and `peek()` for bounded inspection. Use
 `materialize(limit)` or async iteration only when the dataset is intentionally
 small and bounded. `PlayDataset` intentionally does not expose `.rows`,
-`.toArray()`, or other array aliases; those hide the runtime cost of loading
-persisted rows into memory.
+`.toArray()`, `.length`, numeric indexing, spread, or synchronous iteration;
+those hide the runtime cost of loading persisted rows into memory or make
+behavior depend on whether rows happen to be resident.
 
 #### Fields
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-| `length` | `number` | Yes | Authoritative row count when known without I/O. |
 | `datasetKind` | `PlayDatasetKind` | Yes | Dataset kind. |
 | `datasetId` | `string` | Yes | Dataset id. |
 | `backing` | `PlayDatasetBacking` | No | Backing store info. |
