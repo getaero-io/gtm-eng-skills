@@ -351,6 +351,11 @@ provider resource behind it. Existing Customer DB rows stay. If the tool and
 output stream are unchanged, future events keep going to the same table. If the
 output stream changes, name the old and new destinations.
 
+For a disabled monitor, update only changes the stored definition. It does not
+contact the provider, activate the monitor, or charge credits. Publish any
+dependent Play changes first, then use `monitors reactivate` to run the normal
+preflight and create the upstream monitor from the updated definition.
+
 Replacement does not guarantee a backfill. If the provider emits initial,
 replayed, or backfill events, each event Deepline accepts is billed at the live
 per-event price. A play filter or dedupe does not remove that ingestion charge.
