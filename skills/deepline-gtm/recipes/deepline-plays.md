@@ -126,6 +126,7 @@ Authoring rules:
 - Return datasets for CSV/exportable outputs.
 - Use declared getters. Do not parse raw payload paths when `extractedValues.*.get()` or `extractedLists.*.get()` exists.
 - For query tools such as `query_customer_db` and `snowflake_run_query`, treat `toolResponse.raw.rows` as an inline preview/debug field. Use `result.extractedLists.rows.get()` and return that Dataset Handle for full-row export.
+- Complete resident Dataset Handles support read-only `.length`, numeric indexing, spread, and synchronous iteration. For paged handles use `await rows.first()`, `await rows.at(index)`, `await rows.peek(limit)`, `await rows.materialize(limit)`, or `for await...of`.
 - Project to flat user-facing columns with `status`, `miss_reason`, evidence/source, and requested output fields.
 
 ### Provider fallthrough

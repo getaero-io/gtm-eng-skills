@@ -796,6 +796,7 @@ persisted rows into memory.
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
+| `length` | `number` | Yes | Authoritative row count when known without I/O. |
 | `datasetKind` | `PlayDatasetKind` | Yes | Dataset kind. |
 | `datasetId` | `string` | Yes | Dataset id. |
 | `backing` | `PlayDatasetBacking` | No | Backing store info. |
