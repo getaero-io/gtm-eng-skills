@@ -1,6 +1,6 @@
 ---
 name: deepline-monitors
-description: 'ACCESS-GATED beta. Deepline Monitors are provider event feeds (job posts, email replies, funding, intent) that stream into your warehouse and trigger plays. Only use if you have monitor access: run `deepline monitors status` first; if it reports no access, do NOT use this recipe — ask a Deepline admin (Admin → Rollouts) for access.'
+description: 'ACCESS-GATED beta. Deepline Monitors are provider event feeds (job posts, email replies, funding, intent) that stream into your warehouse and trigger plays. Only use if you have monitor access: run `deepline monitors status` first; if it reports no access, do NOT use this recipe — tell the user to contact the Deepline team.'
 ---
 
 # Deepline Monitors
@@ -22,8 +22,7 @@ deepline monitors status
 
 - **You have access** → proceed.
 - **No access** → **STOP.** Do not run any other monitor command. Tell the user
-  monitor access is granted by a Deepline admin (Admin → Rollouts) and that they
-  should request it there.
+  to contact the Deepline team to request monitor access.
 
 Anyone with a valid Deepline login can run the check; only the answer is gated.
 `--json` returns `{ "has_access": boolean, "reason": string }` — branch on
