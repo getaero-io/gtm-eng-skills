@@ -273,6 +273,9 @@ while True:
 | `GET` | `/api/v2/monitors/deployed/:key` | `monitors get` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/route.ts` |
 | `PATCH` | `/api/v2/monitors/deployed/:key` | `monitors update` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/route.ts` |
 | `POST` | `/api/v2/monitors/deployed/:key/reactivate` | `monitors reactivate` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/reactivate/route.ts` |
+| `POST` | `/api/v2/monitors/deployed/:key/test` | `monitors test` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/test/route.ts` |
+| `POST` | `/api/v2/monitors/deployed/:key/validate` | `monitors validate` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/validate/route.ts` |
+| `POST` | `/api/v2/monitors/setup` | `monitors deploy (provider-specific post-deploy readback)` | SDK-facing route. | `src/app/api/v2/monitors/setup/[tool]/route.ts` |
 | `GET` | `/api/v2/monitors/tools` | `monitors available` | SDK-facing route. | `src/app/api/v2/monitors/tools/route.ts` |
 | `DELETE` | `/api/v2/plays/:name/share` | `unpublishSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
 | `GET` | `/api/v2/plays/:name/share` | `getSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |

@@ -1269,6 +1269,8 @@ delete/reactivate through this namespace.
 | `deploy` | `( definition: MonitorDefinition, options?: { dryRun?: boolean }, ) => Promise<MonitorDeployResult>` | Yes | Deploy a monitor from a definition. May spend Deepline credits. |
 | `list` | `(options?: MonitorsListOptions) => Promise<MonitorsListResult>` | Yes | List deployed monitors (active by default). |
 | `get` | `(key: string) => Promise<MonitorDetail>` | Yes | Fetch one deployed monitor by public key (without dependents). |
+| `test` | `( key: string, payload: Record<string, unknown>, ) => Promise<MonitorTestResult>` | Yes | Send an explicit payload through the deployed monitor's normal webhook path. |
+| `validate` | `(key: string) => Promise<MonitorValidateResult>` | Yes |  |
 | `dependents` | `(key: string) => Promise<MonitorDependents>` | Yes | List the published plays depending on one monitor's output streams. |
 | `update` | `( key: string, patch: Record<string, unknown>, ) => Promise<MonitorUpdateResult>` | Yes | Update a deployed monitor by public key. |
 | `delete` | `( key: string, options?: { localOnly?: boolean; dryRun?: boolean }, ) => Promise<MonitorDeleteResult>` | Yes | Delete a deployed monitor by public key. Deprovisions the upstream provider<br />resource unless `localOnly` is set. `dryRun` returns the delete plan. |
