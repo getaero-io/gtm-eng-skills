@@ -62,11 +62,11 @@ Pilot rows carry an `email__truth` column so the scorer measures each route agai
 
 **SCORE.** Read `dataset_execution_stats[email].non_empty` from `deepline runs get <id> --full --json` for each route; check correctness against the `email__truth` column; quote marginal cost/row. The Haiku judge (`rerank-cli.ts`) breaks ties on the discovery leg. The scorecard:
 
-| route | coverage (`non_empty`) | correct vs truth | cost/row |
-| --- | --- | --- | --- |
-| finder + validator waterfall | 3/3 (100%) | 3/3 | ~4 cr |
-| people-search aggregator | 2/3 (67%) | 2/2 | ~6 cr |
-| finder-only, no validator | 3/3 (100%) | 2/3 | ~2 cr |
+| route                        | coverage (`non_empty`) | correct vs truth | cost/row |
+| ---------------------------- | ---------------------- | ---------------- | -------- |
+| finder + validator waterfall | 3/3 (100%)             | 3/3              | ~4 cr    |
+| people-search aggregator     | 2/3 (67%)              | 2/2              | ~6 cr    |
+| finder-only, no validator    | 3/3 (100%)             | 2/3              | ~2 cr    |
 
 The waterfall wins: full coverage AND correct, and the validator is worth its marginal cost because finder-only shipped one wrong email.
 
@@ -83,10 +83,10 @@ deepline plays run plays/route-fanout.play.ts \
 ## Laws (non-negotiable — these dominate every other rule below)
 
 1. **Pilot before scale.** Show real pilot rows and get an explicit go before any paid full run. A misshaped payload burns credits across hundreds of rows; a pilot exposes it on row 1 for cents.
-2. **Take the human along — the session is the product.** Announce the route map + expected cost *before* spending, show real rows within minutes, checkpoint each phase with a compact scoreboard (coverage / validation / credits / next), deliver increments. A run that goes silent until a final CSV is a black box even when it's correct.
+2. **Take the human along — the session is the product.** Announce the route map + expected cost _before_ spending, show real rows within minutes, checkpoint each phase with a compact scoreboard (coverage / validation / credits / next), deliver increments. A run that goes silent until a final CSV is a black box even when it's correct.
 3. **Null over invention.** When tools come up empty, return null (or fewer rows). Never pattern-complete a name, email, company, or fact from training data — that ships unverifiable rows that look like success and fail at outreach time.
 4. **Confirm before you spend.** The live CLI is the source of truth for tool/play names and input shapes (`tools describe`, `plays describe`). Dynamic `ctx.tools.execute` refs are NOT preflight-checked — a wrong id fails only at run time.
-5. **The judge is task-shaped.** Relevance ranks *which source to read*; validation decides *is this contact real* (identity gate + validator); corroboration decides *which number is true* (agreement across independent sources). Never trust a reranked #1 as a verified fact.
+5. **The judge is task-shaped.** Relevance ranks _which source to read_; validation decides _is this contact real_ (identity gate + validator); corroboration decides _which number is true_ (agreement across independent sources). Never trust a reranked #1 as a verified fact.
 6. **You are the judge, not deeplineagent.** The agent plans and judges; the play is the deterministic executor. The model step (rerank) is a cheap subagent — never `deeplineagent`, never inside the durable play (`shared/reranking.md`).
 7. **Every value travels with its evidence.** Preserve provider evidence columns; deliver research findings with their source URL. A number without a source is a claim, not data.
 8. **Only Deepline spend is customer-facing.** Never surface provider USD. Never test on customer accounts, workspaces, keys, or credits — internal/test only.
@@ -97,7 +97,7 @@ deepline plays run plays/route-fanout.play.ts \
 - **Hand-authoring a play for a standard task is the tax.** A CTO-email pilot ran 4.5 minutes because the default was a custom `*.play.ts` — a blank-LinkedIn data-shape bug, a row-key repair, three edit→preflight→run loops. The enrichment itself was seconds. Accuracy was perfect; speed was the failure. A prebuilt (or a route-fanout sweep) would have skipped the debug loop entirely. Reach for authoring last, at EXPLOIT, only for a genuinely novel composition (see § The lifecycle).
 - **A plain play name can shadow a stale copy.** A run against `name-and-domain-to-email-waterfall` hit "legacy runtime contract… Republish this play" — a stale workspace-owned copy whose `describe` advertised a wrong input key. It is a config artifact, not a data failure. Re-run against the `prebuilt/<name>` ref.
 - **A dead tool ref ships silently.** A research route used `serper_search` (nonexistent; the real id is `serper_google_search`) — preflight passed, it errored only at run time. Confirm every route's tool id with `tools describe` before shipping a route (LAW 4).
-- **A low fill rate is usually a credentials gap, not a data gap.** Email/research recall collapsed because `hunter`/`findymail`/`prospeo`/`fullenrich`/`exa` were uncredentialed and short-circuited to 0ms. Check *which routes actually executed* before concluding coverage is poor.
+- **A low fill rate is usually a credentials gap, not a data gap.** Email/research recall collapsed because `hunter`/`findymail`/`prospeo`/`fullenrich`/`exa` were uncredentialed and short-circuited to 0ms. Check _which routes actually executed_ before concluding coverage is poor.
 - **A reranked #1 is not a true fact.** A research run ranked a credible source top, but a dubious lone-source "\$965B valuation" survived; the real answer ("\$380B") held only because three independent sources corroborated it. Corroborate numbers; don't trust rank (LAW 5).
 - **An all-null email column can mean the play never resolves emails.** `company-to-contact` returns identity only (`email: null` always) — you must chain the email waterfall. Don't read all-null as "no emails found."
 - **The trust gate trades recall for precision.** The email identity gate withheld correct fused answers as `verify_next` while letting one wrong answer through. Unshipped ≠ wrong and shipped ≠ all-correct — read the tags, and re-check borderline rows before concluding.
@@ -108,6 +108,8 @@ deepline plays run plays/route-fanout.play.ts \
 All surfaces hit the same backend. Use the **CLI** to discover, invoke, inspect, promote. Use a **prebuilt play** when the registry already has the business pattern — reference it as `prebuilt/<name>` (a plain name can shadow a stale copy; see the CLI callout above). Use a **custom `*.play.ts`** only when the work has multiple durable boundaries no prebuilt covers: source rows, provider calls, datasets, validation, scoring, branching, export shape, reruns. Direct `tools execute` calls are probes, not pipelines. Use the programmatic client (`Deepline.connect()`) only from external Node apps, never inside a play body.
 
 Custom-play lifecycle (the SLOW path): write `my-play.play.ts` with `definePlay` → run locally (`deepline plays run ./my-play.play.ts --input '{...}' --watch`) → inspect and edit the same file (the play accumulates checkpointed stages, so reruns reuse completed work) → promote when stable (`deepline plays set-live ./my-play.play.ts`), then invoke by name or via `ctx.runPlay`.
+
+**Keep the top-level play description concise.** The `description` in `definePlay(..., { description })` becomes the primary title shown in the UI. Write a 2–6 word outcome phrase, at most 48 characters, with no trailing period. Do not recap the request or implementation; use `Refresh provider status`, not `Find all providers that need to be updated and refresh their status`. This rule applies to the play description, not the kebab-case play name or descriptions for tools, steps, and datasets.
 
 ## Execution philosophy: everything in the play, iteration is nearly free
 
@@ -121,17 +123,17 @@ Runtime primitives, composition, authoring traps, and parallelism live in `share
 
 Read the matching doc before executing. The rules here apply to every task; the docs encode what previous runs learned the expensive way.
 
-| If you're about to…                                                    | Read                          |
-| ---------------------------------------------------------------------- | ----------------------------- |
-| Find companies and contacts (no rows yet)                              | `jobs/finding.md`             |
-| Fill columns on existing rows: emails, phones, signals, AI research    | `jobs/enriching.md`           |
-| Write per-row outreach copy off research columns                       | `jobs/writing.md`             |
-| Build, copy, customize, or debug a custom `*.play.ts` file             | `shared/authoring.md`         |
-| Rank an uncertain route, or QA/verify a dataset before shipping        | `shared/correctness.md`       |
-| Rank/judge a research shortlist (which sources best answer the question)| `shared/reranking.md`         |
-| Diagnose a run that failed, stalled, or produced wrong output          | `references/debugging.md`     |
-| Look up exact SDK signatures or HTTP contracts                         | the two hosted doc URLs above |
-| **Exit:** extract / convert a Clay table                               | route to `clay-to-deepline`   |
+| If you're about to…                                                      | Read                          |
+| ------------------------------------------------------------------------ | ----------------------------- |
+| Find companies and contacts (no rows yet)                                | `jobs/finding.md`             |
+| Fill columns on existing rows: emails, phones, signals, AI research      | `jobs/enriching.md`           |
+| Write per-row outreach copy off research columns                         | `jobs/writing.md`             |
+| Build, copy, customize, or debug a custom `*.play.ts` file               | `shared/authoring.md`         |
+| Rank an uncertain route, or QA/verify a dataset before shipping          | `shared/correctness.md`       |
+| Rank/judge a research shortlist (which sources best answer the question) | `shared/reranking.md`         |
+| Diagnose a run that failed, stalled, or produced wrong output            | `references/debugging.md`     |
+| Look up exact SDK signatures or HTTP contracts                           | the two hosted doc URLs above |
+| **Exit:** extract / convert a Clay table                                 | route to `clay-to-deepline`   |
 
 Multi-phase tasks read the jobs docs in order (finding → enriching → writing) and `shared/correctness.md` before shipping.
 

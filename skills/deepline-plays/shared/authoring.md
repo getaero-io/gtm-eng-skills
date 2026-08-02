@@ -43,6 +43,7 @@ deepline plays check ./my-play.play.ts
 
 - Keep the copied play running unchanged first, then make one semantic edit at a time.
 - Rename the play intentionally; the play name participates in persisted identity.
+- Keep the top-level `description` concise because it becomes the primary title shown in the UI. Use a 2–6 word outcome phrase, at most 48 characters, with no trailing period (for example, `Refresh provider status`). Do not recap the request or implementation. Tool, step, and dataset descriptions can remain explanatory.
 - Preserve `ctx.csv`, `ctx.dataset`, stable dataset keys, required columns, useful `ctx.log` calls, and provider evidence fields.
 - Run by file path while iterating; only `set-live` once stable.
 
@@ -124,7 +125,11 @@ export default definePlay(
         const result = await rowCtx.tools.execute({
           id: 'person_to_email',
           tool: '<provider-id>',
-          input: { first_name: row.first_name, last_name: row.last_name, domain: row.domain },
+          input: {
+            first_name: row.first_name,
+            last_name: row.last_name,
+            domain: row.domain,
+          },
           description: 'Resolve work email.',
         });
         return result.extractedValues.email?.get() ?? null;
@@ -152,7 +157,11 @@ const enriched = await ctx
     const result = await rowCtx.runPlay<{ email: string | null }>(
       'name_domain_email',
       'prebuilt/name-and-domain-to-email-waterfall',
-      { first_name: row.first_name, last_name: row.last_name, domain: row.domain },
+      {
+        first_name: row.first_name,
+        last_name: row.last_name,
+        domain: row.domain,
+      },
       { description: 'Resolve a verified work email.' },
     );
     return result.email ?? null;
@@ -193,8 +202,18 @@ There is no `ctx.parallel` primitive — use normal `Promise.all` over independe
 
 ```typescript
 const [company, contact] = await Promise.all([
-  ctx.tools.execute({ id: 'company', tool: 'company_lookup', input: { domain: input.domain }, description: 'Look up company details.' }),
-  ctx.tools.execute({ id: 'contact', tool: 'contact_lookup', input: { email: input.email }, description: 'Look up contact details.' }),
+  ctx.tools.execute({
+    id: 'company',
+    tool: 'company_lookup',
+    input: { domain: input.domain },
+    description: 'Look up company details.',
+  }),
+  ctx.tools.execute({
+    id: 'contact',
+    tool: 'contact_lookup',
+    input: { email: input.email },
+    description: 'Look up contact details.',
+  }),
 ]);
 ```
 
@@ -216,6 +235,7 @@ This is also why multi-provider trials belong **inside the play**, not in a shel
 - **Reusing a dataset key.** Each `ctx.dataset` stage needs a unique durable key.
 - **Using raw `fetch` or `Date.now()` in the play body.** Route effects through `ctx.fetch`, `ctx.step`, or another `ctx.*` primitive. Read play input from the handler's second argument, not `ctx.input`/`ctx.args`/`ctx.params`.
 - **Calling a play via `ctx.tools.execute`.** Use `ctx.runPlay` for plays.
+- **Using a long top-level play description.** The play `description` is the primary UI title. Keep it to a 2–6 word outcome phrase no longer than 48 characters; put implementation detail in the play body and step descriptions.
 - **Using long play names.** Persisted table names include play and map names; keep them short and meaningful.
 - **Hiding provider misses.** Return nulls or explicit misses. Do not pattern-complete contacts from model memory.
 
