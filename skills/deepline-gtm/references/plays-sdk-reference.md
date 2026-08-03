@@ -1208,6 +1208,11 @@ Signature: `class DeeplineClient`
 | `getBillingSubscriptionStatus` | method | Subscription state for the active workspace: active plan, whether a<br />Stripe subscription backs it, renewal/cancellation facts, and remaining<br />Deepline credit pools. Prefer `client.billing.subscription.status()`. |  | `Promise<BillingSubscriptionStatus>` |
 | `cancelBillingSubscription` | method | Schedule subscription cancellation at period end, or reverse a pending<br />cancellation with `{ undo: true }`. The customer keeps the cycle they<br />paid for and every remaining credit — cancellation never claws back<br />credits. Prefer `client.billing.subscription.cancel(...)`. | `options?: { undo?: boolean; }` | `Promise<BillingSubscriptionCancelResult>` |
 | `listBillingInvoices` | method | Customer-facing billing history: subscription invoices plus one-time<br />credit purchase receipts, newest first, with Stripe-hosted links.<br />Prefer `client.billing.invoices.list(...)`. | `options?: { limit?: number; }` | `Promise<BillingInvoicesResult>` |
+| `getTargetBillingPlans` | method | List the reviewed target plans and whether new acquisition is enabled. |  | `Promise<TargetBillingPlansResult>` |
+| `getTargetBillingStatus` | method | Read the workspace's normalized target plan, payment, and balance state. |  | `Promise<TargetBillingStatusResult>` |
+| `purchaseTargetBillingCredits` | method | Purchase target-billing credits through the durable commercial operation<br />flow. The caller supplies an idempotency key for safe retries. | `options: { credits: number; idempotencyKey: string; }` | `Promise<TargetBillingMutationResult>` |
+| `transitionTargetBillingPlan` | method | Start, change, cancel, or restore a target plan through one idempotent<br />commercial operation. | `options: TargetBillingPlanTransitionOptions` | `Promise<TargetBillingMutationResult>` |
+| `createTargetBillingPortalSession` | method | Create a Stripe-hosted portal session for payment recovery and invoices. |  | `Promise<{ url: string }>` |
 | `health` | method | Check API connectivity and server health. |  | `Promise<{ status: string; version?: string }>` |
 
 ### `client.runs`
@@ -1235,9 +1240,8 @@ logs, and exporting durable dataset rows.
 
 Public billing namespace exposed as `client.billing`.
 
-Carries the durable Deepline billing product model — plans, subscription
-state, period-end cancellation, and invoice/receipt history — so CLI
-commands and programmatic callers share the same surface.
+Carries plans, subscription state, cancellation, and invoice/receipt history
+so CLI commands and programmatic callers share one surface.
 
 #### Fields
 
@@ -1247,6 +1251,11 @@ commands and programmatic callers share the same surface.
 | `plans` | `() => Promise<BillingPlansResult>` | Yes | Published plans plus the plan you are on ("what plans exist and what am I on"). |
 | `subscription` | `{ status: () => Promise<BillingSubscriptionStatus>; cancel: (options?: { undo?: boolean; }) => Promise<BillingSubscriptionCancelResult>; }` | Yes |  |
 | `invoices` | `{ list: (options?: { limit?: number }) => Promise<BillingInvoicesResult>; }` | Yes |  |
+| `targetPlans` | `() => Promise<TargetBillingPlansResult>` | Yes | Metronome-authored target catalog and current Contract projection. |
+| `targetStatus` | `() => Promise<TargetBillingStatusResult>` | Yes | Normalized target billing state. |
+| `purchaseCredits` | `(options: { credits: number; idempotencyKey: string; }) => Promise<TargetBillingMutationResult>` | Yes | Buy Deepline credits through a payment-gated Metronome commit. |
+| `transitionPlan` | `( options: TargetBillingPlanTransitionOptions, ) => Promise<TargetBillingMutationResult>` | Yes | Start, change, cancel, or undo a target plan transition. |
+| `portalSession` | `() => Promise<{ url: string }>` | Yes | Create a Stripe-hosted billing Portal session. |
 
 
 ### `client.monitors`
