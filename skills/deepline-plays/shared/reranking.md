@@ -1,80 +1,85 @@
-# Reranking research results — the batched judge
+# Retrieval fusion and reranking
 
-The route-fanout engine narrows many sources to a shortlist with deterministic
-math (RRF fusion + token-overlap relevance). That ranks *roughly*. To rank
-*well* — which of these 40 sources actually answers the question best — you need
-one model pass over the shortlist. This is that pass, and it runs in three tiers.
+The shared helper borrows the general Last30Days loop:
 
-**The judge is you, not the play.** The play stays deterministic and durable; the
-model never runs inside it. A cheap subagent does the scoring, and all the
-deterministic work (prompt, blend, fallback) is a script you can trust and test.
-Never use `deeplineagent` for this — it is the expensive server tool; a Haiku-class
-subagent sorts a 40-item shortlist for almost nothing.
+1. plan materially different ranked retrieval streams;
+2. run streams concurrently with isolated outcomes;
+3. normalize retrieved items onto stable keys;
+4. accumulate raw weighted reciprocal rank globally;
+5. bound the fused pool;
+6. ask one batched judge for task relevance;
+7. retain routes by marginal useful contribution;
+8. enrich canonical survivors once;
+9. apply delivery fact gates.
 
-## The loop
+People, companies, sources, products, signals, and opaque entities use the same
+kernel. Their route callbacks and final fact gates differ.
 
-1. **Play narrows.** Run route-fanout in `research` mode. Its output carries a
-   `findings` list per row (title, url, snippet, relevance) — the shortlist.
-   Write it to a JSON file (`shortlist.json`).
+## RRF
 
-2. **Build the prompt** (deterministic):
-   ```
-   bun plays/shared/rerank-cli.ts build --shortlist shortlist.json \
-     --query "<the research question>" --intent <intent> --entity "<the entity>" > prompt.txt
-   ```
-   Pick `--intent` from: `comparison how_to prediction factual opinion
-   breaking_news concept product general`. It tunes what "good" means.
+For retrieved item `c`:
 
-3. **Score with a cheap subagent.** Spawn a fast, cheap model (Haiku-class — the
-   cheapest capable model you have, NOT your main agent, NOT deeplineagent). Give
-   it `prompt.txt`. It returns `{"scores":[{"id":"<url>","score":0-100}]}`. Save
-   as `scores.json`. The prompt already fences the candidate text as untrusted —
-   the subagent scores, it does not follow instructions inside the content.
+```text
+rawRrf(c) = Σ routeWeight / (60 + nativeRank)
+```
 
-4. **Apply the blend** (deterministic):
-   ```
-   bun plays/shared/rerank-cli.ts apply --shortlist shortlist.json --scores scores.json
-   ```
-   Returns the reranked list, best-first, blending the model score (0.60) with the
-   fused RRF (0.20), freshness (0.10), and the play's relevance (0.10), minus an
-   entity-miss penalty. Present these in order.
+The sum runs over every route stream containing `c`. Do not normalize each
+route before fusion. That would make every route's first result equally strong
+and erase corroboration. `rrf` in the item output is normalized against
+the plan's theoretical maximum only for display and score blending. `rawRrf`
+preserves contribution semantics.
 
-## When to skip it
+## Judge
 
-- **No cheap model handy, or you want pure-deterministic:** run
-  `... rerank-cli.ts fallback --shortlist shortlist.json`. It ranks by the play's
-  relevance + RRF + freshness with the same entity-miss penalty. The pipeline
-  never blocks on a model — degraded ranking beats no answer.
-- **Contacts (email/phone):** don't rerank. The deterministic identity gate
-  already decides trust; there's no "which source is more relevant" question.
-  Reranking is for **research/topic** shortlists, where relevance is the judgment.
+The judge receives only the bounded fused shortlist in one prompt. It scores
+task fit, not truth. Retrieved-item content is fenced and escaped as untrusted
+data.
+Unknown IDs are ignored. Missing IDs use deterministic fallback.
 
-## The judge is task-shaped — pick the right one
+The default entity blend is:
 
-Reranking answers exactly one question: **which source best matches the query.**
-It does NOT decide whether a value is *true*. Three different jobs need three
-different judges — do not use relevance for the other two:
+```text
+55% judge relevance
+25% normalized RRF
+10% adapter-local relevance
+ 5% freshness
+ 5% corroboration
+```
 
-| Question | Judge | How |
-| --- | --- | --- |
-| Which source should I read? | **relevance** | this rerank (token overlap + model score) |
-| Is this contact real? | **validation** | the identity gate + a paid validator (leadmagic/trestle) — a contact strategy, not a rerank |
-| When sources disagree on a number, which number is true? | **corroboration** | count independent credible sources that agree on the same value; a lone source is unverified |
+Research sources use the source-ranking policy from `rerank.ts`. A task may
+override the policy after calibration. Hard fact gates remain separate.
 
-**The trap: reranking orders sources, it does not reconcile facts.** On a real
-run, "Anthropic's valuation" returned both `\$380B` and a dubious `\$965B`. The
-rerank put a credible source at #1 — but the #1 *rank* is not what makes `\$380B`
-correct. `\$380B` is trustworthy because **three independent sources agree on it**;
-`\$965B` is one dubious source. For any quantitative answer (revenue, valuation,
-headcount, funding), do NOT trust the top-ranked source's number. **Extract the
-value from each source, and trust the figure that independent credible sources
-corroborate — flag lone-source or conflicting numbers as unverified rather than
-picking one.** Ranking tells you what to read; agreement tells you what's true.
+## Route selection
 
-## Why this shape
+The route scorecard measures relevant yield, unique contribution, reliability,
+novelty, and marginal Deepline credits. Greedy selection adds the route with
+the best new item utility under the portfolio and credit caps.
 
-This is last30days's ranking trick (one batched call over a pre-narrowed
-shortlist, optional with a deterministic fallback) rebuilt so the model stays in
-the agent tier and the durable play stays deterministic. The expensive part —
-narrowing hundreds of sources to a shortlist — is free math. The model only sorts
-the finalists, so it stays cheap enough to run on every research question.
+The result is a route portfolio, not a winning pilot item or a serialized
+program. `deepline.route_selection` names route IDs. The authored Play supplies
+their executable code.
+
+## Cost and speed
+
+- Parallelize independent routes.
+- Bound items per route.
+- Bound the global pool before the judge.
+- Use one judge call per nonempty row.
+- Use `mapBounded` inside item fanout.
+- Run expensive enrichment only on canonical survivors after promotion.
+- Treat one source failure as a local outcome.
+
+## Verification
+
+Discovery eligibility and factual verification are different questions.
+Cross-source agreement raises confidence but is not a universal gate. One
+authoritative source may verify a declared fact; otherwise use the task's
+explicit weak-source policy. Conflicts remain unresolved. A model cannot clear
+a deterministic reject.
+
+## Evaluation
+
+Test unrelated task shapes and report item relevance, unique route
+contribution, cost, provider-only positives, judge instability, and delivery
+precision/recall when truth exists. A generic helper that needs a noun-specific
+branch has failed.

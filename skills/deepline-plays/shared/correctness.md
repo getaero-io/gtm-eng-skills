@@ -29,8 +29,8 @@ Mix on purpose: ~14 clean in-ICP rows, ~4 near-misses (right industry wrong size
 ## The golden loop — red / green / refactor
 
 - **Red** — write `golden.csv` and the bar first: identifier columns, a `truth_<property>` per target, a `truth_source`, an agreed threshold per property. A property with no stated bar can't fail, so it can't teach you.
-- **Green** — build the cheapest candidate route (one provider, one leg), run it over the golden rows, clear the bar.
-- **Refactor** — change exactly one thing per run (a provider, its order, a prompt, a gate) to cut cost or raise accuracy without dropping below the bar. One variable per run or you learn nothing.
+- **Green** — run every viable independent candidate route in one parallel comparison over the same golden rows, then select the route or fused waterfall that clears the bar at the best marginal cost.
+- **Refactor** — after that measured baseline, change exactly one thing per run (a provider, its order, a prompt, a gate) to cut cost or raise accuracy without dropping below the bar. One variable per run or you learn nothing.
 
 Two things about TDD don't transfer: providers are probabilistic, so passing is a threshold on a scored sample, not exact-match; and runs are paid, so the set stays small and durable checkpoints keep reruns cheap. Match rules tolerate probabilistic truth: a band for headcount, exact label for segment, the deliverability contract for emails, the validity gate for phones. At n=20 the scorecard is coarse — one row is five points; trust direction and large gaps, never the third decimal. The harness is one play run over the golden CSV; truth columns ride through as ordinary CSV columns and a pure-TypeScript stage scores the match. The export is the scorecard — no framework.
 
@@ -90,7 +90,10 @@ export default definePlay(
           ? 'hit'
           : 'miss',
       )
-      .run({ key: 'domain', description: 'Score recovered phones against truth.' });
+      .run({
+        key: 'domain',
+        description: 'Score recovered phones against truth.',
+      });
 
     return { rows: scored };
   },
@@ -102,30 +105,31 @@ export default definePlay(
 
 ## Finding the right waterfall
 
-Provider order is a measured, marginal decision, not vendor folklore. Measure all candidates in **one comparison run**: each candidate route its own column, run in parallel (`authoring.md` § Parallelism), and read coverage/accuracy/cost side by side from one golden-set export. Candidates mean the whole category (`deepline tools list <category> --json` — complete recall) swept over a ~10-row batch; keep the top performers as legs and record the also-rans' numbers so the next tuning pass starts from measurements, not memory. On twenty rows, paying every route on every row is cheap and the ranking arrives in minutes. Then assemble the shipped waterfall sequentially — stop-on-first-hit is the *exploit* shape, ordered by marginal reachable-coverage per credit: a leg earns its place only when the correct values it adds, at acceptable accuracy, justify its marginal cost per newly-filled cell. A leg adding 3% coverage at 4× the cost-per-cell gets cut. Dropping legs that weren't paying for themselves — not finding a cheaper provider — is how the same pipeline gets an order of magnitude cheaper without losing coverage.
+Provider order is a measured, marginal decision, not vendor folklore. Measure all candidates in **one comparison run**: each candidate route its own column, run in parallel (`authoring.md` § Parallelism), and read coverage/accuracy/cost side by side from one golden-set export. Candidates mean the whole category (`deepline tools list <category> --json` — complete recall) swept over a ~10-row batch; keep the top performers as legs and record the also-rans' numbers so the next tuning pass starts from measurements, not memory. On twenty rows, paying every route on every row is cheap and the ranking arrives in minutes. Then assemble the shipped waterfall sequentially — stop-on-first-hit is the _exploit_ shape, ordered by marginal reachable-coverage per credit: a leg earns its place only when the correct values it adds, at acceptable accuracy, justify its marginal cost per newly-filled cell. A leg adding 3% coverage at 4× the cost-per-cell gets cut. Dropping legs that weren't paying for themselves — not finding a cheaper provider — is how the same pipeline gets an order of magnitude cheaper without losing coverage.
 
 For phones, validity is read off the golden set, never asserted: mobile/direct coverage on a cold B2B list commonly measures 40-60%, and a route claiming 90% is usually counting switchboard numbers a dialer can't use. Gate with two thresholds — a soft coverage floor and a hard near-zero wrong-number rate, because a wrong number burns a rep's call and the account, so it is worse than a miss. Truth includes line-type and activity, so a returned-but-dead number is a miss: run the validity gate as a third dataset stage with its own key, flipping a digit-match hit to a miss on a bad verdict, before trusting any dialing list.
 
-### Fork the comparison-run harness
+### Use the one route experiment helper
 
-The comparison run above has a shipped skeleton: `plays/route-fanout.play.ts`. Fork it instead of re-deriving the fusion math. It fans every configured route over every row concurrently, fuses candidate values with weighted reciprocal-rank fusion (K=60) on a canonical key, judges each candidate with an identity gate, validates the winner, blends a final score, tags by corroboration, and emits a legible `route_ledger` dataset (per route: attempted, filled, validated_fills, thin, retried). Defective rows isolate, never fail the run: org-name rows ("… SERVICES LLC") skip as `not_a_person` before any route spends, and field-specific guards (email: blank-domain rows skip as `missing_domain`) run before spend too.
+Import `plays/shared/route-experiment.ts` from one task-authored Play. Each route
+is ordinary TypeScript: literal tool calls, real response adapters, and a
+ranked `RetrievedItemInput[]`. The helper owns parallel fanout, normalized
+outcomes, stable item keys, global weighted RRF, the bounded
+`createAiInferenceJudge()` call, route scorecards, selection, datasets, and
+atomic exploit. The default judge is `openai/gpt-5.6-luna` with low reasoning
+effort and remains configurable. Do not build a second engine.
 
-**It is DOMAIN-AGNOSTIC — it resolves ANY type of thing, not just contact fields.** All domain-specific judgment lives in a `ResolutionStrategy` (`{ id, extractCandidates, canonicalize, judge, project }`); the engine (`plays/shared/route-fanout-core.ts`, `createRouteFanoutEngine`) owns only the domain-neutral math — RRF fusion, the diversity floor, the final-score blend, the corroboration/uncertainty tags, row isolation, the ledger, and the route-KIND dispatcher. Three strategies ship: `email`, `phone` (contacts), and `signal` (a company hiring signal). Set `input.strategy` to pick one.
+Provider errors remain `auth-failed`, `rate-limited`, `timeout`, `schema-drift`,
+`unreachable`, or `error`; they never become zero coverage. A successful empty
+response is `no-results`. The same output contract works for people, companies,
+products, signals, and research because extraction is route metadata and task
+fit is a task object, not a noun-specific strategy.
 
-- **A covered strategy:** set `input.strategy` and edit the matching `routes` array. No play-body edits. Proven: the SAME play file serves email, phone, and signal by swapping `strategy` + routes.
-- **A NEW use case = ONE strategy file** (`extractCandidates` / `canonicalize` / `judge` / `project`) + a route list. Register it in `PLUGINS`. The engine and every other strategy stay untouched — analogous to last30days adding a source handler.
-
-**A route is anything that returns candidates.** `kind: 'play' | 'tool' | 'fetch' | 'agent'` — `play`→ctx.runPlay, `tool`→ctx.tools.execute, `fetch`→a durable page fetch (through a web-extract tool like `firecrawl_scrape`, because a generic engine cannot hold a static literal `ctx.fetch` key), `agent`→a `deeplineagent` read. The signal strategy proves it: a HETEROGENEOUS mix (a hiring-search tool + a careers-page fetch + an agent read) corroborating through the same engine.
-
-**`project` returns an arbitrary output shape.** Contact strategies return a scalar (`{ value }`); the signal strategy returns a structured object (`{ signal, confidence, evidence_urls }`); a research strategy could return a ranked list. The durable `output` column holds it verbatim — the engine assumes nothing about the shape.
-
-**The judge varies by strategy, and it MAY spend.** Contact = identity: email's is pure/free domain alignment (leadmagic is the paid validator); PHONE inverts this — its identity gate IS a paid `trestle_real_contact` name_match call that also returns line-type/activity, so it is both gate and validator. Signal = CORROBORATION (≥2 independent routes agree, or a primary source confirms — no paid identity call). Before writing a strategy: (a) know whether its judge spends and name it; (b) PROBE the tool/validator response shape with `deepline tools execute <ref> --input '{...}' --json` first — provider verdict shapes differ (Trestle's FLAT dotted keys like `phone.is_valid` silently broke the first phone pilot); (c) keep the candidate-shape check STRICT (an email regex, a phone bounded on digit count AND charset, a short signal token — never "≥7 digits anywhere").
-
-**One contact-shaped assumption is opt-in, not baked:** the engine's person org-name guard (`isOrgNameRow`) applies only to person-scoped strategies (`personScoped: true`); a company-scoped strategy (signal) turns it off, because its row IS a company.
-
-`csv`, `strategy` (a.k.a. `fieldClass`), `budget`, `yieldFloor`, `depth`/`depthTier`, and `domainAliases` are typed input. The pure engine/strategy logic is unit-tested at `tests/lib/plays/route-fanout-{core,fields,scoring,signals}.test.ts`.
-
-**Derived from last30days** (github.com/mvanhorn/last30days-skill, MIT). The engine math is ported faithfully from the last30days research pipeline, citing the source `scripts/lib` file per stage: `fusion.py` → weighted RRF + the per-route diversity floor (keep ≥2 per route clearing a relevance bar before truncation) + per-route cap; `rerank.py` → the final-score blend (0.60·judge + 0.20·normRRF + 0.10·signalA + 0.05·routeQuality + 0.05·signalB) + the entity-miss penalty (our identity gate); `signals.py` → log1p compression + per-route quality priors; `pipeline.py` → thin-source retry (reduced weight 0.3) + DEPTH_SETTINGS budget tiers; `cluster.py` → single-source/thin-evidence → single-route/thin/corroborated tags; `preflight.py` → the deterministic refuse-before-spend gate (their keyword traps → our org-name/blank-input guards). The `FieldPlugin` is the GTM addition last30days does not have: it always resolves "relevant items"; we resolve a typed field. A forker can consult those lib files for the reference implementation of each stage.
+The shape comes from Last30Days: routes are ranked streams, retrieved items are
+normalized evidence objects, failures are stream-local, raw RRF is global, and
+one batched judge reranks a bounded pool. The selected route IDs bind back to
+the same authored Play for exploit. Tests live in
+`tests/lib/plays/route-experiment.test.ts`.
 
 ## Where checks live, and when to stop
 
@@ -133,4 +137,15 @@ Cheapest first, each layer earning the next: (1) **pure columns in the play** �
 
 Applying it: **work emails** — validate after recovery and coalescing, once per final value; `valid` ships, `catch_all` → `verify_next` (needs a second independent finder/validator; keep the address, name the risk), `invalid` drops, `unknown` unresolved; email domain must match the company domain or you've likely found a previous employer. **Person identity** — the returned name must match and the target company must appear in the person's work history, or it's a same-name stranger; current role is the latest active work entry, not the profile's top-level title. **Phones** — verify line type and activity before any dialing list; a wrong-person number costs more than a missing one.
 
-Stop when the bar is met and the last change moved the numbers by less than a row (inside sampling noise = converged). Golden proves the route (unit tier), a fresh-row pilot catches overfit (integration tier), approval and scale follow. Keep the golden set as a standing regression suite: re-run before every `set-live` and whenever a provider or threshold changes — providers degrade silently, and a dropped bar on twenty known rows is the cheapest detector you'll ever have. Good enough is a number the customer signed off on, not a feeling. The job docs name today's validators and plays; discover current names with `deepline tools search` / `deepline plays search`.
+Stop when the delivery bar is met and the last change moved the numbers by less
+than a row (inside sampling noise = converged). For a fixed named-entity list,
+convergence does not erase missing entities: retain each as unresolved with its
+independent-route ledger, or cross an explicitly approved semantic relaxation
+boundary and keep searching. Golden proves the route (unit tier), a fresh-row
+pilot catches overfit (integration tier), approval and scale follow. Keep the
+golden set as a standing regression suite: re-run before every `set-live` and
+whenever a provider or threshold changes — providers degrade silently, and a
+dropped bar on twenty known rows is the cheapest detector you'll ever have.
+Good enough is a number the customer signed off on, not a feeling. The job docs
+name today's validators and plays; discover current names with
+`deepline tools search` / `deepline plays search`.

@@ -17,7 +17,7 @@ That is a 31x drop, and the second run charged nothing to the provider. The run 
 
 Receipts are not scoped to a run. A third run over a **different** CSV that happened to share two rows with the first run also charged 0.01 — the two shared rows reused their receipts across runs. The cache is global to your workspace, keyed on tool and input, not on which run asked.
 
-**What this means for how you work.** Do not hoard runs. Do not fear re-running. Grow a play one stage at a time and rerun constantly — the known-good prefix is already paid. When you sweep many providers on a small sample to pick the best route, the first sweep is real money and every rerun after is free. Measured on the route-fanout play, 2 rows across four routes (leadmagic, zerobounce, fullenrich): **first run 11.33 credits, rerun 0.01.** The expensive validators re-paid nothing the second time. Only the losing route's spend is ever wasted, and only once.
+**What this means for how you work.** Do not hoard runs. Do not fear re-running. Grow a play one stage at a time and rerun constantly — the known-good prefix is already paid. When you sweep many providers on a small sample to pick the best route, the first sweep is real money and every rerun after is free. Only the losing route's spend is ever wasted, and only once.
 
 ## Read the cost honestly
 

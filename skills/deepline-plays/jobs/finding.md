@@ -12,12 +12,12 @@ Route by the fact the user actually wants, not by tool name. "Fintechs hiring fr
 
 You do not have rows yet. Search a listed play for the workflow first; if none fits, use `deepline tools search` for the provider contract, then put the pull into a scratchpad play before scaling. The generic structured-company and company-to-contact plays are hidden until their evals pass, so company discovery and company-scoped persona lookup run through direct provider tools for now.
 
-| You need                                                          | Route                                                                   |
-| ----------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Companies by funding round, headcount, HQ, category               | structured company search (Crustdata, free company search, Exa, extractors) |
-| Companies hiring for a role                                       | job-listing/search tool joined to the company set                       |
-| Companies in a portfolio / accelerator batch / curated source     | `deepline plays search "<source> company list" --json` first            |
-| Reactors/commenters on a LinkedIn post                            | `deepline plays search engagers --json`                                 |
+| You need                                                      | Route                                                                       |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Companies by funding round, headcount, HQ, category           | structured company search (Crustdata, free company search, Exa, extractors) |
+| Companies hiring for a role                                   | job-listing/search tool joined to the company set                           |
+| Companies in a portfolio / accelerator batch / curated source | `deepline plays search "<source> company list" --json` first                |
+| Reactors/commenters on a LinkedIn post                        | `deepline plays search engagers --json`                                     |
 
 ```bash
 deepline tools search "company search funding headcount category hq" --json
@@ -45,7 +45,17 @@ For thin coverage (<50-employee companies, niche verticals, recent batches), an 
 
 ## Finding contacts
 
-**Broad function + seniority across companies; exact titles at one known company.** People search across many companies ("VPs of Marketing at US fintechs") uses a broad functional category plus seniority — `function: ["Marketing"]`, `seniority: ["VP", "Director"]`. Exact title arrays (`["VP of Marketing", "Vice President, Marketing"]`) miss real titles because title spelling varies wildly. Persona lookup at one known company is the opposite: exact title tokens (`CEO`, `CTO`, `Head of Security`) are stronger when intent is specific.
+**Broad function + seniority across companies; exact titles are only one route
+at a known company.** People search across many companies ("VPs of Marketing at
+US fintechs") uses a broad functional category plus seniority —
+`function: ["Marketing"]`, `seniority: ["VP", "Director"]`. Exact title arrays
+miss real titles because spelling varies wildly. At a known company, include an
+exact-title route when intent is specific, but search the complete
+user-supplied title family and compare it with an independent
+function/seniority or public-evidence route. Never shrink the acceptance set to
+the easiest titles or treat the exact-title route as the market. Spelling and
+word-order equivalents may stay strict; adjacent functions, lower seniority,
+former holders, and reporting-line proxies are relaxations and need approval.
 
 ```bash
 # People across companies
@@ -57,7 +67,14 @@ deepline plays search contact --json
 deepline plays run <play-name> --input '{"company_name":"Acme","domain":"acme.com","roles":"VP Marketing","seniority":"VP"}' --watch
 ```
 
-For a company list → contacts, this is a clean case for a small custom play with one `ctx.dataset` stage doing company-scoped people search per row. Resolving a domain from a company name is mechanical — use a search tool (`deepline tools search search --json`), not `deeplineagent`. Engagers on a post output a list of people — hand off to the qualification section (`deeplineagent` with a tier `jsonSchema`).
+For a company list → contacts, a small custom play with one `ctx.dataset` stage
+doing company-scoped people search per row is the EXPLOIT shape after route
+comparison. During EXPLORE, expose one column per candidate route plus the
+ledger and scorecard required by `../SKILL.md`. Resolving a domain from a
+company name is mechanical — use a search tool
+(`deepline tools search search --json`), not `deeplineagent`. Engagers on a
+post output a list of people — hand off to the qualification section
+(`deeplineagent` with a tier `jsonSchema`).
 
 ## When databases come up thin: keep searching, change the route
 
@@ -65,11 +82,29 @@ Niche, local, and public-sector personas — city clerks, school administrators,
 
 The discovery ladder: structured provider search → maps/local search → web search with `site:` and directory patterns (the state municipal league, the county site, the association member roster) → **known-source extraction**: when a page lists them, scrape that page (a search tool with contents, a firecrawl-class extractor, or an Apify actor for the specific site) and assemble rows from it with the source URL as the evidence column. An official roster beats any provider for accuracy, and public-sector data is public.
 
-Persistence is not thrash. The anti-pattern the hard stop above guards against is re-running the *same* provider with reshuffled filters; the discipline here is escalating to the *next independent route*. The hard stop applies per route — never to the mission.
+Persistence is not thrash. The anti-pattern the hard stop above guards against is re-running the _same_ provider with reshuffled filters; the discipline here is escalating to the _next independent route_. The hard stop applies per route — never to the mission.
 
 ## Convergence and dedup
 
-Define the target row count up front (usually the user's ask). Over-provision per `../SKILL.md` (each downstream stage has ~15-20% falloff), filter, and stop when the filtered set hits target — past ~80% of target, marginal returns drop sharply and chasing the last 20% almost never produces real rows. Deduplicate by canonical key (domain for companies, LinkedIn URL or email for people) **after** filtering, not before — keying first can drop valid rows whose key is missing from one merge source. For high-stakes signals (job changes, recent funding, leadership moves), verify with a second source before tagging `HIGH`: single-source is `MEDIUM`, conflicting sources are `LOW`.
+Define the target row count up front (usually the user's ask). Over-provision per
+`../SKILL.md` (each downstream stage has ~15-20% falloff), filter, and stop when
+the filtered set hits target. The ~80% marginal-return heuristic applies only
+when rows are interchangeable, such as building any 100 matching companies.
+It does not apply to one-result-per-company work: each unresolved named entity
+must enter the gap loop in `../SKILL.md`. Deduplicate by canonical key (domain
+for companies, LinkedIn URL or email for people) **after** filtering, not before
+— keying first can drop valid rows whose key is missing from one merge source.
+For high-stakes signals (job changes, recent funding, leadership moves), verify
+with a second source before tagging `HIGH`: single-source is `MEDIUM`,
+conflicting sources are `LOW`.
+
+When several discovery providers return ranked lists, use the generic entity
+reranker in `../shared/reranking.md`. Normalize both people and companies to the
+same contract (`id`, `kind`, attributes, evidence, RRF, verification,
+corroboration), then supply task criteria in JSON. People normally canonicalize
+by LinkedIn URL; companies by domain. The ranking machinery is shared. Only the
+verification adapter differs: current-employment evidence for a person versus
+domain/legal-entity/firmographic evidence for a company.
 
 ## Exit
 
