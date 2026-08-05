@@ -213,8 +213,10 @@ while True:
 | `POST` | `/api/v2/plays/run` | `startPlayRun`<br />`startPlayRunFromBundle`<br />`runPlay` | Start a saved, prebuilt, or artifact-backed play run. | `src/app/api/v2/plays/run/route.ts` |
 | `GET` | `/api/v2/runs` | `runs.list`<br />`listRuns` | List runs with filters such as play name and status. | `src/app/api/v2/runs/route.ts` |
 | `GET` | `/api/v2/runs/:runId` | `runs.get`<br />`getRunStatus`<br />`getPlayStatus` | Read canonical status, result, outputs, and run package. | `src/app/api/v2/runs/[runId]/route.ts` |
+| `GET` | `/api/v2/runs/:runId/input` | `runs.input`<br />`getRunInput` | SDK-facing route. | `src/app/api/v2/runs/[runId]/input/route.ts` |
 | `GET` | `/api/v2/runs/:runId/logs` | `runs.logs`<br />`getRunLogs` | SDK-facing route. | `src/app/api/v2/runs/[runId]/logs/route.ts` |
 | `POST` | `/api/v2/runs/:runId/observe-grant` | `runs.tail`<br />`tailRun`<br />`runPlay` | SDK-facing route. | `src/app/api/v2/runs/[runId]/observe-grant/route.ts` |
+| `POST` | `/api/v2/runs/:runId/rerun` | `runs.rerun`<br />`rerun` | SDK-facing route. | `src/app/api/v2/runs/[runId]/rerun/route.ts` |
 | `POST` | `/api/v2/runs/:runId/stop` | `runs.stop`<br />`stopRun`<br />`cancelPlay`<br />`stopPlay` | Stop a running or waiting play run. | `src/app/api/v2/runs/[runId]/stop/route.ts` |
 | `GET` | `/api/v2/runs/:runId/tail` | `runs.tail`<br />`tailRun` | Stream canonical run events over SSE. | `src/app/api/v2/runs/[runId]/tail/route.ts` |
 
@@ -302,6 +304,7 @@ These entries come from the compatible SDK/API change ledger and explain additiv
 
 | Change | Reason |
 |---|---|
+| `2026-08-play-run-input-replay` | Adds authenticated GET /api/v2/runs/:runId/input and POST /api/v2/runs/:runId/rerun routes, plus runs.input/getRunInput/runs.rerun/rerun SDK methods and deepline runs get --input / deepline runs rerun commands. These are additive capabil... |
 | `2026-07-sdk-enrich-compiler-source-imports` | Resolves shared enrich-plan compiler imports through TypeScript source paths so server-side MCP callers can reuse the same compiler without relying on built JavaScript artifacts. This is an internal build-resolution change: installed CLI... |
 | `2026-07-play-detached-runtime-progress` | Corrects the customer-visible status and CLI progress wording for a Play that is actively executing in a detached runtime receipt: it reports running rather than waiting, and identifies that execution state instead of incorrectly suggest... |
 | `2026-07-agent-led-cli-onboarding` | Adds setup, skills, and doctor CLI commands, folder-scoped browser-auth persistence, npm-based installation guidance, and scoped update and verification behavior while retiring the separate mutable SDK shell-installer route. This is comp... |
@@ -309,7 +312,6 @@ These entries come from the compatible SDK/API change ledger and explain additiv
 | `2026-07-sdk-enrich-direct-tool-runtime-context` | Makes newly published deepline enrich generated plays type their legacy direct-tool helper against the existing DeeplinePlayRuntimeContext tools capability instead of an incompatible hand-written execute signature. This is a compatible l... |
 | `2026-07-sdk-enrich-no-ambient-pick` | Makes newly published deepline enrich generated plays pass the existing DeeplinePlayRuntimeContext directly to their direct-tool helper instead of relying on TypeScript's ambient Pick utility type. This is a compatible local generated-so... |
 | `2026-07-sdk-play-page-open-opt-in` | Makes newly published deepline plays run and enrich clients print the play page URL by default and require the new --open flag to launch a browser; the retired --no-open flag now fails loudly. The API contract is unchanged: route paths,... |
-| `2026-07-prebuilt-run-system-scope` | Fixes POST /api/v2/plays/run so an explicit prebuilt/<name> reference reads the Deepline system definition even when legacy org data contains the same unqualified name, and rejects explicit revision IDs that belong to another definition.... |
 
 ## Public Types
 
@@ -587,6 +589,8 @@ logs, and exporting durable dataset rows.
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `get` | `(runId: string, options?: RunsGetOptions) => Promise<PlayStatus>` | Yes | Get current run status by public run id. |
+| `input` | `(runId: string) => Promise<{ runId: string; input: Record<string, unknown> \| unknown[]; bytes: number; sha256: string \| null; replayedFromRunId: string \| null; }>` | Yes | Explicitly read the retained original input (may include customer data). |
+| `rerun` | `(runId: string) => Promise<{ runId: string; replayedFromRunId: string; revisionId: string \| null; status: string; next: { inspect: string; input: string }; }>` | Yes | Start a fresh run from a prior run's retained input and pinned revision. |
 | `list` | `(options: RunsListOptions) => Promise<PlayRunListItem[]>` | Yes | List runs for one play, optionally filtered by status. |
 | `tail` | `(runId: string, options?: RunsTailOptions) => Promise<PlayStatus>` | Yes | Stream run events and return the latest/terminal run status. |
 | `logs` | `(runId: string, options?: RunsLogsOptions) => Promise<RunsLogsResult>` | Yes | Fetch persisted log lines for a run. |
