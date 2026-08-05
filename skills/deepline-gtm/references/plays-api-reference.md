@@ -192,6 +192,7 @@ while True:
 | `GET` | `/api/v2/integrations/:toolId` | `getTool` | Describe one provider-backed tool by integration id. | `src/app/api/v2/integrations/[toolId]/route.ts` |
 | `POST` | `/api/v2/integrations/:toolId/execute` | `executeTool`<br />`executeToolRaw` | Execute one provider-backed tool call through Deepline. | `src/app/api/v2/integrations/execute/route.ts` |
 | `GET` | `/api/v2/integrations/:toolId/get` | `getTool` | Describe one provider-backed tool, including schema, pricing, guidance, and extractors. | `src/app/api/v2/integrations/get/route.ts` |
+| `POST` | `/api/v2/integrations/:toolId/quote` | `quoteInferenceTool` | SDK-facing route. | `src/app/api/v2/integrations/[toolId]/quote/route.ts`<br />`src/lib/deeplineagent/quote-service.ts`<br />`src/lib/deeplineagent/quote.ts` |
 | `GET` | `/api/v2/integrations/list` | `searchTools` | Compatibility discovery route for integration/tool listing. | `src/app/api/v2/integrations/list/route.ts` |
 | `GET` | `/api/v2/tools` | `listTools` | List callable provider/tool definitions. | `src/app/api/v2/tools/route.ts` |
 | `GET` | `/api/v2/tools/providers` | `listProviders` | SDK-facing route. | `src/app/api/v2/tools/providers/route.ts` |
