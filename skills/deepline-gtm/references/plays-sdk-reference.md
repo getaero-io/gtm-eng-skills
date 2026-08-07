@@ -1128,7 +1128,7 @@ Signature: `class DeeplineClient`
 | `purchaseTargetBillingCredits` | method | Purchase target-billing credits through the durable commercial operation<br />flow. The caller supplies an idempotency key for safe retries. | `options: { credits: number; idempotencyKey: string; }` | `Promise<TargetBillingMutationResult>` |
 | `transitionTargetBillingPlan` | method | Start, change, cancel, or restore a target plan through one idempotent<br />commercial operation. | `options: TargetBillingPlanTransitionOptions` | `Promise<TargetBillingMutationResult>` |
 | `createTargetBillingPortalSession` | method | Create a Stripe-hosted portal session for payment recovery and invoices. |  | `Promise<{ url: string }>` |
-| `health` | method | Check API connectivity and server health. |  | `Promise<{ status: string; version?: string }>` |
+| `health` | method | Check API connectivity and server health. |  | `Promise<{ status: string; version?: string; status_banner?: { message: string; updatedAt: number; }; }>` |
 
 ### `client.runs`
 
