@@ -450,6 +450,7 @@ Either `name` (for live plays) or `artifactStorageKey` (for packaged ad hoc runs
 | `waitForCompletionMs` | `number` | No | Optionally let the start request wait briefly and return a terminal result. |
 | `profile` | `string` | No | Per-run execution profile override. The server defaults to absurd. The<br />Only `absurd` is accepted; most callers should leave this unset. |
 | `integrationMode` | `'live' \| 'eval_stub' \| 'fixture'` | No | Optional per-run provider execution mode for eval/smoke runs. |
+| `fixtureBehavior` | `import('../../shared_libs/play-runtime/fixture-behavior').FixtureBehavior` | No | Fixture-only provider response timing and outcome simulation. |
 | `runtime` | `PlayRuntimeSelection` | No | Internal runtime estate selection. The app host remains unchanged. |
 | `testPolicyOverrides` | `Record<string, unknown>` | No | Internal/dev-only runtime policy overrides for black-box durability tests. |
 
