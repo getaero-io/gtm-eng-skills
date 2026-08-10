@@ -17,23 +17,39 @@
         "linkedin_ads_audiences",
         "aviato",
         "limadata",
-        "crustdata"
+        "crustdata",
+        "contactout"
       ]
     },
     "plays/build-hash-only-audience.play.ts": {
       "kind": "example",
       "title": "Build hash-only audience play",
-      "tags": ["play", "audience", "hashing", "customer-match"]
+      "tags": [
+        "play",
+        "audience",
+        "hashing",
+        "customer-match"
+      ]
     },
     "plays/audit-no-double-hash.play.ts": {
       "kind": "example",
       "title": "Audit no double hash play",
-      "tags": ["play", "audit", "hashing", "validation"]
+      "tags": [
+        "play",
+        "audit",
+        "hashing",
+        "validation"
+      ]
     },
     "plays/upload-google-hash-only-audience.play.ts": {
       "kind": "example",
       "title": "Upload Google hash-only audience play",
-      "tags": ["play", "google-ads", "customer-match", "upload"]
+      "tags": [
+        "play",
+        "google-ads",
+        "customer-match",
+        "upload"
+      ]
     },
     "plays/upload-facebook-google-hash-only-audience.play.ts": {
       "kind": "example",
@@ -83,7 +99,39 @@
     "recipes/sample-abm-segment-example.md": {
       "kind": "recipe",
       "title": "Sample ABM segment ads audience example",
-      "tags": ["recipe", "example", "abm", "ads", "audience-enrichment"]
+      "tags": [
+        "recipe",
+        "example",
+        "abm",
+        "ads",
+        "audience-enrichment"
+      ]
+    },
+    "plays/build-contactout-hash-pool.play.ts": {
+      "kind": "example",
+      "title": "Build ContactOut hash pool play",
+      "tags": [
+        "play",
+        "audience",
+        "hashing",
+        "contactout",
+        "batch"
+      ],
+      "providers": [
+        "contactout"
+      ]
+    }
+  },
+  "prefixes": {
+    "shared/": {
+      "kind": "guide",
+      "title": "Shared Guide",
+      "tags": [
+        "ads",
+        "audiences",
+        "background"
+      ],
+      "providers": []
     }
   }
 }

@@ -48,7 +48,7 @@ Keep work-email rows in the enrichment pool until they receive a personal hash o
 
 Stop there by default. Report coverage lift, unique hashes added, contacts still missing personal hashes, and Deepline spend.
 
-Then ask the user whether they want to pay about 0.08 USD/contact in additional Deepline spend to increase coverage with broader raw personal-email providers. Only after explicit approval, run the expanded pass:
+Then ask the user whether they want to spend more per contact on broader raw personal-email providers. Quote the current rate from `deepline tools describe <tool_id> --json` rather than a figure written here: rates change, and a stale number in an approval gate makes users agree to a price that no longer holds. Only after explicit approval, run the expanded pass:
 
 4. LeadMagic personal email on rows still missing personal hashes, then normalize and hash once.
 5. ContactOut free personal-email pre-check, then paid reveal only for true rows.

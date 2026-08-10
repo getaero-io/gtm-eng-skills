@@ -114,6 +114,52 @@ Extract hashes only from explicit hash fields such as:
 
 Never upload a JSON object string as a hash value.
 
+#### ContactOut hashed identifiers (batch, pool-level)
+
+`contactout_get_hashed_email_identifiers` converts LinkedIn profile URLs
+directly into hashed email identifiers. It runs beside this ladder rather than
+as a step in it, because it cannot waterfall: the response is an unattributed
+pool, so it can neither skip rows an earlier provider covered nor let a later
+provider skip rows it covered. Run it after L2 LinkedIn repair, on rows that
+have a verified LinkedIn URL and still lack a personal hash.
+
+Filtering the send set that way is the only saving available. In one production
+run where ContactOut went last against the full set, 979 of its 1,691 returned
+hashes were already in the pool, so about 58% of the spend bought nothing new.
+
+In this recipe, though, prefer to include rows that already have a hash. About a
+third of what ContactOut returns is a second or third address for a person it
+already matched, measured live at 228 matched profiles returning 313 hashes.
+Extra addresses per person raise the odds a platform matches that person at all,
+which is the whole point of a max-coverage run. Pass
+`includeRowsWithExistingHash` to the hash-pool play. Drop back to the default
+exclusion only when the budget cap bites.
+
+It behaves differently from the per-row hash providers, so treat it separately:
+
+- **Batch only.** Send 5–100 unique LinkedIn URLs per call. Fewer than 5 is
+  rejected with HTTP 400. Chunk the eligible rows and keep chunks at 100.
+- **The result is an unattributed hash pool.** ContactOut returns a flat
+  `matches.emails` list with no mapping back to the input profiles. You cannot
+  tell which hash belongs to which person, so do not write these hashes into
+  per-row `email_sha256` cells. Merge them into the audience-level hash pool.
+- **Billing is per matched profile.** The response includes `matches_found`,
+  the exact number of profiles matched. One matched profile can return several
+  hashes, so `matches.emails.length` overstates it. Report cost from
+  `matches_found`, never from the hash count.
+- **A zero-match chunk returns HTTP 404** with `No hashed emails found`. That
+  is a normal empty result, not a failure. Keep processing the other chunks.
+
+Because the output is pool-level, measure its contribution as net-new unique
+hashes added to the pool after deduping against hashes you already had:
+
+```text
+contactout_net_new = |contactout_hashes - existing_pool|
+```
+
+Report that net-new count and the summed `matches_found`. Do not report
+ContactOut lift as a per-row hit rate.
+
 ### L4: Raw Personal-Email Waterfall
 
 Run this only when max coverage is requested and the budget cap covers it.

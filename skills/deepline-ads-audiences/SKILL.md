@@ -43,6 +43,8 @@ This skill is not for cold outbound, sequencing, or copywriting. Personal emails
 | "max coverage", "highest match rate", "keep increasing coverage"      | Run the explicit max-coverage ladder with budget gates.          | `recipes/max-coverage-audience.md`                        |
 | `/deepline-ads-audience`, "enrich and upload to FB/Google"            | Run the full paid ads audience recipe.                           | `recipes/enrich-and-upload-facebook-google.md`            |
 | "sample ABM segment", "do the example workflow"                       | Follow the reusable high-priority ABM segment recipe.            | `recipes/sample-abm-segment-example.md`                   |
+| "use ContactOut hashes", "hashed identifiers", "LinkedIn URLs to hashes" | Plan a bulk pass beside the ladder, not a waterfall step.       | `shared/contactout-hash-pool.md`                          |
+| "what is a hash", "why is my match rate low", first-time user          | Explain the mechanic before quoting a plan.                      | `shared/audience-basics.md`                               |
 | "Make sure hashes are not double hashed"                              | Run the no-double-hash audit play before upload.                 | `plays/audit-no-double-hash.play.ts`                      |
 | "Compare enriched versus unenriched"                                  | Build both hash-only datasets and report lift.                   | `plays/build-hash-only-audience.play.ts`                  |
 | "Upload to Google"                                                    | Validate hash-only rows, create Google audience, sync, readback. | `plays/upload-google-hash-only-audience.play.ts`          |
@@ -58,14 +60,40 @@ This skill is not for cold outbound, sequencing, or copywriting. Personal emails
 6. Upload rows.
 7. Check status and report IDs, uploaded counts, invalid rows, and current build state.
 
+## Ask about suppression before targeting
+
+Every audience run has a second list hiding in it: the people who should never see the ad. Current customers, closed-lost accounts, active opportunities, employees, and recent converters.
+
+Ask for it explicitly, because users rarely volunteer it and the failure is invisible. A suppression list that was never built, or that silently failed to sync, spends budget advertising to people who already bought.
+
+The risk is asymmetric, which decides how to handle edge cases: an extra person on a suppression list costs a few unserved impressions, while a missing one costs real money and can annoy a customer. When you are unsure whether someone belongs on it, include them.
+
+Suppression lists match on the same identifiers as targeting lists, so a work-email-only suppression list suppresses almost nobody. Enrich it with the same ladder, or it will not do its job.
+
+## Expect different lift per platform
+
+Enrichment does not pay off evenly. Meta gains the most from personal-email enrichment, because personal addresses are what people register with there. Google gains less, since a Workspace address is already a Google account and often matches from the baseline.
+
+Set that expectation before spending. A user who was promised uniform lift reads a modest Google result as a failed run, when it is the expected shape.
+
+## Explain the shape before you spend
+
+Users new to paid ads usually have not met hashed identifiers before, and a plan that opens with provider names reads as an opaque menu. Before running the ladder, state the mechanic in one or two sentences so the user can judge the plan rather than approve it blindly:
+
+> Ad platforms can only match people on identifiers those people gave the platform. Your CRM holds work emails; almost nobody signs up to Meta with a work address. These layers buy the personal identifiers that do match, cheapest first.
+
+Say what each layer costs in Deepline credits and what it is expected to add, then ask for approval before the first paid layer. A user who understands the mechanic will make a better call on where to stop, which is the only decision that controls spend here.
+
+`shared/audience-basics.md` holds the longer explanation, including what a hash is and why it is safe to send. Point the user there when they ask, or when the run is their first.
+
 ## Coverage Modes
 
 Choose the coverage mode before spending credits. Record it in the run notes.
 
 | Mode             | Use when                                                                        | Waterfall                                                                                                                                                                                                 | Stop condition                                                                                                                                |
 | ---------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cost_effective` | User asks for the default, low-cost, or first-pass enrichment.                  | Work-email baseline → Aviato personal hashes on all eligible rows → LimaData personal hashes on remaining personal-hash misses.                                                                           | Stop after Aviato/LimaData, report contacts still missing personal hashes, then ask before expanded fallback.                                 |
-| `max_coverage`   | User asks for highest match rate, max coverage, or to keep increasing coverage. | Work-email baseline → phone hashes already present → LinkedIn repair → Aviato personal hashes for all eligible rows → LimaData personal hashes → raw personal-email waterfall → platform upload variants. | Stop when no approved provider remains, budget cap is hit, marginal lift is below threshold, or rights/geo constraints block more enrichment. |
+| `cost_effective` | User asks for the default, low-cost, or first-pass enrichment.                  | Work-email baseline → Aviato personal hashes on all eligible rows → LimaData personal hashes on remaining personal-hash misses. Optionally a ContactOut bulk pass over rows that still lack a personal hash and have a LinkedIn URL, which runs beside the ladder rather than inside it. | Stop after the hash providers, report contacts still missing personal hashes, then ask before expanded fallback.                              |
+| `max_coverage`   | User asks for highest match rate, max coverage, or to keep increasing coverage. | Work-email baseline → phone hashes already present → LinkedIn repair → Aviato personal hashes for all eligible rows → LimaData personal hashes → ContactOut bulk pass beside the ladder → raw personal-email waterfall → platform upload variants. | Stop when no approved provider remains, budget cap is hit, marginal lift is below threshold, or rights/geo constraints block more enrichment. |
 
 Never silently downgrade a `max_coverage` request to `cost_effective`. If a provider or credential is unavailable, report the gap and continue with the next approved provider rather than stopping early.
 
@@ -86,6 +114,7 @@ Use `deepline plays` for the bundled templates. If `deepline plays` is unavailab
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `plays/build-hash-only-audience.play.ts`                  | Build baseline and enriched hash-only datasets from source CSV rows. Raw emails are normalized and hashed once. Provider hashes pass through as lowercase hex. | `{ "file": "input.csv" }`                                                                                                                                                 |
 | `plays/audit-no-double-hash.play.ts`                      | Verify the final upload payload is hash-only, deduped, populated, includes provider hashes as-is, and does not contain hash-of-hash mistakes.                  | `{ "payloadFile": "upload.csv", "providerHashFile": "provider-hashes.csv", "providerHashColumns": ["aviato_hash", "limadata_hash"] }`                                     |
+| `plays/build-contactout-hash-pool.play.ts`                | Batch LinkedIn URLs through ContactOut hashed identifiers into a deduped hash pool. Reports matched profiles, net-new hashes, and per-chunk results.           | `{ "file": "contacts.csv", "limit": 100 }`                                                                                                                                |
 | `plays/upload-google-hash-only-audience.play.ts`          | Create a Google Customer Match list, upload hash-only rows, and read status back.                                                                              | `{ "file": "upload.csv", "account_id": "1234567890", "audience_name": "Segment enriched 2026-06-09" }`                                                                    |
 | `plays/upload-facebook-google-hash-only-audience.play.ts` | Upload the same validated hash-only rows to Google and an existing Meta/Facebook Custom Audience.                                                              | `{ "file": "upload.csv", "google_account_id": "1234567890", "meta_ad_account_id": "act_123", "meta_audience_id": "456", "audience_name": "Segment enriched 2026-06-09" }` |
 | `plays/report-google-coverage-lift.play.ts`               | After Google match rates populate, calculate coverage lift, estimated matched identifiers, spend efficiency, and a follow-up note.                             | `{ "account_name": "Customer Google Ads", "account_id": "1234567890", "baseline": {...}, "comparisons": [...] }`                                                          |
@@ -153,7 +182,7 @@ deepline tools execute linkedin_ads_audiences_list_audiences --payload '{"accoun
 
 4. Show the discovered choices back to the user as `Account Name (Account ID)`, grouped by platform. If there is more than one plausible account, ask which one to use before creating audiences.
 
-5. Keep the selected account IDs in the run notes and final answer. Never use a Meta app ID as an ad account ID. Meta upload IDs should look like `act_123...` or a numeric ad account ID that Deepline can prefix.
+5. Keep the selected account IDs in the run notes and final answer. A Meta app ID is not an ad account ID; the two look similar enough that agents substitute one for the other, and the upload then fails or lands in the wrong account after enrichment has already been paid for. Meta upload IDs look like `act_123...` or a numeric ad account ID that Deepline can prefix.
 
 ## Step 3: Build Baseline and Enriched Objects
 
@@ -167,14 +196,26 @@ Default personal-email waterfall for B2B paid ads:
 1. Baseline first-party identifiers: valid work emails, names, company, country, postal code, LinkedIn URLs, and stable external IDs.
 2. Aviato `aviato_pull_email_hash`: run on all eligible rows with enough identity context, including rows that already have work emails. Use it when the goal is ad upload and the provider returns paid-ads-ready personal email hashes. If the output cell is a JSON object, extract the scalar hash from `matched_result`, `result.data.hashedEmails[0]`, `result.data.hashed_email`, or equivalent hash fields. Do not treat the JSON object string as the upload value.
 3. LimaData `limadata_find_audience_identifiers`: run on rows still missing a personal hash after Aviato, or run it first when the user asks for the most cost-effective expansion pass. Extract only normalized 64-character SHA-256 hashes from `matched_result`, `result.data.hashed_emails[].normalized_hash`, `hash`, or `sha256` fields.
+ContactOut hashed identifiers do not belong in this numbered list, because they cannot waterfall. Run them as a separate bulk pass. See the section below.
 
-Stop after Aviato and LimaData by default. Report attempted rows, row hits, unique hashes added, contacts still missing personal hashes, and Deepline spend. Then ask whether the user wants to pay about 0.08 USD/contact in additional Deepline spend to increase coverage with broader raw personal-email providers.
+### ContactOut hashed identifiers (quick reference)
+
+ContactOut converts LinkedIn URLs straight into hashed emails, but it does not waterfall: the response is an unattributed pool, so it cannot skip rows another provider covered and later providers cannot skip rows it covered. Run it as a bulk pass beside the ladder.
+
+- Send set: rows with a verified LinkedIn URL. Exclude rows that already have a hash for `cost_effective`, include them for `max_coverage`.
+- Batch 5 to 100 per call. A zero-match chunk returns HTTP 404 and is not billed.
+- Bill and report from `matches_found`, never the hash-list length.
+- Merge into the audience-level hash pool, not per-row `email_sha256` cells.
+
+→ Read `shared/contactout-hash-pool.md` before planning or running a pass. It covers why attribution cannot be recovered, the measured overlap and multi-address rates, and the Meta result.
+
+Stop after the hash providers by default. Report attempted rows, row hits, unique hashes added, contacts still missing personal hashes, and Deepline spend. Then ask whether the user wants to spend more on broader raw personal-email providers, quoting the current per-contact cost from `deepline tools describe <tool_id> --json` rather than a remembered figure. Rates change, and a stale quote in an approval gate is how users end up agreeing to a number that no longer holds.
 
 Only run the expanded coverage pass after explicit approval. In that pass, try providers such as LeadMagic, ContactOut, Wiza, Datagma, Crustdata, Prospeo, FullEnrich, PDL, or Deepline native personal-email waterfalls on rows still missing personal hashes. Normalize and SHA-256 hash raw personal emails exactly once, record provider-level lift and Deepline spend, and keep the default upload payload hash-only.
 
-Do not buy mobile phones for this workflow unless the user explicitly asks. They are usually too expensive for this ads-audience test.
+Leave mobile phones out unless the user explicitly asks for them. They cost considerably more per contact than hashed emails, and a phone layer can consume most of a test budget before the cheap email layers have finished proving what the list can reach. Phones are worth adding as a second identifier alongside email, not as a substitute for it.
 
-For `max_coverage`, the user has already approved the goal but not unlimited spend. Ask for or infer a budget cap before paid fallback beyond Aviato/LimaData. If the user gave a cap, run the expanded pass until the cap or marginal-lift stop condition is reached.
+For `max_coverage`, the user has already approved the goal but not unlimited spend. Ask for or infer a budget cap before any paid fallback past the hash layer. If the user gave a cap, run the expanded pass until the cap or marginal-lift stop condition is reached.
 
 For native waterfall outputs, include only provider-specific fields that are confirmed personal-email responses, such as `first_personal_email`, `personal_email`, `personal_emails[]`, or Wiza email values where `email_type` is personal. Do not include an untyped final scalar just because it contains an email address. Untyped final values can be work emails.
 
@@ -325,3 +366,13 @@ After Google match rates populate, use `plays/report-google-coverage-lift.play.t
 Use anonymized or customer-approved values in customer-facing follow-up notes. Keep account IDs, audience IDs, match rates, spend, and provider-layer labels tied to the current run artifact rather than copying old example values.
 
 Do not expose provider-side unit costs in customer-facing messages. Report Deepline spend only.
+
+## Reading guide
+
+| If you're about to…                                                   | Read                                      |
+| --------------------------------------------------------------------- | ----------------------------------------- |
+| Explain hashing, match rate, or platform rules to a first-time user   | `shared/audience-basics.md`               |
+| Plan or run a ContactOut hashed-identifier pass                       | `shared/contactout-hash-pool.md`          |
+| Enrich and upload to Meta and Google end to end                       | `recipes/enrich-and-upload-facebook-google.md` |
+| Push a list as far as the budget allows                               | `recipes/max-coverage-audience.md`        |
+| Follow the worked ABM example                                         | `recipes/sample-abm-segment-example.md`   |

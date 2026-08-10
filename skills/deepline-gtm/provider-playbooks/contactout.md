@@ -33,18 +33,30 @@ personal and work credential lanes.
 
 Managed-key routing follows ContactOut's endpoint entitlements:
 `GET /v1/people/linkedin` and the work-email status checker use the work key;
-`POST /v1/people/identifiers` is disabled; enrich, search, domain, and
-personal-status endpoints use the personal/default key. The connector does not
-currently expose either LinkedIn batch endpoint.
+`POST /v1/people/identifiers` uses the managed-only hashed key; enrich, search,
+domain, and personal-status endpoints use the personal/default key. The
+connector does not currently expose either LinkedIn batch endpoint.
 
 ContactOut does not document a per-call charge response header for this endpoint. Deepline billing is therefore locked to the documented response fields: one email credit when any returned email bucket is non-empty, plus one phone credit when a phone bucket is non-empty.
 
 ### contactout_get_hashed_email_identifiers
 
-This action is disabled. ContactOut returns a flat hash list, may return multiple
-hashes for one profile, and does not expose the matched-profile count required
-to charge exactly 4¢ per matched profile. Re-enable it only after ContactOut
-supplies a request-scoped match count or profile-to-hash mapping.
+Converts a batch of 5–100 LinkedIn profile URLs into hashed email identifiers
+for privacy-safe paid-ads audience matching. Use it to raise Meta/Google match
+rates without handling raw personal emails.
+
+ContactOut returns a flat `matches.emails` hash list plus a request-scoped
+`matches_found` count. One matched profile can return several hashes, so the
+hash count is NOT the matched-profile count. Deepline bills one email credit
+per `matches_found`, never per returned hash.
+
+A batch where nothing matches returns HTTP 404 `No hashed emails found`, which
+Deepline maps to an unbilled empty result. Requests with fewer than 5 unique
+profiles are rejected by ContactOut with HTTP 400.
+
+Because the hash list is unattributed, you cannot map a specific hash back to a
+specific input profile. Treat the output as an audience-level hash pool, not as
+per-row enrichment. Managed requests use the dedicated hashed API credential.
 
 ### contactout_check_email_status (FREE convenience helper)
 
