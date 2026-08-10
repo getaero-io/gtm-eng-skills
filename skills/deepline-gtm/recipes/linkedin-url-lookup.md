@@ -34,7 +34,7 @@ deepline tools execute dropleads_search_people --payload '{"filters":{"keywords"
 For batch:
 
 ```bash
-deepline enrich --csv contacts.csv --rows 0:1 --in-place --name linkedin-url-search-pilot \
+deepline enrich --csv contacts.csv --rows 0 --in-place --name linkedin-url-search-pilot \
   --with '{"alias":"li_url","tool":"dropleads_search_people","payload":{"filters":{"keywords":["{{first_name}}","{{last_name}}"],"jobTitles":["{{title}}"]},"pagination":{"page":1,"limit":1}}}'
 ```
 
@@ -71,11 +71,11 @@ For batch:
 
 ```bash
 # Find candidates
-deepline enrich --csv contacts.csv --rows 0:1 --in-place --name linkedin-url-apify-profile \
+deepline enrich --csv contacts.csv --rows 0 --in-place --name linkedin-url-apify-profile \
   --with '{"alias":"li_serper","tool":"serper_google_search","payload":{"query":"\"{{first_name}} {{last_name}}\" \"{{company}}\" site:linkedin.com/in","num":3}}'
 
 # Scrape + name-validate top result
-deepline enrich --csv contacts.csv --rows 0:1 --in-place --name linkedin-url-validate-hit \
+deepline enrich --csv contacts.csv --rows 0 --in-place --name linkedin-url-validate-hit \
   --with '{"alias":"li_validate","tool":"apify_run_actor_sync","payload":{"actorId":"harvestapi/linkedin-profile-scraper","input":{"urls":["{{li_serper_url}}"],},"timeoutMs":90000}}'
 ```
 
@@ -94,7 +94,7 @@ Exa is a weak fallback for name-only lookup (23% validated vs serper's 74% in a 
 Structured people search with company domain context.
 
 ```bash
-deepline enrich --csv contacts.csv --rows 0:1 --in-place --name linkedin-url-commit-candidate \
+deepline enrich --csv contacts.csv --rows 0 --in-place --name linkedin-url-commit-candidate \
   --with '{"alias":"linkedin","tool":"crustdata_people_search","payload":{"companyDomain":"{{domain}}","titleKeywords":["{{title}}"],"limit":1}}'
 ```
 
@@ -162,9 +162,9 @@ python3 scripts/validate-linkedin-names.py --fixtures scripts/fixtures_name_vali
 
 ## Tested actors
 
-| Actor                                 | Use            | Input field                            | Cost                                          |
-| ------------------------------------- | -------------- | -------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `harvestapi/linkedin-profile-scraper` | Profile scrape | `urls` (array)                         | 0.004 USD/profile (4 USD/1k), 0.01 USD with email | 6.3M runs, 100% 30d, 4.8 rating. Returns `firstName`, `lastName`, `headline`, `experience`, `education`, parsed `location`. |
+| Actor                                 | Use            | Input field                            | Cost                                                |
+| ------------------------------------- | -------------- | -------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `harvestapi/linkedin-profile-scraper` | Profile scrape | `urls` (array)                         | 0.004 USD/profile (4 USD/1k), 0.01 USD with email   | 6.3M runs, 100% 30d, 4.8 rating. Returns `firstName`, `lastName`, `headline`, `experience`, `education`, parsed `location`. |
 | `harvestapi/linkedin-profile-posts`   | Posts scrape   | `targetUrls` (array), `maxPosts` (int) | 0.002 USD/post (so 0.04 USD/profile at maxPosts=20) | 6.2M runs, 100% 30d. Rejects `profileUrls` and `postedLimit`.                                                               |
 
 `dev_fusion/Linkedin-Profile-Scraper` has higher weighted reviews (596 vs 114) but returned empty data in testing. `data-slayer/linkedin-profile-scraper` has no reviews. Stick with `harvestapi`.
@@ -177,6 +177,6 @@ python3 scripts/validate-linkedin-names.py --fixtures scripts/fixtures_name_vali
 - Crustdata fourth - ~1 credit, reliable with company domain context.
 - Prospeo fifth - paid, returns LinkedIn + email together.
 - **Name-validate every looked-up URL.** Company/title matching alone is not enough.
-- Pilot on `--rows 0:1` before full batch.
+- Pilot on `--rows 0` before the full batch. Row ranges are inclusive.
 - Extract the `/in/username` slug - strip query params and trailing slashes.
 - Without company context, add role keywords to serper query.

@@ -105,7 +105,7 @@ Play tool: `name-and-domain-to-email-waterfall`
 **Example:**
 
 ```bash
-deepline enrich --input leads.csv --output leads_with_emails.csv --name name-domain-email-pilot --rows 0:1 \
+deepline enrich --input leads.csv --output leads_with_emails.csv --name name-domain-email-pilot --rows 0 \
   --with '{"alias":"email","tool":"name-and-domain-to-email-waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
 ```
 
@@ -135,7 +135,7 @@ Use when contacts have a **standard `/in/`** LinkedIn URL (e.g. from `dropleads_
 **Example:**
 
 ```bash
-deepline enrich --input contacts.csv --output contacts_with_emails.csv --name linkedin-email-pilot --rows 0:1 \
+deepline enrich --input contacts.csv --output contacts_with_emails.csv --name linkedin-email-pilot --rows 0 \
   --with '{"alias":"email","tool":"person-linkedin-to-email","payload":{"linkedin_url":"{{linkedin_url}}"}}'
 ```
 
@@ -151,7 +151,7 @@ Why this play:
 Example:
 
 ```bash
-deepline enrich --input inbound.csv --output inbound_enriched.csv --name email-context-pilot --rows 0:1 \
+deepline enrich --input inbound.csv --output inbound_enriched.csv --name email-context-pilot --rows 0 \
   --with '{"alias":"person_context","tool":"deepline_native_enrich_contact","payload":{"email":"{{email}}"}}'
 ```
 
@@ -198,7 +198,7 @@ Play details:
 Example:
 
 ```bash
-deepline enrich --input contacts.csv --output contacts_with_phones.csv --name contact-phone-pilot --rows 0:1 \
+deepline enrich --input contacts.csv --output contacts_with_phones.csv --name contact-phone-pilot --rows 0 \
   --with '{"alias":"phone_from_contact","tool":"person-to-phone","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}","email":"{{email}}","linkedin_url":"{{linkedin_url}}"}}'
 ```
 
@@ -257,7 +257,7 @@ deepline tools search --categories company_search --search_terms "structured fil
 Example:
 
 ```bash
-deepline enrich --input accounts.csv --output accounts_with_contacts.csv --name company-persona-pilot --rows 0:1 \
+deepline enrich --input accounts.csv --output accounts_with_contacts.csv --name company-persona-pilot --rows 0 \
   --with '{"alias":"role_contacts","tool":"company-to-contact","payload":{"company_name":"{{company_name}}","domain":"{{domain}}","roles":["{{roles}}"],"seniority":"{{seniority}}"}}'
 ```
 
@@ -312,7 +312,7 @@ Routing rule:
 Example:
 
 ```bash
-deepline enrich --input accounts.csv --output accounts_with_domains.csv --name company-domain-resolution-pilot --rows 0:1 \
+deepline enrich --input accounts.csv --output accounts_with_domains.csv --name company-domain-resolution-pilot --rows 0 \
   --with '{"alias":"homepage_search","tool":"serper_google_search","payload":{"query":"\"{{company_name}}\" official site","num":5}}'
 ```
 
@@ -332,7 +332,8 @@ Why this play:
 
 Key waterfall rules:
 
-- Always pilot first with `--rows 0:1`, then scale after the shape looks right.
+- Always pilot first with `--rows 0`, then scale after the shape looks right. Row ranges are inclusive.
+- On an approved paid full run, pass the approved hard cap with `--max-credits-per-run <credits>` so the runtime stops the play before it exceeds that Deepline-credit ceiling.
 - Stop after the pilot if the first rows show low usable coverage, wrong-person/company matches, missing getters, or high cost per recovered value. Change provider order or gates before full fanout.
 - Every waterfall step needs its own `extract_js`. Before writing it: run `deepline tools describe <tool>` and prefer the usage guidance's extracted/list accessors. For raw fallbacks, V2 tool output lives at `toolExecutionResult.toolResponse.raw`; only drill into provider-specific nesting when the tool's own payload truly has a nested field. Use `@path/to/file.js` for multi-line or regex-heavy JS — inline JS in `--with` JSON breaks on escapes.
 - Close each waterfall with `--end-waterfall` before starting another one.
@@ -343,7 +344,7 @@ Key waterfall rules:
 Example:
 
 ```bash
-deepline enrich --input leads.csv --in-place --name manual-email-waterfall-pilot --rows 0:1 \
+deepline enrich --input leads.csv --in-place --name manual-email-waterfall-pilot --rows 0 \
   --with-waterfall "email" \
   --with '{"alias":"dropleads","tool":"dropleads_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company_name}}","company_domain":"{{domain}}"},"extract_js":"(output_data) => extract(\"dropleads_email_finder\", output_data, \"email\")"}' \
   --with '{"alias":"hunter","tool":"hunter_email_finder","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"},"extract_js":"(output_data) => extract(\"hunter_email_finder\", output_data, \"email\")"}' \
@@ -485,21 +486,21 @@ jq -r '."5 interesting facts about a candidate"' .skills/deepline-gtm/prompts.js
 ### Example: inline custom research column with `deeplineagent`
 
 ```bash
-deepline enrich --input accounts.csv --in-place --name account-research-pilot --rows 0:1 \
+deepline enrich --input accounts.csv --in-place --name account-research-pilot --rows 0 \
   --with '{"alias":"account_research","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Research {{company_name}} ({{domain}}). Return JSON with what_they_build and who_they_sell_to. Keep it brief and use Deepline-managed tools only if needed.","jsonSchema":{"type":"object","properties":{"what_they_build":{"type":"string"},"who_they_sell_to":{"type":"string"}},"required":["what_they_build","who_they_sell_to"],"additionalProperties":false}}}'
 ```
 
 ### Example: research pass before writing
 
 ```bash
-deepline enrich --input leads.csv --output leads_researched.csv --name company-research-pilot --rows 0:1 \
+deepline enrich --input leads.csv --output leads_researched.csv --name company-research-pilot --rows 0 \
   --with '{"alias":"company_research","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Research {{company_name}} ({{domain}}). Return JSON with key pain_points for a buyer considering data enrichment, scoring, or GTM workflow tooling. Keep it brief and use Deepline-managed tools only if needed.","jsonSchema":{"type":"object","properties":{"pain_points":{"type":"string"}},"required":["pain_points"],"additionalProperties":false}}}'
 ```
 
 ### Example: classify an existing research column with `deeplineagent`
 
 ```bash
-deepline enrich --input leads_researched.csv --in-place --name account-tier-pilot --rows 0:1 \
+deepline enrich --input leads_researched.csv --in-place --name account-tier-pilot --rows 0 \
   --with '{"alias":"account_tier","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Using only the provided context, classify {{company_name}} into one of: high_fit, medium_fit, low_fit. Context: {{company_research}}","jsonSchema":{"type":"object","properties":{"tier":{"type":"string","enum":["high_fit","medium_fit","low_fit"]},"reason":{"type":"string"}},"required":["tier","reason"],"additionalProperties":false}}}'
 ```
 
@@ -515,14 +516,14 @@ deepline enrich --input leads_researched.csv --in-place --name account-tier-pilo
 ### Example: flatten a structured research field before reuse
 
 ```bash
-deepline enrich --input leads_researched.csv --in-place --name flatten-pain-points --rows 0:1 \
+deepline enrich --input leads_researched.csv --in-place --name flatten-pain-points --rows 0 \
   --with '{"alias":"company_pain_points","tool":"run_javascript","payload":{"code":"const research = row[\"company_research\"]; const extracted = research?.output || research?.extracted_json || research?.result?.object || research; return extracted?.pain_points || null;"}}'
 ```
 
 Then use the flattened scalar in later prompts:
 
 ```bash
-deepline enrich --input leads_researched.csv --in-place --name account-tier-from-pain-points --rows 0:1 \
+deepline enrich --input leads_researched.csv --in-place --name account-tier-from-pain-points --rows 0 \
   --with '{"alias":"account_tier","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Using only the provided context, classify {{company_name}} into one of: high_fit, medium_fit, low_fit. Pain points: {{company_pain_points}}","jsonSchema":{"type":"object","properties":{"tier":{"type":"string","enum":["high_fit","medium_fit","low_fit"]},"reason":{"type":"string"}},"required":["tier","reason"],"additionalProperties":false}}}'
 ```
 
@@ -537,7 +538,7 @@ jq -r '."5 interesting facts about a candidate"' .skills/deepline-gtm/prompts.js
 Then adapt it into a row-level enrich call for research or custom-signal work:
 
 ```bash
-deepline enrich --input contacts.csv --in-place --name candidate-facts-pilot --rows 0:1 \
+deepline enrich --input contacts.csv --in-place --name candidate-facts-pilot --rows 0 \
   --with '{"alias":"candidate_facts","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Using the style of the saved prompt \"5 interesting facts about a candidate\", find five short, source-backed facts about {{full_name}} at {{company_name}}. Use Deepline-managed tools if needed. Return JSON {facts: string[]}.","jsonSchema":{"type":"object","properties":{"facts":{"type":"array","items":{"type":"string"}}},"required":["facts"],"additionalProperties":false}}}'
 ```
 

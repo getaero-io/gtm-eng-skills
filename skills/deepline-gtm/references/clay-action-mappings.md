@@ -370,7 +370,7 @@ Reference structured output fields in downstream passes as `{{col_name.field}}`.
 **Pass 2 — Generation (separate `deepline enrich --in-place` call):**
 
 ```bash
-deepline enrich --input enriched.csv --in-place --rows 0:1 \
+deepline enrich --input enriched.csv --in-place --rows 0 \
   --with '{"alias":"strategic_initiatives","tool":"deeplineagent","payload":{"model":"anthropic/claude-sonnet-4.6","prompt":"<Clay prompt translated>\n\nResearch context:\n{{company_research}}","jsonSchema":{"type":"object","properties":{"top_5_initiatives":{"type":"string"},"top_3_sales_initiatives":{"type":"string"},"top_3_go_to_market_initiatives":{"type":"string"},"new_products":{"type":"string"},"hypothesis_of_potential_challenges":{"type":"string"}},"required":["top_5_initiatives"],"additionalProperties":false}}}'
 ```
 
@@ -558,7 +558,7 @@ Aliases **derive from the actual Clay column name**, not from a fixed list:
 
 | Alias         | Purpose                                                       |
 | ------------- | ------------------------------------------------------------- |
-| `clay_record` | Raw bulk-fetch-records output (run_javascript fetch pass)     |
+| `clay_record` | Raw bulk-fetch-records output loaded by the shell fetch pass  |
 | `fields`      | Flattened clay_record subfields (run_javascript flatten pass) |
 
 **All other aliases come from the Clay schema.** Look up `fields[].name` in `GET /v3/tables/{id}` and snake_case them. Do not invent aliases from any memorized list — if the Clay column is named "Tension Mapping", the alias is `tension_mapping`. If it's named "PVP Messages", it's `pvp_messages`.

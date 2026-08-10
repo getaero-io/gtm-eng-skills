@@ -7,11 +7,11 @@ description: 'Convert a Clay table configuration into local Deepline scripts. Ha
 
 ## Choosing your migration target
 
-| Signal in Clay table                                                    | Target                                                                                                  | Why                                                 |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Batch rows, no triggers, one-time or manual re-runs                     | **Enrich migration** (this recipe)                                                                      | `deepline enrich` scripts, run locally              |
+| Signal in Clay table                                                    | Target                                                                 | Why                                             |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------- |
+| Batch rows, no triggers, one-time or manual re-runs                     | **Enrich migration** (this recipe)                                     | `deepline enrich` scripts, run locally          |
 | Webhook trigger, row routing (`route-row`), CRM writes, campaign pushes | **Custom play migration** → see [deepline-plays.md](deepline-plays.md) | Compose tools/plays with explicit orchestration |
-| Hybrid: batch enrichment + downstream push to CRM/campaign              | **Enrich migration first**, then a **custom play** for the push                         | Split at the enrichment boundary          |
+| Hybrid: batch enrichment + downstream push to CRM/campaign              | **Enrich migration first**, then a **custom play** for the push        | Split at the enrichment boundary                |
 
 Most Clay tables are enrich migrations. This recipe covers that path end-to-end.
 
@@ -57,11 +57,11 @@ Use `classDef` colors: blue = local (`run_javascript`), orange = remote API, gre
 **Column alias rule:** Derive aliases from the actual Clay column name, snake_cased (e.g. "Work Email" → `work_email`). The two structural aliases `clay_record` and `fields` are fixed — all others follow the Clay schema. Do NOT invent names from a memorized list.
 
 ```markdown
-| Pass | Column alias     | Deepline tool                 | Depends on     | Notes                                        |
-| ---- | ---------------- | ----------------------------- | -------------- | -------------------------------------------- |
-| 1    | clay_record      | run_javascript (fetch)        | record_id      | Cookie from env; alias is always clay_record |
-| 2    | fields           | run_javascript (flatten)      | clay_record    | alias is always fields                       |
-| N    | <clay_col_snake> | <see clay-action-mappings.md> | <prior passes> | Alias = snake_case(Clay column name)         |
+| Pass | Column alias     | Deepline tool                 | Depends on     | Notes                                      |
+| ---- | ---------------- | ----------------------------- | -------------- | ------------------------------------------ |
+| 1    | clay_record      | shell fetch (`clay_curl`)     | record_id      | Loaded into the seed CSV before enrichment |
+| 2    | fields           | run_javascript (flatten)      | clay_record    | alias is always fields                     |
+| N    | <clay_col_snake> | <see clay-action-mappings.md> | <prior passes> | Alias = snake_case(Clay column name)       |
 ```
 
 ### 2.4 — Assumptions Log
@@ -98,12 +98,12 @@ for col in d['portableSchema']['columns']:
 
 Check actual cell values across 3+ records before counting AI passes:
 
-| Cell value                              | Meaning                      | How to replicate               |
-| --------------------------------------- | ---------------------------- | ------------------------------ |
-| `NO_CELL`                               | Action never fired           | Build from scratch             |
-| `"Status Code: 200"` / `{"status":200}` | HTTP/webhook action — NOT AI | `run_javascript` fetch or stub |
-| `""` (empty string)                     | Disabled or unfired          | Treat as NO_CELL               |
-| Varied generation-shaped text           | Actual AI output             | `deeplineagent`                |
+| Cell value                              | Meaning                      | How to replicate                      |
+| --------------------------------------- | ---------------------------- | ------------------------------------- |
+| `NO_CELL`                               | Action never fired           | Build from scratch                    |
+| `"Status Code: 200"` / `{"status":200}` | HTTP/webhook action — NOT AI | `generic_http_request` or shell fetch |
+| `""` (empty string)                     | Disabled or unfired          | Treat as NO_CELL                      |
+| Varied generation-shaped text           | Actual AI output             | `deeplineagent`                       |
 
 ---
 
@@ -127,7 +127,7 @@ Answer these **before writing scripts** based on what Phase 1 revealed. Only ans
 
 - [ ] `CLAY_COOKIE` in `.env.deepline` (not hardcoded), single quotes, `.gitignore`d
 - [ ] `output/` in `.gitignore`
-- [ ] All `run_javascript` fetch calls use `process.env.CLAY_COOKIE`
+- [ ] HTTP calls use `generic_http_request` or the generated shell fetch script; `run_javascript` is only for local row transforms
 
 ### Output Files
 
@@ -389,11 +389,11 @@ Use `name-and-domain-to-email-waterfall` as primary play. Accept `valid`, `valid
 
 ### Cookie Security
 
-Always `process.env.CLAY_COOKIE` in JS code. Single quotes in `.env.deepline`. Add `.env.deepline` and `output/` to `.gitignore`.
+Read `CLAY_COOKIE` only in the generated shell script. Single quotes belong in `.env.deepline`. Add `.env.deepline` and `output/` to `.gitignore`. Never place the cookie in an enrich payload.
 
 ### run_javascript
 
-Wrap async in IIFE: `return (async () => { ... })()`. Use string concatenation, not template literals (bash parses backticks). Build `--with` payloads via Python subprocess.
+`run_javascript` does not expose fetch or process.env. Use it for deterministic row transforms only. Route HTTP through `generic_http_request`, or fetch Clay records in `scripts/fetch_<table>.sh` with `clay_curl`. Build `--with` payloads via a JSON-aware tool such as `jq` or a Python subprocess.
 
 ### Clay API Calls
 
@@ -450,7 +450,7 @@ Use this mismatch process: check prompt parity → check model parity → check 
 - **Structured JSON for deeplineagent**: Single invocation per column, all fields in one `jsonSchema`
 - **Separate passes for deps**: A column referenced by `{{xxx}}` must be in a prior enrich call
 - **Python subprocess for payloads**: `python3 -c "import json; print(...)"`
-- **Cookie in env**: Never embed `CLAY_COOKIE` in code — always `process.env.CLAY_COOKIE`
+- **Cookie in env**: Never embed `CLAY_COOKIE` in enrich code or payloads; read it only from `.env.deepline` in the generated shell fetch script
 - **Catch-all is valid**: Accept `valid`, `valid_catch_all`, `catch_all`. NOT `unknown`
 - **Prompts verbatim**: Use exact text from source — small differences cause systematic drift
 
