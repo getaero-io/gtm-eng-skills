@@ -193,6 +193,7 @@ while True:
 | `POST` | `/api/v2/integrations/:toolId/execute` | `executeTool`<br />`executeToolRaw` | Execute one provider-backed tool call through Deepline. | `src/app/api/v2/integrations/execute/route.ts` |
 | `GET` | `/api/v2/integrations/:toolId/get` | `getTool` | Describe one provider-backed tool, including schema, pricing, guidance, and extractors. | `src/app/api/v2/integrations/get/route.ts` |
 | `POST` | `/api/v2/integrations/:toolId/quote` | `quoteInferenceTool` | SDK-facing route. | `src/app/api/v2/integrations/[toolId]/quote/route.ts`<br />`src/lib/deeplineagent/quote-service.ts`<br />`src/lib/deeplineagent/quote.ts` |
+| `POST` | `/api/v2/integrations/connect` | `connectNotificationSlack` | SDK-facing route. | `src/app/api/v2/integrations/connect/route.ts` |
 | `GET` | `/api/v2/integrations/list` | `searchTools` | Compatibility discovery route for integration/tool listing. | `src/app/api/v2/integrations/list/route.ts` |
 | `GET` | `/api/v2/tools` | `listTools` | List callable provider/tool definitions. | `src/app/api/v2/tools/route.ts` |
 | `GET` | `/api/v2/tools/providers` | `listProviders` | SDK-facing route. | `src/app/api/v2/tools/providers/route.ts` |
@@ -285,6 +286,12 @@ while True:
 | `POST` | `/api/v2/monitors/deployed/:key/validate` | `monitors validate` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/validate/route.ts` |
 | `POST` | `/api/v2/monitors/setup` | `monitors deploy (provider-specific post-deploy readback)` | SDK-facing route. | `src/app/api/v2/monitors/setup/[tool]/route.ts` |
 | `GET` | `/api/v2/monitors/tools` | `monitors available` | SDK-facing route. | `src/app/api/v2/monitors/tools/route.ts` |
+| `GET` | `/api/v2/notifications` | `getNotifications` | SDK-facing route. | `src/app/api/v2/notifications/route.ts` |
+| `POST` | `/api/v2/notifications` | `createNotification` | SDK-facing route. | `src/app/api/v2/notifications/route.ts` |
+| `DELETE` | `/api/v2/notifications/:notificationId` | `deleteNotification` | SDK-facing route. | `src/app/api/v2/notifications/[notificationId]/route.ts` |
+| `PATCH` | `/api/v2/notifications/:notificationId` | `updateNotification` | SDK-facing route. | `src/app/api/v2/notifications/[notificationId]/route.ts` |
+| `POST` | `/api/v2/notifications/:notificationId/test` | `testNotification` | SDK-facing route. | `src/app/api/v2/notifications/[notificationId]/test/route.ts` |
+| `GET` | `/api/v2/notifications/slack/channels` | `listNotificationChannels` | SDK-facing route. | `src/app/api/v2/notifications/slack/channels/route.ts` |
 | `DELETE` | `/api/v2/plays/:name/share` | `unpublishSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
 | `GET` | `/api/v2/plays/:name/share` | `getSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
 | `PATCH` | `/api/v2/plays/:name/share` | `updateSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
@@ -296,6 +303,15 @@ while True:
 | `POST` | `/api/v2/secrets` | `secrets set` | SDK-facing route. | `src/app/api/v2/secrets/route.ts` |
 | `DELETE` | `/api/v2/secrets/:id` | `secrets delete` | SDK-facing route. | `src/app/api/v2/secrets/[id]/route.ts` |
 | `POST` | `/api/v2/secrets/:id/test` | `secrets test` | SDK-facing route. | `src/app/api/v2/secrets/[id]/test/route.ts` |
+| `DELETE` | `/api/v2/settings/notifications` | `disableNotificationSlack` | SDK-facing route. | `src/app/api/v2/settings/notifications/route.ts` |
+| `GET` | `/api/v2/settings/notifications` | `getNotificationSettings` | SDK-facing route. | `src/app/api/v2/settings/notifications/route.ts` |
+| `PUT` | `/api/v2/settings/notifications` | `setNotificationSlack` | SDK-facing route. | `src/app/api/v2/settings/notifications/route.ts` |
+| `GET` | `/api/v2/settings/notifications/channels` | `listNotificationSlackChannels` | SDK-facing route. | `src/app/api/v2/settings/notifications/channels/route.ts` |
+| `GET` | `/api/v2/settings/notifications/dlq` | `listNotificationDlq` | SDK-facing route. | `src/app/api/v2/settings/notifications/dlq/route.ts` |
+| `GET` | `/api/v2/settings/notifications/dlq/:deliveryId` | `getNotificationDlqDelivery` | SDK-facing route. | `src/app/api/v2/settings/notifications/dlq/[deliveryId]/route.ts` |
+| `POST` | `/api/v2/settings/notifications/dlq/:deliveryId` | `updateNotificationDlqDelivery` | SDK-facing route. | `src/app/api/v2/settings/notifications/dlq/[deliveryId]/route.ts` |
+| `PATCH` | `/api/v2/settings/notifications/subscriptions` | `setNotificationSubscriptions` | SDK-facing route. | `src/app/api/v2/settings/notifications/subscriptions/route.ts` |
+| `POST` | `/api/v2/settings/notifications/test` | `testNotificationSlack` | SDK-facing route. | `src/app/api/v2/settings/notifications/test/route.ts` |
 
 
 ## Recent Compatible API Changes

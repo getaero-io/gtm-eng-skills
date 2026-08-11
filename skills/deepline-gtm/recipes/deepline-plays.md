@@ -30,6 +30,20 @@ Read budget: normal tasks should use this recipe plus at most one plays referenc
 
 Safe planning-only commands: auth/health/balance, `plays search`, `plays describe`, `tools search`, `tools describe`, `plays check`, `plays bootstrap --help`, and local scaffolding. Do not call `plays run` or provider execution in planning-only mode.
 
+### Trigger notification handoff
+
+After publishing a cron- or webhook-triggered play, verify the product notification path. Do not assume the trigger can report its own failure.
+
+```bash
+deepline notifications list
+deepline notifications events
+deepline notifications slack channels --search pipeline
+deepline notifications add pipeline-watchdog --to slack:#pipeline-alerts --for play.cron.failed
+deepline notifications test pipeline-watchdog
+```
+
+Slack OAuth belongs in Dashboard → Integrations. This CLI only configures named notifications: each one selects a connected provider target and the Play events it receives. Use `deepline notifications list` before editing a rule; do not guess event IDs. Delivery retries and dead-letter handling are bounded internal reliability behavior, not a customer configuration surface.
+
 ## Which Path
 
 | Situation                                                           | First commands                                                                                      | Gate                                                        |
