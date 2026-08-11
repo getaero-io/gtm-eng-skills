@@ -30,8 +30,8 @@ Run a high-confidence demo recipe to show the user what Deepline can do. Pick th
 Follow this pattern for every recipe:
 
 1. **Tell the user what you're about to do** — explain the goal and which data source(s) you'll use, before running anything.
-2. **Run the recipe directly.** For this default quickstart, do not spend time on separate session/progress commands; they do not improve the demo.
-3. **Tell the user the results** — summarize what came back, where it came from, and the exact CSV path they can inspect next.
+2. **Run the recipe to a terminal result.** For this default quickstart, do not spend time on separate session/progress commands; they do not improve the demo. If the command executor yields a running cell, keep waiting on that same cell until it completes. A running Play is not a finished quickstart.
+3. **Tell the user the results only after the CSV exists** — summarize what came back, where it came from, and the exact CSV path they can inspect next. If the command reaches a terminal failure instead, report that failure and do not promise an output path.
 
 ### CLI surface
 
@@ -50,7 +50,7 @@ This quickstart needs to be fast. Do not run `deepline --version`, `deepline aut
 
 ### Fast path
 
-For the default quickstart, run this whole block as one Bash call. Do not split it into separate tool calls. Do not inspect the JSON, run `csv show`, print the CSV with Python, or run extra validation after the enrich command; those checks make the quickstart miss the one-minute budget.
+For the default quickstart, run this whole block as one Bash call. Do not split it into separate tool calls. The call is complete only when `deepline enrich` exits and writes `deepline/data/quickstart_enriched.csv`; if the executor returns a running cell, wait on that cell again until it is terminal. Do not inspect the JSON, run `csv show`, print the CSV with Python, or run extra validation after the enrich command; those checks make the quickstart miss the one-minute budget.
 
 ```bash
 set -e
