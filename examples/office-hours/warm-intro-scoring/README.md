@@ -93,9 +93,11 @@ separate deduplication policy.
 
 `enrich.py` batches unenriched profile URLs through its configured Apify actor,
 polls the actor run, and replaces stored experiences and education records for a
-matched contact. This is live external collection. Review provider terms,
-authorization, privacy purpose, actor schema, cost, and account/platform risk
-before running it. Keep tokens outside the repository.
+matched contact. It updates headline, location, and `enriched_at`; it does not
+replace `Contact.current_company`, so validate the latest experience before
+describing a current employer. This is live external collection. Review provider
+terms, authorization, privacy purpose, actor schema, cost, and account/platform
+risk before running it. Keep tokens outside the repository.
 
 ## CLI
 
@@ -108,8 +110,9 @@ python -m examples.office-hours.warm-intro-scoring.ingest \
   ~/Downloads/Connections.csv \
   --db /tmp/warm-intros.db
 
-# 2. Enrich a reviewed, bounded set of contacts.
-APIFY_TOKEN=... python -m examples.office-hours.warm-intro-scoring.enrich \
+# 2. After loading APIFY_TOKEN from your secret manager or ignored environment,
+# enrich a reviewed, bounded set of contacts.
+python -m examples.office-hours.warm-intro-scoring.enrich \
   --db /tmp/warm-intros.db \
   --limit 100 \
   --batch-size 25

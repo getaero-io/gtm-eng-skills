@@ -47,17 +47,28 @@ flowchart LR
 The local pipeline trusts neither provider-shaped fields nor inferred
 relationships as authority. The relevant threats are:
 
-- **Identity collision.** Name, company, and title are weak identifiers. Only a
-  normalized LinkedIn profile URL or work email may cause an automatic merge;
-  weak collisions are review items.
+- **Identity collision and incomplete remapping.** Name, company, and title are
+  weak identifiers. Valid normalized LinkedIn profile URLs and work emails create
+  automatic merge components; weak collisions are review items. The canonical
+  record retains only one selected LinkedIn URL and work email, and the fixture
+  pipeline does not remap every dependent foreign key from duplicate IDs. Review
+  aliases and dependent records before treating the canonical set as complete.
 - **Fabricated relationship strength.** Same-company names, investor context,
   shared communities, and org proximity do not prove that two people know each
   other. Strong warm-intro classification requires an owner-to-connector
   relationship score and either confirmed-introduction evidence or dated work
   overlap.
+- **Unvalidated path assertions.** `ConnectorEdge.owner_id` is loaded but is not
+  compared with `CampaignConfig.owner_id`. Direct-introduction, relationship,
+  supporting, and proximity evidence strings on connector edges are caller
+  assertions; the fixture pipeline does not verify that they exist in
+  `evidence.csv` or support the described fact. Unsupported strings can therefore
+  add reasons, citations, and score. Cross-check the owner and every path claim
+  against authoritative evidence before approval.
 - **Stale or malicious source data.** Public profiles, CSV exports, and provider
-  payloads can be stale, malformed, or adversarial. Every actionable claim needs
-  a source record or evidence ID and an observation date. `source_metadata_json`
+  payloads can be stale, malformed, or adversarial. Every actionable claim should
+  have a source record or evidence ID and an observation date; not every such
+  reference is enforced as a foreign key by this fixture. `source_metadata_json`
   preserves unknown columns; redact them before ingestion because preservation can
   also retain unexpected personal data. The CSV writer does not neutralize
   spreadsheet formulas, so do not open untrusted values in a spreadsheet without
@@ -232,14 +243,14 @@ globally capped at three.
 | Column | Requirement | Semantics |
 |---|---|---|
 | `edge_id` | Required | Stable owner-to-connector relationship edge ID. |
-| `owner_id` | Required | Campaign owner ID. |
+| `owner_id` | Required | Claimed campaign owner ID. The fixture pipeline does not validate or use this field; production validation must require equality with config `owner_id`. |
 | `connector_id` | Required | Contact ID for the person who might make the introduction. |
 | `relationship_type` | Required | Provenance label such as `former_colleague`, `direct_contact`, `community`, or `investor`. |
 | `relationship_confidence` | Optional, default `unknown` | `low`, `medium`, `high`, or `confirmed`; unknown values earn no relationship points. |
-| `evidence_ids` | Optional tuple | Owner-to-connector evidence IDs. |
+| `evidence_ids` | Optional tuple | Claimed owner-to-connector evidence IDs. The fixture pipeline carries them into path output without checking `evidence.csv`. |
 | `source_record_id` | Optional | Immutable upstream edge ID. |
 | `source_ref` | Optional | Source-system or fixture reference. |
-| `source_metadata_json` | Optional, default `{}` | Must include stage-required `target_id`; may include arrays for `direct_intro_evidence_ids`, `shared_schools`, `shared_cities`, `shared_communities`, `shared_appearances`, `role_overlaps`, `industry_overlaps`, `investor_overlaps`, and `supporting_evidence_ids`. |
+| `source_metadata_json` | Optional, default `{}` | Must include stage-required `target_id`; may include arrays for `direct_intro_evidence_ids`, `shared_schools`, `shared_cities`, `shared_communities`, `shared_appearances`, `role_overlaps`, `industry_overlaps`, `investor_overlaps`, and `supporting_evidence_ids`. These are caller assertions, not fixture-validated evidence foreign keys. |
 
 ### `config.example.json`
 
@@ -271,10 +282,20 @@ The normalization contract is deterministic:
 Actual deduplication examines both strong identifiers and merges their transitive
 connected components. A bridge record sharing a LinkedIn URL with one row and an
 email with another produces one merge group. The lexicographically first
-`contact_id` is retained as the canonical record; normalized LinkedIn/email values
-and the sorted union of `source_record_ids` are preserved. Weak-key matches never
-merge automatically. Invalid strong identifiers and weak collisions are written
-to `contact_dedupe_audit.csv` for review.
+`contact_id` supplies the canonical record's name, company, title, account, source
+reference, and metadata. The canonical record retains the lexicographically first
+normalized LinkedIn URL and email present in the merge component, plus the sorted
+union of `source_record_ids`; it does not retain every strong-ID alias. Weak-key
+matches never merge automatically. An invalid strong ID marks the resulting group
+for review, but the same record can still merge through another valid shared
+identifier. A weak collision remains separate.
+
+The pipeline does not build a duplicate-to-canonical ID map for every downstream
+dataset. Experiences, interactions, org edges, connector edges, and evidence that
+refer to a discarded duplicate `contact_id` are not automatically rewritten. Such
+records may be omitted by later selection or fail a stage lookup. Production
+adapters must resolve aliases and rewrite dependent foreign keys before this run,
+then audit the resulting canonical graph.
 
 `account_id` and every source/evidence ID are supplied by the caller; keep them
 stable across reruns. A warm `path_id` is derived as:
@@ -385,8 +406,9 @@ policy enforcement; they are not provider endorsements.
 PDL is gap-fill, not the source of truth. Every `people_search` authorization must
 receive a `PdlExclusionSet`, including an explicitly empty typed set for a net-new
 account. For an account with known people, the fixture pipeline requires at least
-one normalized weak identity and previews all available LinkedIn URLs, emails, and
-name/company/title identities:
+one normalized weak identity and previews the selected canonical LinkedIn URL,
+selected canonical email, and name/company/title identity for each canonical
+record:
 
 ```json
 {
@@ -411,8 +433,11 @@ name/company/title identities:
 }
 ```
 
-Always apply those exclusions in the provider request itself and deduplicate the
-response again. A local preflight list alone is not an exclusion guarantee.
+Because non-selected strong-ID aliases are not retained on the canonical record,
+this preview is not guaranteed to contain every input alias. Review the raw merge
+groups, add missing aliases to a production exclusion request, apply the exclusions
+in the provider request itself, and deduplicate the response again. A local
+preflight list alone is not an exclusion guarantee.
 
 ## Stage invariants
 
@@ -420,8 +445,11 @@ The pipeline runs eight stages in a fixed order:
 
 1. **`rank_accounts`.** Writes every account and exactly one decision. Explicit
    exclusions override score.
-2. **`dedupe_contacts`.** Merges only transitive strong-ID components. Weak or
-   invalid identity cases remain separate and increase `review_count`.
+2. **`dedupe_contacts`.** Merges transitive valid strong-ID components and emits
+   weak collisions for review. Invalid strong IDs increase `review_count`, but a
+   record may still merge through another valid identifier. Only one normalized
+   LinkedIn/email value is retained per canonical record, and dependent foreign
+   keys are not remapped.
 3. **`prepare_pdl_gapfill`.** Writes previews only for `include` and `review`
    accounts. Open-role nodes are excluded from known-person counts. No request is
    executed.
@@ -434,8 +462,11 @@ The pipeline runs eight stages in a fixed order:
    timestamps, and non-empty evidence IDs. Timestamps are normalized to UTC and
    ordered by instant.
 7. **`score_warm_paths`.** Requires every connector edge to name a valid
-   `target_id`, emits every scored path with component scores/reasons/citations,
-   and sorts by segment, descending total, then path ID.
+   `target_id`, but does not validate `owner_id` or cross-check the edge's direct,
+   relationship, supporting, or proximity evidence strings against
+   `evidence.csv`. Caller assertions can affect the score. The stage emits every
+   path with components/reasons/citations and sorts by segment, descending total,
+   then path ID; manual evidence verification remains mandatory.
 8. **`prepare_direct_outreach`.** Emits a committee target only when its best path
    is absent or `no_strong_path`. Every emitted row starts `approved=false`.
 
@@ -499,7 +530,9 @@ interaction. `direct_introduction` is the derived boolean used by review logic.
 `connector_linkedin_url`), and target fields (`target_id`, `target_name`,
 `target_title`, `target_company`) identify the path. The six `*_score` fields and
 `total_score` expose the equation. `relationship_confidence`, `segment`, and
-`investor_only` expose gates. `reasons` and `evidence_ids` are ordered audit data.
+`investor_only` expose gates. `reasons` and `evidence_ids` are ordered caller/audit
+data; their presence does not prove a matching `evidence.csv` record or supported
+claim.
 
 ### `direct_outreach.csv`
 
@@ -577,10 +610,13 @@ be reclaimed. Dry runs do not consume the live key.
 | Missing required CSV header | Raises `ValueError` naming missing columns before stage output. | Fix the adapter/header; do not synthesize unknown identifiers. |
 | Invalid date, boolean, domain, email, or profile URL | Typed parsing/normalization raises instead of guessing. | Correct the source mapping or route the record to manual review. |
 | Invalid metadata JSON | Raises; unknown metadata is never silently discarded. | Repair/redact the JSON object and rerun into a clean directory. |
-| Weak identity collision or invalid strong ID | Contact remains separate and a dedupe review row is emitted. | Resolve against authoritative evidence; never force a name-only merge. |
+| Weak identity collision | Contacts remain separate and a dedupe review row is emitted. | Resolve against authoritative evidence; never force a name-only merge. |
+| Invalid strong ID | The resulting record/group is marked for review; it may still merge through a different valid shared identifier. | Correct and reconcile every alias before remapping dependent records. |
+| Dependent record uses a discarded duplicate ID | The pipeline does not remap it; a later stage can omit the record or fail lookup. | Rewrite foreign keys through a reviewed duplicate-to-canonical map before running. |
 | Invalid org edge | The org stage rejects the run with the edge ID. | Correct the endpoint/type/confidence or retain it as inferred proximity. |
 | Unsupported interaction source, missing evidence, or naive timestamp | Interaction audit rejects the run. | Map to the fixed enum, add an immutable citation, and provide a timezone-aware timestamp. |
 | Connector edge missing/unknown `target_id` | Path scoring rejects the run with the edge ID. | Repair the foreign key; do not infer the target from a name. |
+| Connector edge has wrong owner or unsupported evidence strings | The fixture may still score the assertions because owner/evidence foreign-key validation is absent. | Compare owner to config and verify every scored assertion/citation manually before approval. |
 | Provider authorization denial | No reservation or call should occur; a stable reason explains the denial. | Review route, exclusions, cache identity, or budget. Never bypass a provider/operation block. |
 | Process exit during fixture write | Earlier artifacts may remain without a complete ledger. | Discard the partial directory, rerun all stages, and verify hashes. |
 | Draft model/API failure | An error row with an empty body is written; later rows continue. | Retry only the reviewed failed path; keep it unapproved until valid. |
@@ -596,10 +632,14 @@ be reclaimed. Dry runs do not consume the live key.
    only cited, minimized fields to the pipeline.
 3. Add durable provider cache, spend, and request ledgers. Route every live call
    through policy authorization; implement PDL exclusions in the request body.
-4. Normalize and deduplicate contacts before gap-fill. Resolve every weak collision
-   manually; never use name-only automation to merge or send.
-5. Validate evidence freshness and org semantics. Confirm reporting lines with a
-   direct source; keep open roles and functional proximity inferred.
+4. Normalize and deduplicate contacts before gap-fill. Resolve every weak collision,
+   preserve all strong-ID aliases, build a reviewed duplicate-to-canonical map, and
+   rewrite every dependent foreign key. Never use name-only automation to merge or
+   send.
+5. Validate evidence freshness and org semantics. Require connector `owner_id` to
+   match campaign config and resolve every claimed path evidence ID to a source that
+   supports the scored fact. Confirm reporting lines with a direct source; keep open
+   roles and functional proximity inferred.
 6. Run the pipeline to a new output directory and compare artifact hashes with any
    prior run. Investigate unexpected changes before drafting.
 7. Export reviewed target-person results through the scoring example's CSV
@@ -612,18 +652,24 @@ be reclaimed. Dry runs do not consume the live key.
 ## Review and activation checklist
 
 - [ ] Every account has one decision and every exclusion reason is expected.
-- [ ] Strong-ID merges are correct; every weak collision is resolved without
-  overwriting source IDs.
-- [ ] Gap-fill requests contain all known LinkedIn, email, and weak-identity
-  exclusions and remain unexecuted until policy authorization.
+- [ ] Strong-ID merges are correct; every weak collision is resolved; selected
+  canonical fields, non-selected aliases, and source IDs have been audited.
+- [ ] Every dependent foreign key has been rewritten through the approved
+  duplicate-to-canonical map; no artifact depends on a discarded contact ID.
+- [ ] Gap-fill requests contain all known LinkedIn/email aliases and weak-identity
+  exclusions, including aliases absent from canonical records, and remain
+  unexecuted until policy authorization.
 - [ ] Each committee title and role classification is relevant to the campaign.
 - [ ] `reports_to_confirmed` edges have direct evidence; inferred edges are not
   described as reporting lines.
 - [ ] Interaction timestamps, participants, source types, and evidence IDs have
   been checked against the source.
-- [ ] Every strong warm path has an owner relationship plus confirmed-introduction
-  or dated-overlap evidence. Proximity-only and investor-only paths are not phrased
-  as personal familiarity.
+- [ ] Every connector edge's `owner_id` equals config `owner_id`; every claimed
+  direct, relationship, supporting, and proximity evidence string resolves to a
+  reviewed source.
+- [ ] Every strong warm path has a verified owner relationship plus verified
+  confirmed-introduction or dated-overlap evidence. Proximity-only and
+  investor-only paths are not phrased as personal familiarity.
 - [ ] Direct-outreach context is cited, current, useful, and non-sensitive.
 - [ ] Provider terms, legal basis, suppression lists, caps, and retention policy
   have been reviewed for this run.
@@ -659,8 +705,25 @@ python3 -m unittest discover -s examples/office-hours/target-account-warm-intro-
 python3 -m unittest discover -s examples/office-hours/warm-intro-ask-threads -p 'test_*.py' -v
 python3 -m py_compile examples/office-hours/warm-intro-scoring/*.py examples/office-hours/warm-intro-ask-threads/*.py examples/office-hours/target-account-warm-intro-campaign/*.py
 git diff --check
+rg -n -i 'bloomberry|crustdata.*linkedin' \
+  examples/office-hours/target-account-warm-intro-campaign \
+  examples/office-hours/warm-intro-scoring \
+  examples/office-hours/warm-intro-ask-threads
+rg -n -i '@(gmail|yahoo|outlook|deepline|getaero)\.' \
+  examples/office-hours/target-account-warm-intro-campaign \
+  examples/office-hours/warm-intro-scoring \
+  examples/office-hours/warm-intro-ask-threads
+rg -n -i '6,484|94 enriched|680 experience|62 credits|869 days|\$1\.09|\$1\.20|stripe|modal|mongodb|google|harness|supaglue|porter|cisco thousandeyes|edges api|manpreet|ron\b|tiffany\b|george xing|carla colindres|spencer aller|mikiko bazeley|charlie vieth|ryan waldorf|cat yu|david siegel|gaurav tungatkar|target [abc]\b|connector [12]\b' \
+  examples/office-hours/warm-intro-scoring/README.md \
+  examples/office-hours/warm-intro-scoring/blog_post.md \
+  examples/office-hours/warm-intro-scoring/slide.html
+rg -n -i 'seniority|connection recency|double (credit|company|stripe|google)|acqui(hire|sition)' \
+  examples/office-hours/warm-intro-scoring/slide.html
 ```
 
-The fixture smoke command above is the final acceptance check. It must report zero
-provider calls and zero spend, decide every input account, and write all nine
-review/ledger artifacts.
+For scans where absence is required, ripgrep exit 1 with no output is success. The
+provider scan should match only explicit blocked-policy documentation, config, and
+tests in these three examples. `tenant-enum` is outside this workflow and retains
+its pre-existing provider note. The fixture smoke command above is the final
+acceptance check. It must report zero provider calls and zero spend, decide every
+input account, and write all nine review/ledger artifacts.

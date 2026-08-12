@@ -99,8 +99,9 @@ python3 -m examples.office-hours.warm-intro-scoring.lookup \
   --csv /tmp/scored_connectors.csv \
   --quiet
 
-# Draft the highest-ranked 20 paths.
-DEEPLINE_API_KEY=... python3 \
+# After loading DEEPLINE_API_KEY from your secret manager or ignored environment,
+# draft the highest-ranked 20 paths.
+python3 \
   examples/office-hours/warm-intro-ask-threads/draft_asks.py \
   --input /tmp/scored_connectors.csv \
   --output /tmp/ask_drafts.csv \
@@ -108,8 +109,9 @@ DEEPLINE_API_KEY=... python3 \
   --verbose
 ```
 
-Do not put API keys in the CSV or commit them. Use the repository's approved
-credential-loading method in a real environment.
+Do not put API keys in the CSV, command line, or shell history. Load them from a
+secret manager or ignored environment before starting the process, and never
+commit the credential source.
 
 ## Mandatory human review
 
@@ -144,8 +146,9 @@ python3 examples/office-hours/warm-intro-ask-threads/send_via_linkedin.py \
   --delay 0 \
   --log-db /tmp/warm-intro-send-log.db
 
-# Live activation. Only explicitly approved rows are loaded.
-DEEPLINE_API_KEY=... python3 \
+# Live activation. Load DEEPLINE_API_KEY from your secret manager or ignored
+# environment first. Only explicitly approved rows are loaded.
+python3 \
   examples/office-hours/warm-intro-ask-threads/send_via_linkedin.py \
   --input /tmp/ask_drafts.csv \
   --limit 5 \

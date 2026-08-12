@@ -112,6 +112,4 @@ The tenant slug is almost always the domain prefix. `shopify.com` → `shopify`.
 
 - `subfinder` and `httpx` are open source, free, install via Homebrew
 - `crt.sh` is a public service, no auth
-- The enumeration tools themselves require no paid API. A company seed list may
-  have separate, provider-specific costs; check current terms and pricing before
-  acquiring one.
+- The only cost is the Bloomberry seed list if you want to start from a known company list (~$0.21/result via [Deepline](https://deepline.com))

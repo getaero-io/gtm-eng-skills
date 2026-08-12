@@ -97,13 +97,20 @@ not become a warm path.
 ## What enrichment changed
 
 Current-company data was useful for narrowing the search, but it was not reliable
-enough for final wording. Some profiles had moved companies. Others had multiple
-roles under legal-name variants. A company-name match sometimes represented a
-shared employer years apart.
+enough for final wording. The example enricher does not replace
+`Contact.current_company`; it updates headline, location, and `enriched_at`, then
+replaces stored experience and education rows. Legacy discovery can therefore
+continue to read the original snapshot company after enrichment.
+
+The added experience evidence may show a later or current role, multiple roles
+under legal-name variants, or a shared employer years apart. Before acting, review
+the most recent dated/current experience and reconcile it with the snapshot. Do not
+describe the enriched experience as a corrected current-company field.
 
 Employment histories changed the workflow in three ways:
 
-- stale current-company rows stopped being presented as current facts;
+- stale current-company snapshots could be challenged by dated experience evidence,
+  but still required manual reconciliation;
 - people who had relevant prior experience became discoverable; and
 - same-company proximity split into dated overlap, missing dates, and explicitly
   non-overlapping dates.
