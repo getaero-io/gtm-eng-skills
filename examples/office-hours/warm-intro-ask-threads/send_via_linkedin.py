@@ -17,6 +17,7 @@ Usage:
 """
 import argparse
 import csv
+import hashlib
 import json
 import os
 import sqlite3
@@ -44,6 +45,7 @@ SEND_DELAY_SECONDS = 90
 DEFAULT_LIMIT = 5
 
 LOG_DB_PATH = "send_log.db"
+CHANNEL = "linkedin"
 
 
 # ── Send log (SQLite) ────────────────────────────────────────────────────────
@@ -71,11 +73,30 @@ def init_log_db(db_path: str) -> sqlite3.Connection:
             message_preview    TEXT NOT NULL,
             status             TEXT NOT NULL,
             apify_run_id       TEXT,
-            error_detail       TEXT
+            error_detail       TEXT,
+            idempotency_key    TEXT
         )
     """)
+    columns = {
+        row["name"] for row in conn.execute("PRAGMA table_info(sends)").fetchall()
+    }
+    if "idempotency_key" not in columns:
+        conn.execute("ALTER TABLE sends ADD COLUMN idempotency_key TEXT")
+    conn.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS sends_idempotency_key_uq
+        ON sends(idempotency_key)
+        WHERE idempotency_key IS NOT NULL
+        """
+    )
     conn.commit()
     return conn
+
+
+def build_idempotency_key(path_id: str, channel: str, message_version: str) -> str:
+    """Build the stable activation identity for one message version."""
+    raw = "|".join((path_id.strip(), channel.strip(), message_version.strip()))
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 def log_send(
@@ -87,6 +108,7 @@ def log_send(
     status: str,
     apify_run_id: Optional[str] = None,
     error_detail: Optional[str] = None,
+    idempotency_key: Optional[str] = None,
 ) -> None:
     """Insert a send record into the log.
 
@@ -99,13 +121,15 @@ def log_send(
         status: "sent", "dry_run", or "error".
         apify_run_id: Apify run ID if available.
         error_detail: Error string if status is "error".
+        idempotency_key: Stable path/channel/version key. It is persisted only for
+            successful live sends so previews and errors remain retryable.
     """
     conn.execute(
         """
         INSERT INTO sends
             (sent_at, connector_linkedin, connector_name, target_name,
-             message_preview, status, apify_run_id, error_detail)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            message_preview, status, apify_run_id, error_detail, idempotency_key)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             datetime.now(timezone.utc).isoformat(),
@@ -116,35 +140,37 @@ def log_send(
             status,
             apify_run_id,
             error_detail,
+            idempotency_key if status == "sent" else None,
         ),
     )
     conn.commit()
 
 
-def already_sent(conn: sqlite3.Connection, connector_linkedin: str) -> bool:
-    """Check if a message was already sent to this LinkedIn URL.
+def already_sent(conn: sqlite3.Connection, idempotency_key: str) -> bool:
+    """Check if this path/channel/message version was already sent.
 
     Args:
         conn: Open sqlite3 connection.
-        connector_linkedin: LinkedIn URL to check.
+        idempotency_key: Stable activation key to check.
 
     Returns:
         True if a successful send is already logged.
     """
     row = conn.execute(
-        "SELECT id FROM sends WHERE connector_linkedin = ? AND status = 'sent' LIMIT 1",
-        (connector_linkedin,),
+        "SELECT id FROM sends WHERE idempotency_key = ? AND status = 'sent' LIMIT 1",
+        (idempotency_key,),
     ).fetchone()
     return row is not None
 
 
 # ── CSV helpers ───────────────────────────────────────────────────────────────
 
-def load_drafts_csv(path: str) -> list[dict]:
+def load_drafts_csv(path: str, require_approved: bool = True) -> list[dict]:
     """Load the ask drafts CSV from draft_asks.py.
 
     Args:
         path: Path to ask_drafts.csv.
+        require_approved: When true, include only rows explicitly marked approved.
 
     Returns:
         List of row dicts.
@@ -163,7 +189,15 @@ def load_drafts_csv(path: str) -> list[dict]:
     if not rows:
         sys.exit(f"Input CSV is empty: {path}")
 
-    required = {"connector_linkedin", "connector_name", "target_name", "draft_body"}
+    required = {
+        "path_id",
+        "connector_linkedin",
+        "connector_name",
+        "target_name",
+        "draft_body",
+        "approved",
+        "message_version",
+    }
     present = set(rows[0].keys())
     missing = required - present
     if missing:
@@ -172,11 +206,20 @@ def load_drafts_csv(path: str) -> list[dict]:
             f"Run draft_asks.py first to generate ask_drafts.csv."
         )
 
-    # Skip rows with empty draft_body (errored during drafting)
-    sendable = [r for r in rows if r.get("draft_body", "").strip()]
+    # Empty or unapproved drafts are never in the live-sendable set.
+    sendable = [
+        row
+        for row in rows
+        if row.get("draft_body", "").strip()
+        and (
+            not require_approved
+            or row.get("approved", "").strip().casefold() == "true"
+        )
+    ]
     skipped = len(rows) - len(sendable)
     if skipped:
-        print(f"Skipping {skipped} rows with empty draft_body (draft errors).")
+        reason = "empty or unapproved drafts" if require_approved else "empty drafts"
+        print(f"Skipping {skipped} {reason}.")
 
     return sendable
 
@@ -328,7 +371,7 @@ def main() -> None:
     parser.add_argument(
         "--skip-sent",
         action="store_true",
-        help="Skip connectors already in send_log.db with status='sent'",
+        help="Deprecated compatibility flag; duplicate message versions are always skipped",
     )
     parser.add_argument(
         "--log-db",
@@ -356,7 +399,7 @@ def main() -> None:
         )
 
     api_key = resolve_api_key(args.api_key) if not args.dry_run else "dry-run"
-    rows = load_drafts_csv(args.input)
+    rows = load_drafts_csv(args.input, require_approved=not args.dry_run)
     log_conn = init_log_db(args.log_db)
 
     print(f"Loaded {len(rows)} sendable drafts from {args.input}")
@@ -375,10 +418,13 @@ def main() -> None:
         connector_name = row["connector_name"].strip()
         target_name = row["target_name"].strip()
         message_body = row["draft_body"].strip()
+        idempotency_key = build_idempotency_key(
+            row["path_id"], CHANNEL, row["message_version"]
+        )
         preview = message_body[:80].replace("\n", " ")
 
-        if args.skip_sent and already_sent(log_conn, connector_linkedin):
-            print(f"  SKIP (already sent): {connector_name}")
+        if already_sent(log_conn, idempotency_key):
+            print(f"  SKIP (message version already sent): {connector_name}")
             skipped_count += 1
             continue
 
@@ -395,6 +441,7 @@ def main() -> None:
                 target_name=target_name,
                 message_preview=preview,
                 status="dry_run",
+                idempotency_key=idempotency_key,
             )
             sent_count += 1
             print()
@@ -418,6 +465,7 @@ def main() -> None:
                 message_preview=preview,
                 status="sent",
                 apify_run_id=run_id,
+                idempotency_key=idempotency_key,
             )
             sent_count += 1
 
@@ -431,6 +479,7 @@ def main() -> None:
                 message_preview=preview,
                 status="error",
                 error_detail=str(exc)[:500],
+                idempotency_key=idempotency_key,
             )
 
         print()
