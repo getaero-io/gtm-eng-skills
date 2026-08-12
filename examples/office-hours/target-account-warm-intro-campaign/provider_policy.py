@@ -7,7 +7,7 @@ import threading
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
-from typing import Mapping, Sequence
+from typing import Callable, Mapping, Sequence
 
 from schemas import ContactRecord, normalize_email, normalize_linkedin_url, normalized_identity
 
@@ -64,6 +64,7 @@ class ProviderPolicy:
         self._reserved_provider_spend: dict[str, Decimal] = {}
         self._reserved_campaign_spend = Decimal("0")
         self._lock = threading.RLock()
+        self._before_reservation_hook: Callable[[], None] | None = None
 
     @classmethod
     def from_config(cls, config: Mapping[str, object]) -> "ProviderPolicy":
@@ -129,7 +130,11 @@ class ProviderPolicy:
                 reason = "blocked_operation"
             elif self.provider_routes.get(normalized_operation) != normalized_provider:
                 reason = "wrong_provider"
-            elif normalized_provider == "pdl" and normalized_operation == "people_search" and pdl_exclusions is None:
+            elif (
+                normalized_provider == "pdl"
+                and normalized_operation == "people_search"
+                and not isinstance(pdl_exclusions, PdlExclusionSet)
+            ):
                 reason = "missing_exclusions"
             elif (
                 cache_key in self._cache_keys
@@ -156,6 +161,8 @@ class ProviderPolicy:
                 authorization_id=reservation_id,
             )
             if decision.allowed:
+                if self._before_reservation_hook is not None:
+                    self._before_reservation_hook()
                 self._reservations[reservation_id] = decision
                 self._reserved_provider_spend[normalized_provider] = self._reserved_provider_spend.get(
                     normalized_provider, Decimal("0")

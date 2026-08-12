@@ -101,6 +101,12 @@ class ProviderPolicyTests(unittest.TestCase):
             ).reason,
             "missing_exclusions",
         )
+        self.assertEqual(
+            self.policy.authorize(
+                "pdl", "people_search", "account:wrong-type", Decimal("0.10"), pdl_exclusions=()
+            ).reason,
+            "missing_exclusions",
+        )
         self.assertTrue(
             self.policy.authorize(
                 "pdl",
@@ -164,7 +170,7 @@ class ProviderPolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "campaign cap"):
             campaign_policy.record_call(campaign_first, actual_cost_usd=Decimal("1.01"))
 
-    def test_concurrent_authorizations_reserve_only_one_provider_cap_slot(self):
+    def test_lock_prevents_two_callers_from_passing_checked_headroom_boundary(self):
         policy = ProviderPolicy.from_config(
             {
                 "provider_routes": {"people_search": "pdl"},
@@ -172,29 +178,55 @@ class ProviderPolicyTests(unittest.TestCase):
                 "campaign_cap": "1.00",
             }
         )
-        barrier = threading.Barrier(2)
+        first_at_boundary = threading.Event()
+        second_at_boundary = threading.Event()
+        release_boundary = threading.Event()
         decisions = []
+        decisions_lock = threading.Lock()
+        boundary_calls = 0
+
+        def pause_before_reservation() -> None:
+            nonlocal boundary_calls
+            with decisions_lock:
+                boundary_calls += 1
+                if boundary_calls == 1:
+                    first_at_boundary.set()
+                else:
+                    second_at_boundary.set()
+            release_boundary.wait(timeout=1)
+
+        policy._before_reservation_hook = pause_before_reservation
 
         def authorize(cache_key: str) -> None:
-            barrier.wait()
-            decisions.append(
-                policy.authorize(
-                    "pdl",
-                    "people_search",
-                    cache_key,
-                    Decimal("0.60"),
-                    pdl_exclusions=PdlExclusionSet((), (), ()),
-                )
+            decision = policy.authorize(
+                "pdl",
+                "people_search",
+                cache_key,
+                Decimal("0.60"),
+                pdl_exclusions=PdlExclusionSet((), (), ()),
             )
+            with decisions_lock:
+                decisions.append(decision)
 
-        threads = [threading.Thread(target=authorize, args=(f"account:{index}",)) for index in range(2)]
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join()
+        first = threading.Thread(target=authorize, args=("account:first",))
+        second = threading.Thread(target=authorize, args=("account:second",))
+        first.start()
+        self.assertTrue(first_at_boundary.wait(timeout=1))
+        second.start()
+        try:
+            self.assertFalse(second_at_boundary.wait(timeout=0.1))
+        finally:
+            release_boundary.set()
+        first.join(timeout=1)
+        second.join(timeout=1)
 
+        self.assertFalse(first.is_alive())
+        self.assertFalse(second.is_alive())
         self.assertEqual(sum(decision.allowed for decision in decisions), 1)
         self.assertEqual(sum(decision.reason == "provider_cap" for decision in decisions), 1)
+
+        # Without the lock, both calls reach the hook only after independently
+        # observing available headroom, making `second_at_boundary` true above.
 
     def test_pdl_exclusions_normalize_and_sort_known_identifiers(self):
         exclusions = build_pdl_exclusions(
