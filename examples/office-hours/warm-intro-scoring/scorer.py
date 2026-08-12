@@ -19,6 +19,11 @@ class WarmIntroScorer:
     WEIGHT_ROLE_OVERLAP = 15.0
     WEIGHT_RECENCY = 5.0
     WEIGHT_SHARED_APPEARANCE = 40.0  # Strong signal - same podcast/event
+    WEIGHT_DIRECT_INTRO = 100.0
+    WEIGHT_VERIFIED_WORK_OVERLAP = 50.0
+    WEIGHT_SCHOOL_CITY_COMMUNITY = 20.0
+    WEIGHT_ROLE_INDUSTRY = 10.0
+    MAX_INVESTOR_SCORE = 3.0
 
     # Common company suffixes to strip during normalization
     COMPANY_SUFFIXES = [
@@ -299,7 +304,7 @@ class WarmIntroScorer:
             "high": 15.0,
             "confirmed": 15.0,
         }.get(confidence, 0.0)
-        direct_intro_score = 60.0 if direct_intro_evidence_ids else 0.0
+        direct_intro_score = self.WEIGHT_DIRECT_INTRO if direct_intro_evidence_ids else 0.0
 
         overlaps: list[tuple[Experience, Experience, date, date]] = []
         company_proximities: set[str] = set()
@@ -308,6 +313,10 @@ class WarmIntroScorer:
                 if not self.company_matches(connector_role.company_name, target_role.company_name):
                     continue
                 company_proximities.add(connector_role.company_name)
+                if self.normalize_company(connector_role.company_name) != self.normalize_company(
+                    target_role.company_name
+                ):
+                    continue
                 if connector_role.start_date is None or target_role.start_date is None:
                     continue
                 connector_end = connector_role.end_date or (
@@ -325,15 +334,21 @@ class WarmIntroScorer:
                         (connector_role, target_role, overlap_start, overlap_end)
                     )
 
-        work_overlap_score = 50.0 if overlaps else 0.0
+        work_overlap_score = self.WEIGHT_VERIFIED_WORK_OVERLAP if overlaps else 0.0
         community_values = tuple(
             dict.fromkeys(
                 (*shared_schools, *shared_cities, *shared_communities, *shared_appearances)
             )
         )
-        school_city_community_score = float(min(len(community_values) * 5, 20))
-        role_industry_score = float(min(len(set(role_industry_matches)) * 5, 10))
-        investor_score = float(min(len(set(investor_overlaps)), 3))
+        school_city_community_score = float(
+            min(len(community_values) * 5, self.WEIGHT_SCHOOL_CITY_COMMUNITY)
+        )
+        role_industry_score = float(
+            min(len(set(role_industry_matches)) * 5, self.WEIGHT_ROLE_INDUSTRY)
+        )
+        investor_score = float(
+            min(len(set(investor_overlaps)), self.MAX_INVESTOR_SCORE)
+        )
 
         reasons: list[str] = []
         if direct_intro_score:

@@ -104,10 +104,46 @@ def employment_overlap(
 
 
 _RELATIONSHIP_SCORES = {"low": 1, "medium": 2, "high": 3, "confirmed": 3}
+_DEFAULT_PATH_WEIGHTS = {
+    "direct_intro": 40,
+    "work_overlap": 20,
+    "school_city_community": 8,
+    "role_industry": 4,
+    "investor": 3,
+    "relationship": 3,
+}
+_FACTUAL_TIERS = (
+    "direct_intro",
+    "work_overlap",
+    "school_city_community",
+    "role_industry",
+    "investor",
+)
 
 
-def _weight(config: CampaignConfig, name: str, default: int) -> int:
-    return max(0, int(config.score_weights.get(name, default)))
+def _path_weights(config: CampaignConfig) -> dict[str, int]:
+    weights = {
+        name: int(config.score_weights.get(name, default))
+        for name, default in _DEFAULT_PATH_WEIGHTS.items()
+    }
+    negative = tuple(name for name, value in weights.items() if value < 0)
+    if negative:
+        raise ValueError(
+            "invalid path score weights: negative values are not allowed for "
+            + ", ".join(negative)
+        )
+    if weights["investor"] > 3:
+        raise ValueError("invalid path score weights: investor must be capped at 3")
+
+    for index, tier in enumerate(_FACTUAL_TIERS[:-1]):
+        lower_maximum = sum(weights[name] for name in _FACTUAL_TIERS[index + 1 :])
+        if weights[tier] <= lower_maximum:
+            raise ValueError(
+                "invalid path score weights: "
+                f"{tier} ({weights[tier]}) must exceed the combined lower-tier maximum "
+                f"({lower_maximum})"
+            )
+    return weights
 
 
 def _path_id(
@@ -126,20 +162,22 @@ def score_warm_path(
     config: CampaignConfig,
 ) -> PathScore:
     """Score a single owner-to-connector-to-target path from cited evidence."""
+    weights = _path_weights(config)
     direct_intro_score = 0
     reasons: list[str] = []
     if evidence.direct_intro_evidence_ids:
-        direct_intro_score = _weight(config, "direct_intro", 12)
+        direct_intro_score = weights["direct_intro"]
         reasons.append("confirmed_direct_introduction")
 
     relationship_confidence = evidence.relationship_confidence.strip().casefold()
     relationship_score = _RELATIONSHIP_SCORES.get(relationship_confidence, 0)
     if relationship_score:
-        configured_maximum = _weight(config, "relationship", 3)
+        configured_maximum = weights["relationship"]
         relationship_score = min(relationship_score, configured_maximum)
 
     overlap_records: list[tuple[EmploymentOverlap, ExperienceRecord, ExperienceRecord]] = []
     undated_records: list[tuple[ExperienceRecord, ExperienceRecord]] = []
+    non_overlapping_records: list[tuple[ExperienceRecord, ExperienceRecord]] = []
     for connector_role in evidence.connector_experiences:
         for target_role in evidence.target_experiences:
             if not _normalize_company(connector_role.company) or (
@@ -157,8 +195,10 @@ def score_warm_path(
                 or (target_role.end_date is None and not target_role.is_current)
             ):
                 undated_records.append((connector_role, target_role))
+            else:
+                non_overlapping_records.append((connector_role, target_role))
 
-    work_overlap_score = _weight(config, "work_overlap", 8) if overlap_records else 0
+    work_overlap_score = weights["work_overlap"] if overlap_records else 0
     for overlap, _, _ in overlap_records:
         reasons.append(
             "dated_work_overlap:"
@@ -167,6 +207,11 @@ def score_warm_path(
     undated_companies = {connector_role.company.strip() for connector_role, _ in undated_records}
     for company in sorted(undated_companies, key=str.casefold):
         reasons.append(f"company_proximity:{company}:missing_dates")
+    non_overlapping_companies = {
+        connector_role.company.strip() for connector_role, _ in non_overlapping_records
+    }
+    for company in sorted(non_overlapping_companies, key=str.casefold):
+        reasons.append(f"company_proximity:{company}:non_overlapping_dates")
     if relationship_score:
         reasons.append(f"owner_connector_relationship:{relationship_confidence}")
 
@@ -178,6 +223,11 @@ def score_warm_path(
     contributing_roles.extend(
         role
         for connector_role, target_role in undated_records
+        for role in (connector_role, target_role)
+    )
+    contributing_roles.extend(
+        role
+        for connector_role, target_role in non_overlapping_records
         for role in (connector_role, target_role)
     )
     experience_evidence_ids = {
@@ -205,15 +255,15 @@ def score_warm_path(
 
     school_city_community_score = min(
         len(set(community_signals)),
-        _weight(config, "school_city_community", 4),
+        weights["school_city_community"],
     )
     role_industry_score = min(
         len(set(role_industry_signals)),
-        _weight(config, "role_industry", 2),
+        weights["role_industry"],
     )
     investor_score = min(
         len(set(investor_signals)),
-        _weight(config, "investor", 3),
+        weights["investor"],
         3,
     )
 

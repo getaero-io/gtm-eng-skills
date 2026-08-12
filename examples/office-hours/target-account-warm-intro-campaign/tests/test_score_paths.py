@@ -7,9 +7,12 @@ import io
 import sys
 import types
 import unittest
+from contextlib import redirect_stdout
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 
 PACKAGE_DIR = Path(__file__).resolve().parents[1]
@@ -24,13 +27,13 @@ from score_paths import (  # noqa: E402
 )
 
 
-def campaign_config() -> CampaignConfig:
+def campaign_config(score_weights=None) -> CampaignConfig:
     return CampaignConfig(
         campaign_id="test-campaign",
         owner_id="owner",
         as_of=date(2026, 8, 12),
         title_catalog={},
-        score_weights={},
+        score_weights=score_weights or {},
         segment_thresholds={},
         exclusions={},
         provider_routes={},
@@ -168,6 +171,87 @@ class EmploymentOverlapTests(unittest.TestCase):
 
 
 class WarmPathScoreTests(unittest.TestCase):
+    def test_default_path_weights_preserve_hierarchy_over_all_lower_tiers(self):
+        score = score_warm_path(
+            CONNECTOR,
+            TARGET,
+            PathEvidence(
+                direct_intro_evidence_ids=("intro-1",),
+                connector_experiences=(
+                    ExperienceRecord(
+                        "connector-role",
+                        CONNECTOR.contact_id,
+                        "Northstar AI",
+                        "Revenue Systems Lead",
+                        start_date=date(2021, 1, 1),
+                        end_date=date(2024, 1, 1),
+                    ),
+                ),
+                target_experiences=(
+                    ExperienceRecord(
+                        "target-role",
+                        TARGET.contact_id,
+                        "Northstar AI",
+                        "Head of GTM Engineering",
+                        start_date=date(2022, 1, 1),
+                        is_current=True,
+                    ),
+                ),
+                shared_schools=tuple(f"School {number}" for number in range(8)),
+                role_overlaps=tuple(f"Role {number}" for number in range(4)),
+                investor_overlaps=tuple(f"Fund {number}" for number in range(4)),
+                relationship_confidence="high",
+            ),
+            campaign_config(),
+        )
+
+        self.assertGreater(
+            score.direct_intro_score,
+            score.work_overlap_score
+            + score.school_city_community_score
+            + score.role_industry_score
+            + score.investor_score,
+        )
+        self.assertGreater(
+            score.work_overlap_score,
+            score.school_city_community_score
+            + score.role_industry_score
+            + score.investor_score,
+        )
+        self.assertGreater(
+            score.school_city_community_score,
+            score.role_industry_score + score.investor_score,
+        )
+        self.assertGreater(score.role_industry_score, score.investor_score)
+
+    def test_hostile_path_weights_cannot_invert_combined_tier_hierarchy(self):
+        invalid_weights = (
+            {
+                "direct_intro": 30,
+                "work_overlap": 20,
+                "school_city_community": 8,
+                "role_industry": 4,
+                "investor": 3,
+            },
+            {
+                "direct_intro": 50,
+                "work_overlap": 20,
+                "school_city_community": 15,
+                "role_industry": 4,
+                "investor": 3,
+            },
+        )
+
+        for weights in invalid_weights:
+            with self.subTest(weights=weights):
+                with self.assertRaisesRegex(ValueError, "combined lower-tier maximum"):
+                    score_warm_path(
+                        CONNECTOR,
+                        TARGET,
+                        PathEvidence(direct_intro_evidence_ids=("intro-1",)),
+                        campaign_config(weights),
+                    )
+
     def test_confirmed_direct_intro_carries_target_metadata_and_evidence(self):
         score = score_warm_path(
             CONNECTOR,
@@ -280,6 +364,40 @@ class WarmPathScoreTests(unittest.TestCase):
 
         self.assertEqual(score.work_overlap_score, 0)
         self.assertIn("company_proximity:Northstar AI:missing_dates", score.reasons)
+        self.assertEqual(segment_path(score, campaign_config()), "review_warm_intro")
+
+    def test_same_employer_non_overlapping_dates_route_to_review_without_work_points(self):
+        score = score_warm_path(
+            CONNECTOR,
+            TARGET,
+            PathEvidence(
+                connector_experiences=(
+                    ExperienceRecord(
+                        "connector-former",
+                        CONNECTOR.contact_id,
+                        "Northstar AI",
+                        "Revenue Systems Lead",
+                        start_date=date(2018, 1, 1),
+                        end_date=date(2020, 12, 31),
+                    ),
+                ),
+                target_experiences=(
+                    ExperienceRecord(
+                        "target-later",
+                        TARGET.contact_id,
+                        "Northstar AI",
+                        "Head of GTM Engineering",
+                        start_date=date(2021, 1, 1),
+                        end_date=date(2024, 1, 1),
+                    ),
+                ),
+                relationship_confidence="medium",
+            ),
+            campaign_config(),
+        )
+
+        self.assertEqual(score.work_overlap_score, 0)
+        self.assertIn("company_proximity:Northstar AI:non_overlapping_dates", score.reasons)
         self.assertEqual(segment_path(score, campaign_config()), "review_warm_intro")
 
     def test_ancillary_signals_rank_below_dated_work_and_investor_is_capped(self):
@@ -400,7 +518,150 @@ class LegacyCsvExportTests(unittest.TestCase):
         self.assertNotIn("\r\n", output.getvalue())
 
 
+class LegacyCliTests(unittest.TestCase):
+    def test_csv_supplements_human_output_and_quiet_suppresses_it(self):
+        lookup_module, models, _ = load_legacy_lookup()
+        real_lookup_class = lookup_module.WarmIntroLookup
+        match = models.WarmIntroMatch(
+            contact=models.Contact(
+                "connector",
+                "Casey",
+                "Morgan",
+                "linkedin.com/in/casey",
+                current_company="Relay Cloud",
+            ),
+            score=10,
+            path_id="path-connector",
+            shared_signal="company_proximity",
+            shared_detail="Northstar AI; dates require review",
+            segment="review_warm_intro",
+            evidence_ids=("company-1",),
+        )
+
+        class FakeDB:
+            def __init__(self, path):
+                self.path = path
+
+            def init(self):
+                return None
+
+            def get_contact_count(self):
+                return 1
+
+            def get_enriched_count(self):
+                return 1
+
+            def close(self):
+                return None
+
+        class FakeLookup:
+            CSV_FIELDNAMES = real_lookup_class.CSV_FIELDNAMES
+
+            def __init__(self, db):
+                self.db = db
+
+            def search(self, **kwargs):
+                return [match]
+
+            def export_csv(self, *args, **kwargs):
+                return real_lookup_class.export_csv(self, *args, **kwargs)
+
+            def print_results(self, *args, **kwargs):
+                return real_lookup_class.print_results(self, *args, **kwargs)
+
+        with TemporaryDirectory() as directory:
+            output_dir = Path(directory)
+            normal_csv = output_dir / "normal.csv"
+            quiet_csv = output_dir / "quiet.csv"
+            base_args = [
+                "lookup.py",
+                "--company",
+                "Northstar AI",
+                "--target-name",
+                "Taylor Kim",
+                "--target-title",
+                "Head of GTM Engineering",
+            ]
+
+            with (
+                patch.object(lookup_module, "WarmIntroDB", FakeDB),
+                patch.object(lookup_module, "WarmIntroLookup", FakeLookup),
+            ):
+                human_output = io.StringIO()
+                with patch.object(sys, "argv", [*base_args, "--csv", str(normal_csv)]):
+                    with redirect_stdout(human_output):
+                        self.assertEqual(lookup_module.main(), 0)
+
+                quiet_output = io.StringIO()
+                with patch.object(
+                    sys,
+                    "argv",
+                    [*base_args, "--csv", str(quiet_csv), "--quiet"],
+                ):
+                    with redirect_stdout(quiet_output):
+                        self.assertEqual(lookup_module.main(), 0)
+
+            self.assertIn("Database: 1 contacts (1 enriched)", human_output.getvalue())
+            self.assertIn("Found 1 match(es)", human_output.getvalue())
+            self.assertIn("Casey Morgan", human_output.getvalue())
+            self.assertEqual(quiet_output.getvalue(), "")
+            self.assertEqual(normal_csv.read_bytes(), quiet_csv.read_bytes())
+            self.assertIn(b"path-connector,Casey Morgan", normal_csv.read_bytes())
+
+
 class LegacyScorerCompatibilityTests(unittest.TestCase):
+    def test_target_scorer_direct_intro_outranks_all_combined_lower_tiers(self):
+        _, models, scorer_module = load_legacy_lookup()
+        connector = models.Contact(
+            "connector", "Casey", "Morgan", "linkedin.com/in/casey"
+        )
+        target = models.Contact(
+            "target",
+            "Taylor",
+            "Kim",
+            "linkedin.com/in/taylor",
+            current_company="Northstar AI",
+        )
+        scorer = scorer_module.WarmIntroScorer()
+        direct = scorer.score_target_connector(
+            connector,
+            [],
+            target,
+            [],
+            relationship_confidence="high",
+            direct_intro_evidence_ids=("intro-1",),
+        )
+        combined_lower_tiers = scorer.score_target_connector(
+            connector,
+            [
+                models.Experience(
+                    "connector-role",
+                    connector.id,
+                    "Northstar AI",
+                    start_date=date(2021, 1, 1),
+                    end_date=date(2024, 1, 1),
+                )
+            ],
+            target,
+            [
+                models.Experience(
+                    "target-role",
+                    target.id,
+                    "Northstar AI, Inc.",
+                    start_date=date(2022, 1, 1),
+                    is_current=True,
+                )
+            ],
+            relationship_confidence="high",
+            shared_schools=tuple(f"School {number}" for number in range(5)),
+            shared_cities=tuple(f"City {number}" for number in range(5)),
+            role_industry_matches=tuple(f"Role {number}" for number in range(5)),
+            investor_overlaps=tuple(f"Fund {number}" for number in range(5)),
+            as_of=date(2026, 8, 12),
+        )
+
+        self.assertGreater(direct.total_score, combined_lower_tiers.total_score)
+
     def test_original_company_lookup_labels_name_match_as_proximity(self):
         _, models, scorer_module = load_legacy_lookup()
         connector = models.Contact(
@@ -480,6 +741,53 @@ class LegacyScorerCompatibilityTests(unittest.TestCase):
             match.evidence_ids,
             ("connector-role", "relationship-1", "target-role"),
         )
+
+    def test_fuzzy_employer_match_is_proximity_not_verified_overlap(self):
+        _, models, scorer_module = load_legacy_lookup()
+        connector = models.Contact(
+            "connector",
+            "Casey",
+            "Morgan",
+            "linkedin.com/in/casey",
+            current_company="Relay Cloud",
+        )
+        target = models.Contact(
+            "target",
+            "Taylor",
+            "Kim",
+            "linkedin.com/in/taylor",
+            current_company="Acme Security",
+        )
+
+        match = scorer_module.WarmIntroScorer().score_target_connector(
+            connector=connector,
+            connector_experiences=[
+                models.Experience(
+                    "connector-acme",
+                    connector.id,
+                    "Acme",
+                    start_date=date(2021, 1, 1),
+                    end_date=date(2024, 1, 1),
+                )
+            ],
+            target=target,
+            target_experiences=[
+                models.Experience(
+                    "target-acme-security",
+                    target.id,
+                    "Acme Security",
+                    start_date=date(2022, 1, 1),
+                    end_date=date(2023, 1, 1),
+                )
+            ],
+            relationship_confidence="high",
+            as_of=date(2026, 8, 12),
+        )
+
+        self.assertEqual(match.work_overlap_score, 0)
+        self.assertEqual(match.shared_signal, "company_proximity")
+        self.assertEqual(match.segment, "review_warm_intro")
+        self.assertFalse(any("verified_work_overlap" in reason for reason in match.reasons))
 
 
 if __name__ == "__main__":
