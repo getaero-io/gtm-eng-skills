@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import threading
 import unittest
 from decimal import Decimal
 from pathlib import Path
@@ -30,16 +31,30 @@ class ProviderPolicyTests(unittest.TestCase):
         self.assertTrue(self.policy.is_blocked("crustdata", "linkedin_person_posts"))
 
     def test_paid_call_requires_budget_and_cache_miss(self):
-        decision = self.policy.authorize("pdl", "people_search", "account:northstar", Decimal("0.40"))
+        decision = self.policy.authorize(
+            "pdl",
+            "people_search",
+            "account:northstar",
+            Decimal("0.40"),
+            pdl_exclusions=PdlExclusionSet((), (), ()),
+        )
         self.assertTrue(decision.allowed)
         self.assertEqual(decision.reason, "allowed")
         self.policy.record_call(decision, actual_cost_usd=Decimal("0.40"))
-        cached = self.policy.authorize("pdl", "people_search", "account:northstar", Decimal("0.40"))
+        cached = self.policy.authorize(
+            "pdl",
+            "people_search",
+            "account:northstar",
+            Decimal("0.40"),
+            pdl_exclusions=PdlExclusionSet((), (), ()),
+        )
         self.assertFalse(cached.allowed)
         self.assertEqual(cached.reason, "cache_hit")
 
     def test_authorization_reports_provider_and_campaign_caps(self):
-        provider_cap = self.policy.authorize("pdl", "people_search", "account:costly", Decimal("1.01"))
+        provider_cap = self.policy.authorize(
+            "pdl", "people_search", "account:costly", Decimal("1.01"), pdl_exclusions=PdlExclusionSet((), (), ())
+        )
         campaign_cap = self.policy.authorize("public_web", "web_search", "account:costly", Decimal("5.01"))
 
         self.assertEqual(provider_cap.reason, "provider_cap")
@@ -53,7 +68,7 @@ class ProviderPolicyTests(unittest.TestCase):
             "blocked_operation",
         )
 
-    def test_authorization_rejects_unrouted_provider_and_missing_pdl_exclusions(self):
+    def test_authorization_rejects_unrouted_provider_and_requires_explicit_pdl_exclusions(self):
         self.assertEqual(
             self.policy.authorize("apify", "company_jobs", "account:jobs", Decimal("0.10")).reason,
             "wrong_provider",
@@ -66,9 +81,8 @@ class ProviderPolicyTests(unittest.TestCase):
             self.policy.authorize(
                 "pdl",
                 "people_search",
-                "account:known",
+                "account:omitted",
                 Decimal("0.10"),
-                known_contact_count=1,
             ).reason,
             "missing_exclusions",
         )
@@ -76,10 +90,24 @@ class ProviderPolicyTests(unittest.TestCase):
             self.policy.authorize(
                 "pdl",
                 "people_search",
-                "account:new",
+                "account:empty",
                 Decimal("0.10"),
                 pdl_exclusions=PdlExclusionSet((), (), ()),
-                known_contact_count=0,
+            ).allowed
+        )
+        self.assertEqual(
+            self.policy.authorize(
+                "pdl", "people_search", "account:none", Decimal("0.10"), pdl_exclusions=None
+            ).reason,
+            "missing_exclusions",
+        )
+        self.assertTrue(
+            self.policy.authorize(
+                "pdl",
+                "people_search",
+                "account:known",
+                Decimal("0.10"),
+                pdl_exclusions=PdlExclusionSet(("linkedin.com/in/alex",), (), ()),
             ).allowed
         )
 
@@ -98,7 +126,6 @@ class ProviderPolicyTests(unittest.TestCase):
             "account:first",
             Decimal("0.60"),
             pdl_exclusions=exclusions,
-            known_contact_count=0,
         )
         second = policy.authorize(
             "pdl",
@@ -106,7 +133,6 @@ class ProviderPolicyTests(unittest.TestCase):
             "account:second",
             Decimal("0.60"),
             pdl_exclusions=exclusions,
-            known_contact_count=0,
         )
 
         self.assertTrue(first.allowed)
@@ -128,7 +154,6 @@ class ProviderPolicyTests(unittest.TestCase):
             "account:campaign-first",
             Decimal("0.60"),
             pdl_exclusions=exclusions,
-            known_contact_count=0,
         )
         campaign_second = campaign_policy.authorize(
             "apify", "company_posts", "account:campaign-second", Decimal("0.60")
@@ -138,6 +163,38 @@ class ProviderPolicyTests(unittest.TestCase):
         self.assertEqual(campaign_second.reason, "campaign_cap")
         with self.assertRaisesRegex(ValueError, "campaign cap"):
             campaign_policy.record_call(campaign_first, actual_cost_usd=Decimal("1.01"))
+
+    def test_concurrent_authorizations_reserve_only_one_provider_cap_slot(self):
+        policy = ProviderPolicy.from_config(
+            {
+                "provider_routes": {"people_search": "pdl"},
+                "provider_caps": {"pdl": "1.00"},
+                "campaign_cap": "1.00",
+            }
+        )
+        barrier = threading.Barrier(2)
+        decisions = []
+
+        def authorize(cache_key: str) -> None:
+            barrier.wait()
+            decisions.append(
+                policy.authorize(
+                    "pdl",
+                    "people_search",
+                    cache_key,
+                    Decimal("0.60"),
+                    pdl_exclusions=PdlExclusionSet((), (), ()),
+                )
+            )
+
+        threads = [threading.Thread(target=authorize, args=(f"account:{index}",)) for index in range(2)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        self.assertEqual(sum(decision.allowed for decision in decisions), 1)
+        self.assertEqual(sum(decision.reason == "provider_cap" for decision in decisions), 1)
 
     def test_pdl_exclusions_normalize_and_sort_known_identifiers(self):
         exclusions = build_pdl_exclusions(
