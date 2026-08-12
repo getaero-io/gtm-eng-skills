@@ -1,12 +1,33 @@
 """CLI lookup interface for warm intro system."""
 import argparse
+import csv
+import hashlib
 import sys
-from typing import Optional
+from pathlib import Path
+from typing import Optional, Sequence, TextIO
 
 from .db import WarmIntroDB
 from .models import WarmIntroMatch
 from .scorer import WarmIntroScorer
-from .appearances import AppearanceDiscoverer
+
+try:
+    from .appearances import AppearanceDiscoverer
+except ModuleNotFoundError as error:
+    if error.name != f"{__package__}.appearances":
+        raise
+
+    class AppearanceDiscoverer:  # type: ignore[no-redef]
+        """No-network fallback for this standalone office-hours example."""
+
+        def __init__(self, db: WarmIntroDB):
+            self.db = db
+
+        def search_appearances(
+            self,
+            name: str,
+            company: Optional[str] = None,
+        ) -> list[dict[str, str]]:
+            return []
 
 
 def format_match(match: WarmIntroMatch, rank: int) -> str:
@@ -80,6 +101,28 @@ def format_match(match: WarmIntroMatch, rank: int) -> str:
 class WarmIntroLookup:
     """Lookup interface for finding warm intro matches."""
 
+    CSV_FIELDNAMES = (
+        "path_id",
+        "connector_name",
+        "connector_linkedin",
+        "connector_company",
+        "target_name",
+        "target_title",
+        "target_company",
+        "shared_signal",
+        "shared_detail",
+        "relationship_confidence",
+        "direct_intro_score",
+        "work_overlap_score",
+        "relationship_score",
+        "school_city_community_score",
+        "role_industry_score",
+        "investor_score",
+        "total_score",
+        "segment",
+        "evidence_ids",
+    )
+
     def __init__(self, db: WarmIntroDB):
         """Initialize with database connection.
 
@@ -139,6 +182,65 @@ class WarmIntroLookup:
         for i, match in enumerate(matches, 1):
             print(format_match(match, rank=i))
 
+    def export_csv(
+        self,
+        matches: Sequence[WarmIntroMatch],
+        output: TextIO,
+        target_name: str,
+        target_title: str,
+        target_company: str,
+    ) -> None:
+        """Write deterministic, ask-thread-ready path rows."""
+        writer = csv.DictWriter(
+            output,
+            fieldnames=self.CSV_FIELDNAMES,
+            lineterminator="\n",
+        )
+        writer.writeheader()
+        ordered_matches = sorted(
+            matches,
+            key=lambda match: (
+                -match.total_score,
+                " ".join(match.contact.full_name.casefold().split()),
+                match.contact.id,
+            ),
+        )
+        for match in ordered_matches:
+            fallback_key = "|".join(
+                (
+                    match.contact.id,
+                    target_name,
+                    target_title,
+                    target_company,
+                )
+            )
+            path_id = match.path_id or (
+                "path-" + hashlib.sha256(fallback_key.encode("utf-8")).hexdigest()[:16]
+            )
+            writer.writerow(
+                {
+                    "path_id": path_id,
+                    "connector_name": match.contact.full_name,
+                    "connector_linkedin": match.contact.linkedin_url,
+                    "connector_company": match.contact.current_company or "",
+                    "target_name": target_name or match.target_name,
+                    "target_title": target_title or match.target_title,
+                    "target_company": target_company or match.target_company,
+                    "shared_signal": match.shared_signal,
+                    "shared_detail": match.shared_detail,
+                    "relationship_confidence": match.relationship_confidence,
+                    "direct_intro_score": match.direct_intro_score,
+                    "work_overlap_score": match.work_overlap_score,
+                    "relationship_score": match.relationship_score,
+                    "school_city_community_score": match.school_city_community_score,
+                    "role_industry_score": match.role_industry_score,
+                    "investor_score": match.investor_score,
+                    "total_score": match.total_score,
+                    "segment": match.segment,
+                    "evidence_ids": ";".join(sorted(set(match.evidence_ids))),
+                }
+            )
+
 
 def main() -> int:
     """CLI entry point for warm intro lookup.
@@ -172,6 +274,10 @@ def main() -> int:
         help="Target person name to look up their appearances for matching",
     )
     parser.add_argument(
+        "--target-title",
+        help="Target person's current title for CSV output",
+    )
+    parser.add_argument(
         "-p", "--platforms",
         nargs="+",
         help="Target platforms to match against (e.g., 'Sales Hacker Podcast')",
@@ -179,6 +285,16 @@ def main() -> int:
     parser.add_argument(
         "--db",
         help="Path to database file (default: data/warm_intros.db)",
+    )
+    parser.add_argument(
+        "--csv",
+        type=Path,
+        help="Write deterministic warm-path rows to this CSV file",
+    )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress human-readable terminal output",
     )
 
     args = parser.parse_args()
@@ -197,14 +313,16 @@ def main() -> int:
         # Print database stats
         total_contacts = db.get_contact_count()
         enriched_contacts = db.get_enriched_count()
-        print(f"Database: {total_contacts} contacts ({enriched_contacts} enriched)")
+        if not args.quiet:
+            print(f"Database: {total_contacts} contacts ({enriched_contacts} enriched)")
 
         # Build target_platforms list
         target_platforms = args.platforms or []
 
         # If target_name provided, search for their appearances
         if args.target_name:
-            print(f"\nSearching for appearances of: {args.target_name}")
+            if not args.quiet:
+                print(f"\nSearching for appearances of: {args.target_name}")
             discoverer = AppearanceDiscoverer(db)
             # Note: search_appearances returns empty list (stub)
             # In production, this would search the web for appearances
@@ -216,14 +334,15 @@ def main() -> int:
                     platform = result.get("platform")
                     if platform and platform not in target_platforms:
                         target_platforms.append(platform)
-                print(f"Found {len(search_results)} appearances")
-            else:
+                if not args.quiet:
+                    print(f"Found {len(search_results)} appearances")
+            elif not args.quiet:
                 print(
                     "No appearances found via search. "
                     "Use --platforms to specify platforms manually."
                 )
 
-        if target_platforms:
+        if target_platforms and not args.quiet:
             print(f"Target platforms: {', '.join(target_platforms)}")
 
         # Search
@@ -236,8 +355,19 @@ def main() -> int:
             limit=args.limit,
         )
 
-        # Print results
-        lookup.print_results(matches)
+        if args.csv:
+            with args.csv.open("w", encoding="utf-8", newline="") as output:
+                lookup.export_csv(
+                    matches,
+                    output,
+                    target_name=args.target_name or "",
+                    target_title=args.target_title or "",
+                    target_company=args.company or "",
+                )
+
+        # CSV export supplements terminal results unless quiet mode is explicit.
+        if not args.quiet:
+            lookup.print_results(matches)
 
     finally:
         db.close()

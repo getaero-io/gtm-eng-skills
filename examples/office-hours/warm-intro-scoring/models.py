@@ -115,3 +115,33 @@ class WarmIntroMatch:
     shared_affiliations: list[str] = field(default_factory=list)
     role_similarity: float = 0.0
     recency_boost: float = 0.0
+    path_id: str = ""
+    target_name: str = ""
+    target_title: str = ""
+    target_company: str = ""
+    shared_signal: str = ""
+    shared_detail: str = ""
+    relationship_confidence: str = "unknown"
+    direct_intro_score: float = 0.0
+    work_overlap_score: float = 0.0
+    relationship_score: float = 0.0
+    school_city_community_score: float = 0.0
+    role_industry_score: float = 0.0
+    investor_score: float = 0.0
+    segment: str = "no_strong_path"
+    evidence_ids: tuple[str, ...] = ()
+
+    @property
+    def total_score(self) -> float:
+        """Return explicit path components, falling back to the legacy score."""
+        component_total = sum(
+            (
+                self.direct_intro_score,
+                self.work_overlap_score,
+                self.relationship_score,
+                self.school_city_community_score,
+                self.role_industry_score,
+                self.investor_score,
+            )
+        )
+        return component_total if component_total else self.score
