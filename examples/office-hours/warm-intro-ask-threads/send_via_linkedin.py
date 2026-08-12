@@ -60,6 +60,7 @@ LOG_DB_PATH = "send_log.db"
 CHANNEL = "linkedin"
 TERMINAL_SUCCESS_STATUSES = {"SUCCEEDED"}
 PENDING_TTL_SECONDS = 60 * 60
+OUTBOX_CONTRACT_VERSION = "warm-send-outbox-v1"
 
 
 # ── Send log (SQLite) ────────────────────────────────────────────────────────
@@ -85,9 +86,12 @@ def init_log_db(db_path: str) -> sqlite3.Connection:
             intent_hash        TEXT,
             campaign_id        TEXT,
             owner_id           TEXT,
+            connector_id       TEXT,
+            target_id          TEXT,
             path_id            TEXT,
             channel            TEXT,
             message_version    TEXT,
+            contract_version   TEXT,
             message_body       TEXT,
             current_attempt_id TEXT,
             dispatch_started_at TEXT
@@ -103,9 +107,12 @@ def init_log_db(db_path: str) -> sqlite3.Connection:
         "intent_hash": "TEXT",
         "campaign_id": "TEXT",
         "owner_id": "TEXT",
+        "connector_id": "TEXT",
+        "target_id": "TEXT",
         "path_id": "TEXT",
         "channel": "TEXT",
         "message_version": "TEXT",
+        "contract_version": "TEXT",
         "message_body": "TEXT",
         "current_attempt_id": "TEXT",
         "dispatch_started_at": "TEXT",
@@ -198,6 +205,8 @@ def _intent_hash(
     *,
     campaign_id: str,
     owner_id: str,
+    connector_id: str,
+    target_id: str,
     path_id: str,
     channel: str,
     message_version: str,
@@ -211,18 +220,95 @@ def _intent_hash(
             "campaign_id": campaign_id.strip(),
             "channel": channel.strip(),
             "connector_linkedin": _normalize_connector_locator(connector_linkedin),
+            "connector_id": connector_id.strip(),
             "connector_name": connector_name.strip(),
             "message_body": message_body,
             "message_version": message_version.strip(),
             "owner_id": owner_id.strip(),
             "path_id": path_id.strip(),
             "target_name": target_name.strip(),
+            "target_id": target_id.strip(),
         },
         ensure_ascii=False,
         sort_keys=True,
         separators=(",", ":"),
     )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _require_current_live_history(conn: sqlite3.Connection) -> None:
+    """Fail closed unless every live row proves the complete current contract."""
+    rows = conn.execute(
+        """
+        SELECT idempotency_key, intent_hash, campaign_id, owner_id, connector_id,
+               target_id, path_id, channel, message_version, contract_version,
+               connector_linkedin, connector_name, target_name, message_body
+        FROM sends
+        WHERE status <> 'dry_run'
+        """
+    ).fetchall()
+    required_fields = (
+        "idempotency_key",
+        "intent_hash",
+        "campaign_id",
+        "owner_id",
+        "connector_id",
+        "target_id",
+        "path_id",
+        "channel",
+        "message_version",
+        "contract_version",
+        "connector_linkedin",
+        "connector_name",
+        "target_name",
+        "message_body",
+    )
+    for row in rows:
+        if any(not str(row[field] or "").strip() for field in required_fields):
+            raise RuntimeError(
+                "unmigrated legacy send history exists; reconcile and explicitly "
+                "migrate every live historical row before namespaced activation"
+            )
+        if row["contract_version"] != OUTBOX_CONTRACT_VERSION:
+            raise RuntimeError(
+                "unmigrated legacy send history exists; current outbox contract "
+                "marker is required before namespaced activation"
+            )
+        expected_path_id = build_path_id(
+            row["campaign_id"],
+            row["owner_id"],
+            row["connector_id"],
+            row["target_id"],
+        )
+        expected_key = build_idempotency_key(
+            row["campaign_id"],
+            row["owner_id"],
+            expected_path_id,
+            row["channel"],
+            row["message_version"],
+        )
+        expected_intent_hash = _intent_hash(
+            campaign_id=row["campaign_id"],
+            owner_id=row["owner_id"],
+            connector_id=row["connector_id"],
+            target_id=row["target_id"],
+            path_id=expected_path_id,
+            channel=row["channel"],
+            message_version=row["message_version"],
+            connector_linkedin=row["connector_linkedin"],
+            connector_name=row["connector_name"],
+            target_name=row["target_name"],
+            message_body=row["message_body"],
+        )
+        if (
+            row["path_id"] != expected_path_id
+            or row["idempotency_key"] != expected_key
+            or row["intent_hash"] != expected_intent_hash
+        ):
+            raise RuntimeError(
+                "invalid migrated send history exists; path, activation key, and "
+                "intent fingerprint must match the current contract"
+            )
 
 
 def _normalize_connector_locator(value: str) -> str:
@@ -277,12 +363,22 @@ def reserve_send(
     *,
     campaign_id: str,
     owner_id: str,
+    connector_id: str,
+    target_id: str,
     path_id: str,
     channel: str = CHANNEL,
     message_version: str,
     message_body: Optional[str] = None,
 ) -> bool:
     """Commit immutable intent and a dispatch attempt before the external call."""
+    expected_path_id = build_path_id(
+        campaign_id,
+        owner_id,
+        connector_id,
+        target_id,
+    )
+    if path_id != expected_path_id:
+        raise ValueError("path ID does not match the namespaced connector/target identity")
     expected_key = build_idempotency_key(
         campaign_id,
         owner_id,
@@ -310,6 +406,8 @@ def reserve_send(
     intent_hash = _intent_hash(
         campaign_id=campaign_id,
         owner_id=owner_id,
+        connector_id=connector_id,
+        target_id=target_id,
         path_id=path_id,
         channel=channel,
         message_version=message_version,
@@ -320,24 +418,7 @@ def reserve_send(
     )
     conn.execute("BEGIN IMMEDIATE")
     try:
-        legacy = conn.execute(
-            """
-            SELECT status FROM sends
-            WHERE status <> 'dry_run'
-              AND (
-                    campaign_id IS NULL OR TRIM(campaign_id) = ''
-                 OR owner_id IS NULL OR TRIM(owner_id) = ''
-                 OR intent_hash IS NULL OR TRIM(intent_hash) = ''
-              )
-            LIMIT 1
-            """
-        ).fetchone()
-        if legacy is not None:
-            conn.rollback()
-            raise RuntimeError(
-                "unmigrated legacy send history exists; reconcile and explicitly "
-                "migrate every live historical row before namespaced activation"
-            )
+        _require_current_live_history(conn)
         existing = conn.execute(
             """
             SELECT status, reservation_updated_at, intent_hash, current_attempt_id
@@ -403,9 +484,9 @@ def reserve_send(
                     (sent_at, connector_linkedin, connector_name, target_name,
                      message_preview, status, idempotency_key, reservation_owner,
                      reservation_updated_at, intent_hash, campaign_id, owner_id,
-                     path_id, channel, message_version, message_body,
-                     dispatch_started_at)
-                VALUES (?, ?, ?, ?, ?, 'dispatching', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     connector_id, target_id, path_id, channel, message_version,
+                     contract_version, message_body, dispatch_started_at)
+                VALUES (?, ?, ?, ?, ?, 'dispatching', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     reserved_at,
@@ -419,9 +500,12 @@ def reserve_send(
                     intent_hash,
                     campaign_id,
                     owner_id,
+                    connector_id,
+                    target_id,
                     path_id,
                     channel,
                     message_version,
+                    OUTBOX_CONTRACT_VERSION,
                     full_message,
                     reserved_at,
                 ),
@@ -1061,6 +1145,8 @@ def main() -> None:
             message_preview=preview,
             campaign_id=row["campaign_id"],
             owner_id=row["owner_id"],
+            connector_id=row["connector_id"],
+            target_id=row["target_id"],
             path_id=row["path_id"],
             channel=CHANNEL,
             message_version=row["message_version"],

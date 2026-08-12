@@ -42,6 +42,16 @@ def _key(module, path_id: str, channel: str = "linkedin", version: str = "1") ->
     )
 
 
+def _path_identity(seed: str) -> tuple[str, str, str]:
+    connector_id = f"connector-{seed}"
+    target_id = f"target-{seed}"
+    return (
+        connector_id,
+        target_id,
+        build_path_id("campaign-example", "owner-example", connector_id, target_id),
+    )
+
+
 def write_drafts(path: Path, rows: list[dict]) -> None:
     fieldnames = [
         "campaign_id",
@@ -252,7 +262,8 @@ class IdempotencyTests(unittest.TestCase):
             db_path = Path(directory) / "sends.db"
             first = module.init_log_db(str(db_path))
             second = module.init_log_db(str(db_path))
-            key = _key(module, "path-atomic")
+            connector_id, target_id, path_id = _path_identity("atomic")
+            key = _key(module, path_id)
             details = {
                 "idempotency_key": key,
                 "connector_linkedin": "https://linkedin.example/in/example-casey-morgan",
@@ -261,7 +272,9 @@ class IdempotencyTests(unittest.TestCase):
                 "message_preview": "Would you introduce me to Mina?",
                 "campaign_id": "campaign-example",
                 "owner_id": "owner-example",
-                "path_id": "path-atomic",
+                "connector_id": connector_id,
+                "target_id": target_id,
+                "path_id": path_id,
                 "message_version": "1",
             }
 
@@ -297,7 +310,8 @@ class IdempotencyTests(unittest.TestCase):
         retry_time = first_time + timedelta(seconds=module.PENDING_TTL_SECONDS + 1)
         with tempfile.TemporaryDirectory() as directory:
             connection = module.init_log_db(str(Path(directory) / "sends.db"))
-            key = _key(module, "path-stale")
+            connector_id, target_id, path_id = _path_identity("stale")
+            key = _key(module, path_id)
             details = {
                 "conn": connection,
                 "idempotency_key": key,
@@ -307,7 +321,9 @@ class IdempotencyTests(unittest.TestCase):
                 "message_preview": "Would you introduce me to Tariq?",
                 "campaign_id": "campaign-example",
                 "owner_id": "owner-example",
-                "path_id": "path-stale",
+                "connector_id": connector_id,
+                "target_id": target_id,
+                "path_id": path_id,
                 "message_version": "1",
             }
             self.assertTrue(
@@ -343,27 +359,33 @@ class IdempotencyTests(unittest.TestCase):
             db_path = Path(directory) / "sends.db"
             first = module.init_log_db(str(db_path))
             for number in range(module.MAX_DAILY_SENDS - 1):
-                path_id = f"path-prior-capacity-{number}"
-                module.log_send(
+                connector_id, target_id, path_id = _path_identity(
+                    f"prior-capacity-{number}"
+                )
+                key = _key(module, path_id)
+                self.assertTrue(module.reserve_send(
                     first,
+                    idempotency_key=key,
+                    owner_token=f"prior-owner-{number}",
                     connector_linkedin=f"https://linkedin.example/in/example-prior-{number}",
                     connector_name=f"Prior {number}",
                     target_name="Nora Imani",
                     message_preview="Prior send",
-                    status="sent",
-                    idempotency_key=_key(module, path_id),
-                )
-                first.execute(
-                    """
-                    UPDATE sends
-                    SET campaign_id = 'campaign-example', owner_id = 'owner-example',
-                        path_id = ?, channel = 'linkedin', message_version = '1',
-                        intent_hash = 'reconciled-test-history'
-                    WHERE idempotency_key = ?
-                    """,
-                    (path_id, _key(module, path_id)),
-                )
-            first.commit()
+                    campaign_id="campaign-example",
+                    owner_id="owner-example",
+                    connector_id=connector_id,
+                    target_id=target_id,
+                    path_id=path_id,
+                    message_version="1",
+                    message_body="Prior send",
+                ))
+                self.assertTrue(module.finish_reserved_send(
+                    first,
+                    key,
+                    f"prior-owner-{number}",
+                    "SUCCEEDED",
+                    apify_run_id=f"run-prior-{number}",
+                ))
             second = module.init_log_db(str(db_path))
 
             common = {
@@ -373,26 +395,36 @@ class IdempotencyTests(unittest.TestCase):
                 "message_preview": "Would you introduce me to Mina?",
                 "now": now,
             }
+            final_connector_id, final_target_id, final_path_id = _path_identity(
+                "final-slot"
+            )
             self.assertTrue(
                 module.reserve_send(
                     first,
-                    idempotency_key=_key(module, "path-final-slot"),
+                    idempotency_key=_key(module, final_path_id),
                     owner_token="owner-final-slot",
                     campaign_id="campaign-example",
                     owner_id="owner-example",
-                    path_id="path-final-slot",
+                    connector_id=final_connector_id,
+                    target_id=final_target_id,
+                    path_id=final_path_id,
                     message_version="1",
                     **common,
                 )
             )
+            over_connector_id, over_target_id, over_path_id = _path_identity(
+                "over-capacity"
+            )
             self.assertFalse(
                 module.reserve_send(
                     second,
-                    idempotency_key=_key(module, "path-over-capacity"),
+                    idempotency_key=_key(module, over_path_id),
                     owner_token="owner-over-capacity",
                     campaign_id="campaign-example",
                     owner_id="owner-example",
-                    path_id="path-over-capacity",
+                    connector_id=over_connector_id,
+                    target_id=over_target_id,
+                    path_id=over_path_id,
                     message_version="1",
                     **common,
                 )
@@ -438,6 +470,9 @@ class IdempotencyTests(unittest.TestCase):
                 "idempotency_key",
                 "reservation_owner",
                 "reservation_updated_at",
+                "connector_id",
+                "target_id",
+                "contract_version",
             }.issubset(columns)
         )
         self.assertEqual(indexes["sends_idempotency_key_uq"], 1)
@@ -477,12 +512,216 @@ class IdempotencyTests(unittest.TestCase):
                     message_preview="Already delivered under the legacy contract",
                     campaign_id="campaign-example",
                     owner_id="owner-example",
+                    connector_id=identity[2],
+                    target_id=identity[3],
                     path_id=new_path_id,
                     message_version="1",
                 )
             connection.close()
 
         self.assertIn("legacy send history", str(raised.exception))
+
+    def test_partial_migration_cannot_bypass_global_legacy_barrier(self):
+        module = load_module()
+        with tempfile.TemporaryDirectory() as directory:
+            connection = module.init_log_db(str(Path(directory) / "legacy.db"))
+            module.log_send(
+                connection,
+                connector_linkedin="linkedin.example/in/example-legacy-connector",
+                connector_name="Legacy Connector",
+                target_name="Legacy Target",
+                message_preview="Historical live send",
+                status="sent",
+                idempotency_key="legacy-key",
+            )
+            connection.execute(
+                """
+                UPDATE sends
+                SET campaign_id = 'campaign-example', owner_id = 'owner-example',
+                    intent_hash = 'nonblank-but-unverified'
+                WHERE idempotency_key = 'legacy-key'
+                """
+            )
+            connection.commit()
+            connector_id, target_id, path_id = _path_identity("current-example")
+
+            with self.assertRaises(RuntimeError) as raised:
+                module.reserve_send(
+                    connection,
+                    idempotency_key=_key(module, path_id),
+                    owner_token="new-process",
+                    connector_linkedin="linkedin.example/in/example-current-connector",
+                    connector_name="Current Connector",
+                    target_name="Current Target",
+                    message_preview="New send",
+                    campaign_id="campaign-example",
+                    owner_id="owner-example",
+                    connector_id=connector_id,
+                    target_id=target_id,
+                    path_id=path_id,
+                    message_version="1",
+                )
+            connection.close()
+
+        self.assertIn("legacy send history", str(raised.exception))
+
+    def test_blank_current_contract_marker_blocks_live_activation(self):
+        module = load_module()
+        connector_id, target_id, path_id = _path_identity("marker-history")
+        with tempfile.TemporaryDirectory() as directory:
+            connection = module.init_log_db(str(Path(directory) / "sends.db"))
+            key = _key(module, path_id)
+            self.assertTrue(
+                module.reserve_send(
+                    connection,
+                    idempotency_key=key,
+                    owner_token="historical-owner",
+                    connector_linkedin="linkedin.example/in/example-marker-history",
+                    connector_name="Marker History",
+                    target_name="Marker Target",
+                    message_preview="Historical message",
+                    campaign_id="campaign-example",
+                    owner_id="owner-example",
+                    connector_id=connector_id,
+                    target_id=target_id,
+                    path_id=path_id,
+                    message_version="1",
+                    message_body="Historical message",
+                )
+            )
+            connection.execute(
+                "UPDATE sends SET contract_version = '' WHERE idempotency_key = ?",
+                (key,),
+            )
+            connection.commit()
+            next_connector, next_target, next_path = _path_identity("after-marker")
+
+            with self.assertRaises(RuntimeError) as raised:
+                module.reserve_send(
+                    connection,
+                    idempotency_key=_key(module, next_path),
+                    owner_token="new-owner",
+                    connector_linkedin="linkedin.example/in/example-after-marker",
+                    connector_name="After Marker",
+                    target_name="Next Target",
+                    message_preview="Next message",
+                    campaign_id="campaign-example",
+                    owner_id="owner-example",
+                    connector_id=next_connector,
+                    target_id=next_target,
+                    path_id=next_path,
+                    message_version="1",
+                )
+            connection.close()
+
+        self.assertIn("legacy send history", str(raised.exception))
+
+    def test_forged_historical_activation_key_blocks_live_activation(self):
+        module = load_module()
+        connector_id, target_id, path_id = _path_identity("forged-key-history")
+        with tempfile.TemporaryDirectory() as directory:
+            connection = module.init_log_db(str(Path(directory) / "sends.db"))
+            key = _key(module, path_id)
+            self.assertTrue(
+                module.reserve_send(
+                    connection,
+                    idempotency_key=key,
+                    owner_token="historical-owner",
+                    connector_linkedin="linkedin.example/in/example-forged-key",
+                    connector_name="Forged Key History",
+                    target_name="Forged Key Target",
+                    message_preview="Historical message",
+                    campaign_id="campaign-example",
+                    owner_id="owner-example",
+                    connector_id=connector_id,
+                    target_id=target_id,
+                    path_id=path_id,
+                    message_version="1",
+                    message_body="Historical message",
+                )
+            )
+            connection.execute(
+                "UPDATE sends SET idempotency_key = 'forged-activation-key' "
+                "WHERE idempotency_key = ?",
+                (key,),
+            )
+            connection.commit()
+            next_connector, next_target, next_path = _path_identity("after-forgery")
+
+            with self.assertRaises(RuntimeError) as raised:
+                module.reserve_send(
+                    connection,
+                    idempotency_key=_key(module, next_path),
+                    owner_token="new-owner",
+                    connector_linkedin="linkedin.example/in/example-after-forgery",
+                    connector_name="After Forgery",
+                    target_name="Next Target",
+                    message_preview="Next message",
+                    campaign_id="campaign-example",
+                    owner_id="owner-example",
+                    connector_id=next_connector,
+                    target_id=next_target,
+                    path_id=next_path,
+                    message_version="1",
+                )
+            connection.close()
+
+        self.assertIn("invalid migrated send history", str(raised.exception))
+
+    def test_old_path_and_activation_algorithms_cannot_masquerade_as_migrated(self):
+        module = load_module()
+        identity = (
+            "campaign-example",
+            "owner-example",
+            "connector-old-algorithm",
+            "target-old-algorithm",
+        )
+        old_path_id = "path-" + hashlib.sha256("|".join(identity).encode()).hexdigest()[:16]
+        old_key = hashlib.sha256(f"{old_path_id}|linkedin|1".encode()).hexdigest()
+        with tempfile.TemporaryDirectory() as directory:
+            connection = module.init_log_db(str(Path(directory) / "legacy.db"))
+            module.log_send(
+                connection,
+                connector_linkedin="linkedin.example/in/example-old-algorithm",
+                connector_name="Old Algorithm",
+                target_name="Old Target",
+                message_preview="Old message",
+                status="sent",
+                idempotency_key=old_key,
+            )
+            connection.execute(
+                """
+                UPDATE sends
+                SET campaign_id = ?, owner_id = ?, connector_id = ?, target_id = ?,
+                    path_id = ?, channel = 'linkedin', message_version = '1',
+                    contract_version = ?, intent_hash = 'forged-current-intent',
+                    message_body = 'Old message'
+                WHERE idempotency_key = ?
+                """,
+                (*identity, old_path_id, module.OUTBOX_CONTRACT_VERSION, old_key),
+            )
+            connection.commit()
+            next_connector, next_target, next_path = _path_identity("after-old")
+
+            with self.assertRaises(RuntimeError) as raised:
+                module.reserve_send(
+                    connection,
+                    idempotency_key=_key(module, next_path),
+                    owner_token="new-owner",
+                    connector_linkedin="linkedin.example/in/example-after-old",
+                    connector_name="After Old",
+                    target_name="Next Target",
+                    message_preview="Next message",
+                    campaign_id="campaign-example",
+                    owner_id="owner-example",
+                    connector_id=next_connector,
+                    target_id=next_target,
+                    path_id=next_path,
+                    message_version="1",
+                )
+            connection.close()
+
+        self.assertIn("invalid migrated send history", str(raised.exception))
 
     def test_dry_run_log_does_not_block_a_later_live_send(self):
         module = load_module()
@@ -568,6 +807,8 @@ class ActivationIntegrationTests(unittest.TestCase):
                     message_preview=row["draft_body"],
                     campaign_id="campaign-example",
                     owner_id="owner-example",
+                    connector_id=row["connector_id"],
+                    target_id=row["target_id"],
                     path_id=path_id,
                     channel="linkedin",
                     message_version="1",
@@ -697,6 +938,8 @@ class ActivationIntegrationTests(unittest.TestCase):
                         message_preview=row["draft_body"],
                         campaign_id="campaign-example",
                         owner_id="owner-example",
+                        connector_id=row["connector_id"],
+                        target_id=row["target_id"],
                         path_id=row["path_id"],
                         channel="linkedin",
                         message_version=row["message_version"],
@@ -800,6 +1043,8 @@ class ActivationIntegrationTests(unittest.TestCase):
                 message_preview=rows[0]["draft_body"],
                 campaign_id="campaign-example",
                 owner_id="owner-example",
+                connector_id=rows[0]["connector_id"],
+                target_id=rows[0]["target_id"],
                 path_id=rows[0]["path_id"],
                 channel="linkedin",
                 message_version="1",
@@ -877,17 +1122,21 @@ class ActivationIntegrationTests(unittest.TestCase):
 
 class DurableOutboxAdversarialTests(unittest.TestCase):
     def _intent(self, module, path_id="path-durable"):
+        seed = path_id.removeprefix("path-")
+        connector_id, target_id, current_path_id = _path_identity(seed)
         return {
             "idempotency_key": module.build_idempotency_key(
                 "campaign-example",
                 "owner-example",
-                path_id,
+                current_path_id,
                 "linkedin",
                 "1",
             ),
             "campaign_id": "campaign-example",
             "owner_id": "owner-example",
-            "path_id": path_id,
+            "connector_id": connector_id,
+            "target_id": target_id,
+            "path_id": current_path_id,
             "channel": "linkedin",
             "message_version": "1",
             "connector_linkedin": "linkedin.com/in/example-durable-connector",

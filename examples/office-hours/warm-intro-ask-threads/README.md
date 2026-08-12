@@ -240,7 +240,8 @@ The mutable `sends` outbox projection stores:
 | `apify_run_id` | External run ID when available. |
 | `error_detail` | Truncated diagnostic for failed work. |
 | `idempotency_key` / `intent_hash` | Stable live identity and immutable-intent fingerprint; null for previews. |
-| `campaign_id`, `owner_id`, `path_id`, `channel`, `message_version` | Explicit activation namespace. |
+| `campaign_id`, `owner_id`, `connector_id`, `target_id`, `path_id`, `channel`, `message_version` | Explicit activation namespace and path endpoints. |
+| `contract_version` | Explicit current outbox/migration marker (`warm-send-outbox-v1`). |
 | `reservation_owner` / `current_attempt_id` | Owning process and current immutable attempt while dispatching. |
 | `reservation_updated_at` / `dispatch_started_at` | UTC state timestamps; stale dispatch is reconciled, never reclaimed for resend. |
 
@@ -252,12 +253,16 @@ only the outbox projection and append events.
 
 Existing logs are migrated additively when opened. Because both the path builder
 and activation key changed, any non-preview row without a complete namespaced
-intent fingerprint is a global activation barrier. Activation fails closed until
-an operator reconciles and explicitly migrates every historical live row. Stop older
-sender processes during the upgrade; they do not understand the namespaced
-contract. Back up and access-control this database: it contains personal data
-and message excerpts. The local log is the activation source of truth; deleting
-it removes duplicate-send protection.
+intent fingerprint and the explicit current contract marker is a global
+activation barrier. Before every reservation, the sender recomputes and matches
+the versioned path ID, activation key, and full intent hash for every historical
+live row. Nonblank placeholders, forged keys, and old path/key algorithms do not
+count as migration. Activation fails closed until an operator reconciles and
+explicitly migrates every historical live row. Stop older sender processes during
+the upgrade; they do not understand the namespaced contract. Back up and
+access-control this database: it contains personal data and message excerpts. The
+local log is the activation source of truth; deleting it removes duplicate-send
+protection.
 
 ## Files and fixtures
 
