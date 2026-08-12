@@ -7,8 +7,10 @@ import json
 import sys
 import tempfile
 import unittest
-from decimal import Decimal
+from dataclasses import dataclass
 from datetime import date
+from datetime import datetime
+from decimal import Decimal
 from pathlib import Path
 
 
@@ -25,6 +27,20 @@ from schemas import (  # noqa: E402
     normalize_domain,
     write_csv_records,
 )
+
+
+@dataclass(frozen=True)
+class SupportedValueRecord:
+    record_id: str
+    count: int
+    enabled: bool
+    amount: Decimal
+    location: Path
+    day: date
+    observed_at: datetime
+    optional_count: int | None
+    source_ids: tuple[str, ...]
+    source_metadata_json: str = "{}"
 
 
 class IdentityResolutionTests(unittest.TestCase):
@@ -68,6 +84,20 @@ class IdentityResolutionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             normalize_domain("Northstar AI")
 
+    def test_contact_key_requires_complete_fallback_identity(self):
+        partial = ContactRecord(
+            contact_id="partial",
+            name="Alex Chen",
+            company="Northstar AI",
+            title="",
+        )
+        blank = ContactRecord(contact_id="blank", name="", company="", title="")
+
+        for contact in (partial, blank):
+            with self.subTest(contact_id=contact.contact_id):
+                with self.assertRaisesRegex(ValueError, "review required"):
+                    canonical_contact_key(contact)
+
 
 class CsvContractTests(unittest.TestCase):
     def test_csv_round_trip_is_utf8_with_stable_columns_and_newlines(self):
@@ -109,6 +139,43 @@ class CsvContractTests(unittest.TestCase):
 
             with self.assertRaisesRegex(ValueError, "missing required columns: domain"):
                 load_csv_records(path, AccountRecord)
+
+    def test_csv_round_trips_every_supported_value_type(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "supported.csv"
+            record = SupportedValueRecord(
+                record_id="record-1",
+                count=3,
+                enabled=True,
+                amount=Decimal("0.40"),
+                location=Path("cache/record-1"),
+                day=date(2026, 8, 1),
+                observed_at=datetime(2026, 8, 1, 10, 30, 0),
+                optional_count=None,
+                source_ids=("source-1", "source-2"),
+            )
+            write_csv_records(path, [record.__dict__], tuple(record.__dict__))
+
+            self.assertIn(b'"[""source-1"",""source-2""]"', path.read_bytes())
+            self.assertEqual(load_csv_records(path, SupportedValueRecord), [record])
+
+    def test_csv_round_trips_tuple_ids_on_campaign_records(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "interactions.csv"
+            row = {
+                "interaction_id": "interaction-1",
+                "contact_id": "target-1",
+                "source": "crm",
+                "interaction_type": "introduction",
+                "participant_ids": ("owner-1", "connector-1"),
+                "evidence_id": "evidence-1",
+            }
+            write_csv_records(path, [row], tuple(row))
+
+            from schemas import InteractionRecord  # noqa: PLC0415
+
+            interaction = load_csv_records(path, InteractionRecord)[0]
+            self.assertEqual(interaction.participant_ids, ("owner-1", "connector-1"))
 
 
 class ImmutableRecordTests(unittest.TestCase):
@@ -157,6 +224,38 @@ class ImmutableRecordTests(unittest.TestCase):
         self.assertEqual(config.campaign_cap, Decimal("10.00"))
         with self.assertRaises(TypeError):
             config.provider_caps["pdl"] = Decimal("1.00")
+
+    def test_campaign_config_deep_freezes_and_copies_title_catalog(self):
+        title_catalog = {
+            "gtm_engineering": {
+                "titles": ["GTM Engineer"],
+                "criteria": {"seniority": ["director"]},
+            }
+        }
+        config = CampaignConfig(
+            campaign_id="campaign-1",
+            owner_id="owner-1",
+            as_of=date(2026, 8, 1),
+            title_catalog=title_catalog,
+            score_weights={},
+            segment_thresholds={},
+            exclusions={},
+            provider_routes={},
+            blocked_operations=(),
+            cache_directory=Path(".cache"),
+            provider_caps={},
+            campaign_cap="10.00",
+        )
+        title_catalog["gtm_engineering"]["titles"].append("Revenue Systems")
+        title_catalog["gtm_engineering"]["criteria"]["seniority"].append("vp")
+
+        self.assertEqual(config.title_catalog["gtm_engineering"]["titles"], ("GTM Engineer",))
+        self.assertEqual(
+            config.title_catalog["gtm_engineering"]["criteria"]["seniority"],
+            ("director",),
+        )
+        with self.assertRaises(TypeError):
+            config.title_catalog["gtm_engineering"]["criteria"]["new"] = "value"
 
 
 if __name__ == "__main__":

@@ -78,9 +78,12 @@ def _normalize_identity_part(value: str) -> str:
 
 def normalized_identity(name: str, company: str, title: str) -> str:
     """Return the deterministic weak identity used only when strong IDs are absent."""
-    return "|".join(
-        _normalize_identity_part(value) for value in (name, company, title)
-    )
+    parts = tuple(_normalize_identity_part(value) for value in (name, company, title))
+    if not all(parts):
+        raise ValueError(
+            "identity review required: name, company, and title are required for a weak identity"
+        )
+    return "|".join(parts)
 
 
 @dataclass(frozen=True)
@@ -232,6 +235,17 @@ def _decimal(value: object) -> Decimal:
     raise TypeError("money values must be Decimal, strings, or integers")
 
 
+def _freeze(value: object) -> object:
+    """Recursively copy mutable config data into immutable deterministic values."""
+    if isinstance(value, Mapping):
+        return MappingProxyType({key: _freeze(item) for key, item in value.items()})
+    if isinstance(value, list | tuple):
+        return tuple(_freeze(item) for item in value)
+    if isinstance(value, set | frozenset):
+        return frozenset(_freeze(item) for item in value)
+    return value
+
+
 @dataclass(frozen=True)
 class CampaignConfig:
     campaign_id: str
@@ -248,7 +262,7 @@ class CampaignConfig:
     campaign_cap: Decimal
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "title_catalog", MappingProxyType(dict(self.title_catalog)))
+        object.__setattr__(self, "title_catalog", _freeze(self.title_catalog))
         object.__setattr__(self, "score_weights", MappingProxyType(dict(self.score_weights)))
         object.__setattr__(self, "segment_thresholds", MappingProxyType(dict(self.segment_thresholds)))
         object.__setattr__(
@@ -318,10 +332,10 @@ def _parse_csv_value(value: str, annotation: object) -> object:
         return _decimal(value)
     if annotation is Path:
         return Path(value)
-    if annotation is date:
-        return date.fromisoformat(value)
     if annotation is datetime:
         return datetime.fromisoformat(value)
+    if annotation is date:
+        return date.fromisoformat(value)
 
     origin = get_origin(annotation)
     args = get_args(annotation)
@@ -334,8 +348,31 @@ def _parse_csv_value(value: str, annotation: object) -> object:
         if not value:
             return ()
         decoded = json.loads(value) if value.lstrip().startswith("[") else value.split("|")
+        if not isinstance(decoded, list):
+            raise ValueError("tuple fields must contain a JSON array or pipe-delimited values")
         return tuple(decoded)
     return value
+
+
+def _encode_csv_value(value: object) -> str:
+    """Encode every supported record value so ``_parse_csv_value`` can restore it."""
+    if value is None:
+        return ""
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, tuple):
+        return json.dumps(list(value), ensure_ascii=False, separators=(",", ":"))
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (str, int)):
+        return str(value)
+    raise TypeError(f"unsupported CSV field value type: {type(value).__name__}")
 
 
 def load_csv_records(path: Path, record_type: type[T]) -> list[T]:
@@ -399,4 +436,4 @@ def write_csv_records(
         )
         writer.writeheader()
         for row in rows:
-            writer.writerow(dict(row))
+            writer.writerow({key: _encode_csv_value(value) for key, value in row.items()})
