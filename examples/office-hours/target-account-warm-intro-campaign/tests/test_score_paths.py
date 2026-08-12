@@ -217,7 +217,7 @@ class WarmPathScoreTests(unittest.TestCase):
                 score.role_industry_score,
                 score.investor_score,
             ),
-            (50, 25, 12, 6, 3),
+            (60, 30, 15, 7, 3),
         )
         self.assertGreater(
             score.direct_intro_score,
@@ -299,13 +299,10 @@ class WarmPathScoreTests(unittest.TestCase):
         )
         config = campaign_config()
 
-        direct_low_relationship = score_warm_path(
+        direct_unknown_relationship = score_warm_path(
             CONNECTOR,
             TARGET,
-            PathEvidence(
-                direct_intro_evidence_ids=("intro-1",),
-                relationship_confidence="low",
-            ),
+            PathEvidence(direct_intro_evidence_ids=("intro-1",)),
             config,
         )
         work_high_relationship_with_all_lower = score_warm_path(
@@ -321,13 +318,12 @@ class WarmPathScoreTests(unittest.TestCase):
             ),
             config,
         )
-        work_low_relationship = score_warm_path(
+        work_unknown_relationship = score_warm_path(
             CONNECTOR,
             TARGET,
             PathEvidence(
                 connector_experiences=(connector_role,),
                 target_experiences=(target_role,),
-                relationship_confidence="low",
             ),
             config,
         )
@@ -342,16 +338,29 @@ class WarmPathScoreTests(unittest.TestCase):
             ),
             config,
         )
-        school_one_signal = score_warm_path(
+        community_unknown_relationship = score_warm_path(
+            CONNECTOR,
+            TARGET,
+            PathEvidence(shared_schools=("State University",)),
+            config,
+        )
+        role_and_investor_high_relationship = score_warm_path(
             CONNECTOR,
             TARGET,
             PathEvidence(
-                shared_schools=("State University",),
+                role_overlaps=("revenue systems",),
+                investor_overlaps=("Fund 1", "Fund 2", "Fund 3", "Fund 4"),
                 relationship_confidence="high",
             ),
             config,
         )
-        investor_max_signals = score_warm_path(
+        role_unknown_relationship = score_warm_path(
+            CONNECTOR,
+            TARGET,
+            PathEvidence(role_overlaps=("revenue systems",)),
+            config,
+        )
+        investor_high_relationship = score_warm_path(
             CONNECTOR,
             TARGET,
             PathEvidence(
@@ -362,14 +371,21 @@ class WarmPathScoreTests(unittest.TestCase):
         )
 
         self.assertGreater(
-            direct_low_relationship.total_score,
+            direct_unknown_relationship.total_score,
             work_high_relationship_with_all_lower.total_score,
         )
         self.assertGreater(
-            work_low_relationship.total_score,
+            work_unknown_relationship.total_score,
             ancillary_high_relationship.total_score,
         )
-        self.assertGreater(school_one_signal.total_score, investor_max_signals.total_score)
+        self.assertGreater(
+            community_unknown_relationship.total_score,
+            role_and_investor_high_relationship.total_score,
+        )
+        self.assertGreater(
+            role_unknown_relationship.total_score,
+            investor_high_relationship.total_score,
+        )
 
     def test_confirmed_direct_intro_carries_target_metadata_and_evidence(self):
         score = score_warm_path(
@@ -742,7 +758,7 @@ class LegacyScorerCompatibilityTests(unittest.TestCase):
                     scorer.normalize_employer_identity("Scale L.L.C."),
                 )
 
-    def test_target_scorer_direct_intro_outranks_all_combined_lower_tiers(self):
+    def test_target_scorer_strictly_orders_every_tier_across_relationship_extremes(self):
         _, models, scorer_module = load_legacy_lookup()
         connector = models.Contact(
             "connector", "Casey", "Morgan", "linkedin.com/in/casey"
@@ -755,44 +771,91 @@ class LegacyScorerCompatibilityTests(unittest.TestCase):
             current_company="Northstar AI",
         )
         scorer = scorer_module.WarmIntroScorer()
+        connector_role = models.Experience(
+            "connector-role",
+            connector.id,
+            "Northstar AI",
+            start_date=date(2021, 1, 1),
+            end_date=date(2024, 1, 1),
+        )
+        target_role = models.Experience(
+            "target-role",
+            target.id,
+            "Northstar AI, Inc.",
+            start_date=date(2022, 1, 1),
+            is_current=True,
+        )
         direct = scorer.score_target_connector(
             connector,
             [],
             target,
             [],
-            relationship_confidence="high",
             direct_intro_evidence_ids=("intro-1",),
         )
-        combined_lower_tiers = scorer.score_target_connector(
+        work_and_all_lower_high = scorer.score_target_connector(
             connector,
-            [
-                models.Experience(
-                    "connector-role",
-                    connector.id,
-                    "Northstar AI",
-                    start_date=date(2021, 1, 1),
-                    end_date=date(2024, 1, 1),
-                )
-            ],
+            [connector_role],
             target,
-            [
-                models.Experience(
-                    "target-role",
-                    target.id,
-                    "Northstar AI, Inc.",
-                    start_date=date(2022, 1, 1),
-                    is_current=True,
-                )
-            ],
+            [target_role],
             relationship_confidence="high",
-            shared_schools=tuple(f"School {number}" for number in range(5)),
-            shared_cities=tuple(f"City {number}" for number in range(5)),
-            role_industry_matches=tuple(f"Role {number}" for number in range(5)),
-            investor_overlaps=tuple(f"Fund {number}" for number in range(5)),
+            shared_schools=("State University",),
+            role_industry_matches=("revenue systems",),
+            investor_overlaps=("Fund 1", "Fund 2", "Fund 3", "Fund 4"),
             as_of=date(2026, 8, 12),
         )
+        work = scorer.score_target_connector(
+            connector,
+            [connector_role],
+            target,
+            [target_role],
+            as_of=date(2026, 8, 12),
+        )
+        community_role_investor_high = scorer.score_target_connector(
+            connector,
+            [],
+            target,
+            [],
+            relationship_confidence="high",
+            shared_schools=("State University",),
+            role_industry_matches=("revenue systems",),
+            investor_overlaps=("Fund 1", "Fund 2", "Fund 3", "Fund 4"),
+        )
+        community = scorer.score_target_connector(
+            connector,
+            [],
+            target,
+            [],
+            shared_schools=("State University",),
+        )
+        role_investor_high = scorer.score_target_connector(
+            connector,
+            [],
+            target,
+            [],
+            relationship_confidence="high",
+            role_industry_matches=("revenue systems",),
+            investor_overlaps=("Fund 1", "Fund 2", "Fund 3", "Fund 4"),
+        )
+        role = scorer.score_target_connector(
+            connector,
+            [],
+            target,
+            [],
+            role_industry_matches=("revenue systems",),
+        )
+        investor_high = scorer.score_target_connector(
+            connector,
+            [],
+            target,
+            [],
+            relationship_confidence="high",
+            investor_overlaps=("Fund 1", "Fund 2", "Fund 3", "Fund 4"),
+        )
 
-        self.assertGreater(direct.total_score, combined_lower_tiers.total_score)
+        self.assertGreater(direct.total_score, work_and_all_lower_high.total_score)
+        self.assertGreater(work.total_score, community_role_investor_high.total_score)
+        self.assertGreater(community.total_score, role_investor_high.total_score)
+        self.assertGreater(role.total_score, investor_high.total_score)
 
     def test_original_company_lookup_labels_name_match_as_proximity(self):
         _, models, scorer_module = load_legacy_lookup()

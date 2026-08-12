@@ -20,7 +20,13 @@
     "technical_gtm_signal": 20,
     "growth_recency": 15,
     "customer_similarity": 15,
-    "first_party_engagement": 10
+    "first_party_engagement": 10,
+    "direct_intro": 60,
+    "work_overlap": 30,
+    "school_city_community": 15,
+    "role_industry": 7,
+    "investor": 3,
+    "relationship": 3
   },
   "segment_thresholds": {
     "include": 70,

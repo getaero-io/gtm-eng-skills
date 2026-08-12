@@ -16,6 +16,14 @@ from score_accounts import rank_accounts, score_account  # noqa: E402
 
 
 CONFIG_PATH = PACKAGE_DIR / "config.example.json"
+ACCOUNT_SCORE_FIELDS = (
+    "icp_fit",
+    "engineering_led",
+    "technical_gtm_signal",
+    "growth_recency",
+    "customer_similarity",
+    "first_party_engagement",
+)
 
 
 def account(account_id: str, domain: str, **signals: object) -> AccountRecord:
@@ -93,7 +101,8 @@ class AccountRankingTests(unittest.TestCase):
             self.config,
         )
 
-        for field, maximum in self.config.score_weights.items():
+        for field in ACCOUNT_SCORE_FIELDS:
+            maximum = self.config.score_weights[field]
             self.assertGreaterEqual(getattr(score, field), 0)
             self.assertLessEqual(getattr(score, field), maximum)
 
