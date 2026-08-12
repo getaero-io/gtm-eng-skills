@@ -1,0 +1,12 @@
+contact_id,name,company,title,account_id,linkedin_url,work_email,source_record_ids,source_ref,source_metadata_json
+contact-northstar-gtm,Nora Imani,Northstar AI,Head of GTM Engineering,northstar-ai.example,linkedin.com/in/example-nora-imani,nora@northstar-ai.example,crm-northstar-1,fixture,{}
+duplicate-northstar-profile,Nora Imani,Northstar AI,GTM Engineering Lead,northstar-ai.example,https://www.linkedin.com/in/example-nora-imani/?trk=fixture,,event-northstar-4,fixture,{}
+contact-northstar-revops,Elliot Vale,Northstar AI,Director of RevOps,northstar-ai.example,linkedin.com/in/example-elliot-vale,elliot@northstar-ai.example,crm-northstar-2,fixture,{}
+contact-relay-revops,Mina Sol,Relay Cloud,Director of Revenue Systems,relay-cloud.example,linkedin.com/in/example-mina-sol,mina@relay-cloud.example,crm-relay-1,fixture,{}
+duplicate-relay-email,Mina Sol,Relay Cloud,Revenue Systems Director,relay-cloud.example,,MINA@RELAY-CLOUD.EXAMPLE,event-relay-3,fixture,{}
+contact-harbor-bizops,Tariq Fen,Harbor Systems,Director of BizOps,harbor-systems.example,linkedin.com/in/example-tariq-fen,tariq@harbor-systems.example,crm-harbor-1,fixture,{}
+open_role_harbor_gtm,Open role — GTM Engineer,Harbor Systems,GTM Engineer,harbor-systems.example,,,,fixture,"{""node_type"":""open_role""}"
+connector-direct,Avery Stone,Signal Studio,Operating Partner,,linkedin.com/in/example-avery-stone,avery@signal-studio.example,fixture-connector-direct,fixture,{}
+connector-work,Casey Morgan,Fieldcraft Labs,Revenue Advisor,,linkedin.com/in/example-casey-morgan,casey@fieldcraft-labs.example,fixture-connector-work,fixture,{}
+connector-nonoverlap,Riley Chen,Harbor Guild,Operations Advisor,,linkedin.com/in/example-riley-chen,riley@harbor-guild.example,fixture-connector-nonoverlap,fixture,{}
+connector-investor,Parker Quinn,Example Seed Fund,Investor,,linkedin.com/in/example-parker-quinn,parker@example-seed.example,fixture-connector-investor,fixture,{}

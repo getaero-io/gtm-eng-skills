@@ -1,0 +1,59 @@
+{
+  "campaign_id": "fictional-warm-intro-campaign",
+  "owner_id": "campaign-owner",
+  "as_of": "2026-08-12",
+  "title_catalog": {
+    "technical_gtm": {
+      "titles": [
+        "GTM Engineer",
+        "Revenue Operations",
+        "GTM Systems",
+        "Growth Engineer",
+        "Business Operations",
+        "GTM Analytics"
+      ]
+    }
+  },
+  "score_weights": {
+    "icp_fit": 25,
+    "engineering_led": 15,
+    "technical_gtm_signal": 20,
+    "growth_recency": 15,
+    "customer_similarity": 15,
+    "first_party_engagement": 10,
+    "direct_intro": 60,
+    "work_overlap": 30,
+    "school_city_community": 15,
+    "role_industry": 7,
+    "investor": 3,
+    "relationship": 3
+  },
+  "segment_thresholds": {
+    "include": 70,
+    "review": 35
+  },
+  "exclusions": {
+    "existing_customers": ["acme-customer.example"],
+    "vendors": [],
+    "partners": [],
+    "do_not_contact": []
+  },
+  "provider_routes": {
+    "company_jobs": "sentrion",
+    "linkedin_company_posts": "apify",
+    "linkedin_person_posts": "apify",
+    "x_posts": "twitterapi",
+    "people_search": "pdl",
+    "web_search": "public_web"
+  },
+  "blocked_providers": ["bloomberry"],
+  "blocked_operations": ["crustdata:linkedin_person_posts"],
+  "cache_directory": ".cache/target-account-warm-intro-campaign",
+  "provider_caps": {
+    "pdl": "1.00",
+    "sentrion": "2.00",
+    "apify": "2.00",
+    "twitterapi": "1.00"
+  },
+  "campaign_cap": "5.00"
+}

@@ -1,11 +1,19 @@
 """Similarity scoring engine for warm intro matches."""
 import re
+import sys
 import unicodedata
 from datetime import date
+from pathlib import Path
 from typing import Optional
 
 from .models import Contact, Experience, Education, PublicAppearance, WarmIntroMatch
 from .db import WarmIntroDB
+
+_OFFICE_HOURS_DIR = Path(__file__).resolve().parent.parent
+if str(_OFFICE_HOURS_DIR) not in sys.path:
+    sys.path.insert(0, str(_OFFICE_HOURS_DIR))
+
+from warm_intro_contract import build_path_id  # noqa: E402
 
 
 class WarmIntroScorer:
@@ -18,6 +26,11 @@ class WarmIntroScorer:
     WEIGHT_ROLE_OVERLAP = 15.0
     WEIGHT_RECENCY = 5.0
     WEIGHT_SHARED_APPEARANCE = 40.0  # Strong signal - same podcast/event
+    WEIGHT_DIRECT_INTRO = 160.0
+    WEIGHT_VERIFIED_WORK_OVERLAP = 80.0
+    WEIGHT_SCHOOL_CITY_COMMUNITY = 40.0
+    WEIGHT_ROLE_INDUSTRY = 20.0
+    MAX_INVESTOR_SCORE = 3.0
 
     # Common company suffixes to strip during normalization
     COMPANY_SUFFIXES = [
@@ -77,6 +90,32 @@ class WarmIntroScorer:
         "am",
     ]
 
+    EMPLOYER_LEGAL_SUFFIXES = {
+        "ag",
+        "bv",
+        "co",
+        "company",
+        "corp",
+        "corporation",
+        "gmbh",
+        "inc",
+        "incorporated",
+        "limited",
+        "llc",
+        "ltd",
+        "nv",
+        "plc",
+        "pte",
+        "pty",
+        "sa",
+        "srl",
+    }
+    DOTTED_LEGAL_SUFFIXES = {
+        ("i", "n", "c"),
+        ("l", "l", "c"),
+        ("l", "t", "d"),
+    }
+
     def __init__(self, db: Optional[WarmIntroDB] = None):
         """Initialize scorer with optional database connection."""
         self.db = db
@@ -110,6 +149,30 @@ class WarmIntroScorer:
             words.pop()
 
         return " ".join(words).strip()
+
+    def normalize_employer_identity(self, name: str) -> str:
+        """Canonicalize legal-name noise without dropping meaningful identity tokens."""
+        if not name:
+            return ""
+        normalized = unicodedata.normalize("NFKD", name)
+        normalized = normalized.encode("ascii", "ignore").decode("ascii")
+        words = re.sub(r"[^\w\s]", " ", normalized.casefold()).split()
+        while words:
+            if words[-1] in self.EMPLOYER_LEGAL_SUFFIXES:
+                words.pop()
+                continue
+            dotted_suffix = next(
+                (
+                    suffix
+                    for suffix in self.DOTTED_LEGAL_SUFFIXES
+                    if len(words) >= len(suffix) and tuple(words[-len(suffix) :]) == suffix
+                ),
+                None,
+            )
+            if dotted_suffix is None:
+                break
+            del words[-len(dotted_suffix) :]
+        return " ".join(words)
 
     def normalize_school(self, name: str) -> str:
         """Normalize school name for comparison.
@@ -271,6 +334,200 @@ class WarmIntroScorer:
         age_normalized = (days_ago - 30) / age_range
         return 1.0 - (age_normalized * 0.5)
 
+    def score_target_connector(
+        self,
+        connector: Contact,
+        connector_experiences: list[Experience],
+        target: Contact,
+        target_experiences: list[Experience],
+        relationship_confidence: str = "unknown",
+        direct_intro_evidence_ids: tuple[str, ...] = (),
+        relationship_evidence_ids: tuple[str, ...] = (),
+        shared_schools: tuple[str, ...] = (),
+        shared_cities: tuple[str, ...] = (),
+        shared_communities: tuple[str, ...] = (),
+        shared_appearances: tuple[str, ...] = (),
+        role_industry_matches: tuple[str, ...] = (),
+        investor_overlaps: tuple[str, ...] = (),
+        evidence_ids: tuple[str, ...] = (),
+        as_of: Optional[date] = None,
+        campaign_id: str = "",
+        owner_id: str = "",
+    ) -> WarmIntroMatch:
+        """Score explicit connector-to-target evidence without changing legacy lookup scoring."""
+        scoring_date = as_of or date.today()
+        confidence = relationship_confidence.strip().casefold() or "unknown"
+        relationship_score = {
+            "low": 5.0,
+            "medium": 10.0,
+            "high": 15.0,
+            "confirmed": 15.0,
+        }.get(confidence, 0.0)
+        direct_intro_score = self.WEIGHT_DIRECT_INTRO if direct_intro_evidence_ids else 0.0
+
+        overlaps: list[tuple[Experience, Experience, date, date]] = []
+        company_proximities: set[str] = set()
+        for connector_role in connector_experiences:
+            for target_role in target_experiences:
+                if not self.company_matches(connector_role.company_name, target_role.company_name):
+                    continue
+                company_proximities.add(connector_role.company_name)
+                if self.normalize_employer_identity(
+                    connector_role.company_name
+                ) != self.normalize_employer_identity(target_role.company_name):
+                    continue
+                if connector_role.start_date is None or target_role.start_date is None:
+                    continue
+                connector_end = connector_role.end_date or (
+                    scoring_date if connector_role.is_current else None
+                )
+                target_end = target_role.end_date or (
+                    scoring_date if target_role.is_current else None
+                )
+                if connector_end is None or target_end is None:
+                    continue
+                overlap_start = max(connector_role.start_date, target_role.start_date)
+                overlap_end = min(connector_end, target_end, scoring_date)
+                if overlap_start <= overlap_end:
+                    overlaps.append(
+                        (connector_role, target_role, overlap_start, overlap_end)
+                    )
+
+        work_overlap_score = self.WEIGHT_VERIFIED_WORK_OVERLAP if overlaps else 0.0
+        community_values = tuple(
+            dict.fromkeys(
+                (*shared_schools, *shared_cities, *shared_communities, *shared_appearances)
+            )
+        )
+        school_city_community_score = (
+            self.WEIGHT_SCHOOL_CITY_COMMUNITY if community_values else 0.0
+        )
+        role_industry_score = self.WEIGHT_ROLE_INDUSTRY if role_industry_matches else 0.0
+        investor_score = float(
+            min(len(set(investor_overlaps)), self.MAX_INVESTOR_SCORE)
+        )
+
+        reasons: list[str] = []
+        if direct_intro_score:
+            reasons.append("confirmed_direct_introduction")
+        for connector_role, target_role, overlap_start, overlap_end in overlaps:
+            reasons.append(
+                "verified_work_overlap:"
+                f"{connector_role.company_name}:{overlap_start.isoformat()}:{overlap_end.isoformat()}"
+            )
+        if relationship_score:
+            reasons.append(f"owner_connector_relationship:{confidence}")
+        reasons.extend(f"school_city_community:{value}" for value in community_values)
+        reasons.extend(f"role_industry:{value}" for value in role_industry_matches)
+        reasons.extend(f"investor_overlap:{value}" for value in investor_overlaps)
+
+        if direct_intro_score:
+            shared_signal = "direct_introduction"
+            shared_detail = "; ".join(sorted(set(direct_intro_evidence_ids)))
+        elif overlaps:
+            first_overlap = sorted(
+                overlaps,
+                key=lambda item: (
+                    item[2],
+                    item[3],
+                    self.normalize_company(item[0].company_name),
+                ),
+            )[0]
+            shared_signal = "verified_work_overlap"
+            shared_detail = (
+                f"{first_overlap[0].company_name}, {first_overlap[2].isoformat()} "
+                f"to {first_overlap[3].isoformat()}"
+            )
+        elif company_proximities:
+            shared_signal = "company_proximity"
+            shared_detail = (
+                f"{sorted(company_proximities, key=str.casefold)[0]}; "
+                "employment dates unavailable or non-overlapping"
+            )
+        elif community_values:
+            shared_signal = "school_city_community"
+            shared_detail = "; ".join(community_values)
+        elif role_industry_matches:
+            shared_signal = "role_industry"
+            shared_detail = "; ".join(role_industry_matches)
+        elif investor_overlaps:
+            shared_signal = "investor_overlap"
+            shared_detail = "; ".join(investor_overlaps)
+        else:
+            shared_signal = ""
+            shared_detail = ""
+
+        has_strong_signal = bool(direct_intro_score or work_overlap_score)
+        if has_strong_signal and relationship_score:
+            segment = "strong_warm_intro"
+        elif shared_signal and shared_signal != "investor_overlap":
+            segment = "review_warm_intro"
+        else:
+            segment = "no_strong_path"
+
+        overlap_evidence_ids = {
+            identifier
+            for connector_role, target_role, _, _ in overlaps
+            for identifier in (connector_role.id, target_role.id)
+        }
+        all_evidence_ids = tuple(
+            sorted(
+                {
+                    *evidence_ids,
+                    *direct_intro_evidence_ids,
+                    *relationship_evidence_ids,
+                    *overlap_evidence_ids,
+                }
+            )
+        )
+        component_total = sum(
+            (
+                direct_intro_score,
+                work_overlap_score,
+                relationship_score,
+                school_city_community_score,
+                role_industry_score,
+                investor_score,
+            )
+        )
+        path_id = (
+            build_path_id(campaign_id, owner_id, connector.id, target.id)
+            if campaign_id and owner_id
+            else ""
+        )
+        return WarmIntroMatch(
+            contact=connector,
+            score=component_total,
+            reasons=reasons,
+            shared_companies=sorted(company_proximities, key=str.casefold),
+            shared_schools=list(shared_schools),
+            shared_appearances=list(shared_appearances),
+            shared_affiliations=[*shared_communities, *investor_overlaps],
+            campaign_id=campaign_id,
+            owner_id=owner_id,
+            connector_id=connector.id,
+            target_id=target.id,
+            path_id=path_id,
+            target_name=target.full_name,
+            target_title=target.current_position or "",
+            target_company=target.current_company or "",
+            shared_signal=shared_signal,
+            shared_detail=shared_detail,
+            relationship_confidence=confidence,
+            direct_intro_score=direct_intro_score,
+            work_overlap_score=work_overlap_score,
+            relationship_score=relationship_score,
+            school_city_community_score=school_city_community_score,
+            role_industry_score=role_industry_score,
+            investor_score=investor_score,
+            segment=segment,
+            evidence_ids=all_evidence_ids,
+        )
+
+    def score_target_contact(self, *args, **kwargs) -> WarmIntroMatch:
+        """Backward-friendly alias for the explicit target-person scorer."""
+        return self.score_target_connector(*args, **kwargs)
+
     def score_contact(
         self,
         contact: Contact,
@@ -295,6 +552,8 @@ class WarmIntroScorer:
         shared_appearances = []
         shared_appearances_normalized = set()
         role_similarity = 0.0
+        shared_signal = ""
+        shared_detail = ""
 
         # Check company overlap
         if target_company:
@@ -306,6 +565,8 @@ class WarmIntroScorer:
                 shared_companies.append(contact.current_company)
                 shared_companies_normalized.add(self.normalize_company(contact.current_company))
                 reasons.append(f"Currently works at {contact.current_company}")
+                shared_signal = "company_proximity"
+                shared_detail = f"Company-name match: {contact.current_company}; dates not compared"
 
             # Check past experiences
             for exp in experiences:
@@ -320,6 +581,11 @@ class WarmIntroScorer:
                             reasons.append(f"Currently works at {exp.company_name}")
                         else:
                             reasons.append(f"Previously worked at {exp.company_name}")
+                        if not shared_signal:
+                            shared_signal = "company_proximity"
+                            shared_detail = (
+                                f"Company-name match: {exp.company_name}; target-person dates not compared"
+                            )
 
         # Check school overlap
         if target_school:
@@ -378,6 +644,9 @@ class WarmIntroScorer:
             shared_appearances=shared_appearances,
             role_similarity=role_similarity,
             recency_boost=recency_boost,
+            target_company=target_company or "",
+            shared_signal=shared_signal,
+            shared_detail=shared_detail,
         )
 
     def find_matches(

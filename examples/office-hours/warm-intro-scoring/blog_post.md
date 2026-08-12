@@ -1,202 +1,199 @@
-# We built a warm intro scorer on 6,484 LinkedIn connections. Here's what actually worked.
+# A warm-intro score should tell you what to verify
 
-A warm intro converts at 40-60%. Cold email converts at 2-4%. So finding the right person to make an introduction is worth real effort.
+Finding an introduction path is usually treated as a memory exercise: search a
+network, recognize a few names, and guess which relationship is strongest. We
+wanted a review process that exposed the evidence behind the guess.
 
-The problem is that "finding the right person" usually means: open LinkedIn, stare at a contact's profile, try to remember how you know them, decide it's too awkward to ask, close LinkedIn.
+The result is a small warm-intro scorer. It does not predict whether a person will
+reply. It ranks factual reasons to inspect a connector and makes weak evidence look
+weak.
 
-We built something more systematic.
-
----
+All people, companies, source records, counts, and output excerpts in this article
+are fictionalized. They illustrate the method, not a measured conversion claim.
 
 ## The setup
 
-Starting point: Jai's LinkedIn export. 6,484 connections, mostly from the last 5 years of B2B GTM work.
+The input was a LinkedIn connection export containing several thousand contacts.
+The public example reduces that workflow to three fictional accounts:
 
-Three targets:
+- Northstar AI, where Nora Imani leads GTM engineering;
+- Relay Cloud, where Mina Sol leads revenue systems;
+- Harbor Systems, where Tariq Fen leads business operations.
 
-- **Target A** — VP of Sales at Modal (GPU compute infra)
-- **Target B** — Head of Engineering, Identity Product at Stripe
-- **Target C** — Senior Director of Engineering at Stripe (Manpreet's manager, 17 direct reports)
+The first pass knew each connector's name, profile URL, current company, title,
+and connection date. A bounded enrichment pass added employment histories for a
+reviewed subset. The target-person path scorer then combined that history with
+explicit owner-relationship and source evidence.
 
-The goal wasn't just to find someone at the same company. It was to find the person most likely to make a warm, well-placed introduction — and score them on how good that path actually is.
+The goal was not “find someone at the target company.” It was “show the strongest
+cited path to this person, explain why it ranks there, and make the remaining
+uncertainty impossible to miss.”
 
----
+## Discovery and verification are different jobs
 
-## The scoring model
+The first useful distinction was between company discovery and dated work overlap.
 
-Four signals. Each one is justified, not just arbitrary.
+A connection export can say that a connector currently works at Atlas Works. An
+enriched profile can say that the connector previously worked there. Either fact
+is useful for discovery. Neither tells us whether the connector and target worked
+there at the same time.
 
-```
-Total score = company match + seniority + connection recency + role overlap
-```
+The scorer therefore has two interfaces:
 
-**Company match (50 pts)** is the biggest weight because shared employers are the strongest proxy for actual relationship. If you both worked at [Company E], there's a reasonable chance you know each other or at least have a natural conversation opener. The scorer normalizes company names so "Stripe, Inc." and "Stripe" don't count differently. It also gives double credit for multiple overlaps in the history — someone who shows up at Stripe twice (once as an employee, once via acquisition) has a deeper relationship with the company than someone who spent six months there.
+1. Criteria discovery compares a connector with a company, school, role, or public
+   appearance. A company-name match is labeled `company_proximity` because target
+   dates were not compared.
+2. Target-person scoring compares both employment histories. It awards work points
+   only when normalized employer identity matches and the date intervals intersect.
 
-**Seniority (5-20 pts)** matters because a VP or founder asking for an intro has more social capital than an IC asking the same favor. Not a moral judgment — just how it works. VP/founder gets 20, Director/Head of gets 17, Manager/Lead gets 12, Senior/Principal gets 9, IC gets 5.
+Suppose Casey Morgan worked at Atlas Works from January 2020 through June 2023,
+while Mina Sol worked there from March 2021 through January 2024. Their cited
+overlap is March 2021 through June 2023. That supports a work-overlap reason.
 
-**Connection recency (7-30 pts)** is the most underrated signal. A connection from last month is completely different from one from 2019. You're more likely to get a response, and the introduction comes with more credibility when the relationship is fresh. Connected in the last 90 days: 30 points. 90 days to a year: 22. One to two years: 14. Two-plus years: 7.
+Now suppose Riley Chen left Nimbus Data in 2018 and Tariq Fen joined in 2019. The
+company is the same, but the intervals do not overlap. That result remains useful
+for review, but it earns zero work-overlap points. The campaign audit artifact
+records the explicit reason
+`company_proximity:Nimbus Data:non_overlapping_dates`.
 
-**Role overlap (0-15 pts)** catches natural fit — a GTM connector asking a GTM intro is a more comfortable ask than a cross-functional one. It's keyword matching on job titles, not semantic similarity, so it's rough. But it adds signal at the margin.
+Missing dates get the same cautious treatment. “Both worked there” is not silently
+promoted to “worked together.”
 
----
+## The evidence hierarchy
 
-## What the data looked like before enrichment
+The target-person score is additive and visible:
 
-We ingested all 6,484 connections from the LinkedIn export CSV — just names, current companies, and connection dates. No job history yet.
-
-Running the scorer gave us current-company signals only. Results for Target A:
-
-| Connector | Score | Via |
-|---|---|---|
-| Connector 1 | 91 | [Company E] (current) |
-| Connector 3 Vieth | 81 | [Company E] (current) |
-| Mikiko Bazeley | 72 | [Company E] (current) |
-
-Both Connector 1 and Connector 3 were flagged as "currently at [Company E]." Neither was. Connector 1 left for [Company D] in January 2025. Connector 3 left for [Company C] in 2024. LinkedIn's exported data is a snapshot, and the snapshot was already wrong.
-
-Current-company data alone is unreliable for anything you actually plan to act on.
-
----
-
-## Enriching with Edges
-
-We used Edges' `linkedin-extract-people-experiences` action to pull full job histories for the 94 connections at target companies. Edges runs on managed LinkedIn identities — no cookies, no account risk, fresh session per call.
-
-Cost: 0.6 credits per profile. 94 profiles. ~56 credits total. About $1.09.
-
-Rate limit on the Silver plan is 600 requests per minute. 94 profiles at one every 120ms took under 2 minutes.
-
-The enrichment wrote 780 experience records across 473 unique companies. Each record has company name, title, start date, end date, and whether it's current.
-
-Re-running the scorer with full history changed several results. The biggest change was for Target C at Stripe:
-
-| Connector | Score (before enrichment) | Score (after) | Why it changed |
-|---|---|---|---|
-| George Xing | 83 | 122 | Double Stripe hit — current employee + Supaglue acquisition history |
-| Connector 2 | — | 135 | Not in Stripe results before; enrichment revealed double Google history, Ron worked at Google pre-Stripe |
-| Spencer Aller | — | 134 | Also surfaced via Google history |
-
-Connector 2 went from invisible to the highest-scoring connector for Target C That wouldn't have happened without job history.
-
----
-
-## Final scores
-
-```
-Target: Target A (VP Sales, Modal)
-  #1 Connector 1 — 90  [warm, connected Jan 2025]
-       Now at [Company D]. Worked at [Company E] when Target A was there.
-       Seniority: Sr Director = 20 pts. Still has the [Company E] network.
-  #2 Connector 3 Vieth — 81  [warm, connected Aug 2025]
-       Now at [Company C]. Left [Company E] 2024.
-       Freshest connection but cross-functional (Eng → Sales).
-  #3 Mikiko Bazeley — 72  [cold, connected May 2024]
-       Still at [Company E]. Staff Dev Advocate.
-
-Note: Target A is already a direct connection (Dec 2023, 869 days ago).
-Cold but reachable directly — no intro needed.
+```text
+total = direct introduction
+      + dated work overlap
+      + owner-to-connector relationship
+      + school/city/community/appearance
+      + role/industry
+      + investor context
 ```
 
+The implementation uses a superincreasing factual hierarchy: a higher factual tier
+must remain above every lower tier combined, even after accounting for the maximum
+relationship-confidence difference. Repeating evidence in a tier adds citations,
+not points. Investor context is capped at three.
+
+That constraint matters. Without it, five weak facts can accidentally outrank one
+confirmed introduction. A total score may look precise while representing the
+wrong ordering of evidence.
+
+Relationship confidence is separate from the connector-to-target fact. A strong
+owner relationship tells us the ask may be comfortable. It does not tell us that
+the connector knows the target. Conversely, a dated target overlap does not tell us
+that the campaign owner has enough relationship capital to ask.
+
+The strongest segment therefore requires both sides:
+
+- a scored owner-to-connector relationship; and
+- confirmed-introduction evidence or dated connector-to-target work overlap.
+
+Community, role, and company proximity route to review. Investor-only context does
+not become a warm path.
+
+## What enrichment changed
+
+Current-company data was useful for narrowing the search, but it was not reliable
+enough for final wording. The example enricher does not replace
+`Contact.current_company`; it updates headline, location, and `enriched_at`, then
+replaces stored experience and education rows. Legacy discovery can therefore
+continue to read the original snapshot company after enrichment.
+
+The added experience evidence may show a later or current role, multiple roles
+under legal-name variants, or a shared employer years apart. Before acting, review
+the most recent dated/current experience and reconcile it with the snapshot. Do not
+describe the enriched experience as a corrected current-company field.
+
+Employment histories changed the workflow in three ways:
+
+- stale current-company snapshots could be challenged by dated experience evidence,
+  but still required manual reconciliation;
+- people who had relevant prior experience became discoverable; and
+- same-company proximity split into dated overlap, missing dates, and explicitly
+  non-overlapping dates.
+
+The important gain was not a larger score. It was a better review state. Reviewers
+could see which claim was supported, which source IDs contributed, and which
+sentence would overstate the evidence.
+
+## Stable output matters downstream
+
+The CLI exports deterministic CSV rows with campaign, owner, connector, and target
+IDs; a shared versioned path ID; target title; the six explicit score components;
+segment; evidence IDs; and an evidence-safe `shared_signal`/`shared_detail` pair.
+
+That file is the direct input to the ask-drafting example. The drafter prefers
+confirmed introduction over dated work overlap, then weaker contextual tiers. It
+also tells the model that proximity does not prove familiarity. Each draft starts
+unapproved.
+
+Activation uses a separate identity:
+
+```text
+SHA256(JSON(["warm-activation-v1", campaign_id, owner_id,
+             path_id, channel, message_version]))
 ```
-Target: Target B (Head of Eng, Identity Product, Stripe)
-  #1 George Xing — 125  [cold, connected Sep 2022]
-       Currently at Stripe. Founded Supaglue, which Stripe acquired.
-       Double company match = 106 pts on company alone.
-       Cold connection but has deep internal Stripe credibility.
-  #2 Carla Colindres — 77  [warm, connected Dec 2024]
-       Currently at Stripe, Product role.
-       Lower score than George but a much fresher relationship.
 
-Target: Target C (Sr Director of Engineering, Stripe)
-  #1 Connector 2 — 135  [warm, connected Dec 2024]
-       Head of Operations, Health AI Research at Google.
-       Double Google hit in her history. Ron was at Google before Stripe.
-  #2 Spencer Aller — 134  [cold, connected 2015]
-       Strategic Client Director at Google. Triple hit (Wildfire/Google history).
-       High score, but a 10-year-old connection.
-  #3 George Xing — 122  [cold]
-       Double Stripe hit. Same connector as Manpreet — one ask, two intros.
-```
+The durable local outbox prevents a successful or ambiguous message version from
+being sent automatically again. The provider does not expose an atomic
+idempotency token, so uncertain post-dispatch outcomes require reconciliation. A
+material edit requires a new version and another approval. The scorer is
+deliberately unable to cross that boundary on its own.
 
-George Xing is the most efficient path. One ask to one person covers both Stripe targets.
+## What the model still cannot know
 
----
+The data can show that Casey and Mina had overlapping employment dates. It cannot
+show whether they worked on the same team, trust one another, or would welcome an
+introduction request.
 
-## What the data got wrong (and what we adjusted)
+A connection date is also an imperfect relationship proxy. Two people may have
+connected after years of collaboration, or after one short event conversation.
+Public appearances and community membership have similar ambiguity.
 
-**Name validation is fuzzy.** The `linkedin-find-profile-url` call takes a full name and company, does some matching, and returns a LinkedIn URL. It returned the wrong person 20% of the time in our run. We validated every URL against the actual profile via Apify's LinkedIn scraper — first name match only, not current company, because the profile might show a previous role.
+The review therefore asks questions the score cannot answer:
 
-Validating on current company would have rejected correct profiles where the person had since changed jobs. That's a real edge case, not a hypothetical one.
+- Is this the correct connector identity?
+- Is the target's role current?
+- Does the source actually support the reason text?
+- Does the connector know the target well enough to make the requested
+  introduction?
+- Is the owner's relationship with the connector current and appropriate for the
+  ask?
+- Is outreach permitted by consent, suppression, privacy, and channel policy?
 
-**Recency score is a rough proxy for relationship strength.** Two people who met at a conference, traded cards, and connected on LinkedIn are not the same as two people who worked together for three years. The scorer doesn't know the difference. It just knows when the connection was made. You still have to look at the actual person and decide whether the relationship supports an intro ask.
+If those questions are unanswered, the right output is review—not a more
+aggressive message.
 
-**Current-company data goes stale fast.** LinkedIn exports a snapshot. The snapshot is wrong by the time you run it. Enrichment with live job history is necessary to avoid confidently recommending someone who left the company six months ago.
+## A reproducible workflow
 
----
+The method can be summarized without private data or performance promises:
 
-## The actual workflow
+1. Ingest a connection export into a local store.
+2. Resolve identities before combining sources.
+3. Narrow enrichment to a reviewed, budgeted subset.
+4. Preserve dated employment records and immutable evidence IDs.
+5. Use criteria scoring for discovery and target-person scoring for evidence.
+6. Export component scores, target title, segment, reasons, and citations.
+7. Review the relationship and factual claim before drafting.
+8. Generate unapproved drafts from the scorer CSV.
+9. Approve selected copy explicitly, dry-run it, and activate with a durable
+   idempotency log and channel limits.
 
-```
-1. Export LinkedIn connections CSV
-2. Ingest into SQLite via warm_intro ingest script (6,484 contacts, ~2 min)
-3. Filter to connections at target companies (94 contacts)
-4. Enrich job histories via Edges (94 × 0.6 credits = $1.09, ~2 min)
-5. Run scorer against each target (instant, in-memory)
-6. Review top results, pick connectors, draft the ask
-```
+The useful artifact is not a leaderboard of people. It is an audit trail from a
+candidate account to a target, from a target to a connector, and from a connector
+to the exact fact a reviewer must verify.
 
-Total time from export to ranked results: under 30 minutes. Most of that is waiting for Edges to return profiles.
+## Code and examples
 
-Total cost: $1.09 for enrichment. The rest is free.
-
----
-
-## What the scorer doesn't know
-
-It tells you who has the most factual overlap. It doesn't tell you whether to ask them.
-
-Connector 1 scoring 90 for a Target A intro means he ran partner sales at [Company E] when Target A was an AE there — real overlap on paper. Whether they actually knew each other, whether Connector 1 would pick up the phone, whether he knows Target A personally or just by reputation: none of that shows up in the data.
-
-A score of 90 is a strong reason to look at the person. It's not a strong reason to send the ask. That decision still requires a human who knows the relationship.
-
----
-
-## What this cost to build and run
-
-The scoring model is in `scripts/warm_intro/scorer.py`. About 380 lines of Python with no external dependencies beyond SQLite. The enrichment script is another 150 lines wrapping Edges API calls.
-
-Total compute cost for this specific run:
-- Edges enrichment (94 profiles): ~$1.09
-- Nothing else
-
-The model itself took a few hours to design and test. The tests in `tests/warm_intro/` validate against 16 real historical warm intro successes from 2024 — people who actually connected via shared companies and made introductions that led somewhere.
-
----
-
-## What's missing
-
-**Interaction history.** The scorer knows when you connected. It doesn't know if you've spoken since. Someone you connected with six months ago and have emailed twice is not the same as someone you connected with six months ago and have never spoken to. Recency is a rough proxy. Actual interaction history would be much better — but that data isn't in the LinkedIn export.
-
-**Multi-hop paths.** The scorer only looks at direct connections. The best intro path is sometimes two hops: you know someone who knows the target well. Building that requires a graph, not a list. Not there yet.
-
-**Appearance matching.** The model has `WEIGHT_SHARED_APPEARANCE = 40` — if someone in your network co-presented with your target at a conference or was on the same podcast, that's a stronger signal than almost any company overlap. We don't have that data for most people, so it rarely fires. But if you had it, it would change a lot of rankings.
-
----
-
-What would you use this for? Trying to understand whether people are running warm intro workflows systematically or mostly by memory.
-
----
-
----
-
-*All code and artifacts in this example:*
-
-| File | What it is |
+| Path | Purpose |
 |---|---|
-| [`scorer.py`](scorer.py) | Scoring engine — takes Contact + Experience objects, returns ranked WarmIntroMatch list |
-| [`enrich.py`](enrich.py) | Edges API enrichment — pulls full job histories for a list of LinkedIn URLs |
-| [`ingest.py`](ingest.py) | Ingests LinkedIn Connections.csv into SQLite |
-| [`models.py`](models.py) | Dataclasses: Contact, Experience, Education, WarmIntroMatch |
-| [`db.py`](db.py) | SQLite wrapper with insert/query helpers |
-| [`lookup.py`](lookup.py) | CLI: `python -m lookup --company Stripe` |
-| [`slide.html`](slide.html) | Visual summary of the scoring results |
+| [`scorer.py`](scorer.py) | Criteria discovery and evidence-backed target-person scoring. |
+| [`lookup.py`](lookup.py) | Human-readable results and deterministic `--csv` export. |
+| [`models.py`](models.py) | Contact, experience, evidence-adjacent, and score records. |
+| [`ingest.py`](ingest.py) | Connection-export ingestion. |
+| [`enrich.py`](enrich.py) | Bounded live profile enrichment; review provider policy before use. |
+| [`../target-account-warm-intro-campaign/`](../target-account-warm-intro-campaign/) | End-to-end fictional campaign orchestration and audit contracts. |
+| [`../warm-intro-ask-threads/`](../warm-intro-ask-threads/) | Drafting, approval, rate policy, and idempotent activation. |

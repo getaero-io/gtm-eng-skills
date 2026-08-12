@@ -18,6 +18,13 @@ from pathlib import Path
 from typing import Optional
 
 
+_OFFICE_HOURS_DIR = Path(__file__).resolve().parent.parent
+if str(_OFFICE_HOURS_DIR) not in sys.path:
+    sys.path.insert(0, str(_OFFICE_HOURS_DIR))
+
+from warm_intro_contract import build_path_id  # noqa: E402
+
+
 # ── Prompt ──────────────────────────────────────────────────────────────────
 
 ASK_SYSTEM_PROMPT = """You draft warm intro ask messages. Your output is always a JSON object with two keys: "subject" and "body".
@@ -30,6 +37,9 @@ Rules for the body:
 - No filler openings. Do not start with "Hope this finds you well", "I wanted to reach out", "I'd love to connect", or any variant.
 - Do not say "pick your brain". Do not say "quick chat". Do not say "explore synergies".
 - Write like a person, not a salesperson. Confident, not pleading.
+- Use only the facts supplied in the prompt. Do not invent personal history.
+- If target context or permissionless value is marked not supplied, omit it rather than inventing it.
+- A proximity signal does not prove that the connector and target know each other. Never claim that it does.
 - The subject line should be under 8 words. Format: "Intro to {target_name}?" or "Quick intro ask — {target_name}" or similar. Short.
 
 Output format (strict JSON, nothing else):
@@ -38,8 +48,10 @@ Output format (strict JSON, nothing else):
 ASK_USER_TEMPLATE = """Draft a warm intro ask for me to send to my connector.
 
 Connector: {connector_name} (currently at {connector_company})
-Target: {target_name} at {target_company}
-Shared signal: {signal_description}
+Target: {target_name}, {target_title} at {target_company}
+Verified path reason: {signal_description}
+Why the target may care: {why_target_cares}
+Permissionless value to offer: {permissionless_value}
 
 Return JSON only."""
 
@@ -47,17 +59,35 @@ Return JSON only."""
 # ── CSV helpers ──────────────────────────────────────────────────────────────
 
 REQUIRED_COLUMNS = {
+    "campaign_id",
+    "owner_id",
+    "connector_id",
+    "target_id",
+    "path_id",
     "connector_name",
     "connector_linkedin",
+    "connector_company",
     "target_name",
+    "target_title",
     "target_company",
     "shared_signal",
-    "score",
+    "shared_detail",
+    "relationship_confidence",
+    "direct_intro_score",
+    "work_overlap_score",
+    "relationship_score",
+    "school_city_community_score",
+    "role_industry_score",
+    "investor_score",
+    "total_score",
+    "segment",
+    "evidence_ids",
 }
 
 OPTIONAL_COLUMNS = {
-    "connector_company",
-    "shared_detail",
+    "why_target_cares",
+    "permissionless_value",
+    "reviewed_override",
 }
 
 
@@ -92,6 +122,26 @@ def load_scored_csv(path: str) -> list[dict]:
             f"Found columns: {', '.join(sorted(present))}"
         )
 
+    identity_columns = ("campaign_id", "owner_id", "connector_id", "target_id", "path_id")
+    for row_number, row in enumerate(rows, 2):
+        blank = [name for name in identity_columns if not row.get(name, "").strip()]
+        if blank:
+            sys.exit(
+                f"Input CSV row {row_number} has blank identity fields: "
+                f"{', '.join(blank)}"
+            )
+        expected_path_id = build_path_id(
+            row["campaign_id"],
+            row["owner_id"],
+            row["connector_id"],
+            row["target_id"],
+        )
+        if row["path_id"].strip() != expected_path_id:
+            sys.exit(
+                f"Input CSV row {row_number} path_id does not match its "
+                "campaign/owner/connector/target identity"
+            )
+
     return rows
 
 
@@ -109,6 +159,82 @@ def build_signal_description(row: dict) -> str:
     connector = row.get("connector_name", "your connector").strip()
     target = row.get("target_name", "the target").strip()
 
+    def has_score(field: str) -> bool:
+        try:
+            return float(row.get(field, 0) or 0) > 0
+        except (TypeError, ValueError):
+            return False
+
+    score_priority = (
+        ("direct_introduction", "direct_intro_score"),
+        ("dated_work_overlap", "work_overlap_score"),
+        ("school_city_community", "school_city_community_score"),
+        ("role_industry", "role_industry_score"),
+        ("investor_overlap", "investor_score"),
+    )
+    selected_signal = next(
+        (candidate for candidate, field in score_priority if has_score(field)),
+        "dated_work_overlap" if signal_type == "verified_work_overlap" else signal_type,
+    )
+    detail_matches_selection = signal_type == selected_signal or (
+        signal_type == "verified_work_overlap" and selected_signal == "dated_work_overlap"
+    )
+
+    if selected_signal == "direct_introduction":
+        evidence_detail = (
+            detail
+            if detail_matches_selection
+            else str(row.get("evidence_ids", "") or "").strip()
+        )
+        evidence = f" ({evidence_detail})" if evidence_detail else ""
+        return (
+            f"A confirmed direct-introduction evidence record{evidence} supports asking "
+            f"{connector} for an introduction to {target}."
+        )
+    if selected_signal == "dated_work_overlap" and detail_matches_selection and detail:
+        return f"{connector} and {target} have a verified dated work overlap: {detail}."
+    if selected_signal == "dated_work_overlap":
+        return f"{connector} and {target} have a verified dated work overlap."
+    if selected_signal == "school_city_community" and detail_matches_selection and detail:
+        return (
+            f"{connector} and {target} share school, city, community, or appearance "
+            f"proximity ({detail}); this does not establish that they know each other."
+        )
+    if selected_signal == "school_city_community":
+        return (
+            f"{connector} and {target} have school, city, community, or appearance "
+            "proximity; this does not establish that they know each other."
+        )
+    if selected_signal == "role_industry" and detail_matches_selection and detail:
+        return (
+            f"{connector} and {target} have role or industry proximity ({detail}); "
+            "this does not establish that they know each other."
+        )
+    if selected_signal == "role_industry":
+        return (
+            f"{connector} and {target} have role or industry proximity; this does not "
+            "establish that they know each other."
+        )
+    if selected_signal == "investor_overlap" and detail_matches_selection and detail:
+        return (
+            f"{connector} and {target} share investor context ({detail}); this does not "
+            "establish that they know each other."
+        )
+    if selected_signal == "investor_overlap":
+        return (
+            f"{connector} and {target} share investor context; this does not establish "
+            "that they know each other."
+        )
+    if selected_signal == "company_proximity" and detail:
+        return (
+            f"{connector} and {target} have employer proximity ({detail}); this does not "
+            "confirm overlapping dates or that they know each other."
+        )
+    if selected_signal == "company_proximity":
+        return (
+            f"{connector} and {target} have employer proximity; this does not confirm "
+            "overlapping dates or that they know each other."
+        )
     if signal_type == "company_match" and detail:
         return f"{connector} and {target} both worked at {detail}."
     if signal_type == "company_match":
@@ -261,6 +387,7 @@ def draft_asks(
     top: Optional[int],
     model: str,
     verbose: bool,
+    allow_reviewed: bool = False,
 ) -> list[dict]:
     """Generate ask drafts for each connector row.
 
@@ -274,8 +401,54 @@ def draft_asks(
     Returns:
         List of output row dicts ready for CSV write.
     """
-    # Sort by score descending, cap at top N
-    sorted_rows = sorted(rows, key=lambda r: float(r.get("score", 0)), reverse=True)
+    draftable_rows: list[dict] = []
+    for row in rows:
+        blank_identity = [
+            name
+            for name in ("campaign_id", "owner_id", "connector_id", "target_id", "path_id")
+            if not str(row.get(name, "") or "").strip()
+        ]
+        if blank_identity:
+            raise ValueError(
+                "scored path has blank identity fields: " + ", ".join(blank_identity)
+            )
+        expected_path_id = build_path_id(
+            row["campaign_id"],
+            row["owner_id"],
+            row["connector_id"],
+            row["target_id"],
+        )
+        if row["path_id"].strip() != expected_path_id:
+            raise ValueError(
+                "scored path_id does not match campaign/owner/connector/target identity"
+            )
+        segment = str(row.get("segment", "") or "").strip()
+        if segment == "strong_warm_intro":
+            draftable_rows.append(row)
+        elif (
+            segment == "review_warm_intro"
+            and allow_reviewed
+            and str(row.get("reviewed_override", "") or "").strip().casefold()
+            == "true"
+        ):
+            draftable_rows.append(row)
+        elif segment == "no_strong_path":
+            if verbose:
+                print(
+                    f"Routing {row.get('path_id', '<missing>')} to direct outreach; "
+                    "no warm ask will be drafted."
+                )
+        elif verbose:
+            print(
+                f"Holding {row.get('path_id', '<missing>')} for explicit evidence review."
+            )
+
+    # Sort eligible rows by score descending, then cap the drafted set.
+    sorted_rows = sorted(
+        draftable_rows,
+        key=lambda r: float(r.get("total_score", 0) or 0),
+        reverse=True,
+    )
     if top is not None:
         sorted_rows = sorted_rows[:top]
 
@@ -286,8 +459,11 @@ def draft_asks(
         connector_linkedin = row["connector_linkedin"].strip()
         connector_company = row.get("connector_company", "").strip() or "their company"
         target_name = row["target_name"].strip()
+        target_title = row["target_title"].strip()
         target_company = row["target_company"].strip()
-        score = row.get("score", "")
+        total_score = row.get("total_score", "")
+        why_target_cares = row.get("why_target_cares", "").strip()
+        permissionless_value = row.get("permissionless_value", "").strip()
 
         signal_description = build_signal_description(row)
 
@@ -295,14 +471,17 @@ def draft_asks(
             connector_name=connector_name,
             connector_company=connector_company,
             target_name=target_name,
+            target_title=target_title,
             target_company=target_company,
             signal_description=signal_description,
+            why_target_cares=why_target_cares or "Not supplied; do not invent one.",
+            permissionless_value=permissionless_value or "Not supplied; do not invent one.",
         )
 
         if verbose:
             print(
                 f"[{i}/{len(sorted_rows)}] Drafting ask for {connector_name} → {target_name} "
-                f"(score: {score})"
+                f"(score: {total_score})"
             )
 
         try:
@@ -323,13 +502,28 @@ def draft_asks(
 
         output_rows.append(
             {
+                "campaign_id": row["campaign_id"].strip(),
+                "owner_id": row["owner_id"].strip(),
+                "connector_id": row["connector_id"].strip(),
+                "target_id": row["target_id"].strip(),
+                "path_id": row["path_id"].strip(),
                 "connector_name": connector_name,
                 "connector_linkedin": connector_linkedin,
                 "target_name": target_name,
+                "target_title": target_title,
+                "target_company": target_company,
                 "shared_signal": row.get("shared_signal", ""),
+                "shared_detail": row.get("shared_detail", ""),
+                "why_target_cares": why_target_cares,
+                "permissionless_value": permissionless_value,
                 "draft_subject": subject,
                 "draft_body": body,
-                "score": score,
+                "total_score": total_score,
+                "segment": row["segment"].strip(),
+                "reviewed_override": row.get("reviewed_override", "false").strip()
+                or "false",
+                "approved": "false",
+                "message_version": "1",
                 "status": status,
             }
         )
@@ -345,17 +539,31 @@ def write_output_csv(rows: list[dict], path: str) -> None:
         path: Destination file path.
     """
     fieldnames = [
+        "campaign_id",
+        "owner_id",
+        "connector_id",
+        "target_id",
+        "path_id",
         "connector_name",
         "connector_linkedin",
         "target_name",
+        "target_title",
+        "target_company",
         "shared_signal",
+        "shared_detail",
+        "why_target_cares",
+        "permissionless_value",
         "draft_subject",
         "draft_body",
-        "score",
+        "total_score",
+        "segment",
+        "reviewed_override",
+        "approved",
+        "message_version",
         "status",
     ]
     with open(path, "w", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(fh, fieldnames=fieldnames)
+        writer = csv.DictWriter(fh, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -395,6 +603,14 @@ def main() -> None:
         action="store_true",
         help="Print progress per connector",
     )
+    parser.add_argument(
+        "--allow-reviewed",
+        action="store_true",
+        help=(
+            "Draft review_warm_intro rows only when their reviewed_override column "
+            "is also true"
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -411,6 +627,7 @@ def main() -> None:
         top=args.top,
         model=args.model,
         verbose=args.verbose,
+        allow_reviewed=args.allow_reviewed,
     )
 
     ok_count = sum(1 for r in output_rows if r["status"] == "ok")

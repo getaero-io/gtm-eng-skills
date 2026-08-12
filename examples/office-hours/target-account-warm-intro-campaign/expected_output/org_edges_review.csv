@@ -1,0 +1,3 @@
+edge_id,from_contact_id,from_name,from_kind,to_contact_id,to_name,to_kind,edge_type,confidence,review_required,source_evidence_ids
+edge-harbor-open-role,contact-harbor-bizops,Tariq Fen,person,open_role_harbor_gtm,Open role — GTM Engineer,open_role,functional_proximity_inferred,medium,true,"[""evidence-job-harbor"",""evidence-post-harbor""]"
+edge-northstar-report,contact-northstar-gtm,Nora Imani,person,contact-northstar-revops,Elliot Vale,person,reports_to_confirmed,confirmed,false,"[""evidence-post-northstar""]"

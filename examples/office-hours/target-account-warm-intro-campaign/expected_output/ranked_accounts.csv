@@ -1,0 +1,6 @@
+rank,account_id,name,domain,icp_fit,engineering_led,technical_gtm_signal,growth_recency,customer_similarity,first_party_engagement,total_score,decision,exclusion_reason
+1,northstar-ai.example,Northstar AI,northstar-ai.example,25,15,20,15,15,10,100,include,
+2,harbor-systems.example,Harbor Systems,harbor-systems.example,25,15,20,15,15,0,90,include,
+3,relay-cloud.example,Relay Cloud,relay-cloud.example,25,15,20,15,15,0,90,include,
+4,acme-customer.example,Acme Customer,acme-customer.example,25,15,20,15,15,10,100,exclude,existing_customer
+5,juniper-consumer.example,Juniper Consumer,juniper-consumer.example,0,0,0,15,0,0,15,exclude,non_b2b
