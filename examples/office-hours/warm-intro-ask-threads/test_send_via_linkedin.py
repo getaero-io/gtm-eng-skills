@@ -464,11 +464,7 @@ class ActivationIntegrationTests(unittest.TestCase):
             verification = module.init_log_db(str(log_path))
             lifecycle_count = verification.execute(
                 "SELECT COUNT(*) FROM sends WHERE idempotency_key = ?",
-                (
-                    module.build_idempotency_key(
-                        "path-approved", "linkedin", "1"
-                    ),
-                ),
+                (module.build_idempotency_key("path-approved", "linkedin", "1"),),
             ).fetchone()[0]
             verification.close()
 
@@ -544,6 +540,143 @@ class ActivationIntegrationTests(unittest.TestCase):
                 module.main()
 
         self.assertEqual(competing_reservations, [False])
+
+    def assert_processing_failure_is_retryable_and_batch_continues(self, first_outcome):
+        module = load_module()
+        actor_calls = []
+
+        def fake_send(**kwargs):
+            actor_calls.append(kwargs)
+            if len(actor_calls) == 1:
+                if isinstance(first_outcome, Exception):
+                    raise first_outcome
+                return first_outcome
+            return {"run_id": "run-second", "status": "SUCCEEDED"}
+
+        module.send_linkedin_message = fake_send
+        module.time.sleep = lambda _seconds: None
+        rows = [
+            {
+                "path_id": f"path-os-error-{number}",
+                "connector_name": f"Connector {number}",
+                "connector_linkedin": f"https://linkedin.example/in/connector-{number}",
+                "target_name": "Nora Imani",
+                "draft_body": "Would you introduce me to Nora?",
+                "approved": "true",
+                "message_version": "1",
+            }
+            for number in range(2)
+        ]
+
+        with tempfile.TemporaryDirectory() as directory:
+            drafts_path = Path(directory) / "drafts.csv"
+            log_path = Path(directory) / "sends.db"
+            write_drafts(drafts_path, rows)
+            argv = [
+                "send_via_linkedin.py",
+                "--input",
+                str(drafts_path),
+                "--api-key",
+                "example-key",
+                "--limit",
+                "2",
+                "--delay",
+                "60",
+                "--log-db",
+                str(log_path),
+            ]
+            with (
+                patch.object(sys, "argv", argv),
+                redirect_stdout(io.StringIO()),
+                redirect_stderr(io.StringIO()),
+            ):
+                module.main()
+
+            connection = module.init_log_db(str(log_path))
+            failed_key = module.build_idempotency_key(
+                "path-os-error-0", "linkedin", "1"
+            )
+            later_key = module.build_idempotency_key("path-os-error-1", "linkedin", "1")
+            failed = connection.execute(
+                "SELECT status, reservation_owner FROM sends WHERE idempotency_key = ?",
+                (failed_key,),
+            ).fetchone()
+            self.assertEqual(
+                (failed["status"], failed["reservation_owner"]), ("error", None)
+            )
+            self.assertTrue(
+                module.reserve_send(
+                    connection,
+                    idempotency_key=failed_key,
+                    owner_token="immediate-retry",
+                    connector_linkedin=rows[0]["connector_linkedin"],
+                    connector_name=rows[0]["connector_name"],
+                    target_name=rows[0]["target_name"],
+                    message_preview=rows[0]["draft_body"],
+                )
+            )
+            self.assertTrue(module.already_sent(connection, later_key))
+            connection.close()
+
+        self.assertEqual(len(actor_calls), 2)
+
+    def test_file_not_found_actor_failure_is_retryable_and_batch_continues(self):
+        self.assert_processing_failure_is_retryable_and_batch_continues(
+            FileNotFoundError("deepline executable not found")
+        )
+
+    def test_malformed_actor_result_is_retryable_and_batch_continues(self):
+        self.assert_processing_failure_is_retryable_and_batch_continues(None)
+
+    def test_process_control_exceptions_are_not_swallowed(self):
+        for exception in (KeyboardInterrupt(), SystemExit(7)):
+            with self.subTest(exception=type(exception).__name__):
+                module = load_module()
+
+                def raise_process_control(**_kwargs):
+                    raise exception
+
+                module.send_linkedin_message = raise_process_control
+                row = {
+                    "path_id": f"path-{type(exception).__name__.casefold()}",
+                    "connector_name": "Avery Stone",
+                    "connector_linkedin": "https://linkedin.example/in/avery-stone",
+                    "target_name": "Nora Imani",
+                    "draft_body": "Would you introduce me to Nora?",
+                    "approved": "true",
+                    "message_version": "1",
+                }
+                with tempfile.TemporaryDirectory() as directory:
+                    drafts_path = Path(directory) / "drafts.csv"
+                    log_path = Path(directory) / "sends.db"
+                    write_drafts(drafts_path, [row])
+                    argv = [
+                        "send_via_linkedin.py",
+                        "--input",
+                        str(drafts_path),
+                        "--api-key",
+                        "example-key",
+                        "--delay",
+                        "60",
+                        "--log-db",
+                        str(log_path),
+                    ]
+                    with (
+                        patch.object(sys, "argv", argv),
+                        redirect_stdout(io.StringIO()),
+                        redirect_stderr(io.StringIO()),
+                        self.assertRaises(type(exception)),
+                    ):
+                        module.main()
+
+                    connection = module.init_log_db(str(log_path))
+                    key = module.build_idempotency_key(row["path_id"], "linkedin", "1")
+                    status = connection.execute(
+                        "SELECT status FROM sends WHERE idempotency_key = ?", (key,)
+                    ).fetchone()["status"]
+                    connection.close()
+
+                self.assertEqual(status, "pending")
 
 
 class RatePolicyTests(unittest.TestCase):

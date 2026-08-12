@@ -676,7 +676,10 @@ def main() -> None:
                 print(f"   Sent. Apify run: {run_id} | status: {apify_status}")
                 sent_count += 1
 
-        except RuntimeError as exc:
+        except (KeyboardInterrupt, SystemExit):
+            log_conn.close()
+            raise
+        except Exception as exc:
             print(f"   ERROR: {exc}", file=sys.stderr)
             row = log_conn.execute(
                 "SELECT status, reservation_owner FROM sends WHERE idempotency_key = ?",
