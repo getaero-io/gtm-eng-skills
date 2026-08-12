@@ -251,7 +251,7 @@ class DraftGenerationTests(unittest.TestCase):
 
         drafts = module.draft_asks(
             rows=[row],
-            api_key="example-key",
+            api_key="example-key",  # pragma: allowlist secret
             top=None,
             model="example-model",
             verbose=False,
@@ -300,7 +300,7 @@ class DraftGenerationTests(unittest.TestCase):
 
         drafts = module.draft_asks(
             rows=[row],
-            api_key="example-key",
+            api_key="example-key",  # pragma: allowlist secret
             top=None,
             model="example-model",
             verbose=False,

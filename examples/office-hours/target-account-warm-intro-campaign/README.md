@@ -728,10 +728,11 @@ rg -n -i 'bloomberry|crustdata.*linkedin' \
   examples/office-hours/target-account-warm-intro-campaign \
   examples/office-hours/warm-intro-scoring \
   examples/office-hours/warm-intro-ask-threads
-rg -n -i '@(gmail|yahoo|outlook|deepline|getaero)\.' \
+rg -n -i '[[:alnum:]._%+-]+@[[:alnum:].-]+\.[[:alpha:]]{2,}' \
   examples/office-hours/target-account-warm-intro-campaign \
   examples/office-hours/warm-intro-scoring \
-  examples/office-hours/warm-intro-ask-threads
+  examples/office-hours/warm-intro-ask-threads \
+  | rg -v -i '@([^[:space:]]*\.)?example\.(com|org|net)([^[:alnum:]]|$)|@[^[:space:]]*\.example([^[:alnum:]]|$)'
 rg -n -i 'linkedin\.(com|example)/in/' \
   examples/office-hours/target-account-warm-intro-campaign \
   examples/office-hours/warm-intro-scoring \
@@ -739,17 +740,14 @@ rg -n -i 'linkedin\.(com|example)/in/' \
   docs/superpowers/plans/2026-08-12-target-account-warm-intro-campaign.md \
   docs/superpowers/specs/2026-08-12-target-account-warm-intro-campaign-design.md \
   | rg -v 'linkedin\.(com|example)/in/(example-|[<{])'
-rg -n -i '6,484|94 enriched|680 experience|62 credits|869 days|\$1\.09|\$1\.20|stripe|modal|mongodb|google|harness|supaglue|porter|cisco thousandeyes|edges api|manpreet|ron\b|tiffany\b|george xing|carla colindres|spencer aller|mikiko bazeley|charlie vieth|ryan waldorf|cat yu|david siegel|gaurav tungatkar|target [abc]\b|connector [12]\b' \
-  examples/office-hours/warm-intro-scoring/README.md \
-  examples/office-hours/warm-intro-scoring/blog_post.md \
-  examples/office-hours/warm-intro-scoring/slide.html
-rg -n -i 'seniority|connection recency|double (credit|company|stripe|google)|acqui(hire|sition)' \
-  examples/office-hours/warm-intro-scoring/slide.html
 ```
 
 For scans where absence is required, ripgrep exit 1 with no output is success. The
 provider scan should match only explicit blocked-policy documentation, config, and
 tests in these three examples. `tenant-enum` is outside this workflow and retains
-its pre-existing provider note. The fixture smoke command above is the final
+its pre-existing provider note. Keep any organization-specific names, metrics,
+domains, or other denylist values in a private CI secret or local ignored file;
+never commit the sensitive values merely to scan for their absence. The fixture
+smoke command above is the final
 acceptance check. It must report zero provider calls and zero spend, decide every
 input account, and write all nine review/ledger artifacts.
