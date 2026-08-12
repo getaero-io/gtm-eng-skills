@@ -1,0 +1,4 @@
+interaction_id,contact_id,source,interaction_type,occurred_at,direction,participant_ids,evidence_id,source_record_id,source_ref,source_metadata_json
+interaction-intro-northstar,contact-northstar-gtm,manual_confirmation,introduction,2026-06-18T14:30:00+00:00,inbound,campaign-owner|connector-direct|contact-northstar-gtm,evidence-intro,fixture-interaction-intro,fixture,{}
+interaction-relay-call,contact-relay-revops,sales_call,call,2026-05-09T16:00:00+00:00,outbound,campaign-owner|contact-relay-revops,evidence-relay-call,fixture-interaction-relay,fixture,{}
+interaction-northstar-form,contact-northstar-revops,website_form,form_submission,2026-07-02T19:15:00+00:00,inbound,contact-northstar-revops,evidence-northstar-form,fixture-interaction-form,fixture,{}

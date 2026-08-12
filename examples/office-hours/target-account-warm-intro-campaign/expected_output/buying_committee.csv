@@ -1,0 +1,5 @@
+account_id,account_name,contact_id,name,title,role_family,committee_role,linkedin_url,work_email,source_record_ids,evidence_ids
+harbor-systems.example,Harbor Systems,contact-harbor-bizops,Tariq Fen,Director of BizOps,business_operations,operational_buyer,linkedin.com/in/example-tariq-fen,tariq@harbor-systems.example,"[""crm-harbor-1""]","[""evidence-post-harbor""]"
+northstar-ai.example,Northstar AI,contact-northstar-gtm,Nora Imani,Head of GTM Engineering,gtm_engineering,technical_champion,linkedin.com/in/example-nora-imani,nora@northstar-ai.example,"[""crm-northstar-1"",""event-northstar-4""]","[""evidence-intro""]"
+northstar-ai.example,Northstar AI,contact-northstar-revops,Elliot Vale,Director of RevOps,revenue_operations,operational_buyer,linkedin.com/in/example-elliot-vale,elliot@northstar-ai.example,"[""crm-northstar-2""]","[""evidence-northstar-form"",""evidence-post-northstar""]"
+relay-cloud.example,Relay Cloud,contact-relay-revops,Mina Sol,Director of Revenue Systems,revenue_systems,technical_champion,linkedin.com/in/example-mina-sol,mina@relay-cloud.example,"[""crm-relay-1"",""event-relay-3""]","[""evidence-relay-call"",""evidence-talk-relay""]"

@@ -1,0 +1,5 @@
+experience_id,contact_id,company,title,account_id,start_date,end_date,is_current,source_record_id,source_ref,source_metadata_json
+experience-casey-atlas,connector-work,Atlas Works,Revenue Systems Lead,,2020-01-01,2023-06-30,false,fixture-experience-casey,fixture,{}
+experience-mina-atlas,contact-relay-revops,Atlas Works,GTM Systems Manager,,2021-03-01,2024-01-31,false,fixture-experience-mina,fixture,{}
+experience-riley-nimbus,connector-nonoverlap,Nimbus Data,Operations Lead,,2015-01-01,2018-12-31,false,fixture-experience-riley,fixture,{}
+experience-tariq-nimbus,contact-harbor-bizops,Nimbus Data,Business Operations Manager,,2019-01-01,2022-06-30,false,fixture-experience-tariq,fixture,{}

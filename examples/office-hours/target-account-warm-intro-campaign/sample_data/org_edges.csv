@@ -1,0 +1,3 @@
+edge_id,from_contact_id,to_contact_id,edge_type,confidence,source_evidence_ids,source_record_id,source_ref,source_metadata_json
+edge-northstar-report,contact-northstar-gtm,contact-northstar-revops,reports_to_confirmed,confirmed,evidence-post-northstar,fixture-org-northstar,fixture,{}
+edge-harbor-open-role,contact-harbor-bizops,open_role_harbor_gtm,functional_proximity_inferred,medium,evidence-job-harbor|evidence-post-harbor,fixture-org-harbor,fixture,{}

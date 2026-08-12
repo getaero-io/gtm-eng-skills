@@ -1,0 +1,2 @@
+target_id,target_name,target_title,target_company,account_id,account_name,linkedin_url,work_email,path_segment,why_target_cares,permissionless_value,evidence_ids,approved
+contact-northstar-revops,Elliot Vale,Director of RevOps,Northstar AI,northstar-ai.example,Northstar AI,linkedin.com/in/example-elliot-vale,elliot@northstar-ai.example,no_strong_path,Northstar is publishing about revenue routing while expanding GTM engineering.,Sketch a sample audit of Northstar's lead-routing decision points.,"[""evidence-investor"",""evidence-post-northstar""]",false
