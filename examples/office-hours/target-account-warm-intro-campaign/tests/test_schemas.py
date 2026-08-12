@@ -50,7 +50,7 @@ class IdentityResolutionTests(unittest.TestCase):
             name="Alex Chen",
             company="Northstar AI",
             title="GTM Engineer",
-            linkedin_url="https://www.linkedin.com/in/alex-chen/",
+            linkedin_url="https://www.linkedin.com/in/example-alex-chen/",
         )
         email = ContactRecord(
             contact_id="b",
@@ -68,7 +68,7 @@ class IdentityResolutionTests(unittest.TestCase):
 
         self.assertEqual(
             canonical_contact_key(linkedin),
-            ("linkedin", "linkedin.com/in/alex-chen"),
+            ("linkedin", "linkedin.com/in/example-alex-chen"),
         )
         self.assertEqual(
             canonical_contact_key(email),

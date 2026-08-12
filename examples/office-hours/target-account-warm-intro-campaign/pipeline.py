@@ -7,7 +7,7 @@ import hashlib
 import json
 from collections import Counter
 from dataclasses import asdict, dataclass, replace
-from datetime import date
+from datetime import date, timezone
 from decimal import Decimal
 from pathlib import Path
 from typing import Mapping, Sequence
@@ -66,6 +66,10 @@ class CampaignLedger:
     total_cache_hits: int
     total_authorized_provider_calls: int
     total_estimated_spend_usd: str
+    evidence_freshness: dict[str, int]
+    path_segment_counts: dict[str, int]
+    approved_message_count: int
+    activated_message_count: int
     hash_scope: str = "normalized_review_artifacts_except_campaign_ledger.json"
 
 
@@ -91,6 +95,9 @@ _DEDUPE_FIELDS = (
     "related_contact_ids",
     "match_types",
     "reason",
+    "linkedin_aliases",
+    "work_email_aliases",
+    "identity_aliases",
 )
 _COMMITTEE_FIELDS = (
     "account_id",
@@ -130,10 +137,13 @@ _INTERACTION_FIELDS = (
     "direct_introduction",
 )
 _PATH_FIELDS = (
+    "campaign_id",
+    "owner_id",
     "path_id",
     "connector_id",
     "connector_name",
-    "connector_linkedin_url",
+    "connector_linkedin",
+    "connector_company",
     "target_id",
     "target_name",
     "target_title",
@@ -147,9 +157,13 @@ _PATH_FIELDS = (
     "total_score",
     "relationship_confidence",
     "segment",
+    "reviewed_override",
     "investor_only",
+    "shared_signal",
+    "shared_detail",
     "reasons",
     "evidence_ids",
+    "validation_errors",
 )
 _DIRECT_FIELDS = (
     "target_id",
@@ -268,6 +282,194 @@ def _dedupe_match_types(group: Sequence[str], contacts: Mapping[str, ContactReco
     return "|".join(kinds)
 
 
+def _unique_index(records: Sequence[object], field: str, label: str) -> dict[str, object]:
+    index: dict[str, object] = {}
+    for record in records:
+        value = str(getattr(record, field, "") or "").strip()
+        if not value:
+            raise ValueError(f"{label} ID must be non-empty")
+        if value in index:
+            raise ValueError(f"duplicate {label} ID: {value}")
+        index[value] = record
+    return index
+
+
+def _remap_contact_id(
+    value: str,
+    aliases: Mapping[str, str],
+    *,
+    label: str,
+    allow: Sequence[str] = (),
+) -> str:
+    candidate = str(value or "").strip()
+    if candidate in allow:
+        return candidate
+    try:
+        return aliases[candidate]
+    except KeyError as error:
+        raise ValueError(f"{label} references unknown contact {candidate!r}") from error
+
+
+def _remap_dependent_records(
+    *,
+    experiences: Sequence[ExperienceRecord],
+    interactions: Sequence[InteractionRecord],
+    org_edges: Sequence[OrgEdgeRecord],
+    evidence: Sequence[EvidenceRecord],
+    connector_edges: Sequence[ConnectorEdge],
+    aliases: Mapping[str, str],
+    owner_id: str,
+) -> tuple[
+    tuple[ExperienceRecord, ...],
+    tuple[InteractionRecord, ...],
+    tuple[OrgEdgeRecord, ...],
+    tuple[EvidenceRecord, ...],
+    tuple[ConnectorEdge, ...],
+]:
+    remapped_experiences = tuple(
+        replace(
+            item,
+            contact_id=_remap_contact_id(
+                item.contact_id, aliases, label=f"experience {item.experience_id}"
+            ),
+        )
+        for item in experiences
+    )
+    remapped_interactions = tuple(
+        replace(
+            item,
+            contact_id=_remap_contact_id(
+                item.contact_id, aliases, label=f"interaction {item.interaction_id}"
+            ),
+            participant_ids=tuple(
+                _remap_contact_id(
+                    participant,
+                    aliases,
+                    label=f"interaction {item.interaction_id} participant",
+                    allow=(owner_id,),
+                )
+                for participant in item.participant_ids
+            ),
+        )
+        for item in interactions
+    )
+    remapped_org_edges = tuple(
+        replace(
+            item,
+            from_contact_id=_remap_contact_id(
+                item.from_contact_id, aliases, label=f"org edge {item.edge_id}"
+            ),
+            to_contact_id=_remap_contact_id(
+                item.to_contact_id, aliases, label=f"org edge {item.edge_id}"
+            ),
+        )
+        for item in org_edges
+    )
+    remapped_evidence = tuple(
+        replace(
+            item,
+            subject_contact_id=(
+                _remap_contact_id(
+                    item.subject_contact_id,
+                    aliases,
+                    label=f"evidence {item.evidence_id}",
+                )
+                if item.subject_contact_id
+                else ""
+            ),
+        )
+        for item in evidence
+    )
+    remapped_connector_edges: list[ConnectorEdge] = []
+    for item in connector_edges:
+        metadata = _metadata(item)
+        raw_target_id = str(metadata.get("target_id", "")).strip()
+        if not raw_target_id:
+            raise ValueError(f"connector edge {item.edge_id} requires target_id metadata")
+        metadata["target_id"] = _remap_contact_id(
+            raw_target_id,
+            aliases,
+            label=f"connector edge {item.edge_id} target",
+        )
+        remapped_connector_edges.append(
+            replace(
+                item,
+                connector_id=_remap_contact_id(
+                    item.connector_id,
+                    aliases,
+                    label=f"connector edge {item.edge_id}",
+                ),
+                source_metadata_json=json.dumps(
+                    metadata, sort_keys=True, separators=(",", ":")
+                ),
+            )
+        )
+    return (
+        remapped_experiences,
+        remapped_interactions,
+        remapped_org_edges,
+        remapped_evidence,
+        tuple(remapped_connector_edges),
+    )
+
+
+def _path_signal(score: PathScore) -> tuple[str, str]:
+    if score.direct_intro_score:
+        return "direct_introduction", ";".join(score.evidence_ids)
+    if score.work_overlap_score:
+        reason = next(
+            reason for reason in score.reasons if reason.startswith("dated_work_overlap:")
+        )
+        _, company, start, end = reason.split(":", 3)
+        return "verified_work_overlap", f"{company}, {start} to {end}"
+    for prefix, signal in (
+        ("company_proximity:", "company_proximity"),
+        ("shared_school:", "school_city_community"),
+        ("shared_city:", "school_city_community"),
+        ("shared_community:", "school_city_community"),
+        ("shared_appearance:", "school_city_community"),
+        ("role_proximity:", "role_industry"),
+        ("industry_proximity:", "role_industry"),
+        ("investor_overlap:", "investor_overlap"),
+    ):
+        matching = [reason for reason in score.reasons if reason.startswith(prefix)]
+        if matching:
+            return signal, "; ".join(reason.removeprefix(prefix) for reason in matching)
+    return "", ""
+
+
+def _evidence_freshness(
+    evidence: Sequence[EvidenceRecord], as_of: date
+) -> dict[str, int]:
+    buckets = {
+        "0_30_days": 0,
+        "31_90_days": 0,
+        "91_365_days": 0,
+        "over_365_days": 0,
+        "future": 0,
+        "unknown": 0,
+    }
+    for item in evidence:
+        if item.observed_at is None:
+            buckets["unknown"] += 1
+            continue
+        observed = item.observed_at
+        if observed.utcoffset() is None:
+            raise ValueError(f"evidence {item.evidence_id} requires a timezone-aware timestamp")
+        age_days = (as_of - observed.astimezone(timezone.utc).date()).days
+        if age_days < 0:
+            buckets["future"] += 1
+        elif age_days <= 30:
+            buckets["0_30_days"] += 1
+        elif age_days <= 90:
+            buckets["31_90_days"] += 1
+        elif age_days <= 365:
+            buckets["91_365_days"] += 1
+        else:
+            buckets["over_365_days"] += 1
+    return buckets
+
+
 def _score_to_row(
     score: AccountScore,
     account: AccountRecord,
@@ -321,27 +523,144 @@ def _committee_rows(
     return rows
 
 
-def _path_evidence(
+def _validated_path_evidence(
     edge: ConnectorEdge,
     connector: ContactRecord,
     target: ContactRecord,
     experiences_by_contact: Mapping[str, tuple[ExperienceRecord, ...]],
+    evidence_by_id: Mapping[str, EvidenceRecord],
+    interactions_by_evidence_id: Mapping[str, tuple[InteractionRecord, ...]],
+    config: CampaignConfig,
 ) -> PathEvidence:
     metadata = _metadata(edge)
+    errors: list[str] = []
+    if edge.owner_id != config.owner_id:
+        errors.append(f"wrong_owner:{edge.owner_id or '<missing>'}")
+        return PathEvidence(
+            connector_experiences=experiences_by_contact.get(connector.contact_id, ()),
+            target_experiences=experiences_by_contact.get(target.contact_id, ()),
+            validation_errors=tuple(errors),
+        )
+
+    valid_direct_ids: list[str] = []
+    for evidence_id in _metadata_strings(metadata, "direct_intro_evidence_ids"):
+        item = evidence_by_id.get(evidence_id)
+        if item is None:
+            errors.append(f"forged_direct_intro_evidence:{evidence_id}")
+            continue
+        matching_interactions = interactions_by_evidence_id.get(evidence_id, ())
+        expected_participants = {config.owner_id, connector.contact_id, target.contact_id}
+        participant_match = any(
+            (
+                interaction.interaction_type.casefold() == "introduction"
+                or interaction.source.casefold() == "manual_confirmation"
+            )
+            and expected_participants.issubset(set(interaction.participant_ids))
+            for interaction in matching_interactions
+        )
+        if (
+            item.source_type.casefold() != "interaction"
+            or item.confidence.casefold() != "confirmed"
+            or item.subject_contact_id != target.contact_id
+        ):
+            errors.append(f"mismatched_direct_intro_evidence:{evidence_id}")
+        elif not participant_match:
+            errors.append(f"wrong_participant:{evidence_id}")
+        else:
+            valid_direct_ids.append(evidence_id)
+
+    valid_relationship_ids: list[str] = []
+    for evidence_id in edge.evidence_ids:
+        item = evidence_by_id.get(evidence_id)
+        if item is None:
+            errors.append(f"missing_relationship_evidence:{evidence_id}")
+            continue
+        if evidence_id in valid_direct_ids:
+            valid_relationship_ids.append(evidence_id)
+            continue
+        if item.source_type.casefold() != "interaction":
+            errors.append(f"unsupported_relationship_evidence_type:{evidence_id}")
+            continue
+        if item.subject_contact_id != connector.contact_id:
+            errors.append(f"wrong_relationship_subject:{evidence_id}")
+            continue
+        interactions = interactions_by_evidence_id.get(evidence_id, ())
+        if not any(
+            {config.owner_id, connector.contact_id}.issubset(
+                set(interaction.participant_ids)
+            )
+            for interaction in interactions
+        ):
+            errors.append(f"unverified_relationship_interaction:{evidence_id}")
+            continue
+        valid_relationship_ids.append(evidence_id)
+
+    supporting_ids = _metadata_strings(metadata, "supporting_evidence_ids")
+    valid_supporting_ids: list[str] = []
+    for evidence_id in supporting_ids:
+        item = evidence_by_id.get(evidence_id)
+        if item is None:
+            errors.append(f"missing_supporting_evidence:{evidence_id}")
+            continue
+        subject_supported = (
+            item.subject_contact_id in {connector.contact_id, target.contact_id}
+            or item.subject_account_id == target.account_id
+        )
+        if not subject_supported:
+            errors.append(f"wrong_supporting_subject:{evidence_id}")
+            continue
+        valid_supporting_ids.append(evidence_id)
+
+    valid_supporting_records = tuple(
+        evidence_by_id[evidence_id] for evidence_id in valid_supporting_ids
+    )
+
+    def supported_category(
+        metadata_key: str,
+        allowed_source_types: frozenset[str],
+    ) -> tuple[str, ...]:
+        values = _metadata_strings(metadata, metadata_key)
+        if not values:
+            return ()
+        if any(
+            item.source_type.casefold() in allowed_source_types
+            for item in valid_supporting_records
+        ):
+            return values
+        errors.append(f"unsupported_{metadata_key}_evidence")
+        return ()
+
     return PathEvidence(
-        direct_intro_evidence_ids=_metadata_strings(metadata, "direct_intro_evidence_ids"),
-        relationship_confidence=edge.relationship_confidence,
-        relationship_evidence_ids=edge.evidence_ids,
+        direct_intro_evidence_ids=tuple(valid_direct_ids),
+        relationship_confidence=(
+            edge.relationship_confidence if valid_relationship_ids else "unknown"
+        ),
+        relationship_evidence_ids=tuple(valid_relationship_ids),
         connector_experiences=experiences_by_contact.get(connector.contact_id, ()),
         target_experiences=experiences_by_contact.get(target.contact_id, ()),
-        shared_schools=_metadata_strings(metadata, "shared_schools"),
-        shared_cities=_metadata_strings(metadata, "shared_cities"),
-        shared_communities=_metadata_strings(metadata, "shared_communities"),
-        shared_appearances=_metadata_strings(metadata, "shared_appearances"),
-        role_overlaps=_metadata_strings(metadata, "role_overlaps"),
-        industry_overlaps=_metadata_strings(metadata, "industry_overlaps"),
-        investor_overlaps=_metadata_strings(metadata, "investor_overlaps"),
-        supporting_evidence_ids=_metadata_strings(metadata, "supporting_evidence_ids"),
+        shared_schools=supported_category(
+            "shared_schools", frozenset({"public_profile"})
+        ),
+        shared_cities=supported_category(
+            "shared_cities", frozenset({"public_profile"})
+        ),
+        shared_communities=supported_category(
+            "shared_communities", frozenset({"post", "public_profile", "talk"})
+        ),
+        shared_appearances=supported_category(
+            "shared_appearances", frozenset({"talk"})
+        ),
+        role_overlaps=supported_category(
+            "role_overlaps", frozenset({"post", "public_profile", "talk"})
+        ),
+        industry_overlaps=supported_category(
+            "industry_overlaps", frozenset({"post", "public_profile", "talk"})
+        ),
+        investor_overlaps=supported_category(
+            "investor_overlaps", frozenset({"public_profile"})
+        ),
+        supporting_evidence_ids=tuple(valid_supporting_ids),
+        validation_errors=tuple(sorted(set(errors))),
     )
 
 
@@ -387,6 +706,14 @@ def run_pipeline(
     evidence = load_csv_records(input_dir / "evidence.csv", EvidenceRecord)
     connector_edges = load_csv_records(input_dir / "connector_edges.csv", ConnectorEdge)
 
+    _unique_index(accounts, "account_id", "account")
+    _unique_index(contacts, "contact_id", "contact")
+    _unique_index(experiences, "experience_id", "experience")
+    _unique_index(interactions, "interaction_id", "interaction")
+    _unique_index(org_edges, "edge_id", "org edge")
+    _unique_index(evidence, "evidence_id", "evidence")
+    _unique_index(connector_edges, "edge_id", "connector edge")
+
     stages: list[CampaignStageLedger] = []
     accounts_by_id = {account.account_id: account for account in accounts}
 
@@ -415,8 +742,12 @@ def run_pipeline(
 
     dedupe = dedupe_contacts(contacts)
     raw_contacts_by_id = {contact.contact_id: contact for contact in contacts}
+    alias_audit_by_canonical = {
+        audit.canonical_contact_id: audit for audit in dedupe.alias_audit
+    }
     dedupe_rows: list[dict[str, object]] = []
     for index, group in enumerate(dedupe.merge_groups, 1):
+        audit = alias_audit_by_canonical[group[0]]
         dedupe_rows.append(
             {
                 "audit_id": f"merge-{index:03d}",
@@ -425,22 +756,107 @@ def run_pipeline(
                 "related_contact_ids": tuple(group),
                 "match_types": _dedupe_match_types(group, raw_contacts_by_id),
                 "reason": "shared_strong_identifier",
+                "linkedin_aliases": audit.linkedin_urls,
+                "work_email_aliases": audit.work_emails,
+                "identity_aliases": audit.normalized_identities,
             }
         )
     for index, group in enumerate(dedupe.review_collisions, 1):
+        match_types = _dedupe_match_types(group, raw_contacts_by_id)
         dedupe_rows.append(
             {
                 "audit_id": f"review-{index:03d}",
                 "action": "review",
                 "canonical_contact_id": group[0],
                 "related_contact_ids": tuple(group),
-                "match_types": "normalized_identity",
-                "reason": "weak_identity_collision",
+                "match_types": match_types or "normalized_identity",
+                "reason": (
+                    "conflicting_strong_identity"
+                    if match_types
+                    else "weak_identity_collision"
+                ),
+                "linkedin_aliases": tuple(
+                    sorted(
+                        {
+                            normalize_linkedin_url(raw_contacts_by_id[contact_id].linkedin_url)
+                            for contact_id in group
+                            if raw_contacts_by_id[contact_id].linkedin_url
+                        }
+                    )
+                ),
+                "work_email_aliases": tuple(
+                    sorted(
+                        {
+                            normalize_email(raw_contacts_by_id[contact_id].work_email)
+                            for contact_id in group
+                            if raw_contacts_by_id[contact_id].work_email
+                        }
+                    )
+                ),
+                "identity_aliases": tuple(
+                    sorted(
+                        {
+                            "|".join(
+                                (
+                                    raw_contacts_by_id[contact_id].name.casefold().strip(),
+                                    raw_contacts_by_id[contact_id].company.casefold().strip(),
+                                    raw_contacts_by_id[contact_id].title.casefold().strip(),
+                                )
+                            )
+                            for contact_id in group
+                        }
+                    )
+                ),
             }
         )
     write_csv_records(output_dir / "contact_dedupe_audit.csv", dedupe_rows, _DEDUPE_FIELDS)
     canonical_contacts = tuple(dedupe.canonical_records)
     canonical_by_id = {contact.contact_id: contact for contact in canonical_contacts}
+    (
+        experiences,
+        interactions,
+        org_edges,
+        evidence,
+        connector_edges,
+    ) = _remap_dependent_records(
+        experiences=experiences,
+        interactions=interactions,
+        org_edges=org_edges,
+        evidence=evidence,
+        connector_edges=connector_edges,
+        aliases=dedupe.alias_to_canonical,
+        owner_id=config.owner_id,
+    )
+    evidence_by_id = {item.evidence_id: item for item in evidence}
+    interactions_by_evidence_id: dict[str, tuple[InteractionRecord, ...]] = {}
+    for evidence_id in sorted({item.evidence_id for item in interactions}):
+        interactions_by_evidence_id[evidence_id] = tuple(
+            sorted(
+                (item for item in interactions if item.evidence_id == evidence_id),
+                key=lambda item: item.interaction_id,
+            )
+        )
+    for interaction in interactions:
+        cited = evidence_by_id.get(interaction.evidence_id)
+        if cited is None:
+            raise ValueError(
+                f"interaction {interaction.interaction_id} cites unknown evidence "
+                f"{interaction.evidence_id}"
+            )
+        if cited.source_type.casefold() != "interaction":
+            raise ValueError(
+                f"interaction {interaction.interaction_id} evidence must have source_type=interaction"
+            )
+        if cited.subject_contact_id != interaction.contact_id:
+            raise ValueError(
+                f"interaction {interaction.interaction_id} evidence subject does not match contact"
+            )
+    for org_edge in org_edges:
+        missing = sorted(set(org_edge.source_evidence_ids) - set(evidence_by_id))
+        if missing:
+            raise ValueError(
+                f"org edge {org_edge.edge_id} cites unknown evidence {missing[0]}"
+            )
     stages.append(
         _stage(
             "dedupe_contacts",
@@ -462,10 +878,17 @@ def run_pipeline(
         (account for account in accounts if account.account_id in actionable_account_ids),
         key=lambda item: item.domain,
     ):
-        known_contacts = tuple(
+        canonical_known_contacts = tuple(
             contact
             for contact in canonical_contacts
             if contact.account_id == account.account_id and not _is_open_role(contact)
+        )
+        canonical_known_ids = {contact.contact_id for contact in canonical_known_contacts}
+        known_contacts = tuple(
+            contact
+            for contact in contacts
+            if dedupe.alias_to_canonical[contact.contact_id] in canonical_known_ids
+            and not _is_open_role(contact)
         )
         exclusions = build_pdl_exclusions(known_contacts)
         if not exclusions.identities:
@@ -633,7 +1056,15 @@ def run_pipeline(
             target = canonical_by_id[target_id]
         except KeyError as error:
             raise ValueError(f"connector edge {edge.edge_id} references an unknown contact") from error
-        path_evidence = _path_evidence(edge, connector, target, experiences_by_contact)
+        path_evidence = _validated_path_evidence(
+            edge,
+            connector,
+            target,
+            experiences_by_contact,
+            evidence_by_id,
+            interactions_by_evidence_id,
+            config,
+        )
         score = score_warm_path(connector, target, path_evidence, config)
         segment = segment_path(score, config)
         investor_only = edge.relationship_type.casefold() == "investor" and bool(
@@ -649,14 +1080,18 @@ def run_pipeline(
     )
     path_rows: list[dict[str, object]] = []
     for score, segment, investor_only, connector in scored_paths:
+        shared_signal, shared_detail = _path_signal(score)
         path_rows.append(
             {
+                "campaign_id": config.campaign_id,
+                "owner_id": config.owner_id,
                 "path_id": score.path_id,
                 "connector_id": score.connector_id,
                 "connector_name": connector.name,
-                "connector_linkedin_url": normalize_linkedin_url(connector.linkedin_url)
+                "connector_linkedin": normalize_linkedin_url(connector.linkedin_url)
                 if connector.linkedin_url
                 else "",
+                "connector_company": connector.company,
                 "target_id": score.target_id,
                 "target_name": score.target_name,
                 "target_title": score.target_title,
@@ -670,9 +1105,13 @@ def run_pipeline(
                 "total_score": score.total_score,
                 "relationship_confidence": score.relationship_confidence,
                 "segment": segment,
+                "reviewed_override": False,
                 "investor_only": investor_only,
+                "shared_signal": shared_signal,
+                "shared_detail": shared_detail,
                 "reasons": score.reasons,
                 "evidence_ids": score.evidence_ids,
+                "validation_errors": score.validation_errors,
             }
         )
     write_csv_records(output_dir / "warm_paths.csv", path_rows, _PATH_FIELDS)
@@ -706,7 +1145,7 @@ def run_pipeline(
     direct_exclusions = Counter()
     for member in committee:
         best = best_path_by_target.get(member.contact_id)
-        if best is not None and best[1] in {"strong_warm_intro", "review_warm_intro"}:
+        if best is not None and best[1] == "strong_warm_intro":
             direct_exclusions[best[1]] += 1
             continue
         contact = canonical_by_id[member.contact_id]
@@ -761,6 +1200,17 @@ def run_pipeline(
         total_cache_hits=sum(stage.cache_hits for stage in stages),
         total_authorized_provider_calls=sum(stage.authorized_provider_calls for stage in stages),
         total_estimated_spend_usd="0.00",
+        evidence_freshness=_evidence_freshness(evidence, as_of),
+        path_segment_counts={
+            segment: sum(item[1] == segment for item in scored_paths)
+            for segment in (
+                "no_strong_path",
+                "review_warm_intro",
+                "strong_warm_intro",
+            )
+        },
+        approved_message_count=0,
+        activated_message_count=0,
     )
     _write_json(output_dir / "campaign_ledger.json", asdict(ledger))
     return ledger

@@ -121,9 +121,9 @@ sentence would overstate the evidence.
 
 ## Stable output matters downstream
 
-The CLI exports deterministic CSV rows with connector and target identity, target
-title, the six explicit score components, segment, evidence IDs, and an evidence-
-safe `shared_signal`/`shared_detail` pair.
+The CLI exports deterministic CSV rows with campaign, owner, connector, and target
+IDs; a shared versioned path ID; target title; the six explicit score components;
+segment; evidence IDs; and an evidence-safe `shared_signal`/`shared_detail` pair.
 
 That file is the direct input to the ask-drafting example. The drafter prefers
 confirmed introduction over dated work overlap, then weaker contextual tiers. It
@@ -133,12 +133,15 @@ unapproved.
 Activation uses a separate identity:
 
 ```text
-SHA256(path_id | channel | message_version)
+SHA256(JSON(["warm-activation-v1", campaign_id, owner_id,
+             path_id, channel, message_version]))
 ```
 
-This prevents a successful message version from being sent twice. A material edit
-requires a new version and another approval. The scorer is deliberately unable to
-cross that boundary on its own.
+The durable local outbox prevents a successful or ambiguous message version from
+being sent automatically again. The provider does not expose an atomic
+idempotency token, so uncertain post-dispatch outcomes require reconciliation. A
+material edit requires a new version and another approval. The scorer is
+deliberately unable to cross that boundary on its own.
 
 ## What the model still cannot know
 

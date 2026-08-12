@@ -10,13 +10,16 @@ import sqlite3
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import nullcontext, redirect_stderr, redirect_stdout
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parent))
+
+from warm_intro_contract import build_path_id  # noqa: E402
 
 
 def load_module():
@@ -29,8 +32,22 @@ def load_module():
     return module
 
 
+def _key(module, path_id: str, channel: str = "linkedin", version: str = "1") -> str:
+    return module.build_idempotency_key(
+        "campaign-example",
+        "owner-example",
+        path_id,
+        channel,
+        version,
+    )
+
+
 def write_drafts(path: Path, rows: list[dict]) -> None:
     fieldnames = [
+        "campaign_id",
+        "owner_id",
+        "connector_id",
+        "target_id",
         "path_id",
         "connector_name",
         "connector_linkedin",
@@ -42,10 +59,55 @@ def write_drafts(path: Path, rows: list[dict]) -> None:
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
-        writer.writerows(rows)
+        prepared = []
+        for row_number, row in enumerate(rows, 1):
+            seed = str(row.get("path_id", row_number)).removeprefix("path-")
+            row.setdefault("connector_id", f"connector-{seed}")
+            row.setdefault("target_id", f"target-{seed}")
+            campaign_id = str(row.get("campaign_id", "campaign-example")).strip()
+            owner_id = str(row.get("owner_id", "owner-example")).strip()
+            row["path_id"] = build_path_id(
+                campaign_id or "campaign-example",
+                owner_id or "owner-example",
+                row["connector_id"],
+                row["target_id"],
+            )
+            prepared.append(
+                {
+                    "campaign_id": "campaign-example",
+                    "owner_id": "owner-example",
+                    **row,
+                }
+            )
+        writer.writerows(prepared)
 
 
 class ApprovalGateTests(unittest.TestCase):
+    def test_blank_namespace_value_blocks_activation_contract(self):
+        module = load_module()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "drafts.csv"
+            write_drafts(
+                path,
+                [
+                    {
+                        "campaign_id": " ",
+                        "path_id": "path-invalid",
+                        "connector_name": "Casey Morgan",
+                        "connector_linkedin": "linkedin.com/in/example-casey-morgan",
+                        "target_name": "Mina Sol",
+                        "draft_body": "Would you introduce me to Mina?",
+                        "approved": "true",
+                        "message_version": "1",
+                    }
+                ],
+            )
+
+            with self.assertRaises(SystemExit) as raised:
+                module.load_drafts_csv(str(path), require_approved=True)
+
+        self.assertIn("campaign_id", str(raised.exception))
+
     def test_unapproved_rows_are_excluded_from_live_sendable_set(self):
         module = load_module()
         with tempfile.TemporaryDirectory() as directory:
@@ -56,7 +118,7 @@ class ApprovalGateTests(unittest.TestCase):
                     {
                         "path_id": "path-review",
                         "connector_name": "Casey Morgan",
-                        "connector_linkedin": "https://linkedin.example/in/casey-morgan",
+                        "connector_linkedin": "https://linkedin.example/in/example-casey-morgan",
                         "target_name": "Mina Sol",
                         "draft_body": "Would you introduce me to Mina?",
                         "approved": "false",
@@ -74,7 +136,7 @@ class ApprovalGateTests(unittest.TestCase):
         approved = {
             "path_id": "path-approved",
             "connector_name": "Avery Stone",
-            "connector_linkedin": "https://linkedin.example/in/avery-stone",
+            "connector_linkedin": "https://linkedin.example/in/example-avery-stone",
             "target_name": "Nora Imani",
             "draft_body": "Would you introduce me to Nora?",
             "approved": "TRUE",
@@ -86,14 +148,17 @@ class ApprovalGateTests(unittest.TestCase):
 
             rows = module.load_drafts_csv(str(path), require_approved=True)
 
-        self.assertEqual(rows, [approved])
+        self.assertEqual(
+            rows,
+            [{"campaign_id": "campaign-example", "owner_id": "owner-example", **approved}],
+        )
 
     def test_dry_run_loading_can_preview_unapproved_rows(self):
         module = load_module()
         draft = {
             "path_id": "path-preview",
             "connector_name": "Riley Chen",
-            "connector_linkedin": "https://linkedin.example/in/riley-chen",
+            "connector_linkedin": "https://linkedin.example/in/example-riley-chen",
             "target_name": "Tariq Fen",
             "draft_body": "Would you introduce me to Tariq?",
             "approved": "false",
@@ -105,21 +170,65 @@ class ApprovalGateTests(unittest.TestCase):
 
             rows = module.load_drafts_csv(str(path), require_approved=False)
 
-        self.assertEqual(rows, [draft])
+        self.assertEqual(
+            rows,
+            [{"campaign_id": "campaign-example", "owner_id": "owner-example", **draft}],
+        )
+
+    def test_tampered_path_identity_blocks_activation(self):
+        module = load_module()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "drafts.csv"
+            write_drafts(
+                path,
+                [
+                    {
+                        "path_id": "path-original",
+                        "connector_name": "Avery Stone",
+                        "connector_linkedin": "linkedin.example/in/example-avery-stone",
+                        "target_name": "Nora Imani",
+                        "draft_body": "Would you introduce me to Nora?",
+                        "approved": "true",
+                        "message_version": "1",
+                    }
+                ],
+            )
+            contents = path.read_text(encoding="utf-8")
+            path.write_text(
+                contents.replace(build_path_id(
+                    "campaign-example",
+                    "owner-example",
+                    "connector-original",
+                    "target-original",
+                ), "path-tampered"),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(SystemExit) as raised:
+                module.load_drafts_csv(str(path), require_approved=True)
+
+        self.assertIn("does not match", str(raised.exception))
 
 
 class IdempotencyTests(unittest.TestCase):
     def test_repeat_key_is_detected_independently_of_connector_url_format(self):
         module = load_module()
-        expected_key = hashlib.sha256(b"path-approved|linkedin|1").hexdigest()
-        key = module.build_idempotency_key("path-approved", "linkedin", "1")
+        expected_key = "".join(
+            (
+                "307521be633e0a81",
+                "00a4c115d08093e7",
+                "59550f6e93d536a3",
+                "ea83c99515adfe89",
+            )
+        )
+        key = _key(module, "path-approved")
         self.assertEqual(key, expected_key)
 
         with tempfile.TemporaryDirectory() as directory:
             connection = module.init_log_db(str(Path(directory) / "sends.db"))
             module.log_send(
                 conn=connection,
-                connector_linkedin="https://www.linkedin.example/in/avery-stone/",
+                connector_linkedin="https://www.linkedin.example/in/example-avery-stone/",
                 connector_name="Avery Stone",
                 target_name="Nora Imani",
                 message_preview="Would you introduce me to Nora?",
@@ -127,11 +236,11 @@ class IdempotencyTests(unittest.TestCase):
                 idempotency_key=key,
             )
 
-            differently_formatted_url = "linkedin.example/in/avery-stone"
-            retry_key = module.build_idempotency_key("path-approved", "linkedin", "1")
+            differently_formatted_url = "linkedin.example/in/example-avery-stone"
+            retry_key = _key(module, "path-approved")
             self.assertNotEqual(
                 differently_formatted_url,
-                "https://www.linkedin.example/in/avery-stone/",
+                "https://www.linkedin.example/in/example-avery-stone/",
             )
             self.assertTrue(module.already_sent(connection, retry_key))
             connection.close()
@@ -143,13 +252,17 @@ class IdempotencyTests(unittest.TestCase):
             db_path = Path(directory) / "sends.db"
             first = module.init_log_db(str(db_path))
             second = module.init_log_db(str(db_path))
-            key = module.build_idempotency_key("path-atomic", "linkedin", "1")
+            key = _key(module, "path-atomic")
             details = {
                 "idempotency_key": key,
-                "connector_linkedin": "https://linkedin.example/in/casey-morgan",
+                "connector_linkedin": "https://linkedin.example/in/example-casey-morgan",
                 "connector_name": "Casey Morgan",
                 "target_name": "Mina Sol",
                 "message_preview": "Would you introduce me to Mina?",
+                "campaign_id": "campaign-example",
+                "owner_id": "owner-example",
+                "path_id": "path-atomic",
+                "message_version": "1",
             }
 
             self.assertTrue(
@@ -175,23 +288,27 @@ class IdempotencyTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(
             (rows[0]["status"], rows[0]["reservation_owner"]),
-            ("pending", "owner-first"),
+            ("dispatching", "owner-first"),
         )
 
-    def test_stale_pending_reservation_can_be_reclaimed(self):
+    def test_stale_post_dispatch_reservation_requires_reconciliation(self):
         module = load_module()
         first_time = datetime(2026, 8, 12, 12, 0, tzinfo=timezone.utc)
         retry_time = first_time + timedelta(seconds=module.PENDING_TTL_SECONDS + 1)
         with tempfile.TemporaryDirectory() as directory:
             connection = module.init_log_db(str(Path(directory) / "sends.db"))
-            key = module.build_idempotency_key("path-stale", "linkedin", "1")
+            key = _key(module, "path-stale")
             details = {
                 "conn": connection,
                 "idempotency_key": key,
-                "connector_linkedin": "https://linkedin.example/in/riley-chen",
+                "connector_linkedin": "https://linkedin.example/in/example-riley-chen",
                 "connector_name": "Riley Chen",
                 "target_name": "Tariq Fen",
                 "message_preview": "Would you introduce me to Tariq?",
+                "campaign_id": "campaign-example",
+                "owner_id": "owner-example",
+                "path_id": "path-stale",
+                "message_version": "1",
             }
             self.assertTrue(
                 module.reserve_send(
@@ -199,7 +316,7 @@ class IdempotencyTests(unittest.TestCase):
                 )
             )
 
-            self.assertTrue(
+            self.assertFalse(
                 module.reserve_send(
                     owner_token="owner-retry", now=retry_time, **details
                 )
@@ -214,7 +331,8 @@ class IdempotencyTests(unittest.TestCase):
             connection.close()
 
         self.assertEqual(
-            (row["status"], row["reservation_owner"]), ("pending", "owner-retry")
+            (row["status"], row["reservation_owner"]),
+            ("needs_reconciliation", None),
         )
         self.assertEqual(count, 1)
 
@@ -225,21 +343,31 @@ class IdempotencyTests(unittest.TestCase):
             db_path = Path(directory) / "sends.db"
             first = module.init_log_db(str(db_path))
             for number in range(module.MAX_DAILY_SENDS - 1):
+                path_id = f"path-prior-capacity-{number}"
                 module.log_send(
                     first,
-                    connector_linkedin=f"https://linkedin.example/in/prior-{number}",
+                    connector_linkedin=f"https://linkedin.example/in/example-prior-{number}",
                     connector_name=f"Prior {number}",
                     target_name="Nora Imani",
                     message_preview="Prior send",
                     status="sent",
-                    idempotency_key=module.build_idempotency_key(
-                        f"path-prior-capacity-{number}", "linkedin", "1"
-                    ),
+                    idempotency_key=_key(module, path_id),
                 )
+                first.execute(
+                    """
+                    UPDATE sends
+                    SET campaign_id = 'campaign-example', owner_id = 'owner-example',
+                        path_id = ?, channel = 'linkedin', message_version = '1',
+                        intent_hash = 'reconciled-test-history'
+                    WHERE idempotency_key = ?
+                    """,
+                    (path_id, _key(module, path_id)),
+                )
+            first.commit()
             second = module.init_log_db(str(db_path))
 
             common = {
-                "connector_linkedin": "https://linkedin.example/in/casey-morgan",
+                "connector_linkedin": "https://linkedin.example/in/example-casey-morgan",
                 "connector_name": "Casey Morgan",
                 "target_name": "Mina Sol",
                 "message_preview": "Would you introduce me to Mina?",
@@ -248,20 +376,24 @@ class IdempotencyTests(unittest.TestCase):
             self.assertTrue(
                 module.reserve_send(
                     first,
-                    idempotency_key=module.build_idempotency_key(
-                        "path-final-slot", "linkedin", "1"
-                    ),
+                    idempotency_key=_key(module, "path-final-slot"),
                     owner_token="owner-final-slot",
+                    campaign_id="campaign-example",
+                    owner_id="owner-example",
+                    path_id="path-final-slot",
+                    message_version="1",
                     **common,
                 )
             )
             self.assertFalse(
                 module.reserve_send(
                     second,
-                    idempotency_key=module.build_idempotency_key(
-                        "path-over-capacity", "linkedin", "1"
-                    ),
+                    idempotency_key=_key(module, "path-over-capacity"),
                     owner_token="owner-over-capacity",
+                    campaign_id="campaign-example",
+                    owner_id="owner-example",
+                    path_id="path-over-capacity",
+                    message_version="1",
                     **common,
                 )
             )
@@ -310,14 +442,56 @@ class IdempotencyTests(unittest.TestCase):
         )
         self.assertEqual(indexes["sends_idempotency_key_uq"], 1)
 
+    def test_legacy_sent_key_blocks_namespaced_reservation_after_upgrade(self):
+        module = load_module()
+        identity = (
+            "campaign-example",
+            "owner-example",
+            "connector-existing-live-message",
+            "target-existing-live-message",
+        )
+        old_path_id = "path-" + hashlib.sha256("|".join(identity).encode()).hexdigest()[:16]
+        new_path_id = build_path_id(*identity)
+        self.assertNotEqual(old_path_id, new_path_id)
+        old_key = hashlib.sha256(f"{old_path_id}|linkedin|1".encode()).hexdigest()
+        with tempfile.TemporaryDirectory() as directory:
+            connection = module.init_log_db(str(Path(directory) / "legacy.db"))
+            module.log_send(
+                connection,
+                connector_linkedin="linkedin.example/in/example-legacy-connector",
+                connector_name="Legacy Connector",
+                target_name="Legacy Target",
+                message_preview="Already delivered under the legacy contract",
+                status="sent",
+                idempotency_key=old_key,
+            )
+
+            with self.assertRaises(RuntimeError) as raised:
+                module.reserve_send(
+                    connection,
+                    idempotency_key=_key(module, new_path_id),
+                    owner_token="new-process",
+                    connector_linkedin="linkedin.example/in/example-legacy-connector",
+                    connector_name="Legacy Connector",
+                    target_name="Legacy Target",
+                    message_preview="Already delivered under the legacy contract",
+                    campaign_id="campaign-example",
+                    owner_id="owner-example",
+                    path_id=new_path_id,
+                    message_version="1",
+                )
+            connection.close()
+
+        self.assertIn("legacy send history", str(raised.exception))
+
     def test_dry_run_log_does_not_block_a_later_live_send(self):
         module = load_module()
-        key = module.build_idempotency_key("path-preview", "linkedin", "1")
+        key = _key(module, "path-preview")
         with tempfile.TemporaryDirectory() as directory:
             connection = module.init_log_db(str(Path(directory) / "sends.db"))
             common = {
                 "conn": connection,
-                "connector_linkedin": "https://linkedin.example/in/riley-chen",
+                "connector_linkedin": "https://linkedin.example/in/example-riley-chen",
                 "connector_name": "Riley Chen",
                 "target_name": "Tariq Fen",
                 "message_preview": "Would you introduce me to Tariq?",
@@ -332,13 +506,13 @@ class IdempotencyTests(unittest.TestCase):
 
 
 class ActivationIntegrationTests(unittest.TestCase):
-    def assert_actor_status_is_retryable(self, actor_status):
+    def assert_actor_status_requires_reconciliation(self, actor_status):
         module = load_module()
         path_id = f"path-{actor_status.casefold().replace('_', '-')}"
         row = {
             "path_id": path_id,
             "connector_name": "Casey Morgan",
-            "connector_linkedin": "https://linkedin.example/in/casey-morgan",
+            "connector_linkedin": "https://linkedin.example/in/example-casey-morgan",
             "target_name": "Mina Sol",
             "draft_body": "Would you introduce me to Mina?",
             "approved": "true",
@@ -372,16 +546,18 @@ class ActivationIntegrationTests(unittest.TestCase):
                 module.main()
 
             connection = module.init_log_db(str(log_path))
-            key = module.build_idempotency_key(path_id, "linkedin", "1")
+            path_id = row["path_id"]
+            key = _key(module, path_id)
             self.assertFalse(module.already_sent(connection, key))
             lifecycle = connection.execute(
                 "SELECT status, COUNT(*) AS row_count FROM sends WHERE idempotency_key = ?",
                 (key,),
             ).fetchone()
             self.assertEqual(
-                (lifecycle["status"], lifecycle["row_count"]), ("error", 1)
+                (lifecycle["status"], lifecycle["row_count"]),
+                ("needs_reconciliation", 1),
             )
-            self.assertTrue(
+            self.assertFalse(
                 module.reserve_send(
                     connection,
                     idempotency_key=key,
@@ -390,6 +566,12 @@ class ActivationIntegrationTests(unittest.TestCase):
                     connector_name=row["connector_name"],
                     target_name=row["target_name"],
                     message_preview=row["draft_body"],
+                    campaign_id="campaign-example",
+                    owner_id="owner-example",
+                    path_id=path_id,
+                    channel="linkedin",
+                    message_version="1",
+                    message_body=row["draft_body"],
                 )
             )
             count_after_retry = connection.execute(
@@ -412,7 +594,7 @@ class ActivationIntegrationTests(unittest.TestCase):
             {
                 "path_id": "path-review",
                 "connector_name": "Casey Morgan",
-                "connector_linkedin": "https://linkedin.example/in/casey-morgan",
+                "connector_linkedin": "https://linkedin.example/in/example-casey-morgan",
                 "target_name": "Mina Sol",
                 "draft_body": "Would you introduce me to Mina?",
                 "approved": "false",
@@ -421,7 +603,7 @@ class ActivationIntegrationTests(unittest.TestCase):
             {
                 "path_id": "path-approved",
                 "connector_name": "Avery Stone",
-                "connector_linkedin": "https://www.linkedin.example/in/avery-stone/",
+                "connector_linkedin": "https://www.linkedin.example/in/example-avery-stone/",
                 "target_name": "Nora Imani",
                 "draft_body": "Would you introduce me to Nora?",
                 "approved": "true",
@@ -452,7 +634,7 @@ class ActivationIntegrationTests(unittest.TestCase):
             ):
                 module.main()
 
-            rows[1]["connector_linkedin"] = "linkedin.example/in/avery-stone"
+            rows[1]["connector_linkedin"] = "linkedin.example/in/example-avery-stone"
             write_drafts(drafts_path, rows)
             with (
                 patch.object(sys, "argv", argv),
@@ -464,31 +646,31 @@ class ActivationIntegrationTests(unittest.TestCase):
             verification = module.init_log_db(str(log_path))
             lifecycle_count = verification.execute(
                 "SELECT COUNT(*) FROM sends WHERE idempotency_key = ?",
-                (module.build_idempotency_key("path-approved", "linkedin", "1"),),
+                (_key(module, rows[1]["path_id"]),),
             ).fetchone()[0]
             verification.close()
 
-        self.assertEqual(sent_urls, ["https://www.linkedin.example/in/avery-stone/"])
+        self.assertEqual(sent_urls, ["https://www.linkedin.example/in/example-avery-stone/"])
         self.assertEqual(lifecycle_count, 1)
 
     def test_failed_actor_status_does_not_mark_message_sent(self):
-        self.assert_actor_status_is_retryable("FAILED")
+        self.assert_actor_status_requires_reconciliation("FAILED")
 
     def test_aborted_actor_status_does_not_mark_message_sent(self):
-        self.assert_actor_status_is_retryable("ABORTED")
+        self.assert_actor_status_requires_reconciliation("ABORTED")
 
     def test_timed_out_actor_status_does_not_mark_message_sent(self):
-        self.assert_actor_status_is_retryable("TIMED-OUT")
+        self.assert_actor_status_requires_reconciliation("TIMED-OUT")
 
     def test_unknown_actor_status_does_not_mark_message_sent(self):
-        self.assert_actor_status_is_retryable("UNKNOWN")
+        self.assert_actor_status_requires_reconciliation("UNKNOWN")
 
     def test_main_reserves_key_before_calling_external_actor(self):
         module = load_module()
         row = {
             "path_id": "path-before-side-effect",
             "connector_name": "Avery Stone",
-            "connector_linkedin": "https://linkedin.example/in/avery-stone",
+            "connector_linkedin": "https://linkedin.example/in/example-avery-stone",
             "target_name": "Nora Imani",
             "draft_body": "Would you introduce me to Nora?",
             "approved": "true",
@@ -500,9 +682,7 @@ class ActivationIntegrationTests(unittest.TestCase):
             drafts_path = Path(directory) / "drafts.csv"
             log_path = Path(directory) / "sends.db"
             write_drafts(drafts_path, [row])
-            key = module.build_idempotency_key(
-                "path-before-side-effect", "linkedin", "1"
-            )
+            key = _key(module, row["path_id"])
 
             def fake_send(**_kwargs):
                 competing = module.init_log_db(str(log_path))
@@ -515,6 +695,12 @@ class ActivationIntegrationTests(unittest.TestCase):
                         connector_name=row["connector_name"],
                         target_name=row["target_name"],
                         message_preview=row["draft_body"],
+                        campaign_id="campaign-example",
+                        owner_id="owner-example",
+                        path_id=row["path_id"],
+                        channel="linkedin",
+                        message_version=row["message_version"],
+                        message_body=row["draft_body"],
                     )
                 )
                 competing.close()
@@ -541,7 +727,7 @@ class ActivationIntegrationTests(unittest.TestCase):
 
         self.assertEqual(competing_reservations, [False])
 
-    def assert_processing_failure_is_retryable_and_batch_continues(self, first_outcome):
+    def assert_processing_failure_is_safely_classified_and_batch_continues(self, first_outcome):
         module = load_module()
         actor_calls = []
 
@@ -559,7 +745,7 @@ class ActivationIntegrationTests(unittest.TestCase):
             {
                 "path_id": f"path-os-error-{number}",
                 "connector_name": f"Connector {number}",
-                "connector_linkedin": f"https://linkedin.example/in/connector-{number}",
+                "connector_linkedin": f"https://linkedin.example/in/example-connector-{number}",
                 "target_name": "Nora Imani",
                 "draft_body": "Would you introduce me to Nora?",
                 "approved": "true",
@@ -593,40 +779,50 @@ class ActivationIntegrationTests(unittest.TestCase):
                 module.main()
 
             connection = module.init_log_db(str(log_path))
-            failed_key = module.build_idempotency_key(
-                "path-os-error-0", "linkedin", "1"
-            )
-            later_key = module.build_idempotency_key("path-os-error-1", "linkedin", "1")
+            failed_key = _key(module, rows[0]["path_id"])
+            later_key = _key(module, rows[1]["path_id"])
             failed = connection.execute(
                 "SELECT status, reservation_owner FROM sends WHERE idempotency_key = ?",
                 (failed_key,),
             ).fetchone()
+            pre_dispatch = isinstance(first_outcome, FileNotFoundError)
             self.assertEqual(
-                (failed["status"], failed["reservation_owner"]), ("error", None)
+                (failed["status"], failed["reservation_owner"]),
+                ("ready" if pre_dispatch else "needs_reconciliation", None),
             )
-            self.assertTrue(
-                module.reserve_send(
-                    connection,
-                    idempotency_key=failed_key,
-                    owner_token="immediate-retry",
-                    connector_linkedin=rows[0]["connector_linkedin"],
-                    connector_name=rows[0]["connector_name"],
-                    target_name=rows[0]["target_name"],
-                    message_preview=rows[0]["draft_body"],
-                )
+            retry_reserved = module.reserve_send(
+                connection,
+                idempotency_key=failed_key,
+                owner_token="immediate-retry",
+                connector_linkedin=rows[0]["connector_linkedin"],
+                connector_name=rows[0]["connector_name"],
+                target_name=rows[0]["target_name"],
+                message_preview=rows[0]["draft_body"],
+                campaign_id="campaign-example",
+                owner_id="owner-example",
+                path_id=rows[0]["path_id"],
+                channel="linkedin",
+                message_version="1",
+                message_body=rows[0]["draft_body"],
             )
+            self.assertEqual(retry_reserved, pre_dispatch)
             self.assertTrue(module.already_sent(connection, later_key))
             connection.close()
 
         self.assertEqual(len(actor_calls), 2)
 
     def test_file_not_found_actor_failure_is_retryable_and_batch_continues(self):
-        self.assert_processing_failure_is_retryable_and_batch_continues(
+        self.assert_processing_failure_is_safely_classified_and_batch_continues(
             FileNotFoundError("deepline executable not found")
         )
 
-    def test_malformed_actor_result_is_retryable_and_batch_continues(self):
-        self.assert_processing_failure_is_retryable_and_batch_continues(None)
+    def test_malformed_actor_result_requires_reconciliation_and_batch_continues(self):
+        self.assert_processing_failure_is_safely_classified_and_batch_continues(None)
+
+    def test_success_status_without_provider_run_id_requires_reconciliation(self):
+        self.assert_processing_failure_is_safely_classified_and_batch_continues(
+            {"status": "SUCCEEDED"}
+        )
 
     def test_process_control_exceptions_are_not_swallowed(self):
         for exception in (KeyboardInterrupt(), SystemExit(7)):
@@ -640,7 +836,7 @@ class ActivationIntegrationTests(unittest.TestCase):
                 row = {
                     "path_id": f"path-{type(exception).__name__.casefold()}",
                     "connector_name": "Avery Stone",
-                    "connector_linkedin": "https://linkedin.example/in/avery-stone",
+                    "connector_linkedin": "https://linkedin.example/in/example-avery-stone",
                     "target_name": "Nora Imani",
                     "draft_body": "Would you introduce me to Nora?",
                     "approved": "true",
@@ -670,13 +866,288 @@ class ActivationIntegrationTests(unittest.TestCase):
                         module.main()
 
                     connection = module.init_log_db(str(log_path))
-                    key = module.build_idempotency_key(row["path_id"], "linkedin", "1")
+                    key = _key(module, row["path_id"])
                     status = connection.execute(
                         "SELECT status FROM sends WHERE idempotency_key = ?", (key,)
                     ).fetchone()["status"]
                     connection.close()
 
-                self.assertEqual(status, "pending")
+                self.assertEqual(status, "needs_reconciliation")
+
+
+class DurableOutboxAdversarialTests(unittest.TestCase):
+    def _intent(self, module, path_id="path-durable"):
+        return {
+            "idempotency_key": module.build_idempotency_key(
+                "campaign-example",
+                "owner-example",
+                path_id,
+                "linkedin",
+                "1",
+            ),
+            "campaign_id": "campaign-example",
+            "owner_id": "owner-example",
+            "path_id": path_id,
+            "channel": "linkedin",
+            "message_version": "1",
+            "connector_linkedin": "linkedin.com/in/example-durable-connector",
+            "connector_name": "Durable Connector",
+            "target_name": "Example Target",
+            "message_preview": "Would you make an introduction?",
+            "message_body": "Would you make an introduction?",
+        }
+
+    def test_proven_pre_dispatch_failure_retries_with_immutable_attempt_audit(self):
+        module = load_module()
+        now = datetime(2026, 8, 12, 12, 0, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as directory:
+            connection = module.init_log_db(str(Path(directory) / "sends.db"))
+            intent = self._intent(module)
+            self.assertTrue(
+                module.reserve_send(
+                    connection,
+                    owner_token="attempt-owner-1",
+                    now=now,
+                    **intent,
+                )
+            )
+            module.record_pre_dispatch_failure(
+                connection,
+                intent["idempotency_key"],
+                "attempt-owner-1",
+                "deepline executable not found",
+                now=now + timedelta(seconds=1),
+            )
+            first_attempt = dict(
+                connection.execute(
+                    "SELECT * FROM send_attempts WHERE idempotency_key = ?",
+                    (intent["idempotency_key"],),
+                ).fetchone()
+            )
+            self.assertTrue(
+                module.reserve_send(
+                    connection,
+                    owner_token="attempt-owner-2",
+                    now=now + timedelta(seconds=2),
+                    **intent,
+                )
+            )
+            attempts = connection.execute(
+                "SELECT * FROM send_attempts WHERE idempotency_key = ? ORDER BY attempt_number",
+                (intent["idempotency_key"],),
+            ).fetchall()
+            events = connection.execute(
+                "SELECT event_type FROM send_events WHERE idempotency_key = ? ORDER BY event_id",
+                (intent["idempotency_key"],),
+            ).fetchall()
+            self.assertEqual(dict(attempts[0]), first_attempt)
+            self.assertEqual([row["attempt_number"] for row in attempts], [1, 2])
+            self.assertEqual(
+                [row["event_type"] for row in events],
+                ["dispatch_started", "pre_dispatch_failure", "dispatch_started"],
+            )
+            with self.assertRaises(sqlite3.DatabaseError):
+                connection.execute(
+                    "UPDATE send_attempts SET owner_token = 'changed' WHERE attempt_id = ?",
+                    (attempts[0]["attempt_id"],),
+                )
+            first_event_id = connection.execute(
+                "SELECT event_id FROM send_events WHERE idempotency_key = ? ORDER BY event_id",
+                (intent["idempotency_key"],),
+            ).fetchone()["event_id"]
+            with self.assertRaises(sqlite3.DatabaseError):
+                connection.execute(
+                    "UPDATE send_events SET detail = 'changed' WHERE event_id = ?",
+                    (first_event_id,),
+                )
+            with self.assertRaises(sqlite3.DatabaseError):
+                connection.execute(
+                    "DELETE FROM send_attempts WHERE attempt_id = ?",
+                    (attempts[0]["attempt_id"],),
+                )
+            with self.assertRaises(sqlite3.DatabaseError):
+                connection.execute(
+                    "DELETE FROM send_events WHERE event_id = ?",
+                    (first_event_id,),
+                )
+            connection.close()
+
+    def test_post_dispatch_unknown_and_stale_recovery_block_automatic_retry(self):
+        module = load_module()
+        now = datetime(2026, 8, 12, 12, 0, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as directory:
+            connection = module.init_log_db(str(Path(directory) / "sends.db"))
+            intent = self._intent(module, "path-unknown")
+            self.assertTrue(
+                module.reserve_send(
+                    connection,
+                    owner_token="attempt-owner",
+                    now=now,
+                    **intent,
+                )
+            )
+            module.finish_reserved_send(
+                connection,
+                intent["idempotency_key"],
+                "attempt-owner",
+                "UNKNOWN",
+                apify_run_id="run-unknown",
+                error_detail="response malformed after dispatch",
+                now=now + timedelta(seconds=1),
+            )
+            self.assertFalse(
+                module.reserve_send(
+                    connection,
+                    owner_token="retry-owner",
+                    now=now + timedelta(seconds=module.PENDING_TTL_SECONDS + 2),
+                    **intent,
+                )
+            )
+            row = connection.execute(
+                "SELECT status, apify_run_id FROM sends WHERE idempotency_key = ?",
+                (intent["idempotency_key"],),
+            ).fetchone()
+            self.assertEqual(
+                (row["status"], row["apify_run_id"]),
+                ("needs_reconciliation", "run-unknown"),
+            )
+            provider_event = connection.execute(
+                """
+                SELECT provider_run_id, provider_status FROM send_events
+                WHERE idempotency_key = ? AND event_type = 'provider_result'
+                """,
+                (intent["idempotency_key"],),
+            ).fetchone()
+            self.assertEqual(
+                (provider_event["provider_run_id"], provider_event["provider_status"]),
+                ("run-unknown", "UNKNOWN"),
+            )
+
+            stale = self._intent(module, "path-stale-after-dispatch")
+            self.assertTrue(
+                module.reserve_send(
+                    connection,
+                    owner_token="crashed-owner",
+                    now=now,
+                    **stale,
+                )
+            )
+            self.assertFalse(
+                module.reserve_send(
+                    connection,
+                    owner_token="recovery-owner",
+                    now=now + timedelta(seconds=module.PENDING_TTL_SECONDS + 1),
+                    **stale,
+                )
+            )
+            stale_status = connection.execute(
+                "SELECT status FROM sends WHERE idempotency_key = ?",
+                (stale["idempotency_key"],),
+            ).fetchone()["status"]
+            self.assertEqual(stale_status, "needs_reconciliation")
+            connection.close()
+
+    def test_success_without_provider_run_id_cannot_bypass_durable_invariant(self):
+        module = load_module()
+        now = datetime(2026, 8, 12, 12, 0, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as directory:
+            connection = module.init_log_db(str(Path(directory) / "sends.db"))
+            intent = self._intent(module, "path-success-without-run-id")
+            self.assertTrue(
+                module.reserve_send(
+                    connection,
+                    owner_token="attempt-owner",
+                    now=now,
+                    **intent,
+                )
+            )
+
+            succeeded = module.finish_reserved_send(
+                connection,
+                intent["idempotency_key"],
+                "attempt-owner",
+                "SUCCEEDED",
+                apify_run_id=None,
+                now=now + timedelta(seconds=1),
+            )
+
+            lifecycle = connection.execute(
+                "SELECT status, error_detail FROM sends WHERE idempotency_key = ?",
+                (intent["idempotency_key"],),
+            ).fetchone()
+            connection.close()
+
+        self.assertFalse(succeeded)
+        self.assertEqual(lifecycle["status"], "needs_reconciliation")
+        self.assertIn("run ID", lifecycle["error_detail"])
+
+    def test_response_loss_and_process_control_are_persisted_before_propagation(self):
+        for exception in (RuntimeError("response lost"), KeyboardInterrupt(), SystemExit(9)):
+            with self.subTest(exception=type(exception).__name__):
+                module = load_module()
+                row = {
+                    "path_id": f"path-{type(exception).__name__.casefold()}",
+                    "connector_name": "Avery Stone",
+                    "connector_linkedin": "linkedin.com/in/example-avery-stone",
+                    "target_name": "Nora Imani",
+                    "draft_body": "Would you introduce me to Nora?",
+                    "approved": "true",
+                    "message_version": "1",
+                }
+
+                def fail_after_dispatch(**_kwargs):
+                    raise exception
+
+                module.send_linkedin_message = fail_after_dispatch
+                with tempfile.TemporaryDirectory() as directory:
+                    drafts_path = Path(directory) / "drafts.csv"
+                    log_path = Path(directory) / "sends.db"
+                    write_drafts(drafts_path, [row])
+                    argv = [
+                        "send_via_linkedin.py",
+                        "--input",
+                        str(drafts_path),
+                        "--api-key",
+                        "example-key",
+                        "--delay",
+                        "60",
+                        "--log-db",
+                        str(log_path),
+                    ]
+                    context = (
+                        self.assertRaises(type(exception))
+                        if isinstance(exception, (KeyboardInterrupt, SystemExit))
+                        else nullcontext()
+                    )
+                    with (
+                        patch.object(sys, "argv", argv),
+                        redirect_stdout(io.StringIO()),
+                        redirect_stderr(io.StringIO()),
+                        context,
+                    ):
+                        module.main()
+                    connection = module.init_log_db(str(log_path))
+                    key = module.build_idempotency_key(
+                        "campaign-example",
+                        "owner-example",
+                        row["path_id"],
+                        "linkedin",
+                        "1",
+                    )
+                    lifecycle = connection.execute(
+                        "SELECT status FROM sends WHERE idempotency_key = ?",
+                        (key,),
+                    ).fetchone()
+                    events = connection.execute(
+                        "SELECT event_type FROM send_events WHERE idempotency_key = ? ORDER BY event_id",
+                        (key,),
+                    ).fetchall()
+                    connection.close()
+                self.assertEqual(lifecycle["status"], "needs_reconciliation")
+                self.assertEqual(
+                    [event["event_type"] for event in events],
+                    ["dispatch_started", "post_dispatch_ambiguous"],
+                )
 
 
 class RatePolicyTests(unittest.TestCase):
@@ -690,7 +1161,7 @@ class RatePolicyTests(unittest.TestCase):
                     {
                         "path_id": "path-rate",
                         "connector_name": "Avery Stone",
-                        "connector_linkedin": "https://linkedin.example/in/avery-stone",
+                        "connector_linkedin": "https://linkedin.example/in/example-avery-stone",
                         "target_name": "Nora Imani",
                         "draft_body": "Would you introduce me to Nora?",
                         "approved": "true",
@@ -733,7 +1204,7 @@ class RatePolicyTests(unittest.TestCase):
                     {
                         "path_id": "path-delay",
                         "connector_name": "Casey Morgan",
-                        "connector_linkedin": "https://linkedin.example/in/casey-morgan",
+                        "connector_linkedin": "https://linkedin.example/in/example-casey-morgan",
                         "target_name": "Mina Sol",
                         "draft_body": "Would you introduce me to Mina?",
                         "approved": "true",
@@ -775,7 +1246,7 @@ class RatePolicyTests(unittest.TestCase):
                     {
                         "path_id": "path-preview-rate",
                         "connector_name": "Riley Chen",
-                        "connector_linkedin": "https://linkedin.example/in/riley-chen",
+                        "connector_linkedin": "https://linkedin.example/in/example-riley-chen",
                         "target_name": "Tariq Fen",
                         "draft_body": "Would you introduce me to Tariq?",
                         "approved": "false",
@@ -816,14 +1287,12 @@ class RatePolicyTests(unittest.TestCase):
             for number in range(module.MAX_DAILY_SENDS):
                 module.log_send(
                     connection,
-                    connector_linkedin=f"https://linkedin.example/in/connector-{number}",
+                    connector_linkedin=f"https://linkedin.example/in/example-connector-{number}",
                     connector_name=f"Connector {number}",
                     target_name="Nora Imani",
                     message_preview="Prior successful send",
                     status="sent",
-                    idempotency_key=module.build_idempotency_key(
-                        f"path-prior-{number}", "linkedin", "1"
-                    ),
+                    idempotency_key=_key(module, f"path-prior-{number}"),
                 )
             connection.close()
 
@@ -834,7 +1303,7 @@ class RatePolicyTests(unittest.TestCase):
                     {
                         "path_id": "path-eleven",
                         "connector_name": "Avery Stone",
-                        "connector_linkedin": "https://linkedin.example/in/avery-stone",
+                        "connector_linkedin": "https://linkedin.example/in/example-avery-stone",
                         "target_name": "Nora Imani",
                         "draft_body": "Would you introduce me to Nora?",
                         "approved": "true",
@@ -877,27 +1346,25 @@ class RatePolicyTests(unittest.TestCase):
             for path_id in ("path-recent", "path-old"):
                 module.log_send(
                     connection,
-                    connector_linkedin="https://linkedin.example/in/avery-stone",
+                    connector_linkedin="https://linkedin.example/in/example-avery-stone",
                     connector_name="Avery Stone",
                     target_name="Nora Imani",
                     message_preview="Prior successful send",
                     status="sent",
-                    idempotency_key=module.build_idempotency_key(
-                        path_id, "linkedin", "1"
-                    ),
+                    idempotency_key=_key(module, path_id),
                 )
             connection.execute(
                 "UPDATE sends SET sent_at = ? WHERE idempotency_key = ?",
                 (
                     (now - timedelta(hours=23)).isoformat(),
-                    module.build_idempotency_key("path-recent", "linkedin", "1"),
+                    _key(module, "path-recent"),
                 ),
             )
             connection.execute(
                 "UPDATE sends SET sent_at = ? WHERE idempotency_key = ?",
                 (
                     (now - timedelta(hours=25)).isoformat(),
-                    module.build_idempotency_key("path-old", "linkedin", "1"),
+                    _key(module, "path-old"),
                 ),
             )
             connection.commit()
@@ -923,7 +1390,7 @@ class RatePolicyTests(unittest.TestCase):
                     {
                         "path_id": f"path-attempt-{number}",
                         "connector_name": f"Connector {number}",
-                        "connector_linkedin": f"https://linkedin.example/in/connector-{number}",
+                        "connector_linkedin": f"https://linkedin.example/in/example-connector-{number}",
                         "target_name": "Nora Imani",
                         "draft_body": "Would you introduce me to Nora?",
                         "approved": "true",

@@ -24,12 +24,10 @@ Run these examples in order:
    generation, explicit human approval, dry-run inspection, rate limits, and
    idempotent activation logging.
 
-The orchestrator's `warm_paths.csv` is a campaign audit artifact. The ask drafter
-accepts the scorer's `lookup.py --csv` contract directly. If you adapt
-`warm_paths.csv` for drafting, map its `connector_linkedin_url` field to the
-scorer contract's `connector_linkedin` field and derive `shared_signal` plus
-`shared_detail` from the highest-priority cited reason. Do not infer a relationship
-from a proximity-only reason during that mapping.
+Both the orchestrator's `warm_paths.csv` and the scorer's `lookup.py --csv`
+output implement the same ask-drafter contract. They include campaign, owner,
+connector, and target namespaces plus `shared_signal` and `shared_detail`; no
+manual rename or path-ID fallback is allowed.
 
 ## System boundary and threat model
 
@@ -47,39 +45,42 @@ flowchart LR
 The local pipeline trusts neither provider-shaped fields nor inferred
 relationships as authority. The relevant threats are:
 
-- **Identity collision and incomplete remapping.** Name, company, and title are
-  weak identifiers. Valid normalized LinkedIn profile URLs and work emails create
-  automatic merge components; weak collisions are review items. The canonical
-  record retains only one selected LinkedIn URL and work email, and the fixture
-  pipeline does not remap every dependent foreign key from duplicate IDs. Review
-  aliases and dependent records before treating the canonical set as complete.
+- **Identity collision.** Name, company, and title are weak identifiers. A shared
+  LinkedIn URL or work email creates only a candidate merge component. Conflicting
+  names, accounts, companies, or disjoint title identities keep records separate
+  and route the component to review. Safe merges retain every normalized alias,
+  publish the alias audit, and remap all downstream contact foreign keys before
+  selection or scoring.
 - **Fabricated relationship strength.** Same-company names, investor context,
   shared communities, and org proximity do not prove that two people know each
   other. Strong warm-intro classification requires an owner-to-connector
   relationship score and either confirmed-introduction evidence or dated work
   overlap.
-- **Unvalidated path assertions.** `ConnectorEdge.owner_id` is loaded but is not
-  compared with `CampaignConfig.owner_id`. Direct-introduction, relationship,
-  supporting, and proximity evidence strings on connector edges are caller
-  assertions; the fixture pipeline does not verify that they exist in
-  `evidence.csv` or support the described fact. Unsupported strings can therefore
-  add reasons, citations, and score. Cross-check the owner and every path claim
-  against authoritative evidence before approval.
+- **Forged path assertions.** Connector ownership and every cited evidence ID are
+  validated before scoring. A direct introduction must resolve to confirmed
+  interaction evidence whose manual/introduction event includes the configured
+  owner, connector, and target. Relationship and supporting evidence must resolve
+  to the expected connector, target, or target account. Invalid claims earn no
+  factual/relationship points, carry `validation_errors`, and cannot become a
+  strong path.
 - **Stale or malicious source data.** Public profiles, CSV exports, and provider
   payloads can be stale, malformed, or adversarial. Every actionable claim should
-  have a source record or evidence ID and an observation date; not every such
-  reference is enforced as a foreign key by this fixture. `source_metadata_json`
-  preserves unknown columns; redact them before ingestion because preservation can
-  also retain unexpected personal data. The CSV writer does not neutralize
-  spreadsheet formulas, so do not open untrusted values in a spreadsheet without
-  formula sanitization.
+  have a source record or evidence ID and an observation date. Scored connector
+  claims, interaction citations, and org-edge citations are validated against
+  unique evidence indexes; contextual prose still requires human review.
+  `source_metadata_json` preserves unknown columns, so redact them before ingestion
+  because preservation can retain unexpected personal data. The CSV writer does
+  not neutralize spreadsheet formulas, so do not open untrusted values in a
+  spreadsheet without formula sanitization.
 - **Provider and budget drift.** A configured route is a policy choice, not proof
   that a provider is available, lawful, or contractually permitted. Production
   adapters must revalidate terms, geographic restrictions, authorization, price,
   and purpose before collection.
 - **Duplicate external effects.** The fixture pipeline has no external effects.
-  The activation example reserves a durable idempotency key before sending; any
-  production adapter must provide an equivalent atomic boundary.
+  The activation example commits an immutable intent and attempt before dispatch.
+  Because the documented Apify actor does not expose an atomic provider
+  idempotency key, any post-dispatch ambiguity becomes `needs_reconciliation` and
+  blocks automatic retry.
 - **Credential or PII disclosure.** Keep API keys outside config and artifacts.
   Treat work emails, profile URLs, interaction records, draft bodies, and provider
   metadata as personal or confidential data. Restrict access, retention, logs, and
@@ -243,14 +244,14 @@ globally capped at three.
 | Column | Requirement | Semantics |
 |---|---|---|
 | `edge_id` | Required | Stable owner-to-connector relationship edge ID. |
-| `owner_id` | Required | Claimed campaign owner ID. The fixture pipeline does not validate or use this field; production validation must require equality with config `owner_id`. |
+| `owner_id` | Required | Must equal config `owner_id`; a mismatch is recorded as a validation error and cannot create a strong path. |
 | `connector_id` | Required | Contact ID for the person who might make the introduction. |
 | `relationship_type` | Required | Provenance label such as `former_colleague`, `direct_contact`, `community`, or `investor`. |
 | `relationship_confidence` | Optional, default `unknown` | `low`, `medium`, `high`, or `confirmed`; unknown values earn no relationship points. |
-| `evidence_ids` | Optional tuple | Claimed owner-to-connector evidence IDs. The fixture pipeline carries them into path output without checking `evidence.csv`. |
+| `evidence_ids` | Optional tuple | Owner-to-connector evidence IDs. Each must exist and support the connector/owner relationship before relationship points are allowed. |
 | `source_record_id` | Optional | Immutable upstream edge ID. |
 | `source_ref` | Optional | Source-system or fixture reference. |
-| `source_metadata_json` | Optional, default `{}` | Must include stage-required `target_id`; may include arrays for `direct_intro_evidence_ids`, `shared_schools`, `shared_cities`, `shared_communities`, `shared_appearances`, `role_overlaps`, `industry_overlaps`, `investor_overlaps`, and `supporting_evidence_ids`. These are caller assertions, not fixture-validated evidence foreign keys. |
+| `source_metadata_json` | Optional, default `{}` | Must include `target_id`; may include arrays for direct, proximity, investor, and supporting claims. Cited IDs are indexed and subject/type/participant validated before the corresponding claim can score. |
 
 ### `config.example.json`
 
@@ -279,36 +280,38 @@ The normalization contract is deterministic:
 3. `casefold(name)|casefold(company)|casefold(title)`, with internal whitespace
    collapsed, is a weak key only when both strong identifiers are absent.
 
-Actual deduplication examines both strong identifiers and merges their transitive
-connected components. A bridge record sharing a LinkedIn URL with one row and an
-email with another produces one merge group. The lexicographically first
-`contact_id` supplies the canonical record's name, company, title, account, source
-reference, and metadata. The canonical record retains the lexicographically first
-normalized LinkedIn URL and email present in the merge component, plus the sorted
-union of `source_record_ids`; it does not retain every strong-ID alias. Weak-key
-matches never merge automatically. An invalid strong ID marks the resulting group
-for review, but the same record can still merge through another valid shared
-identifier. A weak collision remains separate.
+Actual deduplication examines both strong identifiers as candidate transitive
+components. It merges only a component with coherent names, accounts, companies,
+and compatible title identities. Conflicting components remain separate review
+rows. The lexicographically first `contact_id` supplies canonical primary fields;
+`contact_dedupe_audit.csv` retains all normalized LinkedIn, email, weak-identity,
+source-record, and contact-ID aliases. Weak-key matches never merge automatically.
 
-The pipeline does not build a duplicate-to-canonical ID map for every downstream
-dataset. Experiences, interactions, org edges, connector edges, and evidence that
-refer to a discarded duplicate `contact_id` are not automatically rewritten. Such
-records may be omitted by later selection or fail a stage lookup. Production
-adapters must resolve aliases and rewrite dependent foreign keys before this run,
-then audit the resulting canonical graph.
+The returned alias-to-canonical map rewrites experiences, interactions and their
+participants, org endpoints, evidence subjects, connector IDs, and connector-edge
+target IDs before downstream stages. Unknown foreign keys fail closed. PDL
+exclusions are built from the complete raw alias union for each canonical account,
+not only the selected primary URL/email.
+
+All primary IDs are indexed and checked for nonblank uniqueness before ranking,
+dedupe, remapping, or scoring. Duplicate account, contact, experience,
+interaction, org-edge, evidence, or connector-edge IDs fail closed rather than
+silently overwriting a dictionary entry.
 
 `account_id` and every source/evidence ID are supplied by the caller; keep them
 stable across reruns. A warm `path_id` is derived as:
 
 ```text
-path_id = "path-" + first_16_hex(
-  SHA256(campaign_id + "|" + owner_id + "|" + connector_id + "|" + target_id)
-)
+path_id = "path-" + first_16_hex(SHA256(JSON([
+  "warm-path-v1", campaign_id, owner_id, connector_id, target_id
+])))
 ```
 
 Changing any namespace or endpoint deliberately creates a different path. The
-activation example independently hashes `path_id|channel|message_version`, so a
-message edit must increment `message_version` before approval.
+activation example hashes the versioned campaign/owner/path/channel/message-version
+tuple, so a message edit must increment `message_version` before approval. Both
+the drafter and sender recompute the path from its four inputs and reject a
+mismatch before any model/provider call.
 
 ## Score equations and invariants
 
@@ -433,11 +436,10 @@ record:
 }
 ```
 
-Because non-selected strong-ID aliases are not retained on the canonical record,
-this preview is not guaranteed to contain every input alias. Review the raw merge
-groups, add missing aliases to a production exclusion request, apply the exclusions
-in the provider request itself, and deduplicate the response again. A local
-preflight list alone is not an exclusion guarantee.
+The preview is built from every raw contact alias that resolves to the account's
+canonical people. Apply these URL, email, and weak-identity exclusions in the
+provider request itself, then deduplicate the response again. A local preflight
+list alone is not an exclusion guarantee.
 
 ## Stage invariants
 
@@ -445,11 +447,9 @@ The pipeline runs eight stages in a fixed order:
 
 1. **`rank_accounts`.** Writes every account and exactly one decision. Explicit
    exclusions override score.
-2. **`dedupe_contacts`.** Merges transitive valid strong-ID components and emits
-   weak collisions for review. Invalid strong IDs increase `review_count`, but a
-   record may still merge through another valid identifier. Only one normalized
-   LinkedIn/email value is retained per canonical record, and dependent foreign
-   keys are not remapped.
+2. **`dedupe_contacts`.** Merges only coherent strong-ID components, emits weak or
+   conflicting components for review, retains all aliases, and atomically remaps
+   every supported downstream contact foreign key.
 3. **`prepare_pdl_gapfill`.** Writes previews only for `include` and `review`
    accounts. Open-role nodes are excluded from known-person counts. No request is
    executed.
@@ -461,18 +461,20 @@ The pipeline runs eight stages in a fixed order:
 6. **`audit_interactions`.** Admits only the fixed source enum, timezone-aware
    timestamps, and non-empty evidence IDs. Timestamps are normalized to UTC and
    ordered by instant.
-7. **`score_warm_paths`.** Requires every connector edge to name a valid
-   `target_id`, but does not validate `owner_id` or cross-check the edge's direct,
-   relationship, supporting, or proximity evidence strings against
-   `evidence.csv`. Caller assertions can affect the score. The stage emits every
-   path with components/reasons/citations and sorts by segment, descending total,
-   then path ID; manual evidence verification remains mandatory.
-8. **`prepare_direct_outreach`.** Emits a committee target only when its best path
-   is absent or `no_strong_path`. Every emitted row starts `approved=false`.
+7. **`score_warm_paths`.** Indexes unique evidence and interactions; validates
+   owner, evidence existence/type/subject, and direct-intro participants. Invalid
+   claims contribute no strong points, emit deterministic `validation_errors`, and
+   route to review. Rows sort by segment, descending total, then path ID.
+8. **`prepare_direct_outreach`.** Emits targets whose best path is absent,
+   `review_warm_intro`, or `no_strong_path`. Only strong paths leave this queue;
+   every emitted row starts `approved=false`.
 
 Each stage records input/output counts, categorized exclusions, review count,
-cache hits, provider calls, spend, and SHA-256 hashes for its artifacts. Fixture
-stage values for the last three measures are always zero. `campaign_ledger.json`
+cache hits, provider calls, spend, and SHA-256 hashes for its artifacts. The root
+also records deterministic evidence-age buckets (including unknown/future), all
+three path-segment counts, and approved/activated message counts. Fixture approval
+and activation counts are zero because the pipeline stops before drafting. The
+activation database is the later operational ledger boundary. `campaign_ledger.json`
 hashes every other generated artifact but cannot hash itself; `hash_scope` names
 that boundary.
 
@@ -494,7 +496,10 @@ position. `icp_fit`, `engineering_led`, `technical_gtm_signal`, `growth_recency`
 `merge` or `review`; `canonical_contact_id` is the retained/first ID;
 `related_contact_ids` is the full sorted group; `match_types` reports
 `linkedin_url`, `work_email`, or `normalized_identity`; and `reason` is
-`shared_strong_identifier` or `weak_identity_collision`.
+`shared_strong_identifier`, `weak_identity_collision`, or
+`conflicting_strong_identity`. `linkedin_aliases`, `work_email_aliases`, and
+`identity_aliases` preserve the normalized alias audit without overwriting the
+chosen canonical record's primary fields.
 
 ### `pdl_gapfill_requests.json`
 
@@ -526,13 +531,12 @@ interaction. `direct_introduction` is the derived boolean used by review logic.
 
 ### `warm_paths.csv`
 
-`path_id`, connector fields (`connector_id`, `connector_name`,
-`connector_linkedin_url`), and target fields (`target_id`, `target_name`,
-`target_title`, `target_company`) identify the path. The six `*_score` fields and
-`total_score` expose the equation. `relationship_confidence`, `segment`, and
-`investor_only` expose gates. `reasons` and `evidence_ids` are ordered caller/audit
-data; their presence does not prove a matching `evidence.csv` record or supported
-claim.
+`campaign_id`, `owner_id`, `path_id`, connector fields (`connector_id`,
+`connector_name`, `connector_linkedin`, `connector_company`), and target fields
+identify the path. The six `*_score` fields and `total_score` expose the equation.
+`relationship_confidence`, `segment`, `reviewed_override`, and `investor_only`
+expose gates. `shared_signal`/`shared_detail` make the file directly draftable.
+`reasons`, validated `evidence_ids`, and `validation_errors` preserve the audit.
 
 ### `direct_outreach.csv`
 
@@ -546,9 +550,14 @@ entry angle. `approved` is always `false` when generated.
 
 The root fields are `campaign_id`, `as_of`, `fixture_mode`, `stages`,
 `artifact_hashes`, `total_cache_hits`, `total_authorized_provider_calls`,
-`total_estimated_spend_usd`, and `hash_scope`. Each stage object contains `stage`,
-`input_count`, `output_count`, `exclusions`, `review_count`, `cache_hits`,
-`authorized_provider_calls`, `estimated_spend_usd`, and `artifact_hashes`.
+`total_estimated_spend_usd`, `evidence_freshness`, `path_segment_counts`,
+`approved_message_count`, `activated_message_count`, and `hash_scope`.
+`evidence_freshness` has exact `0_30_days`, `31_90_days`, `91_365_days`,
+`over_365_days`, `future`, and `unknown` buckets. `path_segment_counts` has exact
+`strong_warm_intro`, `review_warm_intro`, and `no_strong_path` keys. Each stage
+object contains `stage`, `input_count`, `output_count`, `exclusions`,
+`review_count`, `cache_hits`, `authorized_provider_calls`,
+`estimated_spend_usd`, and `artifact_hashes`.
 
 ## Retry, cache, budget, resumability, and idempotency
 
@@ -597,11 +606,18 @@ reconcile by provider response/request ID before issuing the same work again.
 
 Draft generation records per-row errors with an empty body and remains resumable
 by rerunning reviewed rows. It has no automatic retry or cache. Activation is more
-strict: live sends require `approved=true`, use the SHA-256 idempotency key derived
-from path/channel/message version, atomically reserve the key in SQLite, accept
-only terminal `SUCCEEDED` as sent, and leave ordinary failures retryable. Fresh
-pending reservations block concurrent work for one hour; older pending rows may
-be reclaimed. Dry runs do not consume the live key.
+strict: live sends require `approved=true` and a complete campaign/owner/path
+namespace. SQLite commits the immutable intent, attempt, and `dispatch_started`
+event before the external call. Only a proven pre-dispatch failure returns the
+intent to `ready`. Terminal `SUCCEEDED` with a provider run ID becomes `sent`;
+every non-success, malformed/missing response, interruption, response loss, or
+stale `dispatching` recovery becomes `needs_reconciliation` and blocks automatic
+retry. Dry runs do not consume the live key. The current actor interface exposes
+no atomic provider idempotency token, so the local outbox cannot prove delivery
+after an ambiguous provider boundary.
+On upgrade, any non-preview historical row without a complete namespaced intent
+fingerprint blocks all live reservations until an operator explicitly reconciles
+and migrates every such row, because both path and send-key algorithms changed.
 
 ## Failure modes
 
@@ -612,16 +628,17 @@ be reclaimed. Dry runs do not consume the live key.
 | Invalid metadata JSON | Raises; unknown metadata is never silently discarded. | Repair/redact the JSON object and rerun into a clean directory. |
 | Weak identity collision | Contacts remain separate and a dedupe review row is emitted. | Resolve against authoritative evidence; never force a name-only merge. |
 | Invalid strong ID | The resulting record/group is marked for review; it may still merge through a different valid shared identifier. | Correct and reconcile every alias before remapping dependent records. |
-| Dependent record uses a discarded duplicate ID | The pipeline does not remap it; a later stage can omit the record or fail lookup. | Rewrite foreign keys through a reviewed duplicate-to-canonical map before running. |
+| Dependent record uses a safely merged alias ID | The pipeline remaps experience, interaction, participant, org-edge, evidence-subject, connector, and target foreign keys to the canonical ID before selection. Unknown IDs fail closed. | Review the emitted alias audit; correct an unknown or conflicted identifier instead of forcing a merge. |
 | Invalid org edge | The org stage rejects the run with the edge ID. | Correct the endpoint/type/confidence or retain it as inferred proximity. |
 | Unsupported interaction source, missing evidence, or naive timestamp | Interaction audit rejects the run. | Map to the fixed enum, add an immutable citation, and provide a timezone-aware timestamp. |
 | Connector edge missing/unknown `target_id` | Path scoring rejects the run with the edge ID. | Repair the foreign key; do not infer the target from a name. |
-| Connector edge has wrong owner or unsupported evidence strings | The fixture may still score the assertions because owner/evidence foreign-key validation is absent. | Compare owner to config and verify every scored assertion/citation manually before approval. |
+| Connector edge has a wrong owner or unsupported evidence claim | The invalid claim earns no relationship/factual points, `validation_errors` records the reason, and the path cannot be strong. | Correct the owner/citation/type/subject/participants and rerun; retain human evidence review before approval. |
 | Provider authorization denial | No reservation or call should occur; a stable reason explains the denial. | Review route, exclusions, cache identity, or budget. Never bypass a provider/operation block. |
 | Process exit during fixture write | Earlier artifacts may remain without a complete ledger. | Discard the partial directory, rerun all stages, and verify hashes. |
 | Draft model/API failure | An error row with an empty body is written; later rows continue. | Retry only the reviewed failed path; keep it unapproved until valid. |
-| Live actor failure or non-`SUCCEEDED` status | The owned lifecycle row becomes retryable `error`. | Reconcile the provider run ID, then retry under the same idempotency key. |
-| Process interruption after live reservation | A durable `pending` row blocks duplicates for one hour. | Reconcile external state first; reclaim only when the reservation is stale. |
+| Proven failure before the provider process starts | An immutable failure event is appended and the intent returns to `ready`; a retry creates a new attempt row. | Correct the local executable/configuration issue, then retry the same immutable intent. |
+| Live actor failure, malformed response, missing run ID, response loss, or non-`SUCCEEDED` status | The attempt event preserves any run ID/status and the outbox becomes `needs_reconciliation`. | Reconcile delivery with the provider; do not automatically retry. |
+| Process interruption or stale recovery after dispatch began | The original exception propagates after a best-effort reconciliation event; durable `dispatching` state fails closed and stale recovery becomes `needs_reconciliation`. | Reconcile external state. There is no TTL-based automatic resend. |
 
 ## Production adaptation
 
@@ -678,6 +695,8 @@ be reclaimed. Dry runs do not consume the live key.
 - [ ] Selected rows alone are `approved=true`; edits have a new message version.
 - [ ] A dry run matches the approved copy, live rate capacity is available, and
   the SQLite activation log is backed up and access-controlled.
+- [ ] Every `dispatching` or `needs_reconciliation` intent has been reconciled
+  against provider evidence before any new message version is activated.
 
 ## Privacy and anonymization rules
 
@@ -713,6 +732,13 @@ rg -n -i '@(gmail|yahoo|outlook|deepline|getaero)\.' \
   examples/office-hours/target-account-warm-intro-campaign \
   examples/office-hours/warm-intro-scoring \
   examples/office-hours/warm-intro-ask-threads
+rg -n -i 'linkedin\.(com|example)/in/' \
+  examples/office-hours/target-account-warm-intro-campaign \
+  examples/office-hours/warm-intro-scoring \
+  examples/office-hours/warm-intro-ask-threads \
+  docs/superpowers/plans/2026-08-12-target-account-warm-intro-campaign.md \
+  docs/superpowers/specs/2026-08-12-target-account-warm-intro-campaign-design.md \
+  | rg -v 'linkedin\.(com|example)/in/(example-|[<{])'
 rg -n -i '6,484|94 enriched|680 experience|62 credits|869 days|\$1\.09|\$1\.20|stripe|modal|mongodb|google|harness|supaglue|porter|cisco thousandeyes|edges api|manpreet|ron\b|tiffany\b|george xing|carla colindres|spencer aller|mikiko bazeley|charlie vieth|ryan waldorf|cat yu|david siegel|gaurav tungatkar|target [abc]\b|connector [12]\b' \
   examples/office-hours/warm-intro-scoring/README.md \
   examples/office-hours/warm-intro-scoring/blog_post.md \

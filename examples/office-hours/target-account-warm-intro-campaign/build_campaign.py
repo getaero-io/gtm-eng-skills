@@ -9,6 +9,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from enum import Enum
+from types import MappingProxyType
 from typing import Sequence
 
 from schemas import (
@@ -61,10 +62,28 @@ _CONFIGURED_COMMITTEE_ROLES = {
 
 
 @dataclass(frozen=True)
+class ContactAliasAudit:
+    canonical_contact_id: str
+    contact_ids: tuple[str, ...]
+    linkedin_urls: tuple[str, ...]
+    work_emails: tuple[str, ...]
+    normalized_identities: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class DedupeResult:
     canonical_records: tuple[ContactRecord, ...]
     merge_groups: tuple[tuple[str, ...], ...]
     review_collisions: tuple[tuple[str, ...], ...]
+    alias_to_canonical: Mapping[str, str]
+    alias_audit: tuple[ContactAliasAudit, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "alias_to_canonical",
+            MappingProxyType(dict(self.alias_to_canonical)),
+        )
 
 
 @dataclass(frozen=True)
@@ -122,8 +141,64 @@ class InteractionSummary:
         return bool(self.direct_introductions)
 
 
+_TITLE_IDENTITY_NOISE = {
+    "chief",
+    "director",
+    "head",
+    "lead",
+    "manager",
+    "of",
+    "officer",
+    "president",
+    "senior",
+    "sr",
+    "the",
+    "vice",
+    "vp",
+}
+
+
+def _identity_text(value: str) -> str:
+    return " ".join(value.casefold().split())
+
+
+def _title_identity_tokens(value: str) -> frozenset[str]:
+    return frozenset(
+        token
+        for token in _TITLE_SPACE.split(value.casefold())
+        if token and token not in _TITLE_IDENTITY_NOISE
+    )
+
+
+def _strong_component_conflicts(members: Sequence[ContactRecord]) -> bool:
+    """Return true when a shared identifier bridges contradictory people."""
+    names = {_identity_text(member.name) for member in members if member.name.strip()}
+    accounts = {
+        _identity_text(member.account_id)
+        for member in members
+        if member.account_id.strip()
+    }
+    companies = {
+        _identity_text(member.company)
+        for member in members
+        if member.company.strip()
+    }
+    if len(names) > 1 or len(accounts) > 1 or len(companies) > 1:
+        return True
+    title_tokens = [
+        _title_identity_tokens(member.title)
+        for member in members
+        if member.title.strip()
+    ]
+    return any(
+        left and right and left.isdisjoint(right)
+        for index, left in enumerate(title_tokens)
+        for right in title_tokens[index + 1 :]
+    )
+
+
 def dedupe_contacts(contacts: Sequence[ContactRecord]) -> DedupeResult:
-    """Merge strong identities and route weak identity collisions to review."""
+    """Merge only coherent strong-ID components and retain every alias."""
     parents = list(range(len(contacts)))
 
     def find(index: int) -> int:
@@ -166,50 +241,112 @@ def dedupe_contacts(contacts: Sequence[ContactRecord]) -> DedupeResult:
     merge_groups: list[tuple[str, ...]] = []
     identity_groups: dict[str, set[str]] = {}
     review_collisions: list[tuple[str, ...]] = []
+    alias_to_canonical: dict[str, str] = {}
+    alias_audit: list[ContactAliasAudit] = []
     for indices in grouped_indices.values():
-        members = sorted((contacts[index] for index in indices), key=lambda item: item.contact_id)
-        source_ids = tuple(
-            sorted({source_id for member in members for source_id in member.source_record_ids})
+        indexed_members = sorted(
+            ((index, contacts[index]) for index in indices),
+            key=lambda item: item[1].contact_id,
         )
-        linkedins = sorted(
-            {
-                value
-                for index in indices
-                for kind, value in normalized_identifiers[index]
-                if kind == "linkedin"
-            }
-        )
-        emails = sorted(
-            {
-                value
-                for index in indices
-                for kind, value in normalized_identifiers[index]
-                if kind == "email"
-            }
-        )
-        canonical_records.append(
-            replace(
-                members[0],
-                linkedin_url=linkedins[0] if linkedins else members[0].linkedin_url,
-                work_email=emails[0] if emails else members[0].work_email,
-                source_record_ids=source_ids,
-            )
-        )
-        if len(members) > 1:
-            merge_groups.append(tuple(member.contact_id for member in members))
-        canonical_id = members[0].contact_id
-        if any(index in invalid_identity_indices for index in indices):
+        members = tuple(member for _, member in indexed_members)
+        if len(members) > 1 and _strong_component_conflicts(members):
             review_collisions.append(tuple(member.contact_id for member in members))
-        for member in members:
-            try:
-                weak_identity = normalized_identity(
-                    member.name, member.company, member.title
+            member_groups = tuple((item,) for item in indexed_members)
+        else:
+            member_groups = (tuple(indexed_members),)
+
+        for safe_indexed_members in member_groups:
+            safe_indices = tuple(index for index, _ in safe_indexed_members)
+            safe_members = tuple(member for _, member in safe_indexed_members)
+            source_ids = tuple(
+                sorted(
+                    {
+                        source_id
+                        for member in safe_members
+                        for source_id in member.source_record_ids
+                    }
                 )
-            except ValueError:
-                if not any(normalized_identifiers[index] for index in indices):
-                    review_collisions.append((canonical_id,))
-            else:
-                identity_groups.setdefault(weak_identity, set()).add(canonical_id)
+            )
+            linkedins = sorted(
+                {
+                    value
+                    for index in safe_indices
+                    for kind, value in normalized_identifiers[index]
+                    if kind == "linkedin"
+                }
+            )
+            emails = sorted(
+                {
+                    value
+                    for index in safe_indices
+                    for kind, value in normalized_identifiers[index]
+                    if kind == "email"
+                }
+            )
+            identities: set[str] = set()
+            for member in safe_members:
+                try:
+                    identities.add(
+                        normalized_identity(member.name, member.company, member.title)
+                    )
+                except ValueError:
+                    pass
+            canonical = safe_members[0]
+            canonical_id = canonical.contact_id
+            canonical_index = safe_indices[0]
+            canonical_linkedins = tuple(
+                value
+                for kind, value in normalized_identifiers[canonical_index]
+                if kind == "linkedin"
+            )
+            canonical_emails = tuple(
+                value
+                for kind, value in normalized_identifiers[canonical_index]
+                if kind == "email"
+            )
+            canonical_records.append(
+                replace(
+                    canonical,
+                    linkedin_url=(
+                        canonical_linkedins[0]
+                        if canonical_linkedins
+                        else (linkedins[0] if linkedins else "")
+                    ),
+                    work_email=(
+                        canonical_emails[0]
+                        if canonical_emails
+                        else (emails[0] if emails else "")
+                    ),
+                    source_record_ids=source_ids,
+                )
+            )
+            for member in safe_members:
+                alias_to_canonical[member.contact_id] = canonical_id
+            alias_audit.append(
+                ContactAliasAudit(
+                    canonical_contact_id=canonical_id,
+                    contact_ids=tuple(member.contact_id for member in safe_members),
+                    linkedin_urls=tuple(linkedins),
+                    work_emails=tuple(emails),
+                    normalized_identities=tuple(sorted(identities)),
+                )
+            )
+            if len(safe_members) > 1:
+                merge_groups.append(tuple(member.contact_id for member in safe_members))
+            if any(index in invalid_identity_indices for index in safe_indices):
+                review_collisions.append(
+                    tuple(member.contact_id for member in safe_members)
+                )
+            for member in safe_members:
+                try:
+                    weak_identity = normalized_identity(
+                        member.name, member.company, member.title
+                    )
+                except ValueError:
+                    if not any(normalized_identifiers[index] for index in safe_indices):
+                        review_collisions.append((canonical_id,))
+                else:
+                    identity_groups.setdefault(weak_identity, set()).add(canonical_id)
     canonical_records.sort(key=lambda contact: contact.contact_id)
     review_collisions.extend(
         tuple(sorted(canonical_ids))
@@ -220,6 +357,8 @@ def dedupe_contacts(contacts: Sequence[ContactRecord]) -> DedupeResult:
         canonical_records=tuple(canonical_records),
         merge_groups=tuple(sorted(merge_groups)),
         review_collisions=tuple(sorted(set(review_collisions))),
+        alias_to_canonical=alias_to_canonical,
+        alias_audit=tuple(sorted(alias_audit, key=lambda item: item.canonical_contact_id)),
     )
 
 

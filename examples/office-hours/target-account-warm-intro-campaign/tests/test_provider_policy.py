@@ -113,7 +113,7 @@ class ProviderPolicyTests(unittest.TestCase):
                 "people_search",
                 "account:known",
                 Decimal("0.10"),
-                pdl_exclusions=PdlExclusionSet(("linkedin.com/in/alex",), (), ()),
+                pdl_exclusions=PdlExclusionSet(("linkedin.com/in/example-alex",), (), ()),
             ).allowed
         )
 
@@ -236,7 +236,7 @@ class ProviderPolicyTests(unittest.TestCase):
                     name=" Alex  Chen ",
                     company="Northstar AI",
                     title="GTM Engineer",
-                    linkedin_url="https://www.linkedin.com/in/Alex-Chen/?trk=public",
+                    linkedin_url="https://www.linkedin.com/in/example-Alex-Chen/?trk=public",
                     work_email="ALEX@NORTHSTAR.EXAMPLE",
                 ),
                 ContactRecord(
@@ -244,12 +244,12 @@ class ProviderPolicyTests(unittest.TestCase):
                     name="Blair Kim",
                     company="Northstar AI",
                     title="RevOps",
-                    linkedin_url="linkedin.com/in/blair-kim",
+                    linkedin_url="linkedin.com/in/example-blair-kim",
                 ),
             )
         )
 
-        self.assertEqual(exclusions.linkedin_urls, ("linkedin.com/in/alex-chen", "linkedin.com/in/blair-kim"))
+        self.assertEqual(exclusions.linkedin_urls, ("linkedin.com/in/example-alex-chen", "linkedin.com/in/example-blair-kim"))
         self.assertEqual(exclusions.emails, ("alex@northstar.example",))
         self.assertEqual(
             exclusions.identities,

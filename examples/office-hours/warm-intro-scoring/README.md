@@ -130,6 +130,9 @@ python -m examples.office-hours.warm-intro-scoring.lookup \
   --company "Northstar AI" \
   --target-name "Nora Imani" \
   --target-title "Head of GTM Engineering" \
+  --campaign-id "fictional-warm-intro-campaign" \
+  --owner-id "campaign-owner" \
+  --target-id "contact-northstar-gtm" \
   --csv /tmp/scored_connectors.csv \
   --quiet
 ```
@@ -137,14 +140,19 @@ python -m examples.office-hours.warm-intro-scoring.lookup \
 `--csv` is implemented. Without `--quiet`, CSV export supplements the normal
 database summary and formatted results. With `--quiet`, it writes the same CSV
 bytes without terminal output. Rows sort by descending `total_score`, normalized
-connector name, and contact ID. If a match has no `path_id`, export derives one
-from connector ID plus target name/title/company.
+connector name, and contact ID. CSV export requires campaign, owner, and stable
+target IDs and always derives the same versioned path ID from campaign ID, owner
+ID, connector ID, and target ID. There is no name-based fallback.
 
 The CSV schema is:
 
 | Column | Semantics |
 |---|---|
-| `path_id` | Stable path identifier used by downstream send idempotency. |
+| `campaign_id` | Stable campaign namespace. |
+| `owner_id` | Stable campaign-owner namespace. |
+| `connector_id` | Stable connector contact ID. |
+| `target_id` | Stable target contact ID. |
+| `path_id` | Versioned hash of campaign, owner, connector, and target IDs. |
 | `connector_name` | Connector display name. |
 | `connector_linkedin` | Connector profile URL. |
 | `connector_company` | Connector current company, if known. |
@@ -162,6 +170,7 @@ The CSV schema is:
 | `investor_score` | Explicit component. |
 | `total_score` | Component sum for target-person results; legacy discovery score otherwise. |
 | `segment` | `strong_warm_intro`, `review_warm_intro`, or `no_strong_path`. |
+| `reviewed_override` | Always `false` on export; a human may set a reviewed row to `true` before using the drafter's explicit review override. |
 | `evidence_ids` | Sorted, semicolon-delimited citations. |
 
 Pass this file directly to the ask drafter; do not rename columns or manually
@@ -176,8 +185,12 @@ python examples/office-hours/warm-intro-ask-threads/draft_asks.py \
 
 Draft generation calls a model, records failed rows with empty bodies, and sets
 `approved=false`. Review evidence and copy before changing selected rows to
-`approved=true`. The sender rejects unapproved live rows and deduplicates successful
-sends by `path_id`, channel, and `message_version`.
+`approved=true`. By default only `strong_warm_intro` rows are draftable;
+`review_warm_intro` requires both explicit CLI and per-row review gates, while
+`no_strong_path` routes to direct outreach. The sender rejects unapproved live
+rows and namespaces each activation by campaign, owner, path, channel, and
+message version. Ambiguous post-dispatch outcomes block automatic retry pending
+provider reconciliation.
 
 ## Files
 

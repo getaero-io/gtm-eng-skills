@@ -18,6 +18,7 @@ from unittest.mock import patch
 
 PACKAGE_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PACKAGE_DIR))
+sys.path.insert(0, str(PACKAGE_DIR.parent))
 
 from schemas import CampaignConfig, ContactRecord, ExperienceRecord  # noqa: E402
 from score_paths import (  # noqa: E402
@@ -26,6 +27,7 @@ from score_paths import (  # noqa: E402
     score_warm_path,
     segment_path,
 )
+from warm_intro_contract import build_path_id  # noqa: E402
 
 
 def campaign_config(score_weights=None) -> CampaignConfig:
@@ -172,6 +174,22 @@ class EmploymentOverlapTests(unittest.TestCase):
 
 
 class WarmPathScoreTests(unittest.TestCase):
+    def test_path_identity_is_namespaced_by_campaign_owner_connector_and_target(self):
+        base = build_path_id("test-campaign", "owner", "connector", "target")
+
+        self.assertNotEqual(
+            base,
+            build_path_id("campaign-b", "owner", "connector", "target"),
+        )
+        self.assertNotEqual(
+            base,
+            build_path_id("test-campaign", "owner-b", "connector", "target"),
+        )
+        self.assertEqual(
+            base,
+            score_warm_path(CONNECTOR, TARGET, PathEvidence(), campaign_config()).path_id,
+        )
+
     def test_default_path_weights_preserve_hierarchy_over_all_lower_tiers(self):
         config = CampaignConfig.from_mapping(
             json.loads((PACKAGE_DIR / "config.example.json").read_text(encoding="utf-8"))
@@ -598,10 +616,10 @@ class LegacyCsvExportTests(unittest.TestCase):
     def test_csv_has_stable_contract_and_deterministic_score_name_sort(self):
         lookup_module, models, _ = load_legacy_lookup()
         alice = models.Contact(
-            "alice", "Alice", "Zephyr", "linkedin.com/in/alice", current_company="Relay Cloud"
+            "alice", "Alice", "Zephyr", "linkedin.com/in/example-alice", current_company="Relay Cloud"
         )
         zoe = models.Contact(
-            "zoe", "zoe", "Alpha", "linkedin.com/in/zoe", current_company="Harbor Systems"
+            "zoe", "zoe", "Alpha", "linkedin.com/in/example-zoe", current_company="Harbor Systems"
         )
         matches = [
             models.WarmIntroMatch(
@@ -636,19 +654,32 @@ class LegacyCsvExportTests(unittest.TestCase):
             target_name="Taylor Kim",
             target_title="Head of GTM Engineering",
             target_company="Northstar AI",
+            campaign_id="test-campaign",
+            owner_id="owner",
+            target_id="target",
         )
 
         rows = output.getvalue().splitlines()
         self.assertEqual(
             rows[0],
-            "path_id,connector_name,connector_linkedin,connector_company,target_name,"
+            "campaign_id,owner_id,connector_id,target_id,path_id,connector_name,connector_linkedin,connector_company,target_name,"
             "target_title,target_company,shared_signal,shared_detail,relationship_confidence,"
             "direct_intro_score,work_overlap_score,relationship_score,"
             "school_city_community_score,role_industry_score,investor_score,total_score,"
-            "segment,evidence_ids",
+            "segment,reviewed_override,evidence_ids",
         )
-        self.assertTrue(rows[1].startswith("path-alice,Alice Zephyr,"))
-        self.assertTrue(rows[2].startswith("path-zoe,zoe Alpha,"))
+        self.assertTrue(
+            rows[1].startswith(
+                "test-campaign,owner,alice,target,"
+                f"{build_path_id('test-campaign', 'owner', 'alice', 'target')},"
+            )
+        )
+        self.assertTrue(
+            rows[2].startswith(
+                "test-campaign,owner,zoe,target,"
+                f"{build_path_id('test-campaign', 'owner', 'zoe', 'target')},"
+            )
+        )
         self.assertTrue(output.getvalue().endswith("\n"))
         self.assertNotIn("\r\n", output.getvalue())
 
@@ -662,7 +693,7 @@ class LegacyCliTests(unittest.TestCase):
                 "connector",
                 "Casey",
                 "Morgan",
-                "linkedin.com/in/casey",
+                "linkedin.com/in/example-casey",
                 current_company="Relay Cloud",
             ),
             score=10,
@@ -716,6 +747,12 @@ class LegacyCliTests(unittest.TestCase):
                 "Taylor Kim",
                 "--target-title",
                 "Head of GTM Engineering",
+                "--campaign-id",
+                "test-campaign",
+                "--owner-id",
+                "owner",
+                "--target-id",
+                "target",
             ]
 
             with (
@@ -741,7 +778,10 @@ class LegacyCliTests(unittest.TestCase):
             self.assertIn("Casey Morgan", human_output.getvalue())
             self.assertEqual(quiet_output.getvalue(), "")
             self.assertEqual(normal_csv.read_bytes(), quiet_csv.read_bytes())
-            self.assertIn(b"path-connector,Casey Morgan", normal_csv.read_bytes())
+            self.assertIn(
+                b"test-campaign,owner,connector,target,path-4d2354aaa82fa121,Casey Morgan",
+                normal_csv.read_bytes(),
+            )
 
 
 class LegacyScorerCompatibilityTests(unittest.TestCase):
@@ -761,13 +801,13 @@ class LegacyScorerCompatibilityTests(unittest.TestCase):
     def test_target_scorer_strictly_orders_every_tier_across_relationship_extremes(self):
         _, models, scorer_module = load_legacy_lookup()
         connector = models.Contact(
-            "connector", "Casey", "Morgan", "linkedin.com/in/casey"
+            "connector", "Casey", "Morgan", "linkedin.com/in/example-casey"
         )
         target = models.Contact(
             "target",
             "Taylor",
             "Kim",
-            "linkedin.com/in/taylor",
+            "linkedin.com/in/example-taylor",
             current_company="Northstar AI",
         )
         scorer = scorer_module.WarmIntroScorer()
@@ -863,7 +903,7 @@ class LegacyScorerCompatibilityTests(unittest.TestCase):
             "connector",
             "Casey",
             "Morgan",
-            "linkedin.com/in/casey",
+            "linkedin.com/in/example-casey",
             current_company="Northstar AI",
             current_position="VP Revenue Operations",
         )
@@ -887,7 +927,7 @@ class LegacyScorerCompatibilityTests(unittest.TestCase):
             "connector",
             "Casey",
             "Morgan",
-            "linkedin.com/in/casey",
+            "linkedin.com/in/example-casey",
             current_company="Relay Cloud",
             current_position="VP Revenue Operations",
         )
@@ -895,7 +935,7 @@ class LegacyScorerCompatibilityTests(unittest.TestCase):
             "target",
             "Taylor",
             "Kim",
-            "linkedin.com/in/taylor",
+            "linkedin.com/in/example-taylor",
             current_company="Northstar AI",
             current_position="Head of GTM Engineering",
         )
@@ -924,6 +964,8 @@ class LegacyScorerCompatibilityTests(unittest.TestCase):
             relationship_confidence="high",
             relationship_evidence_ids=("relationship-1",),
             as_of=date(2026, 8, 12),
+            campaign_id="test-campaign",
+            owner_id="owner",
         )
 
         self.assertEqual(match.target_name, "Taylor Kim")
@@ -932,6 +974,10 @@ class LegacyScorerCompatibilityTests(unittest.TestCase):
         self.assertIn("2022-01-01", match.shared_detail)
         self.assertGreater(match.work_overlap_score, 0)
         self.assertEqual(match.segment, "strong_warm_intro")
+        self.assertEqual(
+            match.path_id,
+            build_path_id("test-campaign", "owner", "connector", "target"),
+        )
         self.assertEqual(
             match.evidence_ids,
             ("connector-role", "relationship-1", "target-role"),
@@ -943,7 +989,7 @@ class LegacyScorerCompatibilityTests(unittest.TestCase):
             "connector",
             "Casey",
             "Morgan",
-            "linkedin.com/in/casey",
+            "linkedin.com/in/example-casey",
             current_company="Relay Cloud",
         )
         for connector_company, target_company in (
@@ -958,7 +1004,7 @@ class LegacyScorerCompatibilityTests(unittest.TestCase):
                     "target",
                     "Taylor",
                     "Kim",
-                    "linkedin.com/in/taylor",
+                    "linkedin.com/in/example-taylor",
                     current_company=target_company,
                 )
                 match = scorer_module.WarmIntroScorer().score_target_connector(

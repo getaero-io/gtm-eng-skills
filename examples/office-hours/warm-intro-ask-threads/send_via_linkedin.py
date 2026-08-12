@@ -28,6 +28,16 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlsplit
+
+_OFFICE_HOURS_DIR = Path(__file__).resolve().parent.parent
+if str(_OFFICE_HOURS_DIR) not in sys.path:
+    sys.path.insert(0, str(_OFFICE_HOURS_DIR))
+
+from warm_intro_contract import (  # noqa: E402
+    build_activation_idempotency_key,
+    build_path_id,
+)
 
 
 # ── Constants ────────────────────────────────────────────────────────────────
@@ -55,16 +65,7 @@ PENDING_TTL_SECONDS = 60 * 60
 # ── Send log (SQLite) ────────────────────────────────────────────────────────
 
 def init_log_db(db_path: str) -> sqlite3.Connection:
-    """Initialize the send log database.
-
-    Creates the sends table if it does not exist.
-
-    Args:
-        db_path: Path to the SQLite file.
-
-    Returns:
-        Open sqlite3 connection.
-    """
+    """Initialize the durable outbox projection and immutable audit tables."""
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute("""
@@ -80,18 +81,38 @@ def init_log_db(db_path: str) -> sqlite3.Connection:
             error_detail       TEXT,
             idempotency_key    TEXT,
             reservation_owner  TEXT,
-            reservation_updated_at TEXT
+            reservation_updated_at TEXT,
+            intent_hash        TEXT,
+            campaign_id        TEXT,
+            owner_id           TEXT,
+            path_id            TEXT,
+            channel            TEXT,
+            message_version    TEXT,
+            message_body       TEXT,
+            current_attempt_id TEXT,
+            dispatch_started_at TEXT
         )
     """)
     columns = {
         row["name"] for row in conn.execute("PRAGMA table_info(sends)").fetchall()
     }
-    if "idempotency_key" not in columns:
-        conn.execute("ALTER TABLE sends ADD COLUMN idempotency_key TEXT")
-    if "reservation_owner" not in columns:
-        conn.execute("ALTER TABLE sends ADD COLUMN reservation_owner TEXT")
-    if "reservation_updated_at" not in columns:
-        conn.execute("ALTER TABLE sends ADD COLUMN reservation_updated_at TEXT")
+    migrations = {
+        "idempotency_key": "TEXT",
+        "reservation_owner": "TEXT",
+        "reservation_updated_at": "TEXT",
+        "intent_hash": "TEXT",
+        "campaign_id": "TEXT",
+        "owner_id": "TEXT",
+        "path_id": "TEXT",
+        "channel": "TEXT",
+        "message_version": "TEXT",
+        "message_body": "TEXT",
+        "current_attempt_id": "TEXT",
+        "dispatch_started_at": "TEXT",
+    }
+    for column, sql_type in migrations.items():
+        if column not in columns:
+            conn.execute(f"ALTER TABLE sends ADD COLUMN {column} {sql_type}")
     conn.execute(
         """
         CREATE UNIQUE INDEX IF NOT EXISTS sends_idempotency_key_uq
@@ -99,14 +120,149 @@ def init_log_db(db_path: str) -> sqlite3.Connection:
         WHERE idempotency_key IS NOT NULL
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS send_attempts (
+            attempt_id       TEXT PRIMARY KEY,
+            idempotency_key  TEXT NOT NULL,
+            attempt_number   INTEGER NOT NULL,
+            owner_token      TEXT NOT NULL,
+            started_at       TEXT NOT NULL,
+            UNIQUE(idempotency_key, attempt_number)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS send_events (
+            event_id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            attempt_id        TEXT NOT NULL,
+            idempotency_key   TEXT NOT NULL,
+            event_type        TEXT NOT NULL,
+            occurred_at       TEXT NOT NULL,
+            provider_run_id   TEXT,
+            provider_status   TEXT,
+            detail            TEXT
+        )
+        """
+    )
+    for table in ("send_attempts", "send_events"):
+        conn.execute(
+            f"""
+            CREATE TRIGGER IF NOT EXISTS {table}_immutable_update
+            BEFORE UPDATE ON {table}
+            BEGIN
+                SELECT RAISE(ABORT, '{table} rows are immutable');
+            END
+            """
+        )
+        conn.execute(
+            f"""
+            CREATE TRIGGER IF NOT EXISTS {table}_immutable_delete
+            BEFORE DELETE ON {table}
+            BEGIN
+                SELECT RAISE(ABORT, '{table} rows are immutable');
+            END
+            """
+        )
+    # Historical mutable pending/error rows have unknown dispatch outcomes. Fail closed.
+    conn.execute(
+        """
+        UPDATE sends
+        SET status = 'needs_reconciliation', reservation_owner = NULL
+        WHERE status IN ('pending', 'error')
+        """
+    )
     conn.commit()
     return conn
 
 
-def build_idempotency_key(path_id: str, channel: str, message_version: str) -> str:
-    """Build the stable activation identity for one message version."""
-    raw = "|".join((path_id.strip(), channel.strip(), message_version.strip()))
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+def build_idempotency_key(
+    campaign_id: str,
+    owner_id: str,
+    path_id: str,
+    channel: str,
+    message_version: str,
+) -> str:
+    """Build the namespaced activation identity for one message version."""
+    return build_activation_idempotency_key(
+        campaign_id,
+        owner_id,
+        path_id,
+        channel,
+        message_version,
+    )
+
+
+def _intent_hash(
+    *,
+    campaign_id: str,
+    owner_id: str,
+    path_id: str,
+    channel: str,
+    message_version: str,
+    connector_linkedin: str,
+    connector_name: str,
+    target_name: str,
+    message_body: str,
+) -> str:
+    payload = json.dumps(
+        {
+            "campaign_id": campaign_id.strip(),
+            "channel": channel.strip(),
+            "connector_linkedin": _normalize_connector_locator(connector_linkedin),
+            "connector_name": connector_name.strip(),
+            "message_body": message_body,
+            "message_version": message_version.strip(),
+            "owner_id": owner_id.strip(),
+            "path_id": path_id.strip(),
+            "target_name": target_name.strip(),
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _normalize_connector_locator(value: str) -> str:
+    candidate = str(value or "").strip()
+    parsed = urlsplit(candidate if "://" in candidate else f"//{candidate}", scheme="https")
+    hostname = (parsed.hostname or "").casefold()
+    if hostname.startswith("www."):
+        hostname = hostname[4:]
+    path = "/".join(part for part in parsed.path.split("/") if part)
+    return f"{hostname}/{path}".rstrip("/")
+
+
+def _append_send_event(
+    conn: sqlite3.Connection,
+    *,
+    attempt_id: str,
+    idempotency_key: str,
+    event_type: str,
+    occurred_at: str,
+    provider_run_id: Optional[str] = None,
+    provider_status: Optional[str] = None,
+    detail: Optional[str] = None,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO send_events
+            (attempt_id, idempotency_key, event_type, occurred_at,
+             provider_run_id, provider_status, detail)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            attempt_id,
+            idempotency_key,
+            event_type,
+            occurred_at,
+            provider_run_id,
+            provider_status,
+            detail,
+        ),
+    )
 
 
 def reserve_send(
@@ -118,26 +274,114 @@ def reserve_send(
     target_name: str,
     message_preview: str,
     now: Optional[datetime] = None,
+    *,
+    campaign_id: str,
+    owner_id: str,
+    path_id: str,
+    channel: str = CHANNEL,
+    message_version: str,
+    message_body: Optional[str] = None,
 ) -> bool:
-    """Atomically reserve one message version before any external side effect."""
+    """Commit immutable intent and a dispatch attempt before the external call."""
+    expected_key = build_idempotency_key(
+        campaign_id,
+        owner_id,
+        path_id,
+        channel,
+        message_version,
+    )
+    if idempotency_key != expected_key:
+        raise ValueError("idempotency key does not match the namespaced send intent")
+    required_intent = {
+        "connector_linkedin": connector_linkedin,
+        "connector_name": connector_name,
+        "target_name": target_name,
+    }
+    blank_intent = [
+        name for name, value in required_intent.items() if not str(value or "").strip()
+    ]
+    if blank_intent:
+        raise ValueError("send intent has blank fields: " + ", ".join(blank_intent))
     current_time = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     reserved_at = current_time.isoformat()
     stale_before = current_time - timedelta(seconds=PENDING_TTL_SECONDS)
     window_cutoff = current_time - timedelta(hours=24)
+    full_message = message_body if message_body is not None else message_preview
+    intent_hash = _intent_hash(
+        campaign_id=campaign_id,
+        owner_id=owner_id,
+        path_id=path_id,
+        channel=channel,
+        message_version=message_version,
+        connector_linkedin=connector_linkedin,
+        connector_name=connector_name,
+        target_name=target_name,
+        message_body=full_message,
+    )
     conn.execute("BEGIN IMMEDIATE")
     try:
+        legacy = conn.execute(
+            """
+            SELECT status FROM sends
+            WHERE status <> 'dry_run'
+              AND (
+                    campaign_id IS NULL OR TRIM(campaign_id) = ''
+                 OR owner_id IS NULL OR TRIM(owner_id) = ''
+                 OR intent_hash IS NULL OR TRIM(intent_hash) = ''
+              )
+            LIMIT 1
+            """
+        ).fetchone()
+        if legacy is not None:
+            conn.rollback()
+            raise RuntimeError(
+                "unmigrated legacy send history exists; reconcile and explicitly "
+                "migrate every live historical row before namespaced activation"
+            )
         existing = conn.execute(
-            "SELECT status, reservation_updated_at FROM sends WHERE idempotency_key = ?",
+            """
+            SELECT status, reservation_updated_at, intent_hash, current_attempt_id
+            FROM sends WHERE idempotency_key = ?
+            """,
             (idempotency_key,),
         ).fetchone()
         if existing is not None:
-            can_retry = existing["status"] == "error"
-            if existing["status"] == "pending":
+            if existing["intent_hash"] and existing["intent_hash"] != intent_hash:
+                conn.rollback()
+                raise ValueError(
+                    "idempotency key already exists with different immutable send intent; "
+                    "increment message_version"
+                )
+            if existing["status"] == "dispatching":
                 updated_at = existing["reservation_updated_at"]
-                can_retry = updated_at is None or datetime.fromisoformat(
-                    updated_at
-                ) < stale_before
-            if not can_retry:
+                if updated_at is not None and datetime.fromisoformat(updated_at) >= stale_before:
+                    conn.rollback()
+                    return False
+                attempt_id = existing["current_attempt_id"] or "legacy-unknown-attempt"
+                _append_send_event(
+                    conn,
+                    attempt_id=attempt_id,
+                    idempotency_key=idempotency_key,
+                    event_type="recovery_stale_dispatch",
+                    occurred_at=reserved_at,
+                    detail="stale dispatch requires provider reconciliation",
+                )
+                conn.execute(
+                    """
+                    UPDATE sends
+                    SET status = 'needs_reconciliation', reservation_owner = NULL,
+                        reservation_updated_at = ?, error_detail = ?
+                    WHERE idempotency_key = ?
+                    """,
+                    (
+                        reserved_at,
+                        "process recovered after dispatch began; reconcile before retry",
+                        idempotency_key,
+                    ),
+                )
+                conn.commit()
+                return False
+            if existing["status"] != "ready":
                 conn.rollback()
                 return False
         capacity_in_use = conn.execute(
@@ -145,22 +389,23 @@ def reserve_send(
             SELECT COUNT(*) AS reservation_count
             FROM sends
             WHERE (status = 'sent' AND julianday(sent_at) >= julianday(?))
-               OR (status = 'pending' AND julianday(reservation_updated_at) >= julianday(?))
+               OR status IN ('dispatching', 'needs_reconciliation')
             """,
-            (window_cutoff.isoformat(), stale_before.isoformat()),
+            (window_cutoff.isoformat(),),
         ).fetchone()["reservation_count"]
         if capacity_in_use >= MAX_DAILY_SENDS:
             conn.rollback()
             return False
-        if existing is not None:
+        if existing is None:
             conn.execute(
                 """
-                UPDATE sends
-                SET sent_at = ?, connector_linkedin = ?, connector_name = ?,
-                    target_name = ?, message_preview = ?, status = 'pending',
-                    apify_run_id = NULL, error_detail = NULL,
-                    reservation_owner = ?, reservation_updated_at = ?
-                WHERE idempotency_key = ?
+                INSERT INTO sends
+                    (sent_at, connector_linkedin, connector_name, target_name,
+                     message_preview, status, idempotency_key, reservation_owner,
+                     reservation_updated_at, intent_hash, campaign_id, owner_id,
+                     path_id, channel, message_version, message_body,
+                     dispatch_started_at)
+                VALUES (?, ?, ?, ?, ?, 'dispatching', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     reserved_at,
@@ -168,35 +413,62 @@ def reserve_send(
                     connector_name,
                     target_name,
                     message_preview[:120],
+                    idempotency_key,
                     owner_token,
                     reserved_at,
-                    idempotency_key,
+                    intent_hash,
+                    campaign_id,
+                    owner_id,
+                    path_id,
+                    channel,
+                    message_version,
+                    full_message,
+                    reserved_at,
                 ),
             )
-            conn.commit()
-            return True
+        else:
+            conn.execute(
+                """
+                UPDATE sends
+                SET status = 'dispatching', reservation_owner = ?,
+                    reservation_updated_at = ?, dispatch_started_at = ?,
+                    error_detail = NULL
+                WHERE idempotency_key = ? AND status = 'ready'
+                """,
+                (owner_token, reserved_at, reserved_at, idempotency_key),
+            )
+        attempt_number = int(
+            conn.execute(
+                """
+                SELECT COUNT(*) AS attempt_count
+                FROM send_attempts WHERE idempotency_key = ?
+                """,
+                (idempotency_key,),
+            ).fetchone()["attempt_count"]
+        ) + 1
+        attempt_id = uuid.uuid4().hex
         conn.execute(
             """
-            INSERT INTO sends
-                (sent_at, connector_linkedin, connector_name, target_name,
-                 message_preview, status, idempotency_key, reservation_owner,
-                 reservation_updated_at)
-            VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)
+            INSERT INTO send_attempts
+                (attempt_id, idempotency_key, attempt_number, owner_token, started_at)
+            VALUES (?, ?, ?, ?, ?)
             """,
-            (
-                reserved_at,
-                connector_linkedin,
-                connector_name,
-                target_name,
-                message_preview[:120],
-                idempotency_key,
-                owner_token,
-                reserved_at,
-            ),
+            (attempt_id, idempotency_key, attempt_number, owner_token, reserved_at),
+        )
+        _append_send_event(
+            conn,
+            attempt_id=attempt_id,
+            idempotency_key=idempotency_key,
+            event_type="dispatch_started",
+            occurred_at=reserved_at,
+        )
+        conn.execute(
+            "UPDATE sends SET current_attempt_id = ? WHERE idempotency_key = ?",
+            (attempt_id, idempotency_key),
         )
         conn.commit()
         return True
-    except Exception:
+    except BaseException:
         conn.rollback()
         raise
 
@@ -210,17 +482,42 @@ def finish_reserved_send(
     error_detail: Optional[str] = None,
     now: Optional[datetime] = None,
 ) -> bool:
-    """Finish an owned reservation as sent or retryable error."""
+    """Persist a provider result; every non-success requires reconciliation."""
     completed_at = (now or datetime.now(timezone.utc)).astimezone(timezone.utc).isoformat()
-    succeeded = is_terminal_success(actor_status)
-    status = "sent" if succeeded else "error"
-    detail = None if succeeded else (error_detail or f"Apify actor status: {actor_status}")
+    has_provider_run_id = bool(str(apify_run_id or "").strip())
+    succeeded = is_terminal_success(actor_status) and has_provider_run_id
+    status = "sent" if succeeded else "needs_reconciliation"
+    if succeeded:
+        detail = None
+    elif is_terminal_success(actor_status) and not has_provider_run_id:
+        detail = error_detail or "Provider reported success without a run ID"
+    else:
+        detail = error_detail or f"Apify actor status: {actor_status}"
+    lifecycle = conn.execute(
+        """
+        SELECT current_attempt_id FROM sends
+        WHERE idempotency_key = ? AND status = 'dispatching' AND reservation_owner = ?
+        """,
+        (idempotency_key, owner_token),
+    ).fetchone()
+    if lifecycle is None:
+        raise RuntimeError("send reservation is no longer owned by this process")
+    _append_send_event(
+        conn,
+        attempt_id=lifecycle["current_attempt_id"],
+        idempotency_key=idempotency_key,
+        event_type="provider_result",
+        occurred_at=completed_at,
+        provider_run_id=apify_run_id,
+        provider_status=str(actor_status or "UNKNOWN"),
+        detail=detail,
+    )
     cursor = conn.execute(
         """
         UPDATE sends
         SET sent_at = ?, status = ?, apify_run_id = ?, error_detail = ?,
             reservation_owner = NULL, reservation_updated_at = ?
-        WHERE idempotency_key = ? AND status = 'pending' AND reservation_owner = ?
+        WHERE idempotency_key = ? AND status = 'dispatching' AND reservation_owner = ?
         """,
         (
             completed_at,
@@ -239,6 +536,94 @@ def finish_reserved_send(
     return succeeded
 
 
+def record_pre_dispatch_failure(
+    conn: sqlite3.Connection,
+    idempotency_key: str,
+    owner_token: str,
+    detail: str,
+    now: Optional[datetime] = None,
+) -> None:
+    """Return an intent to ready only when dispatch provably never began."""
+    occurred_at = (now or datetime.now(timezone.utc)).astimezone(timezone.utc).isoformat()
+    lifecycle = conn.execute(
+        """
+        SELECT current_attempt_id FROM sends
+        WHERE idempotency_key = ? AND status = 'dispatching' AND reservation_owner = ?
+        """,
+        (idempotency_key, owner_token),
+    ).fetchone()
+    if lifecycle is None:
+        raise RuntimeError("send reservation is no longer owned by this process")
+    _append_send_event(
+        conn,
+        attempt_id=lifecycle["current_attempt_id"],
+        idempotency_key=idempotency_key,
+        event_type="pre_dispatch_failure",
+        occurred_at=occurred_at,
+        detail=detail[:500],
+    )
+    conn.execute(
+        """
+        UPDATE sends
+        SET status = 'ready', error_detail = ?, reservation_owner = NULL,
+            reservation_updated_at = ?
+        WHERE idempotency_key = ? AND status = 'dispatching' AND reservation_owner = ?
+        """,
+        (detail[:500], occurred_at, idempotency_key, owner_token),
+    )
+    conn.commit()
+
+
+def mark_needs_reconciliation(
+    conn: sqlite3.Connection,
+    idempotency_key: str,
+    owner_token: str,
+    detail: str,
+    *,
+    provider_run_id: Optional[str] = None,
+    provider_status: Optional[str] = None,
+    now: Optional[datetime] = None,
+) -> None:
+    """Block automatic retries after response loss, interruption, or malformed output."""
+    occurred_at = (now or datetime.now(timezone.utc)).astimezone(timezone.utc).isoformat()
+    lifecycle = conn.execute(
+        """
+        SELECT current_attempt_id FROM sends
+        WHERE idempotency_key = ? AND status = 'dispatching' AND reservation_owner = ?
+        """,
+        (idempotency_key, owner_token),
+    ).fetchone()
+    if lifecycle is None:
+        raise RuntimeError("send reservation is no longer owned by this process")
+    _append_send_event(
+        conn,
+        attempt_id=lifecycle["current_attempt_id"],
+        idempotency_key=idempotency_key,
+        event_type="post_dispatch_ambiguous",
+        occurred_at=occurred_at,
+        provider_run_id=provider_run_id,
+        provider_status=provider_status,
+        detail=detail[:500],
+    )
+    conn.execute(
+        """
+        UPDATE sends
+        SET status = 'needs_reconciliation', apify_run_id = COALESCE(?, apify_run_id),
+            error_detail = ?, reservation_owner = NULL,
+            reservation_updated_at = ?
+        WHERE idempotency_key = ? AND status = 'dispatching' AND reservation_owner = ?
+        """,
+        (
+            provider_run_id,
+            detail[:500],
+            occurred_at,
+            idempotency_key,
+            owner_token,
+        ),
+    )
+    conn.commit()
+
+
 def log_send(
     conn: sqlite3.Connection,
     connector_linkedin: str,
@@ -250,7 +635,7 @@ def log_send(
     error_detail: Optional[str] = None,
     idempotency_key: Optional[str] = None,
 ) -> None:
-    """Insert a send record into the log.
+    """Insert a dry-run or legacy terminal record outside the live outbox flow.
 
     Args:
         conn: Open sqlite3 connection.
@@ -258,11 +643,11 @@ def log_send(
         connector_name: Display name.
         target_name: The intro target referenced in the message.
         message_preview: First 120 chars of the message body.
-        status: "sent", "dry_run", or "error".
+        status: Legacy "sent" or non-live "dry_run" status.
         apify_run_id: Apify run ID if available.
         error_detail: Error string if status is "error".
-        idempotency_key: Stable path/channel/version key. It is persisted only for
-            successful live sends so previews and errors remain retryable.
+        idempotency_key: Stable activation key. It is persisted only for a legacy
+            terminal success; live sends use ``reserve_send`` and immutable events.
     """
     conn.execute(
         """
@@ -354,6 +739,10 @@ def load_drafts_csv(path: str, require_approved: bool = True) -> list[dict]:
         sys.exit(f"Input CSV is empty: {path}")
 
     required = {
+        "campaign_id",
+        "owner_id",
+        "connector_id",
+        "target_id",
         "path_id",
         "connector_linkedin",
         "connector_name",
@@ -369,6 +758,36 @@ def load_drafts_csv(path: str, require_approved: bool = True) -> list[dict]:
             f"Input CSV missing required columns: {', '.join(sorted(missing))}\n"
             f"Run draft_asks.py first to generate ask_drafts.csv."
         )
+
+    identity_columns = (
+        "campaign_id",
+        "owner_id",
+        "connector_id",
+        "target_id",
+        "path_id",
+        "connector_linkedin",
+        "connector_name",
+        "target_name",
+        "message_version",
+    )
+    for row_number, row in enumerate(rows, 2):
+        blank = [name for name in identity_columns if not row.get(name, "").strip()]
+        if blank:
+            sys.exit(
+                f"Input CSV row {row_number} has blank activation fields: "
+                f"{', '.join(blank)}"
+            )
+        expected_path_id = build_path_id(
+            row["campaign_id"],
+            row["owner_id"],
+            row["connector_id"],
+            row["target_id"],
+        )
+        if row["path_id"].strip() != expected_path_id:
+            sys.exit(
+                f"Input CSV row {row_number} path_id does not match its "
+                "campaign/owner/connector/target identity"
+            )
 
     # Empty or unapproved drafts are never in the live-sendable set.
     sendable = [
@@ -598,7 +1017,11 @@ def main() -> None:
         target_name = row["target_name"].strip()
         message_body = row["draft_body"].strip()
         idempotency_key = build_idempotency_key(
-            row["path_id"], CHANNEL, row["message_version"]
+            row["campaign_id"],
+            row["owner_id"],
+            row["path_id"],
+            CHANNEL,
+            row["message_version"],
         )
         preview = message_body[:80].replace("\n", " ")
 
@@ -636,6 +1059,12 @@ def main() -> None:
             connector_name=connector_name,
             target_name=target_name,
             message_preview=preview,
+            campaign_id=row["campaign_id"],
+            owner_id=row["owner_id"],
+            path_id=row["path_id"],
+            channel=CHANNEL,
+            message_version=row["message_version"],
+            message_body=message_body,
         ):
             print(f"   SKIP (sent or reserved by another process): {connector_name}")
             skipped_count += 1
@@ -650,9 +1079,23 @@ def main() -> None:
                 message_body=message_body,
                 api_key=api_key,
             )
+            if not isinstance(result, dict):
+                raise RuntimeError("Malformed provider response after dispatch")
             run_id = result.get("run_id")
             apify_status = result.get("status", "UNKNOWN")
-            if not is_terminal_success(apify_status):
+            if not str(run_id or "").strip():
+                mark_needs_reconciliation(
+                    log_conn,
+                    idempotency_key,
+                    owner_token,
+                    "Provider response omitted the run ID after dispatch",
+                    provider_status=str(apify_status or "UNKNOWN"),
+                )
+                print(
+                    "   ERROR: provider response omitted the run ID; reconciliation required",
+                    file=sys.stderr,
+                )
+            elif not is_terminal_success(apify_status):
                 print(
                     f"   ERROR: Apify run {run_id} ended with status {apify_status}",
                     file=sys.stderr,
@@ -676,22 +1119,44 @@ def main() -> None:
                 print(f"   Sent. Apify run: {run_id} | status: {apify_status}")
                 sent_count += 1
 
-        except (KeyboardInterrupt, SystemExit):
-            log_conn.close()
+        except FileNotFoundError as exc:
+            print(f"   ERROR before dispatch: {exc}", file=sys.stderr)
+            record_pre_dispatch_failure(
+                log_conn,
+                idempotency_key,
+                owner_token,
+                str(exc),
+            )
+        except (KeyboardInterrupt, SystemExit) as exc:
+            try:
+                mark_needs_reconciliation(
+                    log_conn,
+                    idempotency_key,
+                    owner_token,
+                    f"{type(exc).__name__} after dispatch began",
+                )
+            except Exception as persistence_error:
+                print(
+                    f"   ERROR recording interruption state: {persistence_error}",
+                    file=sys.stderr,
+                )
+            finally:
+                log_conn.close()
             raise
         except Exception as exc:
             print(f"   ERROR: {exc}", file=sys.stderr)
-            row = log_conn.execute(
-                "SELECT status, reservation_owner FROM sends WHERE idempotency_key = ?",
-                (idempotency_key,),
-            ).fetchone()
-            if row is not None and row["status"] == "pending" and row["reservation_owner"] == owner_token:
-                finish_reserved_send(
-                    conn=log_conn,
-                    idempotency_key=idempotency_key,
-                    owner_token=owner_token,
-                    actor_status="ERROR",
-                    error_detail=str(exc)[:500],
+            try:
+                mark_needs_reconciliation(
+                    log_conn,
+                    idempotency_key,
+                    owner_token,
+                    str(exc),
+                )
+            except Exception as persistence_error:
+                # The committed dispatching state still fails closed on recovery.
+                print(
+                    f"   ERROR recording reconciliation state: {persistence_error}",
+                    file=sys.stderr,
                 )
 
         print()

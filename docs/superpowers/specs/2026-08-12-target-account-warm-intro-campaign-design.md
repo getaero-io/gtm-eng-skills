@@ -1,7 +1,7 @@
 # Target Account Warm Intro Campaign — Design
 
-**Date:** 2026-08-12  
-**Status:** Approved for implementation  
+**Date:** 2026-08-12
+**Status:** Approved for implementation
 **Scope:** `examples/office-hours/`
 
 ## Objective
@@ -127,16 +127,20 @@ The target's current title is always included in the review output. Drafting nev
 
 ### 10. Review, activate, and audit
 
-All outbound begins in dry-run mode. Reviewers approve individual paths and messages. Send logs are append-only and idempotent. Failed enrichment or delivery does not erase the underlying candidate.
+All outbound begins in dry-run mode. Reviewers approve individual paths and
+messages. The send outbox is a mutable current-state projection; its attempts and
+events are immutable and append-only. Failed enrichment, ambiguous delivery, or
+reconciliation does not erase the underlying candidate or attempt audit.
 
 The final campaign ledger reports:
 
 - accounts and contacts at every stage;
 - exclusions and reasons;
 - provider calls, cache hits, and estimated spend;
-- evidence freshness;
-- strong, review, and direct-outreach segments;
-- approved and activated messages.
+- evidence freshness in exact age/future/unknown buckets;
+- exact strong, review, and no-strong-path counts, with direct outreach as a
+  separate artifact;
+- approved and activated message counts, where the fixture boundary is zero.
 
 ## Files
 
@@ -151,7 +155,8 @@ The final campaign ledger reports:
 - `build_campaign.py` — dedupe, segmentation, threading, and campaign-ledger generation;
 - `config.example.json` — title catalog, weights, exclusions, providers, and cost caps;
 - `sample_data/` — fictional target accounts, contacts, work history, interactions, org edges, research evidence, and contact graph;
-- `expected_output/` — representative account list, buying committee, warm paths, and campaign ledger;
+- `expected_output/` — representative normalized CSV artifacts; the deterministic
+  campaign ledger is asserted from fresh output rather than committed recursively;
 - `tests/` — unit and end-to-end fixture tests.
 
 ### Existing scoring example fixes
@@ -179,17 +184,31 @@ The final campaign ledger reports:
 Stable identifiers:
 
 - account: normalized domain;
-- contact: normalized LinkedIn URL, then verified work email, then normalized name + company + title fallback;
+- contact: normalized LinkedIn URL and verified work email are candidate strong
+  identifiers; weak normalized name + company + title identity routes collisions
+  to review and never merges automatically. Conflicting strong-ID components also
+  remain separate. Safe merges retain all aliases and remap downstream foreign
+  keys while keeping the chosen canonical primary fields;
 - evidence: source type + source URL or immutable source ID + observed timestamp;
-- path: owner contact + connector contact + target contact + campaign;
-- outbound: path ID + channel + message version.
+- path: versioned JSON hash of campaign + owner + connector + target IDs;
+- outbound: versioned JSON hash of campaign + owner + path ID + channel + message
+  version.
+
+The drafter and sender independently recompute the path from its namespace and
+endpoint columns before any model or provider call. A nonblank but forged path is
+rejected. On sender upgrades, any non-preview row without a complete namespaced
+intent fingerprint blocks all live activation until explicit reconciliation and
+migration, because both the path and activation-key algorithms changed.
 
 No stage may overwrite raw provider evidence. Normalized outputs point back to their source record.
 
 ## Error handling and safety
 
 - Missing identifiers route to review instead of speculative merging.
-- Provider failures remain retryable and are recorded in the ledger.
+- Only failures proven to occur before dispatch are automatically retryable.
+  Response loss, malformed/missing provider results, non-success/unknown status,
+  interruption, and stale post-dispatch recovery become
+  `needs_reconciliation`. The provider exposes no atomic idempotency token.
 - Paid calls require remaining budget and a cache miss.
 - PDL people search requires a non-empty exclusion set for any account with known contacts.
 - Unsupported personal-account matches cannot influence a message.
@@ -203,14 +222,25 @@ The fixture campaign will use fictional accounts and people but retain realistic
 Acceptance requires:
 
 - all sample accounts receive an inclusion or exclusion decision;
-- identity dedupe works across LinkedIn URL, email, and normalized fallback;
-- PDL gap-fill inputs exclude previously discovered contacts;
+- safe identity dedupe retains every LinkedIn/email/weak alias, maps aliases to one
+  canonical ID, refuses contextual conflicts, and remaps all dependent records;
+- PDL gap-fill inputs exclude the full alias union of previously discovered contacts;
 - only date-overlapping employment earns the strong work-overlap component;
 - direct-introduction evidence ranks above work, school, city, social, and investor overlap;
 - investor overlap cannot independently create a strong path;
 - open roles and inferred org edges remain labeled;
 - lookup CSV feeds ask drafting without manual column edits;
+- the same path ID is built by the orchestrator/scorer/lookup, independently
+  recomputed and validated by the drafter/sender, and embedded in the namespaced
+  activation identity;
+- invalid owner/evidence/type/subject/participant claims cannot make a strong path;
+- review drafting requires explicit human provenance and no-path rows never create
+  warm asks;
 - unapproved messages cannot send;
+- ambiguous post-dispatch attempts remain blocked with immutable attempt/event
+  history; only proven pre-dispatch failure can create a later attempt;
+- unmigrated live history blocks namespaced activation until every historical row
+  receives explicit reconciliation/migration;
 - a second run produces the same normalized artifacts and no duplicate sends;
 - every public example is anonymized and contains no private identities or credentials.
 

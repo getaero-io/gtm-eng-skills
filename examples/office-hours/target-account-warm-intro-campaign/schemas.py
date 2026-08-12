@@ -210,6 +210,9 @@ class PathScore:
     relationship_confidence: str = "unknown"
     reasons: tuple[str, ...] = ()
     evidence_ids: tuple[str, ...] = ()
+    validation_errors: tuple[str, ...] = ()
+    campaign_id: str = ""
+    owner_id: str = ""
 
     @property
     def total_score(self) -> int:

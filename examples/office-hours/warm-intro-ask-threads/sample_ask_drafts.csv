@@ -1,11 +1,11 @@
-path_id,connector_name,connector_linkedin,target_name,target_title,target_company,shared_signal,shared_detail,why_target_cares,permissionless_value,draft_subject,draft_body,total_score,approved,message_version,status
-path-direct-example,Avery Stone,https://linkedin.example/in/example-avery-stone,Nora Imani,Head of GTM Engineering,Northstar AI,direct_introduction,evidence-intro,Northstar is expanding GTM engineering.,Sketch a sample audit of Northstar's lead-routing decision points.,Intro to Nora?,"Would you be willing to intro me to Nora Imani at Northstar AI?
+campaign_id,owner_id,connector_id,target_id,path_id,connector_name,connector_linkedin,target_name,target_title,target_company,shared_signal,shared_detail,why_target_cares,permissionless_value,draft_subject,draft_body,total_score,segment,reviewed_override,approved,message_version,status
+fictional-warm-intro-campaign,campaign-owner,connector-direct,contact-northstar-gtm,path-aad89e10cfc7a0ad,Avery Stone,https://linkedin.example/in/example-avery-stone,Nora Imani,Head of GTM Engineering,Northstar AI,direct_introduction,evidence-intro,Northstar is expanding GTM engineering.,Sketch a sample audit of Northstar's lead-routing decision points.,Intro to Nora?,"Would you be willing to intro me to Nora Imani at Northstar AI?
 
 The campaign includes confirmed direct-introduction evidence for this path.
 
-I can share a sample audit of Northstar's lead-routing decision points.",63,false,1,ok
-path-work-example,Casey Morgan,https://linkedin.example/in/example-casey-morgan,Mina Sol,Director of Revenue Systems,Relay Cloud,verified_work_overlap,"Atlas Works, 2021-03-01 to 2023-06-30",Relay is standardizing revenue systems as its infrastructure business grows.,Prototype a compact exception taxonomy from public examples.,Intro to Mina?,"Would you be willing to intro me to Mina Sol at Relay Cloud?
+I can share a sample audit of Northstar's lead-routing decision points.",63,strong_warm_intro,false,false,1,ok
+fictional-warm-intro-campaign,campaign-owner,connector-work,contact-relay-revops,path-97d30d6027168da7,Casey Morgan,https://linkedin.example/in/example-casey-morgan,Mina Sol,Director of Revenue Systems,Relay Cloud,verified_work_overlap,"Atlas Works, 2021-03-01 to 2023-06-30",Relay is standardizing revenue systems as its infrastructure business grows.,Prototype a compact exception taxonomy from public examples.,Intro to Mina?,"Would you be willing to intro me to Mina Sol at Relay Cloud?
 
 You and Mina have a verified Atlas Works overlap from 2021-03-01 to 2023-06-30.
 
-I can share a compact exception taxonomy based on public examples.",33,false,1,ok
+I can share a compact exception taxonomy based on public examples.",33,strong_warm_intro,false,false,1,ok

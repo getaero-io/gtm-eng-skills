@@ -49,10 +49,10 @@
 
 ```python
 def test_contact_key_prefers_linkedin_then_email_then_fallback():
-    linkedin = ContactRecord(contact_id="a", name="Alex Chen", company="Northstar AI", title="GTM Engineer", linkedin_url="https://www.linkedin.com/in/alex-chen/")
+    linkedin = ContactRecord(contact_id="a", name="Alex Chen", company="Northstar AI", title="GTM Engineer", linkedin_url="https://www.linkedin.com/in/example-alex-chen/")
     email = ContactRecord(contact_id="b", name="Alex Chen", company="Northstar AI", title="GTM Engineer", work_email="ALEX@NORTHSTAR.EXAMPLE")
     fallback = ContactRecord(contact_id="c", name="Alex Chen", company="Northstar AI", title="GTM Engineer")
-    assert canonical_contact_key(linkedin) == ("linkedin", "linkedin.com/in/alex-chen")
+    assert canonical_contact_key(linkedin) == ("linkedin", "linkedin.com/in/example-alex-chen")
     assert canonical_contact_key(email) == ("email", "alex@northstar.example")
     assert canonical_contact_key(fallback)[0] == "identity"
 
@@ -107,6 +107,9 @@ class PathScore:
     relationship_confidence: str = "unknown"
     reasons: tuple[str, ...] = ()
     evidence_ids: tuple[str, ...] = ()
+    validation_errors: tuple[str, ...] = ()
+    campaign_id: str = ""
+    owner_id: str = ""
 
     @property
     def total_score(self) -> int:
@@ -282,8 +285,8 @@ git commit -m "feat(examples): build deduped buying committees"
 - Produces: `employment_overlap(left: ExperienceRecord, right: ExperienceRecord, as_of: date) -> EmploymentOverlap | None`
 - Produces: `score_warm_path(connector: ContactRecord, target: ContactRecord, evidence: PathEvidence, config: CampaignConfig) -> PathScore`
 - Produces: `segment_path(score: PathScore, config: CampaignConfig) -> Literal['strong_warm_intro', 'review_warm_intro', 'no_strong_path']`
-- Existing example produces: `WarmIntroLookup.export_csv(matches: Sequence[WarmIntroMatch], output: TextIO, target_name: str, target_title: str, target_company: str) -> None`
-- Existing CLI adds: `--csv PATH`, `--target-name`, and `--target-title`
+- Existing example produces: `WarmIntroLookup.export_csv(matches: Sequence[WarmIntroMatch], output: TextIO, target_name: str, target_title: str, target_company: str, campaign_id: str, owner_id: str, target_id: str) -> None`
+- Existing CLI adds: `--csv PATH`, `--target-name`, `--target-title`, `--campaign-id`, `--owner-id`, and `--target-id`
 
 - [ ] **Step 1: Write failing date-overlap tests**
 
@@ -307,8 +310,13 @@ Also assert that the score includes reasons, evidence IDs, target name, and targ
 Load `lookup.py` by file path and assert the CSV header includes:
 
 ```text
-path_id,connector_name,connector_linkedin,connector_company,target_name,target_title,target_company,shared_signal,shared_detail,relationship_confidence,direct_intro_score,work_overlap_score,relationship_score,school_city_community_score,role_industry_score,investor_score,total_score,segment,evidence_ids
+campaign_id,owner_id,connector_id,target_id,path_id,connector_name,connector_linkedin,connector_company,target_name,target_title,target_company,shared_signal,shared_detail,relationship_confidence,direct_intro_score,work_overlap_score,relationship_score,school_city_community_score,role_industry_score,investor_score,total_score,segment,reviewed_override,evidence_ids
 ```
+
+`path_id` is built only by the shared versioned function over campaign, owner,
+connector, and target IDs. Missing namespaces block CSV export and downstream
+drafting; no display-name fallback is permitted. The drafter and sender each
+recompute the ID and reject a mismatch before a model or provider call.
 
 - [ ] **Step 4: Run focused tests and verify failure**
 
@@ -385,7 +393,7 @@ Use companies such as `Northstar AI`, `Relay Cloud`, `Harbor Systems`, and `Juni
 
 - [ ] **Step 2: Write the failing end-to-end test**
 
-Run the pipeline twice into two temporary directories. Assert byte-identical review artifacts, 100% account decisions, non-empty dedupe audit, non-empty PDL exclusions, all three path segments represented, investor-only path excluded from strong paths, and no real email domains.
+Run the pipeline twice into two temporary directories. Assert byte-identical review artifacts, 100% account decisions, non-empty dedupe/alias audit, full-alias PDL exclusions, safe foreign-key remapping, validated evidence ownership/type/subject/participants, all three path segments represented, investor-only path excluded from strong paths, exact evidence-freshness/segment/approval/activation ledger fields, and no real email domains.
 
 - [ ] **Step 3: Run the end-to-end test and verify failure**
 
@@ -397,7 +405,7 @@ python3 -m unittest discover -s examples/office-hours/target-account-warm-intro-
 
 - [ ] **Step 4: Implement the pipeline**
 
-Stages execute in a fixed order and write a ledger record containing stage, input count, output count, exclusions, review count, cache hits, authorized provider calls, estimated spend, and SHA-256 artifact hashes. The fixture run records zero live provider calls and zero spend.
+Stages execute in a fixed order and write a ledger record containing stage, input count, output count, exclusions, review count, cache hits, authorized provider calls, estimated spend, and SHA-256 artifact hashes. The root also records deterministic evidence-age buckets, exact strong/review/no-path counts, and approved/activated message counts. The fixture run records zero live provider calls, zero spend, zero approvals, and zero activations.
 
 - [ ] **Step 5: Generate committed expected output**
 
@@ -427,17 +435,26 @@ git commit -m "feat(examples): add anonymized warm intro fixture campaign"
 **Interfaces:**
 - `load_scored_csv(path: str) -> list[dict]` consumes Task 4 CSV directly
 - `build_signal_description(row: dict) -> str` supports `direct_introduction`, `dated_work_overlap`, `school_city_community`, `role_industry`, and `investor_overlap`
-- Draft output preserves `path_id`, `target_title`, `target_company`, `why_target_cares`, `permissionless_value`, `approved`, `message_version`
+- Draft output preserves `campaign_id`, `owner_id`, `connector_id`, `target_id`, `path_id`, `segment`, `reviewed_override`, `target_title`, `target_company`, `why_target_cares`, `permissionless_value`, `approved`, `message_version`
 - `load_drafts_csv(path: str, require_approved: bool = True) -> list[dict]`
-- Send idempotency key: SHA-256 of `path_id|channel|message_version`
+- Send idempotency key: versioned SHA-256 JSON hash of `campaign_id`, `owner_id`, `path_id`, `channel`, and `message_version`
+- Any non-preview history without a complete namespaced intent fingerprint blocks
+  activation until every historical row receives explicit migration/reconciliation;
+  both path and send-key algorithms changed
 
 - [ ] **Step 1: Write failing CSV-compatibility and signal tests**
 
-Assert Task 4 output loads without renaming columns. Confirm dated work overlap renders employer and overlap dates, direct introduction names the confirmed evidence type, and investor-only context is not selected when a stronger supported reason exists.
+Assert Task 4 output loads without renaming columns and missing or mismatched
+namespace/path values fail closed. Confirm dated work overlap renders employer
+and overlap dates, direct introduction names the confirmed evidence type, and
+investor-only context is not selected when a stronger supported reason exists.
+Default drafting admits only `strong_warm_intro`; review paths require both an
+explicit command flag and per-row review provenance; no-path rows route to direct
+outreach without a model call.
 
 - [ ] **Step 2: Write failing approval and idempotency tests**
 
-Assert unapproved rows are rejected from the sendable set even in non-dry-run mode, an approved row is accepted, and a second attempt with the same idempotency key is skipped regardless of connector URL formatting.
+Assert unapproved rows are rejected from the sendable set even in non-dry-run mode, an approved row is accepted, blank campaign/owner identity fails closed, forged path IDs fail closed, and a second attempt with the same idempotency key is skipped regardless of connector URL formatting. Add response-loss, malformed/missing provider response, stale post-dispatch recovery, proven pre-dispatch retry, immutable attempt/event audit, legacy-key migration barrier, and process-control exception tests.
 
 - [ ] **Step 3: Run ask-thread tests and verify failure**
 
@@ -453,7 +470,15 @@ The prompt uses target title, verified path reason, `why_target_cares`, and `per
 
 - [ ] **Step 5: Enforce approval and idempotency in sender**
 
-Add `idempotency_key` to the SQLite send table with a unique index. Migration uses `PRAGMA table_info` and `ALTER TABLE` when upgrading an existing log. Dry runs remain logged separately and do not prevent a later approved live send.
+Use `sends` as a durable mutable outbox projection with a unique idempotency key
+and immutable intent hash. Commit one immutable `send_attempts` row and
+`dispatch_started` event before every external call; append provider results to
+immutable `send_events`. Only proven process-creation failure returns to `ready`.
+Every post-dispatch ambiguity becomes `needs_reconciliation`, consumes capacity,
+and blocks automatic retry. Migration uses `PRAGMA table_info` and `ALTER TABLE`;
+historical `pending`/`error` rows fail closed into reconciliation. Dry runs remain
+separate and do not prevent a later approved live send. The provider has no
+documented atomic idempotency token.
 
 - [ ] **Step 6: Replace examples with anonymized fixtures**
 
@@ -528,7 +553,7 @@ python3 -m py_compile examples/office-hours/warm-intro-scoring/*.py examples/off
 git diff --check
 rg -n -i 'bloomberry|crustdata.*linkedin' examples/office-hours
 rg -n -i '@(gmail|yahoo|outlook|deepline|getaero)\.' examples/office-hours/target-account-warm-intro-campaign examples/office-hours/warm-intro-ask-threads
-rg -n -i 'linkedin\.com/in/' examples/office-hours/target-account-warm-intro-campaign examples/office-hours/warm-intro-ask-threads | rg -v 'linkedin\.com/in/example-'
+rg -n -i 'linkedin\.(com|example)/in/' examples/office-hours/target-account-warm-intro-campaign examples/office-hours/warm-intro-scoring examples/office-hours/warm-intro-ask-threads docs/superpowers/plans/2026-08-12-target-account-warm-intro-campaign.md docs/superpowers/specs/2026-08-12-target-account-warm-intro-campaign-design.md | rg -v 'linkedin\.(com|example)/in/(example-|[<{])'
 ```
 
 Expected: tests PASS; compilation PASS; whitespace check PASS; provider mentions occur only in explicit blocked-provider documentation/tests; identity scan returns no private identities.

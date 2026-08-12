@@ -6,10 +6,17 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from datetime import date
-from hashlib import sha256
+import sys
+from pathlib import Path
 from typing import Literal
 
 from schemas import CampaignConfig, ContactRecord, ExperienceRecord, PathScore
+
+_OFFICE_HOURS_DIR = Path(__file__).resolve().parent.parent
+if str(_OFFICE_HOURS_DIR) not in sys.path:
+    sys.path.insert(0, str(_OFFICE_HOURS_DIR))
+
+from warm_intro_contract import build_path_id  # noqa: E402
 
 
 _COMPANY_SUFFIXES = {
@@ -70,6 +77,7 @@ class PathEvidence:
     industry_overlaps: tuple[str, ...] = ()
     investor_overlaps: tuple[str, ...] = ()
     supporting_evidence_ids: tuple[str, ...] = ()
+    validation_errors: tuple[str, ...] = ()
 
 
 def employment_overlap(
@@ -148,15 +156,6 @@ def _path_weights(config: CampaignConfig) -> dict[str, int]:
                 f"({lower_maximum})"
             )
     return weights
-
-
-def _path_id(
-    connector: ContactRecord,
-    target: ContactRecord,
-    config: CampaignConfig,
-) -> str:
-    raw = "|".join((config.campaign_id, config.owner_id, connector.contact_id, target.contact_id))
-    return f"path-{sha256(raw.encode('utf-8')).hexdigest()[:16]}"
 
 
 def score_warm_path(
@@ -268,7 +267,12 @@ def score_warm_path(
     )
 
     return PathScore(
-        path_id=_path_id(connector, target, config),
+        path_id=build_path_id(
+            config.campaign_id,
+            config.owner_id,
+            connector.contact_id,
+            target.contact_id,
+        ),
         connector_id=connector.contact_id,
         target_id=target.contact_id,
         target_name=target.name,
@@ -292,6 +296,9 @@ def score_warm_path(
                 }
             )
         ),
+        validation_errors=tuple(sorted(set(evidence.validation_errors))),
+        campaign_id=config.campaign_id,
+        owner_id=config.owner_id,
     )
 
 
@@ -303,14 +310,19 @@ def segment_path(
     strong_threshold = config.segment_thresholds.get("strong_warm_intro", 1)
     has_relationship = score.relationship_score > 0
     has_strong_factual_signal = score.direct_intro_score > 0 or score.work_overlap_score > 0
-    if score.total_score >= strong_threshold and has_relationship and has_strong_factual_signal:
+    if (
+        not score.validation_errors
+        and score.total_score >= strong_threshold
+        and has_relationship
+        and has_strong_factual_signal
+    ):
         return "strong_warm_intro"
     has_review_signal = any(reason.startswith("company_proximity:") for reason in score.reasons)
     has_ancillary_signal = (
         score.school_city_community_score > 0 or score.role_industry_score > 0
     )
     review_threshold = config.segment_thresholds.get("review_warm_intro", 1)
-    if has_strong_factual_signal or has_review_signal or (
+    if score.validation_errors or has_strong_factual_signal or has_review_signal or (
         has_ancillary_signal and score.total_score >= review_threshold
     ):
         return "review_warm_intro"

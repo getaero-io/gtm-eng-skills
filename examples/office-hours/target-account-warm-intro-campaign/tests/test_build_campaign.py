@@ -180,6 +180,121 @@ class ContactDedupeTests(unittest.TestCase):
         )
         self.assertEqual(len(result.canonical_records), 1)
 
+    def test_shared_strong_id_with_cross_account_conflict_does_not_merge(self):
+        contacts = [
+            ContactRecord(
+                "northstar-person",
+                "Kai Morgan",
+                "Northstar AI",
+                "GTM Engineer",
+                account_id="northstar-ai.example",
+                linkedin_url="linkedin.com/in/example-kai-conflict",
+            ),
+            ContactRecord(
+                "relay-person",
+                "Robin Vale",
+                "Relay Cloud",
+                "Recruiting Director",
+                account_id="relay-cloud.example",
+                linkedin_url="https://www.linkedin.com/in/example-kai-conflict/",
+            ),
+        ]
+
+        result = dedupe_contacts(contacts)
+
+        self.assertEqual(result.merge_groups, ())
+        self.assertEqual(
+            tuple(contact.contact_id for contact in result.canonical_records),
+            ("northstar-person", "relay-person"),
+        )
+        self.assertEqual(
+            result.review_collisions,
+            (("northstar-person", "relay-person"),),
+        )
+        self.assertEqual(
+            dict(result.alias_to_canonical),
+            {
+                "northstar-person": "northstar-person",
+                "relay-person": "relay-person",
+            },
+        )
+
+    def test_safe_merge_retains_all_strong_aliases_and_alias_map(self):
+        contacts = [
+            ContactRecord(
+                "canonical",
+                "Kai Morgan",
+                "Relay Cloud",
+                "Director of Revenue Systems",
+                account_id="relay-cloud.example",
+                linkedin_url="linkedin.com/in/example-kai-primary",
+                work_email="kai@relay.example",
+            ),
+            ContactRecord(
+                "alias",
+                "Kai Morgan",
+                "Relay Cloud",
+                "Revenue Systems Director",
+                account_id="relay-cloud.example",
+                linkedin_url="linkedin.com/in/example-kai-alias",
+                work_email="kai@relay.example",
+            ),
+        ]
+
+        result = dedupe_contacts(contacts)
+
+        self.assertEqual(result.merge_groups, (("alias", "canonical"),))
+        self.assertEqual(
+            dict(result.alias_to_canonical),
+            {"alias": "alias", "canonical": "alias"},
+        )
+        audit = result.alias_audit[0]
+        self.assertEqual(audit.canonical_contact_id, "alias")
+        self.assertEqual(
+            audit.linkedin_urls,
+            (
+                "linkedin.com/in/example-kai-alias",
+                "linkedin.com/in/example-kai-primary",
+            ),
+        )
+        self.assertEqual(audit.work_emails, ("kai@relay.example",))
+
+    def test_safe_merge_preserves_canonical_primary_fields_while_auditing_aliases(self):
+        contacts = [
+            ContactRecord(
+                "a-primary",
+                "Kai Morgan",
+                "Relay Cloud",
+                "Director of Revenue Systems",
+                account_id="relay-cloud.example",
+                linkedin_url="linkedin.com/in/example-kai-z-primary",
+                work_email="kai@relay.example",
+            ),
+            ContactRecord(
+                "b-alias",
+                "Kai Morgan",
+                "Relay Cloud",
+                "Revenue Systems Director",
+                account_id="relay-cloud.example",
+                linkedin_url="linkedin.com/in/example-kai-a-alias",
+                work_email="KAI@RELAY.EXAMPLE",
+            ),
+        ]
+
+        result = dedupe_contacts(contacts)
+
+        canonical = result.canonical_records[0]
+        self.assertEqual(canonical.contact_id, "a-primary")
+        self.assertEqual(canonical.linkedin_url, "linkedin.com/in/example-kai-z-primary")
+        self.assertEqual(canonical.work_email, "kai@relay.example")
+        self.assertEqual(
+            result.alias_audit[0].linkedin_urls,
+            (
+                "linkedin.com/in/example-kai-a-alias",
+                "linkedin.com/in/example-kai-z-primary",
+            ),
+        )
+
 
 class TitleQualificationTests(unittest.TestCase):
     def test_required_gtm_titles_have_explicit_role_families(self):

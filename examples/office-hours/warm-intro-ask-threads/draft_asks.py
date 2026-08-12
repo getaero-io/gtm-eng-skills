@@ -18,6 +18,13 @@ from pathlib import Path
 from typing import Optional
 
 
+_OFFICE_HOURS_DIR = Path(__file__).resolve().parent.parent
+if str(_OFFICE_HOURS_DIR) not in sys.path:
+    sys.path.insert(0, str(_OFFICE_HOURS_DIR))
+
+from warm_intro_contract import build_path_id  # noqa: E402
+
+
 # ── Prompt ──────────────────────────────────────────────────────────────────
 
 ASK_SYSTEM_PROMPT = """You draft warm intro ask messages. Your output is always a JSON object with two keys: "subject" and "body".
@@ -52,6 +59,10 @@ Return JSON only."""
 # ── CSV helpers ──────────────────────────────────────────────────────────────
 
 REQUIRED_COLUMNS = {
+    "campaign_id",
+    "owner_id",
+    "connector_id",
+    "target_id",
     "path_id",
     "connector_name",
     "connector_linkedin",
@@ -76,6 +87,7 @@ REQUIRED_COLUMNS = {
 OPTIONAL_COLUMNS = {
     "why_target_cares",
     "permissionless_value",
+    "reviewed_override",
 }
 
 
@@ -109,6 +121,26 @@ def load_scored_csv(path: str) -> list[dict]:
             f"Input CSV is missing required columns: {', '.join(sorted(missing))}\n"
             f"Found columns: {', '.join(sorted(present))}"
         )
+
+    identity_columns = ("campaign_id", "owner_id", "connector_id", "target_id", "path_id")
+    for row_number, row in enumerate(rows, 2):
+        blank = [name for name in identity_columns if not row.get(name, "").strip()]
+        if blank:
+            sys.exit(
+                f"Input CSV row {row_number} has blank identity fields: "
+                f"{', '.join(blank)}"
+            )
+        expected_path_id = build_path_id(
+            row["campaign_id"],
+            row["owner_id"],
+            row["connector_id"],
+            row["target_id"],
+        )
+        if row["path_id"].strip() != expected_path_id:
+            sys.exit(
+                f"Input CSV row {row_number} path_id does not match its "
+                "campaign/owner/connector/target identity"
+            )
 
     return rows
 
@@ -355,6 +387,7 @@ def draft_asks(
     top: Optional[int],
     model: str,
     verbose: bool,
+    allow_reviewed: bool = False,
 ) -> list[dict]:
     """Generate ask drafts for each connector row.
 
@@ -368,8 +401,54 @@ def draft_asks(
     Returns:
         List of output row dicts ready for CSV write.
     """
-    # Sort by score descending, cap at top N
-    sorted_rows = sorted(rows, key=lambda r: float(r.get("total_score", 0) or 0), reverse=True)
+    draftable_rows: list[dict] = []
+    for row in rows:
+        blank_identity = [
+            name
+            for name in ("campaign_id", "owner_id", "connector_id", "target_id", "path_id")
+            if not str(row.get(name, "") or "").strip()
+        ]
+        if blank_identity:
+            raise ValueError(
+                "scored path has blank identity fields: " + ", ".join(blank_identity)
+            )
+        expected_path_id = build_path_id(
+            row["campaign_id"],
+            row["owner_id"],
+            row["connector_id"],
+            row["target_id"],
+        )
+        if row["path_id"].strip() != expected_path_id:
+            raise ValueError(
+                "scored path_id does not match campaign/owner/connector/target identity"
+            )
+        segment = str(row.get("segment", "") or "").strip()
+        if segment == "strong_warm_intro":
+            draftable_rows.append(row)
+        elif (
+            segment == "review_warm_intro"
+            and allow_reviewed
+            and str(row.get("reviewed_override", "") or "").strip().casefold()
+            == "true"
+        ):
+            draftable_rows.append(row)
+        elif segment == "no_strong_path":
+            if verbose:
+                print(
+                    f"Routing {row.get('path_id', '<missing>')} to direct outreach; "
+                    "no warm ask will be drafted."
+                )
+        elif verbose:
+            print(
+                f"Holding {row.get('path_id', '<missing>')} for explicit evidence review."
+            )
+
+    # Sort eligible rows by score descending, then cap the drafted set.
+    sorted_rows = sorted(
+        draftable_rows,
+        key=lambda r: float(r.get("total_score", 0) or 0),
+        reverse=True,
+    )
     if top is not None:
         sorted_rows = sorted_rows[:top]
 
@@ -423,6 +502,10 @@ def draft_asks(
 
         output_rows.append(
             {
+                "campaign_id": row["campaign_id"].strip(),
+                "owner_id": row["owner_id"].strip(),
+                "connector_id": row["connector_id"].strip(),
+                "target_id": row["target_id"].strip(),
                 "path_id": row["path_id"].strip(),
                 "connector_name": connector_name,
                 "connector_linkedin": connector_linkedin,
@@ -436,6 +519,9 @@ def draft_asks(
                 "draft_subject": subject,
                 "draft_body": body,
                 "total_score": total_score,
+                "segment": row["segment"].strip(),
+                "reviewed_override": row.get("reviewed_override", "false").strip()
+                or "false",
                 "approved": "false",
                 "message_version": "1",
                 "status": status,
@@ -453,6 +539,10 @@ def write_output_csv(rows: list[dict], path: str) -> None:
         path: Destination file path.
     """
     fieldnames = [
+        "campaign_id",
+        "owner_id",
+        "connector_id",
+        "target_id",
         "path_id",
         "connector_name",
         "connector_linkedin",
@@ -466,6 +556,8 @@ def write_output_csv(rows: list[dict], path: str) -> None:
         "draft_subject",
         "draft_body",
         "total_score",
+        "segment",
+        "reviewed_override",
         "approved",
         "message_version",
         "status",
@@ -511,6 +603,14 @@ def main() -> None:
         action="store_true",
         help="Print progress per connector",
     )
+    parser.add_argument(
+        "--allow-reviewed",
+        action="store_true",
+        help=(
+            "Draft review_warm_intro rows only when their reviewed_override column "
+            "is also true"
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -527,6 +627,7 @@ def main() -> None:
         top=args.top,
         model=args.model,
         verbose=args.verbose,
+        allow_reviewed=args.allow_reviewed,
     )
 
     ok_count = sum(1 for r in output_rows if r["status"] == "ok")

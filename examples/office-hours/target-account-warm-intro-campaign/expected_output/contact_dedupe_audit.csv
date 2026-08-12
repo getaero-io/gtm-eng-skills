@@ -1,3 +1,3 @@
-audit_id,action,canonical_contact_id,related_contact_ids,match_types,reason
-merge-001,merge,contact-northstar-gtm,"[""contact-northstar-gtm"",""duplicate-northstar-profile""]",linkedin_url,shared_strong_identifier
-merge-002,merge,contact-relay-revops,"[""contact-relay-revops"",""duplicate-relay-email""]",work_email,shared_strong_identifier
+audit_id,action,canonical_contact_id,related_contact_ids,match_types,reason,linkedin_aliases,work_email_aliases,identity_aliases
+merge-001,merge,contact-northstar-gtm,"[""contact-northstar-gtm"",""duplicate-northstar-profile""]",linkedin_url,shared_strong_identifier,"[""linkedin.com/in/example-nora-imani""]","[""nora@northstar-ai.example""]","[""nora imani|northstar ai|gtm engineering lead"",""nora imani|northstar ai|head of gtm engineering""]"
+merge-002,merge,contact-relay-revops,"[""contact-relay-revops"",""duplicate-relay-email""]",work_email,shared_strong_identifier,"[""linkedin.com/in/example-mina-sol""]","[""mina@relay-cloud.example""]","[""mina sol|relay cloud|director of revenue systems"",""mina sol|relay cloud|revenue systems director""]"

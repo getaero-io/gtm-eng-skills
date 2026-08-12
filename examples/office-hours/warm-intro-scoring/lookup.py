@@ -1,7 +1,6 @@
 """CLI lookup interface for warm intro system."""
 import argparse
 import csv
-import hashlib
 import sys
 from pathlib import Path
 from typing import Optional, Sequence, TextIO
@@ -9,6 +8,12 @@ from typing import Optional, Sequence, TextIO
 from .db import WarmIntroDB
 from .models import WarmIntroMatch
 from .scorer import WarmIntroScorer
+
+_OFFICE_HOURS_DIR = Path(__file__).resolve().parent.parent
+if str(_OFFICE_HOURS_DIR) not in sys.path:
+    sys.path.insert(0, str(_OFFICE_HOURS_DIR))
+
+from warm_intro_contract import build_path_id  # noqa: E402
 
 try:
     from .appearances import AppearanceDiscoverer
@@ -102,6 +107,10 @@ class WarmIntroLookup:
     """Lookup interface for finding warm intro matches."""
 
     CSV_FIELDNAMES = (
+        "campaign_id",
+        "owner_id",
+        "connector_id",
+        "target_id",
         "path_id",
         "connector_name",
         "connector_linkedin",
@@ -120,6 +129,7 @@ class WarmIntroLookup:
         "investor_score",
         "total_score",
         "segment",
+        "reviewed_override",
         "evidence_ids",
     )
 
@@ -189,6 +199,9 @@ class WarmIntroLookup:
         target_name: str,
         target_title: str,
         target_company: str,
+        campaign_id: str,
+        owner_id: str,
+        target_id: str,
     ) -> None:
         """Write deterministic, ask-thread-ready path rows."""
         writer = csv.DictWriter(
@@ -206,19 +219,18 @@ class WarmIntroLookup:
             ),
         )
         for match in ordered_matches:
-            fallback_key = "|".join(
-                (
-                    match.contact.id,
-                    target_name,
-                    target_title,
-                    target_company,
-                )
-            )
-            path_id = match.path_id or (
-                "path-" + hashlib.sha256(fallback_key.encode("utf-8")).hexdigest()[:16]
+            path_id = build_path_id(
+                campaign_id,
+                owner_id,
+                match.contact.id,
+                target_id,
             )
             writer.writerow(
                 {
+                    "campaign_id": campaign_id,
+                    "owner_id": owner_id,
+                    "connector_id": match.contact.id,
+                    "target_id": target_id,
                     "path_id": path_id,
                     "connector_name": match.contact.full_name,
                     "connector_linkedin": match.contact.linkedin_url,
@@ -237,6 +249,7 @@ class WarmIntroLookup:
                     "investor_score": match.investor_score,
                     "total_score": match.total_score,
                     "segment": match.segment,
+                    "reviewed_override": "false",
                     "evidence_ids": ";".join(sorted(set(match.evidence_ids))),
                 }
             )
@@ -277,6 +290,9 @@ def main() -> int:
         "--target-title",
         help="Target person's current title for CSV output",
     )
+    parser.add_argument("--campaign-id", help="Campaign namespace required for CSV export")
+    parser.add_argument("--owner-id", help="Campaign owner namespace required for CSV export")
+    parser.add_argument("--target-id", help="Stable target contact ID required for CSV export")
     parser.add_argument(
         "-p", "--platforms",
         nargs="+",
@@ -298,6 +314,9 @@ def main() -> int:
     )
 
     args = parser.parse_args()
+
+    if args.csv and not all((args.campaign_id, args.owner_id, args.target_id)):
+        parser.error("--csv requires --campaign-id, --owner-id, and --target-id")
 
     # Validate at least one search criteria
     if not any([args.company, args.school, args.role, args.target_name, args.platforms]):
@@ -363,6 +382,9 @@ def main() -> int:
                     target_name=args.target_name or "",
                     target_title=args.target_title or "",
                     target_company=args.company or "",
+                    campaign_id=args.campaign_id,
+                    owner_id=args.owner_id,
+                    target_id=args.target_id,
                 )
 
         # CSV export supplements terminal results unless quiet mode is explicit.

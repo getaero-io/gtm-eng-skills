@@ -115,6 +115,10 @@ class WarmIntroMatch:
     shared_affiliations: list[str] = field(default_factory=list)
     role_similarity: float = 0.0
     recency_boost: float = 0.0
+    campaign_id: str = ""
+    owner_id: str = ""
+    connector_id: str = ""
+    target_id: str = ""
     path_id: str = ""
     target_name: str = ""
     target_title: str = ""

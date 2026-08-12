@@ -1,12 +1,19 @@
 """Similarity scoring engine for warm intro matches."""
-import hashlib
 import re
+import sys
 import unicodedata
 from datetime import date
+from pathlib import Path
 from typing import Optional
 
 from .models import Contact, Experience, Education, PublicAppearance, WarmIntroMatch
 from .db import WarmIntroDB
+
+_OFFICE_HOURS_DIR = Path(__file__).resolve().parent.parent
+if str(_OFFICE_HOURS_DIR) not in sys.path:
+    sys.path.insert(0, str(_OFFICE_HOURS_DIR))
+
+from warm_intro_contract import build_path_id  # noqa: E402
 
 
 class WarmIntroScorer:
@@ -344,6 +351,8 @@ class WarmIntroScorer:
         investor_overlaps: tuple[str, ...] = (),
         evidence_ids: tuple[str, ...] = (),
         as_of: Optional[date] = None,
+        campaign_id: str = "",
+        owner_id: str = "",
     ) -> WarmIntroMatch:
         """Score explicit connector-to-target evidence without changing legacy lookup scoring."""
         scoring_date = as_of or date.today()
@@ -481,7 +490,11 @@ class WarmIntroScorer:
                 investor_score,
             )
         )
-        path_key = "|".join((connector.id, target.id, target.current_company or ""))
+        path_id = (
+            build_path_id(campaign_id, owner_id, connector.id, target.id)
+            if campaign_id and owner_id
+            else ""
+        )
         return WarmIntroMatch(
             contact=connector,
             score=component_total,
@@ -490,7 +503,11 @@ class WarmIntroScorer:
             shared_schools=list(shared_schools),
             shared_appearances=list(shared_appearances),
             shared_affiliations=[*shared_communities, *investor_overlaps],
-            path_id="path-" + hashlib.sha256(path_key.encode("utf-8")).hexdigest()[:16],
+            campaign_id=campaign_id,
+            owner_id=owner_id,
+            connector_id=connector.id,
+            target_id=target.id,
+            path_id=path_id,
             target_name=target.full_name,
             target_title=target.current_position or "",
             target_company=target.current_company or "",
