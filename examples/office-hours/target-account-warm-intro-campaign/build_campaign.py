@@ -7,7 +7,7 @@ import re
 from collections import deque
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Sequence
 
@@ -164,7 +164,7 @@ def dedupe_contacts(contacts: Sequence[ContactRecord]) -> DedupeResult:
 
     canonical_records: list[ContactRecord] = []
     merge_groups: list[tuple[str, ...]] = []
-    weak_groups: dict[str, list[str]] = {}
+    identity_groups: dict[str, set[str]] = {}
     review_collisions: list[tuple[str, ...]] = []
     for indices in grouped_indices.values():
         members = sorted((contacts[index] for index in indices), key=lambda item: item.contact_id)
@@ -197,24 +197,24 @@ def dedupe_contacts(contacts: Sequence[ContactRecord]) -> DedupeResult:
         )
         if len(members) > 1:
             merge_groups.append(tuple(member.contact_id for member in members))
+        canonical_id = members[0].contact_id
         if any(index in invalid_identity_indices for index in indices):
             review_collisions.append(tuple(member.contact_id for member in members))
-        elif not any(normalized_identifiers[index] for index in indices):
+        for member in members:
             try:
                 weak_identity = normalized_identity(
-                    members[0].name, members[0].company, members[0].title
+                    member.name, member.company, member.title
                 )
             except ValueError:
-                review_collisions.append(tuple(member.contact_id for member in members))
+                if not any(normalized_identifiers[index] for index in indices):
+                    review_collisions.append((canonical_id,))
             else:
-                weak_groups.setdefault(weak_identity, []).extend(
-                    member.contact_id for member in members
-                )
+                identity_groups.setdefault(weak_identity, set()).add(canonical_id)
     canonical_records.sort(key=lambda contact: contact.contact_id)
     review_collisions.extend(
-        tuple(sorted(contact_ids))
-        for contact_ids in weak_groups.values()
-        if len(contact_ids) > 1
+        tuple(sorted(canonical_ids))
+        for canonical_ids in identity_groups.values()
+        if len(canonical_ids) > 1
     )
     return DedupeResult(
         canonical_records=tuple(canonical_records),
@@ -356,9 +356,9 @@ def validate_org_edges(
         has_open_role = any(_is_open_role(contacts_by_id[endpoint]) for endpoint in endpoints)
         if edge.edge_type == "reports_to_confirmed" and has_open_role:
             raise ValueError(f"invalid org edge {edge_label}: open role cannot be confirmed person")
-        if edge.edge_type == "reports_to_confirmed" and edge.confidence.casefold() == "inferred":
+        if edge.edge_type == "reports_to_confirmed" and edge.confidence != "confirmed":
             raise ValueError(
-                f"invalid org edge {edge_label}: inferred relationship must remain functional_proximity_inferred"
+                f"invalid org edge {edge_label}: reports_to_confirmed requires confidence=confirmed"
             )
         validated.append(edge)
     return validated
@@ -370,8 +370,8 @@ def person_centric_neighborhood(
     max_depth: int = 3,
 ) -> list[OrgEdgeRecord]:
     """Traverse incident org edges without changing their recorded direction."""
-    if max_depth < 0:
-        raise ValueError("max_depth cannot be negative")
+    if not 0 <= max_depth <= 3:
+        raise ValueError("max_depth must be between 0 and the global cap of 3")
     adjacency: dict[str, list[OrgEdgeRecord]] = {}
     for edge in edges:
         adjacency.setdefault(edge.from_contact_id, []).append(edge)
@@ -408,7 +408,7 @@ def person_centric_neighborhood(
 def summarize_interactions(
     target_id: str, interactions: Sequence[InteractionRecord]
 ) -> InteractionSummary:
-    """Normalize one person's first-party history into evidence-backed categories."""
+    """Normalize aware timestamps to UTC; reject naive first-party audit times."""
     audit_entries: list[InteractionAuditEntry] = []
     for interaction in interactions:
         if (
@@ -424,8 +424,13 @@ def summarize_interactions(
             ) from error
         if interaction.occurred_at is None:
             raise ValueError(f"interaction {interaction.interaction_id} requires a timestamp")
+        if interaction.occurred_at.utcoffset() is None:
+            raise ValueError(
+                f"interaction {interaction.interaction_id} requires a timezone-aware timestamp"
+            )
         if not interaction.evidence_id:
             raise ValueError(f"interaction {interaction.interaction_id} requires an evidence ID")
+        occurred_at = interaction.occurred_at.astimezone(timezone.utc)
         interaction_type = interaction.interaction_type.casefold()
         is_direct_introduction = (
             interaction_type == "introduction"
@@ -436,14 +441,14 @@ def summarize_interactions(
                 interaction_id=interaction.interaction_id,
                 source=source,
                 interaction_type=interaction.interaction_type,
-                occurred_at=interaction.occurred_at,
+                occurred_at=occurred_at,
                 evidence_id=interaction.evidence_id,
                 direction=interaction.direction,
                 participant_ids=interaction.participant_ids,
                 direct_introduction=is_direct_introduction,
             )
         )
-    audit_entries.sort(key=lambda item: (item.occurred_at.isoformat(), item.interaction_id))
+    audit_entries.sort(key=lambda item: (item.occurred_at, item.interaction_id))
     entries = tuple(audit_entries)
     return InteractionSummary(
         target_id=target_id,

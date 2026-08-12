@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import sys
 import unittest
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 
@@ -107,6 +107,43 @@ class ContactDedupeTests(unittest.TestCase):
         self.assertEqual(
             tuple(contact.contact_id for contact in result.canonical_records),
             ("weak-a", "weak-b"),
+        )
+
+    def test_identifierless_record_colliding_with_strong_record_routes_to_review(self):
+        contacts = [
+            ContactRecord(
+                "strong",
+                "Jordan Kim",
+                "Northstar AI",
+                "Revenue Systems Manager",
+                linkedin_url="linkedin.com/in/example-jordan",
+                source_record_ids=("crm-strong",),
+            ),
+            ContactRecord(
+                "identifierless",
+                " jordan  kim ",
+                "northstar ai",
+                "revenue systems manager",
+                source_record_ids=("event-identifierless",),
+            ),
+        ]
+
+        result = dedupe_contacts(contacts)
+
+        self.assertEqual(result.merge_groups, ())
+        self.assertEqual(
+            result.review_collisions,
+            (("identifierless", "strong"),),
+        )
+        self.assertEqual(
+            {
+                contact.contact_id: contact.source_record_ids
+                for contact in result.canonical_records
+            },
+            {
+                "identifierless": ("event-identifierless",),
+                "strong": ("crm-strong",),
+            },
         )
 
     def test_strong_identifiers_form_one_transitive_merge_group(self):
@@ -278,6 +315,33 @@ class OrgSemanticsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "edge-mislabeled"):
             validate_org_edges([edge], contacts)
 
+    def test_confirmed_reporting_requires_explicit_confirmed_confidence(self):
+        contacts = [
+            ContactRecord("person-a", "Ari", "Northstar AI", "VP Revenue Operations"),
+            ContactRecord("person-b", "Bo", "Northstar AI", "GTM Engineer"),
+        ]
+        for confidence in ("unknown", "low", "medium", "high", "inferred"):
+            edge = OrgEdgeRecord(
+                f"edge-{confidence}",
+                "person-b",
+                "person-a",
+                "reports_to_confirmed",
+                confidence=confidence,
+            )
+            with self.subTest(confidence=confidence):
+                with self.assertRaisesRegex(ValueError, edge.edge_id):
+                    validate_org_edges([edge], contacts)
+
+        confirmed = OrgEdgeRecord(
+            "edge-confirmed",
+            "person-b",
+            "person-a",
+            "reports_to_confirmed",
+            confidence="confirmed",
+            source_evidence_ids=("manager-confirmation",),
+        )
+        self.assertEqual(validate_org_edges([confirmed], contacts), [confirmed])
+
     def test_neighborhood_stops_at_three_levels_and_prevents_cycles(self):
         edges = [
             OrgEdgeRecord("edge-4", "person-3", "person-4", "reports_to_confirmed"),
@@ -301,6 +365,10 @@ class OrgSemanticsTests(unittest.TestCase):
             ("edge-1", "edge-2", "edge-3"),
         )
         self.assertEqual(neighborhood[-1], edges[-1])
+
+    def test_neighborhood_rejects_depth_above_global_three_level_cap(self):
+        with self.assertRaisesRegex(ValueError, "max_depth"):
+            person_centric_neighborhood("target", [], max_depth=4)
 
 
 class InteractionAuditTests(unittest.TestCase):
@@ -387,6 +455,60 @@ class InteractionAuditTests(unittest.TestCase):
             summarize_interactions("target", [invalid_source])
         with self.assertRaisesRegex(ValueError, "unverified-manual-intro"):
             summarize_interactions("target", [missing_evidence])
+
+    def test_mixed_offsets_are_normalized_and_latest_uses_absolute_time(self):
+        interactions = [
+            InteractionRecord(
+                "earlier-instant",
+                "target",
+                "email",
+                "email",
+                datetime(2026, 7, 1, 12, 0, tzinfo=timezone.utc),
+                evidence_id="evidence-earlier",
+            ),
+            InteractionRecord(
+                "later-instant",
+                "target",
+                "sales_call",
+                "call",
+                datetime(
+                    2026,
+                    7,
+                    1,
+                    9,
+                    30,
+                    tzinfo=timezone(timedelta(hours=-4)),
+                ),
+                evidence_id="evidence-later",
+            ),
+        ]
+
+        summary = summarize_interactions("target", interactions)
+
+        self.assertEqual(
+            tuple(item.interaction_id for item in summary.interactions),
+            ("earlier-instant", "later-instant"),
+        )
+        self.assertEqual(
+            summary.latest_interaction_at,
+            datetime(2026, 7, 1, 13, 30, tzinfo=timezone.utc),
+        )
+        self.assertTrue(
+            all(item.occurred_at.utcoffset() == timedelta(0) for item in summary.interactions)
+        )
+
+    def test_naive_timestamp_is_rejected_instead_of_assuming_local_time(self):
+        interaction = InteractionRecord(
+            "naive-time",
+            "target",
+            "email",
+            "email",
+            datetime(2026, 7, 1, 12, 0),
+            evidence_id="evidence-naive",
+        )
+
+        with self.assertRaisesRegex(ValueError, "naive-time"):
+            summarize_interactions("target", [interaction])
 
 
 if __name__ == "__main__":
