@@ -332,6 +332,38 @@ class FixturePipelineTests(unittest.TestCase):
                         violations.append(f"{path}:{slug}")
         self.assertEqual(violations, [])
 
+    def test_source_privacy_gate_allows_only_reserved_example_email_domains(self):
+        roots = (
+            PACKAGE_DIR,
+            PACKAGE_DIR.parent / "warm-intro-scoring",
+            PACKAGE_DIR.parent / "warm-intro-ask-threads",
+            PACKAGE_DIR.parents[2] / "docs" / "superpowers",
+        )
+        email = re.compile(
+            r"\b[A-Z0-9._%+-]+@([A-Z0-9.-]+\.[A-Z]{2,})\b",
+            re.IGNORECASE,
+        )
+        violations = []
+        for root in roots:
+            for path in root.rglob("*"):
+                if not path.is_file() or path.suffix not in {
+                    ".csv",
+                    ".html",
+                    ".json",
+                    ".md",
+                    ".py",
+                }:
+                    continue
+                text = path.read_text(encoding="utf-8", errors="replace")
+                for match in email.finditer(text):
+                    domain = match.group(1).casefold()
+                    if not (
+                        domain.endswith(".example")
+                        or domain in {"example.com", "example.org", "example.net"}
+                    ):
+                        violations.append(f"{path}:{match.group(0)}")
+        self.assertEqual(violations, [])
+
     def test_safe_alias_merge_remaps_foreign_keys_and_pdl_excludes_all_aliases(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)

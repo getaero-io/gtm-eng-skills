@@ -260,10 +260,10 @@ class IdempotencyTests(unittest.TestCase):
         module = load_module()
         expected_key = "".join(
             (
-                "307521be633e0a81",
-                "00a4c115d08093e7",
-                "59550f6e93d536a3",
-                "ea83c99515adfe89",
+                "307521be633e0a81",  # pragma: allowlist secret
+                "00a4c115d08093e7",  # pragma: allowlist secret
+                "59550f6e93d536a3",  # pragma: allowlist secret
+                "ea83c99515adfe89",  # pragma: allowlist secret
             )
         )
         key = _key(module, "path-approved")
