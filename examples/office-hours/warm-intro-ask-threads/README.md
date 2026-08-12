@@ -1,92 +1,224 @@
-# Warm intro ask threads
+# Warm-intro ask threads
 
-Office-hours example — the step after scoring. You have your ranked connectors from `../warm-intro-scoring/`. Now you need to actually ask.
+This example converts reviewed warm-path rows into grounded draft messages, then
+provides a separate approval-gated LinkedIn activation command. Draft generation
+does not imply approval, and scoring does not prove that a connector knows the
+target.
 
-This generates personalized ask messages for each connector, grounded in the shared signal that gave them their score, then optionally sends them via LinkedIn or formats them for copy-paste.
+Run [`../target-account-warm-intro-campaign/`](../target-account-warm-intro-campaign/)
+for campaign selection and audit artifacts, then
+[`../warm-intro-scoring/`](../warm-intro-scoring/) for target-person scoring and
+CSV export. This example owns drafting, approval state, send idempotency, rate
+policy, and the activation log.
 
-## Prerequisites
+## Input: scorer CSV
 
-Run the warm-intro-scoring example first. You need a scored connector list (output of `lookup.py`). See [`../warm-intro-scoring/`](../warm-intro-scoring/) for the full setup.
+`draft_asks.py` consumes the output of `warm-intro-scoring/lookup.py --csv`
+directly. No manual export or column rename is required.
 
-## What this does
+All of these columns are required:
 
-1. Takes the top-N results from `lookup.py` — exported as CSV.
-2. For each connector, selects the primary shared signal: company overlap or role similarity.
-3. Calls the Deepline API to draft a message under 80 words, with the ask in the first line.
-4. Outputs a CSV of draft messages ready for review.
-5. Optionally sends via LinkedIn (Apify) with rate limiting and a send log.
-
-## Input
-
-The scored connector CSV from `lookup.py`. Expected columns:
-
-| Column | Source |
+| Column | Semantics |
 |---|---|
-| `connector_name` | Contact full name |
-| `connector_linkedin` | Contact LinkedIn URL |
-| `connector_company` | Contact current company |
-| `target_name` | The person you want an intro to |
-| `target_company` | Their company |
-| `shared_signal` | `company_match` or `role_overlap` |
-| `shared_detail` | e.g. `"Stripe"` or `"Head of Growth"` |
-| `score` | Numeric score from scorer.py |
+| `path_id` | Stable connector-to-target path ID. |
+| `connector_name` | Connector display name. |
+| `connector_linkedin` | Connector profile URL. |
+| `connector_company` | Connector current company, if known. |
+| `target_name` | Person requested in the introduction. |
+| `target_title` | Target's current title; preserved in the prompt and draft output. |
+| `target_company` | Target company. |
+| `shared_signal` | Highest-priority evidence type. |
+| `shared_detail` | Human-readable evidence detail. |
+| `relationship_confidence` | Owner-to-connector confidence. |
+| `direct_intro_score` | Explicit score component. |
+| `work_overlap_score` | Explicit score component. |
+| `relationship_score` | Explicit score component. |
+| `school_city_community_score` | Explicit score component. |
+| `role_industry_score` | Explicit score component. |
+| `investor_score` | Explicit score component. |
+| `total_score` | Sum of target-person components, or legacy discovery score. |
+| `segment` | `strong_warm_intro`, `review_warm_intro`, or `no_strong_path`. |
+| `evidence_ids` | Semicolon-delimited citations. |
 
-Export this manually from `lookup.py` output or pipe it using the `--csv` flag (not yet implemented in lookup.py — add it yourself if needed).
+`why_target_cares` and `permissionless_value` are optional additive columns. When
+they are absent or blank, the prompt tells the model to omit that context rather
+than invent it.
 
-## Output
+The drafter selects the strongest scored reason in this order: confirmed direct
+introduction, dated work overlap, school/city/community, role/industry, then
+investor context. A legacy `verified_work_overlap` signal is normalized to dated
+work overlap. Company proximity explicitly says that dates and familiarity are not
+confirmed.
 
-`ask_drafts.csv` — one row per connector:
+## Output: draft CSV
 
-| Column | Description |
+`draft_asks.py` writes one row per selected path:
+
+| Column | Semantics |
 |---|---|
-| `connector_name` | Connector's full name |
-| `connector_linkedin` | Connector's LinkedIn URL |
-| `target_name` | Person you want introduced to |
-| `shared_signal` | Signal type driving the ask |
-| `draft_subject` | Short subject line (for email fallback) |
-| `draft_body` | The message body — ready to send or lightly edit |
-| `score` | Original score from scorer.py |
+| `path_id` | Preserved path identity. |
+| `connector_name` | Preserved display name. |
+| `connector_linkedin` | Preserved activation coordinate. |
+| `target_name` | Preserved target name. |
+| `target_title` | Preserved target title. |
+| `target_company` | Preserved target company. |
+| `shared_signal` | Preserved source signal. |
+| `shared_detail` | Preserved evidence detail. |
+| `why_target_cares` | Supplied target context, possibly blank. |
+| `permissionless_value` | Supplied value offer, possibly blank. |
+| `draft_subject` | Model-generated subject. |
+| `draft_body` | Model-generated body, or blank on failure. |
+| `total_score` | Preserved score. |
+| `approved` | Always `false` when generated. |
+| `message_version` | Starts at `1`. Increment after a material edit. |
+| `status` | `ok` or an `error: ...` diagnostic. |
 
-## Ask anatomy
+Each model call is independent. Rows are sorted by descending `total_score`; `--top`
+limits that ordered set. A model/API failure produces an error row with empty draft
+fields and does not stop later rows. There is no automatic retry, response cache,
+or cost ledger in this script. Rerun only the reviewed failed paths, and check your
+provider's current pricing and retention behavior rather than relying on a fixed
+cost estimate.
 
-Every draft follows the same structure:
+## Drafting
 
-1. **Line 1: the ask.** Specific, direct. "Would you be willing to intro me to [name]?" No wind-up.
-2. **Line 2: the reason.** Why you're asking *this* connector. References the shared signal — "You both worked at Stripe" or "You're both building in the growth eng space."
-3. **Line 3: one sentence on why it matters.** What you need the intro for. No "hop on a call to explore synergies." Concrete.
+The prompt requires a body under 80 words with the ask first, an evidence-safe
+reason second, and concrete context third when supplied. It prohibits filler and
+invention. Model output is parsed as strict JSON with `subject` and `body` keys;
+Markdown code fences are tolerated, but missing/non-JSON content is an error.
 
-Things the prompt explicitly bans: "pick your brain", "hope this finds you well", "I'd love to connect", "quick chat". If the model adds any of these, re-run.
-
-## Files
-
-- `draft_asks.py` — loads scored CSV, calls Deepline API to generate message drafts, writes `ask_drafts.csv`.
-- `send_via_linkedin.py` — takes `ask_drafts.csv`, sends each message via Apify LinkedIn actor. Has `--dry-run` and `--limit` guards. Logs every send to `send_log.db`.
-
-## Usage
+From the repository root:
 
 ```bash
-# 1. Draft messages for your top connectors
-export DEEPLINE_API_KEY=your_key
-python draft_asks.py --input scored_connectors.csv --output ask_drafts.csv --top 20
+# Produce the scorer CSV first.
+python3 -m examples.office-hours.warm-intro-scoring.lookup \
+  --db /tmp/warm-intros.db \
+  --company "Northstar AI" \
+  --target-name "Nora Imani" \
+  --target-title "Head of GTM Engineering" \
+  --csv /tmp/scored_connectors.csv \
+  --quiet
 
-# 2. Review ask_drafts.csv — edit any message you want to change before sending
-
-# 3. Dry-run to see exactly what would go out
-python send_via_linkedin.py --input ask_drafts.csv --dry-run
-
-# 4. Send (default cap: 5 per run)
-python send_via_linkedin.py --input ask_drafts.csv --limit 5
-
-# Increase limit cautiously — LinkedIn ToS risk rises sharply above 10/day
-python send_via_linkedin.py --input ask_drafts.csv --limit 10
+# Draft the highest-ranked 20 paths.
+DEEPLINE_API_KEY=... python3 \
+  examples/office-hours/warm-intro-ask-threads/draft_asks.py \
+  --input /tmp/scored_connectors.csv \
+  --output /tmp/ask_drafts.csv \
+  --top 20 \
+  --verbose
 ```
 
-## Cost
+Do not put API keys in the CSV or commit them. Use the repository's approved
+credential-loading method in a real environment.
 
-- Deepline message drafting: ~$0.002 per message (Claude Haiku via Deepline API)
-- Apify LinkedIn send: ~$0.02–0.05 per send depending on actor pricing
-- 20 connectors: under $1 total
+## Mandatory human review
 
-## What this doesn't do
+Before activation, review each row against the cited source:
 
-It does not know if your connector will actually respond. A score of 90 and a good message still requires the connector to like you enough to forward. Review each draft before sending — the model doesn't know your actual relationship with each person.
+- Confirm the connector's identity and that the profile URL belongs to that person.
+- Confirm the target's name, title, company, and current relevance.
+- For work overlap, verify both employment intervals overlap. Treat missing or
+  non-overlapping dates as company proximity only.
+- Confirm the owner-to-connector relationship can support the ask. Shared employer,
+  role, school, city, community, appearance, or investor context alone is not proof
+  of familiarity.
+- Remove invented claims, private details, sensitive inferences, and any value offer
+  you cannot deliver.
+- Check consent, do-not-contact/suppression state, legal purpose, channel policy,
+  and the connector's reasonable expectations.
+- Leave failed or empty rows unapproved. Set `approved=true` only on selected,
+  final copy. Increment `message_version` after any material edit that should be a
+  distinct send.
+
+The live sender admits only rows whose body is non-empty and whose `approved` value
+case-insensitively equals `true`. Dry-run mode may display unapproved rows for
+review; that does not make them live-sendable.
+
+## Dry run and activation
+
+```bash
+# Preview. No actor call; a zero delay is allowed in dry-run mode.
+python3 examples/office-hours/warm-intro-ask-threads/send_via_linkedin.py \
+  --input /tmp/ask_drafts.csv \
+  --dry-run \
+  --delay 0 \
+  --log-db /tmp/warm-intro-send-log.db
+
+# Live activation. Only explicitly approved rows are loaded.
+DEEPLINE_API_KEY=... python3 \
+  examples/office-hours/warm-intro-ask-threads/send_via_linkedin.py \
+  --input /tmp/ask_drafts.csv \
+  --limit 5 \
+  --delay 90 \
+  --log-db /tmp/warm-intro-send-log.db
+```
+
+LinkedIn automation carries platform and account risk. Revalidate the selected
+actor and platform terms before use. Live delay must be at least 60 seconds. The
+per-run limit must be 1–10, defaults to 5, and is reduced by successful sends in
+the preceding rolling 24 hours. The hard rolling limit is 10. Fresh pending
+reservations also consume capacity so concurrent processes cannot oversubscribe
+the last slot.
+
+## Idempotency, retries, and the send log
+
+For each live row:
+
+```text
+idempotency_key = SHA256(path_id + "|linkedin|" + message_version)
+```
+
+The SQLite log places a partial unique index on non-null idempotency keys. Before
+the external actor call, `BEGIN IMMEDIATE` atomically creates or claims one
+`pending` lifecycle row with a random owner token. A second process cannot claim a
+fresh reservation for the same key. Only the owning process can finish it.
+
+`SUCCEEDED` is the only terminal actor status recorded as `sent`. Provider status
+`FAILED`, `ABORTED`, `TIMED-OUT`, `UNKNOWN`, malformed results, missing executable,
+and other ordinary exceptions become `error` and remain retryable. A process
+interruption may leave `pending`; it blocks through the exact one-hour TTL and may
+be reclaimed only after it becomes older than that TTL. Successful keys are never
+resent. Dry-run log rows use no durable idempotency key and do not block a later
+live send.
+
+The `sends` table stores:
+
+| Column | Semantics |
+|---|---|
+| `id` | Autoincrement log row ID. |
+| `sent_at` | UTC lifecycle timestamp. |
+| `connector_linkedin` | Activation coordinate. |
+| `connector_name` | Display name. |
+| `target_name` | Target named in the ask. |
+| `message_preview` | First 120 characters; still sensitive. |
+| `status` | `pending`, `sent`, `error`, or `dry_run`. |
+| `apify_run_id` | External run ID when available. |
+| `error_detail` | Truncated diagnostic for failed work. |
+| `idempotency_key` | Stable live-send identity; null for previews/errors logged outside the reservation lifecycle. |
+| `reservation_owner` | Process owner token while pending. |
+| `reservation_updated_at` | UTC reservation/finish time used for stale recovery. |
+
+Existing logs are migrated additively when opened. Back up and access-control this
+database: it contains personal data and message excerpts. The local log is the
+activation source of truth; deleting it removes duplicate-send protection.
+
+## Files and fixtures
+
+- `draft_asks.py`: validated scorer input, grounded prompt construction, model
+  calls, and unapproved draft output.
+- `send_via_linkedin.py`: approval filtering, dry-run display, rate enforcement,
+  atomic reservation, external actor call, and lifecycle logging.
+- `sample_scored_connectors.csv`: fictional scorer-contract input.
+- `sample_ask_drafts.csv`: fictional, unapproved draft output for dry-run testing.
+- `test_draft_asks.py` and `test_send_via_linkedin.py`: contract, evidence wording,
+  approval, migration, idempotency, retry, concurrency, and rate-policy tests.
+
+For a safe local smoke check:
+
+```bash
+python3 examples/office-hours/warm-intro-ask-threads/send_via_linkedin.py \
+  --input examples/office-hours/warm-intro-ask-threads/sample_ask_drafts.csv \
+  --dry-run \
+  --delay 0 \
+  --log-db /tmp/warm-intro-example-send-log.db
+```
