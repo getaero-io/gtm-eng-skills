@@ -398,11 +398,13 @@ def reserve_send(
     ]
     if blank_intent:
         raise ValueError("send intent has blank fields: " + ", ".join(blank_intent))
+    full_message = message_preview if message_body is None else message_body
+    if not str(full_message).strip():
+        raise ValueError("send intent has blank fields: message_body")
     current_time = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     reserved_at = current_time.isoformat()
     stale_before = current_time - timedelta(seconds=PENDING_TTL_SECONDS)
     window_cutoff = current_time - timedelta(hours=24)
-    full_message = message_body if message_body is not None else message_preview
     intent_hash = _intent_hash(
         campaign_id=campaign_id,
         owner_id=owner_id,

@@ -221,6 +221,41 @@ class ApprovalGateTests(unittest.TestCase):
 
 
 class IdempotencyTests(unittest.TestCase):
+    def test_blank_explicit_message_body_is_rejected_without_persistence(self):
+        module = load_module()
+        for explicit_body in ("", " \t\n "):
+            with self.subTest(message_body=repr(explicit_body)):
+                with tempfile.TemporaryDirectory() as directory:
+                    connection = module.init_log_db(str(Path(directory) / "sends.db"))
+                    connector_id, target_id, path_id = _path_identity("blank-body")
+
+                    with self.assertRaises(ValueError) as raised:
+                        module.reserve_send(
+                            connection,
+                            idempotency_key=_key(module, path_id),
+                            owner_token="blank-body-owner",
+                            connector_linkedin="linkedin.example/in/example-blank-body",
+                            connector_name="Blank Body",
+                            target_name="Body Target",
+                            message_preview="Preview must not replace an explicit blank body",
+                            campaign_id="campaign-example",
+                            owner_id="owner-example",
+                            connector_id=connector_id,
+                            target_id=target_id,
+                            path_id=path_id,
+                            message_version="1",
+                            message_body=explicit_body,
+                        )
+
+                    counts = tuple(
+                        connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                        for table in ("sends", "send_attempts", "send_events")
+                    )
+                    connection.close()
+
+                self.assertIn("message_body", str(raised.exception))
+                self.assertEqual(counts, (0, 0, 0))
+
     def test_repeat_key_is_detected_independently_of_connector_url_format(self):
         module = load_module()
         expected_key = "".join(
