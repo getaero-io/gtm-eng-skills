@@ -37,7 +37,8 @@
     "linkedin_company_posts": "apify",
     "linkedin_person_posts": "apify",
     "x_posts": "twitterapi",
-    "people_search": "pdl"
+    "people_search": "pdl",
+    "web_search": "public_web"
   },
   "blocked_providers": ["bloomberry"],
   "blocked_operations": ["crustdata:linkedin_person_posts"],
