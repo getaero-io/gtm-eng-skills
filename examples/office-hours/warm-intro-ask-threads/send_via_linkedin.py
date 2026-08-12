@@ -24,7 +24,8 @@ import sqlite3
 import subprocess
 import sys
 import time
-from datetime import datetime, timezone
+import uuid
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -40,12 +41,15 @@ APIFY_ACTOR_ID = "curious_coder/linkedin-message-sender"
 # 90 seconds = ~40 sends/hour max. Stay well below that.
 SEND_DELAY_SECONDS = 90
 
-# Default per-run send cap. Operator can raise via --limit, but 10/day is the
-# suggested ceiling before ToS risk becomes meaningful.
+# Default per-run send cap. The CLI enforces a hard 10-send rolling-day ceiling.
 DEFAULT_LIMIT = 5
+MAX_DAILY_SENDS = 10
+MIN_LIVE_DELAY_SECONDS = 60
 
 LOG_DB_PATH = "send_log.db"
 CHANNEL = "linkedin"
+TERMINAL_SUCCESS_STATUSES = {"SUCCEEDED"}
+PENDING_TTL_SECONDS = 60 * 60
 
 
 # ── Send log (SQLite) ────────────────────────────────────────────────────────
@@ -74,7 +78,9 @@ def init_log_db(db_path: str) -> sqlite3.Connection:
             status             TEXT NOT NULL,
             apify_run_id       TEXT,
             error_detail       TEXT,
-            idempotency_key    TEXT
+            idempotency_key    TEXT,
+            reservation_owner  TEXT,
+            reservation_updated_at TEXT
         )
     """)
     columns = {
@@ -82,6 +88,10 @@ def init_log_db(db_path: str) -> sqlite3.Connection:
     }
     if "idempotency_key" not in columns:
         conn.execute("ALTER TABLE sends ADD COLUMN idempotency_key TEXT")
+    if "reservation_owner" not in columns:
+        conn.execute("ALTER TABLE sends ADD COLUMN reservation_owner TEXT")
+    if "reservation_updated_at" not in columns:
+        conn.execute("ALTER TABLE sends ADD COLUMN reservation_updated_at TEXT")
     conn.execute(
         """
         CREATE UNIQUE INDEX IF NOT EXISTS sends_idempotency_key_uq
@@ -97,6 +107,136 @@ def build_idempotency_key(path_id: str, channel: str, message_version: str) -> s
     """Build the stable activation identity for one message version."""
     raw = "|".join((path_id.strip(), channel.strip(), message_version.strip()))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def reserve_send(
+    conn: sqlite3.Connection,
+    idempotency_key: str,
+    owner_token: str,
+    connector_linkedin: str,
+    connector_name: str,
+    target_name: str,
+    message_preview: str,
+    now: Optional[datetime] = None,
+) -> bool:
+    """Atomically reserve one message version before any external side effect."""
+    current_time = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    reserved_at = current_time.isoformat()
+    stale_before = current_time - timedelta(seconds=PENDING_TTL_SECONDS)
+    window_cutoff = current_time - timedelta(hours=24)
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        existing = conn.execute(
+            "SELECT status, reservation_updated_at FROM sends WHERE idempotency_key = ?",
+            (idempotency_key,),
+        ).fetchone()
+        if existing is not None:
+            can_retry = existing["status"] == "error"
+            if existing["status"] == "pending":
+                updated_at = existing["reservation_updated_at"]
+                can_retry = updated_at is None or datetime.fromisoformat(
+                    updated_at
+                ) < stale_before
+            if not can_retry:
+                conn.rollback()
+                return False
+        capacity_in_use = conn.execute(
+            """
+            SELECT COUNT(*) AS reservation_count
+            FROM sends
+            WHERE (status = 'sent' AND julianday(sent_at) >= julianday(?))
+               OR (status = 'pending' AND julianday(reservation_updated_at) >= julianday(?))
+            """,
+            (window_cutoff.isoformat(), stale_before.isoformat()),
+        ).fetchone()["reservation_count"]
+        if capacity_in_use >= MAX_DAILY_SENDS:
+            conn.rollback()
+            return False
+        if existing is not None:
+            conn.execute(
+                """
+                UPDATE sends
+                SET sent_at = ?, connector_linkedin = ?, connector_name = ?,
+                    target_name = ?, message_preview = ?, status = 'pending',
+                    apify_run_id = NULL, error_detail = NULL,
+                    reservation_owner = ?, reservation_updated_at = ?
+                WHERE idempotency_key = ?
+                """,
+                (
+                    reserved_at,
+                    connector_linkedin,
+                    connector_name,
+                    target_name,
+                    message_preview[:120],
+                    owner_token,
+                    reserved_at,
+                    idempotency_key,
+                ),
+            )
+            conn.commit()
+            return True
+        conn.execute(
+            """
+            INSERT INTO sends
+                (sent_at, connector_linkedin, connector_name, target_name,
+                 message_preview, status, idempotency_key, reservation_owner,
+                 reservation_updated_at)
+            VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)
+            """,
+            (
+                reserved_at,
+                connector_linkedin,
+                connector_name,
+                target_name,
+                message_preview[:120],
+                idempotency_key,
+                owner_token,
+                reserved_at,
+            ),
+        )
+        conn.commit()
+        return True
+    except Exception:
+        conn.rollback()
+        raise
+
+
+def finish_reserved_send(
+    conn: sqlite3.Connection,
+    idempotency_key: str,
+    owner_token: str,
+    actor_status: str,
+    apify_run_id: Optional[str] = None,
+    error_detail: Optional[str] = None,
+    now: Optional[datetime] = None,
+) -> bool:
+    """Finish an owned reservation as sent or retryable error."""
+    completed_at = (now or datetime.now(timezone.utc)).astimezone(timezone.utc).isoformat()
+    succeeded = is_terminal_success(actor_status)
+    status = "sent" if succeeded else "error"
+    detail = None if succeeded else (error_detail or f"Apify actor status: {actor_status}")
+    cursor = conn.execute(
+        """
+        UPDATE sends
+        SET sent_at = ?, status = ?, apify_run_id = ?, error_detail = ?,
+            reservation_owner = NULL, reservation_updated_at = ?
+        WHERE idempotency_key = ? AND status = 'pending' AND reservation_owner = ?
+        """,
+        (
+            completed_at,
+            status,
+            apify_run_id,
+            detail,
+            completed_at,
+            idempotency_key,
+            owner_token,
+        ),
+    )
+    if cursor.rowcount != 1:
+        conn.rollback()
+        raise RuntimeError("send reservation is no longer owned by this process")
+    conn.commit()
+    return succeeded
 
 
 def log_send(
@@ -161,6 +301,30 @@ def already_sent(conn: sqlite3.Connection, idempotency_key: str) -> bool:
         (idempotency_key,),
     ).fetchone()
     return row is not None
+
+
+def successful_sends_in_rolling_window(
+    conn: sqlite3.Connection,
+    now: Optional[datetime] = None,
+) -> int:
+    """Count successful live sends in the preceding 24 hours."""
+    cutoff = (now or datetime.now(timezone.utc)).astimezone(timezone.utc) - timedelta(
+        hours=24
+    )
+    row = conn.execute(
+        """
+        SELECT COUNT(*) AS send_count
+        FROM sends
+        WHERE status = 'sent' AND julianday(sent_at) >= julianday(?)
+        """,
+        (cutoff.isoformat(),),
+    ).fetchone()
+    return int(row["send_count"])
+
+
+def is_terminal_success(actor_status: str) -> bool:
+    """Return true only for an explicit terminal actor success."""
+    return str(actor_status or "").strip().upper() in TERMINAL_SUCCESS_STATUSES
 
 
 # ── CSV helpers ───────────────────────────────────────────────────────────────
@@ -366,7 +530,10 @@ def main() -> None:
         "--limit",
         type=int,
         default=DEFAULT_LIMIT,
-        help=f"Maximum sends per run (default: {DEFAULT_LIMIT}). Suggested max: 10/day.",
+        help=(
+            f"Maximum sends per run (default: {DEFAULT_LIMIT}; "
+            f"hard rolling-day ceiling: {MAX_DAILY_SENDS})"
+        ),
     )
     parser.add_argument(
         "--skip-sent",
@@ -392,26 +559,38 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    if args.limit > 10:
-        print(
-            f"WARNING: --limit {args.limit} exceeds the recommended 10/day ceiling. "
-            "LinkedIn ToS risk rises sharply above this threshold."
+    if not 1 <= args.limit <= MAX_DAILY_SENDS:
+        parser.error(f"--limit must be between 1 and {MAX_DAILY_SENDS}")
+    if not args.dry_run and args.delay < MIN_LIVE_DELAY_SECONDS:
+        parser.error(
+            f"--delay must be at least {MIN_LIVE_DELAY_SECONDS} seconds for live sends"
         )
 
     api_key = resolve_api_key(args.api_key) if not args.dry_run else "dry-run"
     rows = load_drafts_csv(args.input, require_approved=not args.dry_run)
     log_conn = init_log_db(args.log_db)
+    recent_successes = (
+        0 if args.dry_run else successful_sends_in_rolling_window(log_conn)
+    )
+    remaining_capacity = max(0, MAX_DAILY_SENDS - recent_successes)
+    run_limit = args.limit if args.dry_run else min(args.limit, remaining_capacity)
 
     print(f"Loaded {len(rows)} sendable drafts from {args.input}")
-    print(f"Limit: {args.limit} per run | Delay: {args.delay}s | Dry run: {args.dry_run}")
+    print(f"Limit: {run_limit} per run | Delay: {args.delay}s | Dry run: {args.dry_run}")
+    if not args.dry_run:
+        print(
+            f"Rolling 24h successes: {recent_successes}/{MAX_DAILY_SENDS} "
+            f"| Remaining capacity: {remaining_capacity}"
+        )
     print()
 
     sent_count = 0
+    attempted_count = 0
     skipped_count = 0
 
-    for row in rows:
-        if sent_count >= args.limit:
-            print(f"Reached send limit ({args.limit}). Stopping.")
+    for row_index, row in enumerate(rows):
+        if attempted_count >= run_limit:
+            print(f"Reached send limit ({run_limit}). Stopping.")
             break
 
         connector_linkedin = row["connector_linkedin"].strip()
@@ -423,12 +602,12 @@ def main() -> None:
         )
         preview = message_body[:80].replace("\n", " ")
 
-        if already_sent(log_conn, idempotency_key):
+        if args.dry_run and already_sent(log_conn, idempotency_key):
             print(f"  SKIP (message version already sent): {connector_name}")
             skipped_count += 1
             continue
 
-        print(f"[{sent_count + 1}/{args.limit}] → {connector_name} ({connector_linkedin})")
+        print(f"[{attempted_count + 1}/{run_limit}] → {connector_name} ({connector_linkedin})")
         print(f"   Target: {target_name}")
         print(f"   Message: {preview}...")
 
@@ -443,9 +622,27 @@ def main() -> None:
                 status="dry_run",
                 idempotency_key=idempotency_key,
             )
+            attempted_count += 1
             sent_count += 1
             print()
             continue
+
+        owner_token = uuid.uuid4().hex
+        if not reserve_send(
+            conn=log_conn,
+            idempotency_key=idempotency_key,
+            owner_token=owner_token,
+            connector_linkedin=connector_linkedin,
+            connector_name=connector_name,
+            target_name=target_name,
+            message_preview=preview,
+        ):
+            print(f"   SKIP (sent or reserved by another process): {connector_name}")
+            skipped_count += 1
+            print()
+            continue
+
+        attempted_count += 1
 
         try:
             result = send_linkedin_message(
@@ -455,37 +652,49 @@ def main() -> None:
             )
             run_id = result.get("run_id")
             apify_status = result.get("status", "UNKNOWN")
-            print(f"   Sent. Apify run: {run_id} | status: {apify_status}")
-
-            log_send(
-                conn=log_conn,
-                connector_linkedin=connector_linkedin,
-                connector_name=connector_name,
-                target_name=target_name,
-                message_preview=preview,
-                status="sent",
-                apify_run_id=run_id,
-                idempotency_key=idempotency_key,
-            )
-            sent_count += 1
+            if not is_terminal_success(apify_status):
+                print(
+                    f"   ERROR: Apify run {run_id} ended with status {apify_status}",
+                    file=sys.stderr,
+                )
+                finish_reserved_send(
+                    conn=log_conn,
+                    idempotency_key=idempotency_key,
+                    owner_token=owner_token,
+                    actor_status=apify_status,
+                    apify_run_id=run_id,
+                    error_detail=f"Apify actor status: {apify_status}",
+                )
+            else:
+                finish_reserved_send(
+                    conn=log_conn,
+                    idempotency_key=idempotency_key,
+                    owner_token=owner_token,
+                    actor_status=apify_status,
+                    apify_run_id=run_id,
+                )
+                print(f"   Sent. Apify run: {run_id} | status: {apify_status}")
+                sent_count += 1
 
         except RuntimeError as exc:
             print(f"   ERROR: {exc}", file=sys.stderr)
-            log_send(
-                conn=log_conn,
-                connector_linkedin=connector_linkedin,
-                connector_name=connector_name,
-                target_name=target_name,
-                message_preview=preview,
-                status="error",
-                error_detail=str(exc)[:500],
-                idempotency_key=idempotency_key,
-            )
+            row = log_conn.execute(
+                "SELECT status, reservation_owner FROM sends WHERE idempotency_key = ?",
+                (idempotency_key,),
+            ).fetchone()
+            if row is not None and row["status"] == "pending" and row["reservation_owner"] == owner_token:
+                finish_reserved_send(
+                    conn=log_conn,
+                    idempotency_key=idempotency_key,
+                    owner_token=owner_token,
+                    actor_status="ERROR",
+                    error_detail=str(exc)[:500],
+                )
 
         print()
 
         # Delay between sends (skip after last send)
-        if sent_count < args.limit and sent_count < len(rows):
+        if attempted_count < run_limit and row_index + 1 < len(rows):
             print(f"   Waiting {args.delay}s before next send...")
             time.sleep(args.delay)
 
