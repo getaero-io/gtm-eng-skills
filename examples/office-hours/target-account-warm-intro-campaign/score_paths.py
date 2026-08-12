@@ -105,10 +105,10 @@ def employment_overlap(
 
 _RELATIONSHIP_SCORES = {"low": 1, "medium": 2, "high": 3, "confirmed": 3}
 _DEFAULT_PATH_WEIGHTS = {
-    "direct_intro": 40,
-    "work_overlap": 20,
-    "school_city_community": 8,
-    "role_industry": 4,
+    "direct_intro": 50,
+    "work_overlap": 25,
+    "school_city_community": 12,
+    "role_industry": 6,
     "investor": 3,
     "relationship": 3,
 }
@@ -135,8 +135,14 @@ def _path_weights(config: CampaignConfig) -> dict[str, int]:
     if weights["investor"] > 3:
         raise ValueError("invalid path score weights: investor must be capped at 3")
 
+    relationship_maximum = min(weights["relationship"], max(_RELATIONSHIP_SCORES.values()))
+    relationship_minimum = 1 if relationship_maximum else 0
+    relationship_range = relationship_maximum - relationship_minimum
     for index, tier in enumerate(_FACTUAL_TIERS[:-1]):
-        lower_maximum = sum(weights[name] for name in _FACTUAL_TIERS[index + 1 :])
+        lower_maximum = (
+            sum(weights[name] for name in _FACTUAL_TIERS[index + 1 :])
+            + relationship_range
+        )
         if weights[tier] <= lower_maximum:
             raise ValueError(
                 "invalid path score weights: "
@@ -253,14 +259,10 @@ def score_warm_path(
     reasons.extend(role_industry_signals)
     reasons.extend(investor_signals)
 
-    school_city_community_score = min(
-        len(set(community_signals)),
-        weights["school_city_community"],
+    school_city_community_score = (
+        weights["school_city_community"] if community_signals else 0
     )
-    role_industry_score = min(
-        len(set(role_industry_signals)),
-        weights["role_industry"],
-    )
+    role_industry_score = weights["role_industry"] if role_industry_signals else 0
     investor_score = min(
         len(set(investor_signals)),
         weights["investor"],

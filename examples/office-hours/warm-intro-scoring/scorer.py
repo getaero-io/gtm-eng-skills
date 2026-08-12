@@ -83,6 +83,32 @@ class WarmIntroScorer:
         "am",
     ]
 
+    EMPLOYER_LEGAL_SUFFIXES = {
+        "ag",
+        "bv",
+        "co",
+        "company",
+        "corp",
+        "corporation",
+        "gmbh",
+        "inc",
+        "incorporated",
+        "limited",
+        "llc",
+        "ltd",
+        "nv",
+        "plc",
+        "pte",
+        "pty",
+        "sa",
+        "srl",
+    }
+    DOTTED_LEGAL_SUFFIXES = {
+        ("i", "n", "c"),
+        ("l", "l", "c"),
+        ("l", "t", "d"),
+    }
+
     def __init__(self, db: Optional[WarmIntroDB] = None):
         """Initialize scorer with optional database connection."""
         self.db = db
@@ -116,6 +142,30 @@ class WarmIntroScorer:
             words.pop()
 
         return " ".join(words).strip()
+
+    def normalize_employer_identity(self, name: str) -> str:
+        """Canonicalize legal-name noise without dropping meaningful identity tokens."""
+        if not name:
+            return ""
+        normalized = unicodedata.normalize("NFKD", name)
+        normalized = normalized.encode("ascii", "ignore").decode("ascii")
+        words = re.sub(r"[^\w\s]", " ", normalized.casefold()).split()
+        while words:
+            if words[-1] in self.EMPLOYER_LEGAL_SUFFIXES:
+                words.pop()
+                continue
+            dotted_suffix = next(
+                (
+                    suffix
+                    for suffix in self.DOTTED_LEGAL_SUFFIXES
+                    if len(words) >= len(suffix) and tuple(words[-len(suffix) :]) == suffix
+                ),
+                None,
+            )
+            if dotted_suffix is None:
+                break
+            del words[-len(dotted_suffix) :]
+        return " ".join(words)
 
     def normalize_school(self, name: str) -> str:
         """Normalize school name for comparison.
@@ -313,9 +363,9 @@ class WarmIntroScorer:
                 if not self.company_matches(connector_role.company_name, target_role.company_name):
                     continue
                 company_proximities.add(connector_role.company_name)
-                if self.normalize_company(connector_role.company_name) != self.normalize_company(
-                    target_role.company_name
-                ):
+                if self.normalize_employer_identity(
+                    connector_role.company_name
+                ) != self.normalize_employer_identity(target_role.company_name):
                     continue
                 if connector_role.start_date is None or target_role.start_date is None:
                     continue
@@ -340,12 +390,10 @@ class WarmIntroScorer:
                 (*shared_schools, *shared_cities, *shared_communities, *shared_appearances)
             )
         )
-        school_city_community_score = float(
-            min(len(community_values) * 5, self.WEIGHT_SCHOOL_CITY_COMMUNITY)
+        school_city_community_score = (
+            self.WEIGHT_SCHOOL_CITY_COMMUNITY if community_values else 0.0
         )
-        role_industry_score = float(
-            min(len(set(role_industry_matches)) * 5, self.WEIGHT_ROLE_INDUSTRY)
-        )
+        role_industry_score = self.WEIGHT_ROLE_INDUSTRY if role_industry_matches else 0.0
         investor_score = float(
             min(len(set(investor_overlaps)), self.MAX_INVESTOR_SCORE)
         )

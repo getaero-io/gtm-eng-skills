@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import io
+import json
 import sys
 import types
 import unittest
@@ -172,6 +173,9 @@ class EmploymentOverlapTests(unittest.TestCase):
 
 class WarmPathScoreTests(unittest.TestCase):
     def test_default_path_weights_preserve_hierarchy_over_all_lower_tiers(self):
+        config = CampaignConfig.from_mapping(
+            json.loads((PACKAGE_DIR / "config.example.json").read_text(encoding="utf-8"))
+        )
         score = score_warm_path(
             CONNECTOR,
             TARGET,
@@ -202,9 +206,19 @@ class WarmPathScoreTests(unittest.TestCase):
                 investor_overlaps=tuple(f"Fund {number}" for number in range(4)),
                 relationship_confidence="high",
             ),
-            campaign_config(),
+            config,
         )
 
+        self.assertEqual(
+            (
+                score.direct_intro_score,
+                score.work_overlap_score,
+                score.school_city_community_score,
+                score.role_industry_score,
+                score.investor_score,
+            ),
+            (50, 25, 12, 6, 3),
+        )
         self.assertGreater(
             score.direct_intro_score,
             score.work_overlap_score
@@ -240,6 +254,20 @@ class WarmPathScoreTests(unittest.TestCase):
                 "role_industry": 4,
                 "investor": 3,
             },
+            {
+                "direct_intro": 36,
+                "work_overlap": 20,
+                "school_city_community": 8,
+                "role_industry": 4,
+                "investor": 3,
+            },
+            {
+                "direct_intro": 50,
+                "work_overlap": 16,
+                "school_city_community": 8,
+                "role_industry": 4,
+                "investor": 3,
+            },
         )
 
         for weights in invalid_weights:
@@ -251,6 +279,97 @@ class WarmPathScoreTests(unittest.TestCase):
                         PathEvidence(direct_intro_evidence_ids=("intro-1",)),
                         campaign_config(weights),
                     )
+
+    def test_final_totals_preserve_factual_priority_across_relationship_extremes(self):
+        connector_role = ExperienceRecord(
+            "connector-role",
+            CONNECTOR.contact_id,
+            "Northstar AI",
+            "Revenue Systems Lead",
+            start_date=date(2021, 1, 1),
+            end_date=date(2024, 1, 1),
+        )
+        target_role = ExperienceRecord(
+            "target-role",
+            TARGET.contact_id,
+            "Northstar AI",
+            "Head of GTM Engineering",
+            start_date=date(2022, 1, 1),
+            is_current=True,
+        )
+        config = campaign_config()
+
+        direct_low_relationship = score_warm_path(
+            CONNECTOR,
+            TARGET,
+            PathEvidence(
+                direct_intro_evidence_ids=("intro-1",),
+                relationship_confidence="low",
+            ),
+            config,
+        )
+        work_high_relationship_with_all_lower = score_warm_path(
+            CONNECTOR,
+            TARGET,
+            PathEvidence(
+                connector_experiences=(connector_role,),
+                target_experiences=(target_role,),
+                shared_schools=("State University",),
+                role_overlaps=("revenue systems",),
+                investor_overlaps=("Fund 1", "Fund 2", "Fund 3", "Fund 4"),
+                relationship_confidence="high",
+            ),
+            config,
+        )
+        work_low_relationship = score_warm_path(
+            CONNECTOR,
+            TARGET,
+            PathEvidence(
+                connector_experiences=(connector_role,),
+                target_experiences=(target_role,),
+                relationship_confidence="low",
+            ),
+            config,
+        )
+        ancillary_high_relationship = score_warm_path(
+            CONNECTOR,
+            TARGET,
+            PathEvidence(
+                shared_schools=("State University",),
+                role_overlaps=("revenue systems",),
+                investor_overlaps=("Fund 1", "Fund 2", "Fund 3", "Fund 4"),
+                relationship_confidence="high",
+            ),
+            config,
+        )
+        school_one_signal = score_warm_path(
+            CONNECTOR,
+            TARGET,
+            PathEvidence(
+                shared_schools=("State University",),
+                relationship_confidence="high",
+            ),
+            config,
+        )
+        investor_max_signals = score_warm_path(
+            CONNECTOR,
+            TARGET,
+            PathEvidence(
+                investor_overlaps=("Fund 1", "Fund 2", "Fund 3", "Fund 4"),
+                relationship_confidence="high",
+            ),
+            config,
+        )
+
+        self.assertGreater(
+            direct_low_relationship.total_score,
+            work_high_relationship_with_all_lower.total_score,
+        )
+        self.assertGreater(
+            work_low_relationship.total_score,
+            ancillary_high_relationship.total_score,
+        )
+        self.assertGreater(school_one_signal.total_score, investor_max_signals.total_score)
 
     def test_confirmed_direct_intro_carries_target_metadata_and_evidence(self):
         score = score_warm_path(
@@ -610,6 +729,19 @@ class LegacyCliTests(unittest.TestCase):
 
 
 class LegacyScorerCompatibilityTests(unittest.TestCase):
+    def test_verified_employer_normalizer_preserves_meaningful_company_tokens(self):
+        _, _, scorer_module = load_legacy_lookup()
+        scorer = scorer_module.WarmIntroScorer()
+
+        for token in ("AI", "IO", "Net", "Org", "Com"):
+            with self.subTest(token=token):
+                canonical = scorer.normalize_employer_identity(f"Scale {token}, Inc.")
+                self.assertEqual(canonical, f"scale {token.casefold()}")
+                self.assertNotEqual(
+                    canonical,
+                    scorer.normalize_employer_identity("Scale L.L.C."),
+                )
+
     def test_target_scorer_direct_intro_outranks_all_combined_lower_tiers(self):
         _, models, scorer_module = load_legacy_lookup()
         connector = models.Contact(
@@ -742,7 +874,7 @@ class LegacyScorerCompatibilityTests(unittest.TestCase):
             ("connector-role", "relationship-1", "target-role"),
         )
 
-    def test_fuzzy_employer_match_is_proximity_not_verified_overlap(self):
+    def test_fuzzy_employer_matches_are_proximity_not_verified_overlap(self):
         _, models, scorer_module = load_legacy_lookup()
         connector = models.Contact(
             "connector",
@@ -751,43 +883,52 @@ class LegacyScorerCompatibilityTests(unittest.TestCase):
             "linkedin.com/in/casey",
             current_company="Relay Cloud",
         )
-        target = models.Contact(
-            "target",
-            "Taylor",
-            "Kim",
-            "linkedin.com/in/taylor",
-            current_company="Acme Security",
-        )
-
-        match = scorer_module.WarmIntroScorer().score_target_connector(
-            connector=connector,
-            connector_experiences=[
-                models.Experience(
-                    "connector-acme",
-                    connector.id,
-                    "Acme",
-                    start_date=date(2021, 1, 1),
-                    end_date=date(2024, 1, 1),
+        for connector_company, target_company in (
+            ("Acme", "Acme Security"),
+            ("Scale", "Scale AI"),
+        ):
+            with self.subTest(
+                connector_company=connector_company,
+                target_company=target_company,
+            ):
+                target = models.Contact(
+                    "target",
+                    "Taylor",
+                    "Kim",
+                    "linkedin.com/in/taylor",
+                    current_company=target_company,
                 )
-            ],
-            target=target,
-            target_experiences=[
-                models.Experience(
-                    "target-acme-security",
-                    target.id,
-                    "Acme Security",
-                    start_date=date(2022, 1, 1),
-                    end_date=date(2023, 1, 1),
+                match = scorer_module.WarmIntroScorer().score_target_connector(
+                    connector=connector,
+                    connector_experiences=[
+                        models.Experience(
+                            "connector-role",
+                            connector.id,
+                            connector_company,
+                            start_date=date(2021, 1, 1),
+                            end_date=date(2024, 1, 1),
+                        )
+                    ],
+                    target=target,
+                    target_experiences=[
+                        models.Experience(
+                            "target-role",
+                            target.id,
+                            target_company,
+                            start_date=date(2022, 1, 1),
+                            end_date=date(2023, 1, 1),
+                        )
+                    ],
+                    relationship_confidence="high",
+                    as_of=date(2026, 8, 12),
                 )
-            ],
-            relationship_confidence="high",
-            as_of=date(2026, 8, 12),
-        )
 
-        self.assertEqual(match.work_overlap_score, 0)
-        self.assertEqual(match.shared_signal, "company_proximity")
-        self.assertEqual(match.segment, "review_warm_intro")
-        self.assertFalse(any("verified_work_overlap" in reason for reason in match.reasons))
+                self.assertEqual(match.work_overlap_score, 0)
+                self.assertEqual(match.shared_signal, "company_proximity")
+                self.assertEqual(match.segment, "review_warm_intro")
+                self.assertFalse(
+                    any("verified_work_overlap" in reason for reason in match.reasons)
+                )
 
 
 if __name__ == "__main__":
