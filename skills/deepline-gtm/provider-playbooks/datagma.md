@@ -104,6 +104,10 @@ Best inputs:
 
 - `currentJobTitle`
 - plus one of `linkedinId`, `domain`, or `currentCompanies`
+- add `countries` when known to improve relevance
+
+The action retains the documented contract while Deepline translates it to
+Datagma's current employee-finding endpoint.
 
 ### `datagma_search_phone_numbers`
 
