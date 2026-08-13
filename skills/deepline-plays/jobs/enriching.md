@@ -80,12 +80,16 @@ Inside a play, tool results serialize like `deepline tools execute --json`: exec
 For enrichment with uncertain coverage, follow `../SKILL.md`:
 
 1. Put viable routes, including the cheapest prebuilt, into one task-authored
-   Play using the shared `createRouteExperiment` helper.
-2. Fuse and judge retrieved candidates before field verification.
-3. Compare relevant top-k yield, unique contribution, identifier/evidence
-   richness, novelty, reliability, and marginal Deepline credits.
-4. Build the production waterfall from the complementary route portfolio, then
-   apply the field-specific validators required for delivery.
+   Play with `research-experiment.ts` claim contracts and
+   `research-portfolio.ts` action cards.
+2. Bind raw evidence and verify each candidate field before it can close a
+   claim. A retrieved person or URL is a lead, not a filled field.
+3. Compare verified coverage, required-row completeness, independent evidence
+   contribution, failures, and marginal Deepline credits on the same golden
+   rows.
+4. Build the production waterfall from the measured portfolio, re-planning
+   after every action and applying the field-specific validators required for
+   delivery.
 
 This comparison is intentionally parallel. Starting with one cheap provider
 and scaling it before the bake-off turns that provider's private coverage
@@ -130,10 +134,11 @@ const research = await ctx.tools.execute({
 });
 ```
 
-Scoring and qualification are native. Use the route experiment's bounded
-`ai_inference` judge for retrieval relevance, then apply delivery fact gates;
-the judge cannot rescue a deterministic mismatch. There is no
-`deepline_native` scoring action.
+Scoring and qualification are claim-contract decisions. A bounded AI step may
+prioritize an already retrieved lead shortlist, but it cannot verify a fact,
+complete a row, or override a deterministic evidence gate. Record its output
+as source-bound supplemental evidence and let `research-experiment.ts` decide
+whether the claim passes.
 
 - **Person vs ICP → tier:** run the prebuilt `prebuilt/engagers-to-icp-qualification`. Its output is `{ icp_tier: 'tier1' | 'tier2' | 'tier3', icp_reason }`: a structured tier plus a one-sentence reason, exactly the ICP-engagement classification a list of reactors needs.
 - **Anything else** (account/company fit, a custom lead score, a ranking): call `deeplineagent` with a constrained `jsonSchema` (the block above), or `enrich --with '{"tool":"deeplineagent","payload":{"prompt":...,"jsonSchema":...}}'`. Use an enum for a tier plus a `reason` field, grounded only on the provided context.

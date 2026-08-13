@@ -120,6 +120,23 @@
       "providers": [
         "contactout"
       ]
+    },
+    "plays/enrich-audience-waterfall.play.ts": {
+      "kind": "example",
+      "title": "Enrich audience waterfall play",
+      "tags": [
+        "play",
+        "audience",
+        "hashing",
+        "waterfall",
+        "enrichment"
+      ],
+      "providers": [
+        "aviato",
+        "limadata",
+        "leadmagic",
+        "contactout"
+      ]
     }
   },
   "prefixes": {

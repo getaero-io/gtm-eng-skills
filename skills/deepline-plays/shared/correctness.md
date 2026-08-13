@@ -109,27 +109,29 @@ Provider order is a measured, marginal decision, not vendor folklore. Measure al
 
 For phones, validity is read off the golden set, never asserted: mobile/direct coverage on a cold B2B list commonly measures 40-60%, and a route claiming 90% is usually counting switchboard numbers a dialer can't use. Gate with two thresholds — a soft coverage floor and a hard near-zero wrong-number rate, because a wrong number burns a rep's call and the account, so it is worse than a miss. Truth includes line-type and activity, so a returned-but-dead number is a miss: run the validity gate as a third dataset stage with its own key, flipping a digit-match hit to a miss on a bad verdict, before trusting any dialing list.
 
-### Use the one route experiment helper
+### Use the two research kernels
 
-Import `plays/shared/route-experiment.ts` from one task-authored Play. Each route
-is ordinary TypeScript: literal tool calls, real response adapters, and a
-ranked `RetrievedItemInput[]`. The helper owns parallel fanout, normalized
-outcomes, stable item keys, global weighted RRF, the bounded
-`createAiInferenceJudge()` call, route scorecards, selection, datasets, and
-atomic exploit. The default judge is `openai/gpt-5.6-luna` with low reasoning
-effort and remains configurable. Do not build a second engine.
+For any task where evidence, provider choice, cost, or the next action depends
+on prior results, the task-authored Play uses both portable kernels:
+`research-experiment.ts` owns claim contracts, source binding, completeness,
+and promotion; `research-portfolio.ts` owns the contextual budgeted action
+selection. The agent authors literal providers, queries, adapters, mapping,
+and acceptance gates. The kernel never chooses a provider or turns a ranking
+into a customer fact.
 
-Provider errors remain `auth-failed`, `rate-limited`, `timeout`, `schema-drift`,
-`unreachable`, or `error`; they never become zero coverage. A successful empty
-response is `no-results`. The same output contract works for people, companies,
-products, signals, and research because extraction is route metadata and task
-fit is a task object, not a noun-specific strategy.
+Compare routes with the same golden rows and the same claim contract. Record
+verified coverage, incomplete rows, evidence-policy failures, current-row
+Deepline credits, and duration. Replan one action at a time in the live pilot;
+the result of an action changes the remaining claims, admissible artifacts, and
+the expected value of every next action. A successful empty response is a
+`no_result`; an adapter or policy failure is not zero coverage and must stop or
+restart the current row attempt without changing the source-yield posterior.
 
-The shape comes from Last30Days: routes are ranked streams, retrieved items are
-normalized evidence objects, failures are stream-local, raw RRF is global, and
-one batched judge reranks a bounded pool. The selected route IDs bind back to
-the same authored Play for exploit. Tests live in
-`tests/lib/plays/route-experiment.test.ts`.
+`plays/shared/route-experiment.ts` remains a compatibility helper for a narrow,
+fixed retrieval-ranking problem. It is not the default research controller, and
+its RRF or optional AI judge may prioritize a bounded lead shortlist only. It
+cannot verify a claim, select a customer row, or replace the two-kernel
+evidence and promotion contract.
 
 ## Where checks live, and when to stop
 

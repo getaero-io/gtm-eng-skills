@@ -46,7 +46,9 @@ This skill is not for cold outbound, sequencing, or copywriting. Personal emails
 | "use ContactOut hashes", "hashed identifiers", "LinkedIn URLs to hashes" | Plan a bulk pass beside the ladder, not a waterfall step.       | `shared/contactout-hash-pool.md`                          |
 | "what is a hash", "why is my match rate low", first-time user          | Explain the mechanic before quoting a plan.                      | `shared/audience-basics.md`                               |
 | "Make sure hashes are not double hashed"                              | Run the no-double-hash audit play before upload.                 | `plays/audit-no-double-hash.play.ts`                      |
-| "Compare enriched versus unenriched"                                  | Build both hash-only datasets and report lift.                   | `plays/build-hash-only-audience.play.ts`                  |
+| "enrich this list", "buy personal emails/hashes", "run the ladder"     | Run the waterfall. Each layer only sees rows still missing a hash. | `plays/enrich-audience-waterfall.play.ts`                 |
+| "Compare enriched versus unenriched"                                  | Build both hash-only datasets and report lift.                   | `plays/enrich-audience-waterfall.play.ts`                 | Run the personal-identifier ladder as a true waterfall: each layer only sees rows still missing a hash, and ContactOut runs as a bulk pass beside it. Reports attempted, hits, and skipped per layer. | `{ "file": "contacts.csv", "includeContactOut": true, "includeRawEmailFallback": false }`                                                                                  |
+| `plays/build-hash-only-audience.play.ts`                  |
 | "Upload to Google"                                                    | Validate hash-only rows, create Google audience, sync, readback. | `plays/upload-google-hash-only-audience.play.ts`          |
 | "Upload to Facebook and Google", "upload to FB/Google", "Meta + GAds" | Validate once, then upload to Google and Meta.                   | `plays/upload-facebook-google-hash-only-audience.play.ts` |
 
@@ -190,6 +192,8 @@ Create two separate objects when evaluating lift:
 
 - `unenriched`: first-party source identifiers only, usually work email plus name, company, country, postal code, and LinkedIn URL context.
 - `enriched`: source identifiers plus paid-ads-safe enrichment. Prefer hashed personal email providers first, then raw personal-email providers that can be normalized and hashed locally.
+
+Run this as a waterfall, not a fan-out. Every layer below runs only on rows that still have no usable hash. Sending the same row to several providers costs several times over for one identifier, and it hides: every call returns 200, so the run reads as healthy while the bill multiplies. `plays/enrich-audience-waterfall.play.ts` enforces the skipping and reports attempted, hits, and skipped per layer, so a fan-out is visible in the output.
 
 Default personal-email waterfall for B2B paid ads:
 
