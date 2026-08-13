@@ -1,6 +1,7 @@
 ---
 name: deepline-plays
-description: 'Design and run a custom Deepline GTM Play when an outcome needs live providers, public web evidence, private data, a waterfall, or adaptive strategy selection. Trigger for company or people discovery, enrichment, research, contact workflows, SERP-to-extraction, provider comparison, or any GTM request whose route is unproven. Skip a simple request to run one named existing Play.'
+description: 'Design and run custom adaptive Deepline GTM Plays.'
+disable-model-invocation: true
 ---
 
 # Deepline Plays
