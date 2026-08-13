@@ -51,20 +51,45 @@ compare a returned number with a supplied number as a text string.
 A phone number that a caller supplies has the source `uploaded_by_user`. A
 phone number record also contains `kind` and `uploaded_id`.
 
-## Disabled actions
+## Actions that spend Amplemarket credits
 
-Deepline disables 9 actions. Each disabled action returns HTTP 403 with the
-code `INTEGRATION_PREREQUISITE_REQUIRED`. Deepline refuses the action before it
-calls the provider. A disabled action consumes no credits.
+Deepline charges no credits for any Amplemarket action. The API is included
+with the customer's Amplemarket subscription and the key is customer-owned.
 
-Deepline disables these 5 actions because it does not have the exact purchased
-USD rates for EMAIL_CREDITS and PHONE_CREDITS:
+These 5 actions spend the caller's own Amplemarket credit balance:
 
-- `amplemarket_post_email_validations`
 - `amplemarket_post_people_enrichment_requests`
 - `amplemarket_get_people_find`
+- `amplemarket_post_email_validations`
 - `amplemarket_post_lead_lists`
 - `amplemarket_post_lead_lists_id_leads`
+
+Amplemarket documents person enrichment and person find as spending 0.5 or 1
+email credit and 1 phone credit. Amplemarket does not publish which of its two
+email-credit amounts applies to a given call. Amplemarket documents email
+validation as spending 1 email credit per address. Lead-list creation and
+lead-list add inherit enrichment, validation, and reveal settings from the lead
+list, so they can spend credits; Amplemarket deducts that spend from the admin
+user of the account rather than the key owner.
+
+Tell the user which of their own credits a run will spend before you start a
+large batch. Amplemarket publishes no credit-balance endpoint, so neither
+Deepline nor an agent can read a remaining balance first: the live OpenAPI
+document has no balance, quota, or usage path, and `GET /account-info` returns
+only `id` and `name`. Amplemarket rejects a call with an `insufficient_credits`
+error once the balance runs out, so treat that error as an exhausted balance
+rather than a malformed request.
+
+Company enrichment polling, company find, sequence enrollment, and
+enrichment/validation result retrieval are not separately credit-consuming in
+the official documentation. Company data returned alongside a person enrichment
+arrives with that person call rather than as a separate charge.
+
+## Disabled actions
+
+Deepline disables 4 actions. Each disabled action returns HTTP 403 with the
+code `INTEGRATION_PREREQUISITE_REQUIRED`. Deepline refuses the action before it
+calls the provider. A disabled action consumes no credits.
 
 Deepline disables these 4 actions because the official OpenAPI document has no
 2xx JSON response example:
