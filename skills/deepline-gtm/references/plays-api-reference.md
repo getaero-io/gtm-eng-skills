@@ -468,6 +468,7 @@ Either `name` (for live plays) or `artifactStorageKey` (for packaged ad hoc runs
 | `integrationMode` | `'live' \| 'eval_stub' \| 'fixture'` | No | Optional per-run provider execution mode for eval/smoke runs. |
 | `fixtureBehavior` | `import('../../shared_libs/play-runtime/fixture-behavior').FixtureBehavior` | No | Fixture-only provider response timing and outcome simulation. |
 | `runtime` | `PlayRuntimeSelection` | No | Internal runtime estate selection. The app host remains unchanged. |
+| `runtimeAlgorithmProfile` | `RuntimeAlgorithmProfileSelection` | No | Internal launch-pinned runtime composition. This is accepted with an<br />authenticated typed runtime selection, or for a synthetic non-production<br />test run against the app-native runtime. Normal customer launches always<br />use the immutable production default. |
 | `testPolicyOverrides` | `Record<string, unknown>` | No | Internal/dev-only runtime policy overrides for black-box durability tests. |
 
 
