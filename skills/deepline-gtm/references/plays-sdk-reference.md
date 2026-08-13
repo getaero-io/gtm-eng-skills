@@ -247,6 +247,10 @@ New artifacts pin authoring contract edition 3. Check, publish, and run use the 
 | `bindings.webhook.hmac.secretEnv` | `string` | Yes | Environment variable containing the webhook HMAC secret. |
 | `bindings.webhook.hmac.algorithm` | `'sha256'` | No | Webhook signature hash algorithm. Only sha256 is supported. |
 | `bindings.webhook.hmac.header` | `string` | No | HTTP header containing the webhook signature. |
+| `bindings.webhook.auth.type` | `'standard-webhooks'` | No | Uses the Standard Webhooks v1 symmetric signing scheme. |
+| `bindings.webhook.auth.headerFamily` | `'standard' \| 'svix'` | No | Header namespace expected from the webhook provider. |
+| `bindings.webhook.auth.signingSecrets[]` | `string` | No | Deepline Secret name used to verify Standard Webhooks. |
+| `bindings.webhook.auth.toleranceSeconds` | `number` | No | Accepted delivery timestamp skew in seconds, from 1 through 3600. |
 | `bindings.cron.schedule` | `string` | Yes | Five-field cron expression. |
 | `bindings.cron.timezone` | `string` | No | IANA timezone. Omitted means UTC. |
 | `bindings.sqlListeners` | `SqlListener[]` | No | Static provider-monitor listener declarations. |
@@ -414,7 +418,8 @@ Optional trigger bindings for a play.
 
 A play can be triggered three ways, declared as the third argument to
 [definePlay](/sdk-v2/sdk-reference#defineplay):
-- `webhook` — an inbound HTTP call (with optional HMAC signature verification);
+- `webhook` — an inbound HTTP call (with optional legacy HMAC or Standard
+  Webhooks signature verification);
 - `cron` — a schedule; or
 - `sqlListeners` — a **monitor**: the play runs whenever a monitor writes a new
   row to its output stream. This is how you build a play "on top of" a monitor
