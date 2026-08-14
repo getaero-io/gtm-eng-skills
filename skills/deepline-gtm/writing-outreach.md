@@ -316,15 +316,17 @@ deepline csv show --csv leads.csv --format table --rows 0:10
 deepline csv show --csv leads.csv --summary
 ```
 
-### Re-run a playground block
+### Re-run a column
+
+`deepline csv` is local inspection only. To recompute a column, re-run the enrich pass that produced it, reusing the same `--name` so unchanged rows come from the durable cache:
 
 ```bash
-deepline csv --execute_cells --csv leads.csv --rows 0:10 --cols 9:9 --wait
+deepline enrich --input leads.csv --in-place --name <same-name-as-before> \
+  --with '{"alias":"<column>","tool":"<tool_id>","payload":{...}}' \
+  --with-force <column> --rows 0:10
 ```
 
-- `--cols` is the column index range to re-run (`N:N` for one column).
-- Keep `--rows` explicit.
-- Use `--wait` when you need completion before the next command.
+`--with-force` re-runs only the named aliases; `--force` re-runs every alias.
 
 ### CLI-only debug posture
 

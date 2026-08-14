@@ -193,7 +193,7 @@ function classifyCommand(command) {
     return 'tools_execute';
   if (/\b(deepline|dl)\s+tools\s+(search|list)\b/.test(command))
     return 'tools_search';
-  if (/\b(deepline|dl)\s+csv\s+--execute_cells\b/.test(command)) return 'csv';
+  if (/\b(deepline|dl)\s+csv\s+(show|render)\b/.test(command)) return 'csv';
   return 'running';
 }
 
@@ -212,7 +212,7 @@ function shouldUseCachedBackendOnly(command) {
   if (!command) return false;
   return (
     /\b(deepline|dl)\s+csv\s+render\b/.test(command) ||
-    /\b(deepline|dl)\s+csv\s+--execute_cells\b/.test(command)
+    /\b(deepline|dl)\s+enrich\b/.test(command)
   );
 }
 

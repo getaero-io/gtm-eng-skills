@@ -124,20 +124,20 @@ Use `deepline plays` for the bundled templates. If `deepline plays` is unavailab
 Recommended sequence:
 
 ```bash
-deepline plays check .skills/deepline-ads-audiences/plays/build-hash-only-audience.play.ts
-deepline plays run --file .skills/deepline-ads-audiences/plays/build-hash-only-audience.play.ts --input '{"file":"source.csv"}' --watch
+deepline plays check ./plays/build-hash-only-audience.play.ts
+deepline plays run --file ./plays/build-hash-only-audience.play.ts --input '{"file":"source.csv"}' --watch
 
-deepline plays check .skills/deepline-ads-audiences/plays/audit-no-double-hash.play.ts
-deepline plays run --file .skills/deepline-ads-audiences/plays/audit-no-double-hash.play.ts --input '{"payloadFile":"enriched_hash_only.csv","providerHashFile":"provider_hashes.csv","providerHashColumns":["aviato_hash","limadata_hash"]}' --watch
+deepline plays check ./plays/audit-no-double-hash.play.ts
+deepline plays run --file ./plays/audit-no-double-hash.play.ts --input '{"payloadFile":"enriched_hash_only.csv","providerHashFile":"provider_hashes.csv","providerHashColumns":["aviato_hash","limadata_hash"]}' --watch
 
-deepline plays check .skills/deepline-ads-audiences/plays/upload-google-hash-only-audience.play.ts
-deepline plays run --file .skills/deepline-ads-audiences/plays/upload-google-hash-only-audience.play.ts --input '{"file":"enriched_hash_only.csv","account_id":"1234567890","audience_name":"ABM enriched hash-only 2026-06-09"}' --watch
+deepline plays check ./plays/upload-google-hash-only-audience.play.ts
+deepline plays run --file ./plays/upload-google-hash-only-audience.play.ts --input '{"file":"enriched_hash_only.csv","account_id":"1234567890","audience_name":"ABM enriched hash-only 2026-06-09"}' --watch
 
-deepline plays check .skills/deepline-ads-audiences/plays/upload-facebook-google-hash-only-audience.play.ts
-deepline plays run --file .skills/deepline-ads-audiences/plays/upload-facebook-google-hash-only-audience.play.ts --input '{"file":"enriched_hash_only.csv","audience_name":"ABM enriched hash-only 2026-06-09","google_account_id":"1234567890","meta_ad_account_id":"act_123","meta_audience_id":"456"}' --watch
+deepline plays check ./plays/upload-facebook-google-hash-only-audience.play.ts
+deepline plays run --file ./plays/upload-facebook-google-hash-only-audience.play.ts --input '{"file":"enriched_hash_only.csv","audience_name":"ABM enriched hash-only 2026-06-09","google_account_id":"1234567890","meta_ad_account_id":"act_123","meta_audience_id":"456"}' --watch
 
-deepline plays check .skills/deepline-ads-audiences/plays/report-google-coverage-lift.play.ts
-deepline plays run --file .skills/deepline-ads-audiences/plays/report-google-coverage-lift.play.ts --input '{"account_name":"Customer Google Ads","account_id":"1234567890","segment_name":"High-priority target-account audience","source_rows":20000,"baseline":{"label":"L1 work hash-only","audience_id":"1111111111","match_rate_pct":23,"uploaded_rows":13935},"comparisons":[{"label":"L2 Lima+Aviato hash-only","audience_id":"2222222222","match_rate_pct":35,"uploaded_rows":18386,"deepline_spend_usd":51.47},{"label":"L3 all hashes only","audience_id":"3333333333","match_rate_pct":43,"uploaded_rows":24787},{"label":"L4 all hashes + details","audience_id":"4444444444","match_rate_pct":42,"uploaded_rows":24787},{"label":"L5 LeadMagic top100 fallback","audience_id":"5555555555","match_rate_pct":44,"uploaded_rows":17016},{"label":"L6 GTM LinkedIn + Lima/Aviato","audience_id":"6666666666","match_rate_pct":45,"uploaded_rows":17064}],"spend":{"low_cost_hash_usd":51.47,"contact_fallback_usd":218.37,"total_usd":269.84},"recommendation_label":"L6 GTM LinkedIn + Lima/Aviato"}' --watch
+deepline plays check ./plays/report-google-coverage-lift.play.ts
+deepline plays run --file ./plays/report-google-coverage-lift.play.ts --input '{"account_name":"Customer Google Ads","account_id":"1234567890","segment_name":"High-priority target-account audience","source_rows":20000,"baseline":{"label":"L1 work hash-only","audience_id":"1111111111","match_rate_pct":23,"uploaded_rows":13935},"comparisons":[{"label":"L2 Lima+Aviato hash-only","audience_id":"2222222222","match_rate_pct":35,"uploaded_rows":18386,"deepline_spend_usd":51.47},{"label":"L3 all hashes only","audience_id":"3333333333","match_rate_pct":43,"uploaded_rows":24787},{"label":"L4 all hashes + details","audience_id":"4444444444","match_rate_pct":42,"uploaded_rows":24787},{"label":"L5 LeadMagic top100 fallback","audience_id":"5555555555","match_rate_pct":44,"uploaded_rows":17016},{"label":"L6 GTM LinkedIn + Lima/Aviato","audience_id":"6666666666","match_rate_pct":45,"uploaded_rows":17064}],"spend":{"low_cost_hash_usd":51.47,"contact_fallback_usd":218.37,"total_usd":269.84},"recommendation_label":"L6 GTM LinkedIn + Lima/Aviato"}' --watch
 ```
 
 Export dataset outputs after a run with:

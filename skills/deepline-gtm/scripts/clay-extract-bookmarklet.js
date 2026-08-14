@@ -1,8 +1,13 @@
 /*
  * Clay Table Extractor — Bookmarklet (source)
  *
- * Run this on any Clay table view URL, e.g.
+ * Run this on a Clay table view URL, e.g.
  *   https://app.clay.com/workspaces/1114258/tables/t_xxx/views/gv_xxx
+ * or on a workbook URL, e.g.
+ *   https://app.clay.com/workspaces/941989/workbooks/wb_xxx
+ * On a workbook it enumerates every child table via
+ *   GET /v3/workbooks/{WORKBOOK_ID}/tables
+ * and extracts each one, emitting { _meta, workbook, tables: [ <extract>, ... ] }.
  *
  * It uses the already-authenticated browser session (credentials: 'include',
  * so the claysession cookie is sent automatically) to pull, from Clay's
@@ -32,10 +37,15 @@
 
   const path = location.pathname;
   const tableId = (path.match(/\/tables\/(t_[A-Za-z0-9]+)/) || [])[1];
-  let viewId = (path.match(/\/views\/(gv_[A-Za-z0-9]+)/) || [])[1];
+  const workbookId = (path.match(/\/workbooks\/(wb_[A-Za-z0-9]+)/) || [])[1];
+  const urlViewId = (path.match(/\/views\/(gv_[A-Za-z0-9]+)/) || [])[1];
 
-  if (!tableId) {
-    alert('Clay extract: no table id in URL. Open a /tables/t_... page first.');
+  if (!tableId && !workbookId) {
+    alert(
+      'Clay extract: no table or workbook id in this URL.\n\n' +
+        'Open a table view (/tables/t_.../views/gv_...) or a workbook ' +
+        '(/workbooks/wb_...) and run this again.',
+    );
     return;
   }
 
@@ -64,17 +74,19 @@
     return r.json();
   };
 
-  try {
-    toast('fetching table config…');
+  // Extract one table. `label` prefixes toasts so workbook runs show progress.
+  const extractTable = async (tableId, preferredViewId, label) => {
+    const tag = label ? label + ' ' : '';
+    toast(tag + 'fetching table config…');
     const table = await getJSON(API + '/v3/tables/' + tableId);
 
     // Resolve view id from the table if it wasn't in the URL.
-    viewId = viewId || table?.table?.firstViewId || table?.firstViewId;
+    const viewId = preferredViewId || table?.table?.firstViewId || table?.firstViewId;
     if (!viewId) throw new Error('could not resolve a view id (firstViewId missing)');
 
     // table-schema-v2 returns { tableSchema: { f_xxx: {...} }, exampleRecords: [ { f_xxx: <rendered value> } ] }
     // exampleRecords here carry RENDERED formula/action cell values (richest source) — capped by Clay (~2-66 rows).
-    toast('fetching schema + sample records…');
+    toast(tag + 'fetching schema + sample records…');
     let schemaTree = null;
     let exampleRecords = [];
     try {
@@ -96,7 +108,7 @@
       console.warn('[clay-extract] count failed:', e.message);
     }
 
-    toast('fetching record ids…');
+    toast(tag + 'fetching record ids…');
     let recordIds = [];
     try {
       const ids = await getJSON(
@@ -113,7 +125,7 @@
     const bulkFetchRecords = [];
     for (let i = 0; i < idsToFetch.length; i += BATCH) {
       const chunk = idsToFetch.slice(i, i + BATCH);
-      toast('records ' + (i + chunk.length) + '/' + idsToFetch.length + '…');
+      toast(tag + 'records ' + (i + chunk.length) + '/' + idsToFetch.length + '…');
       try {
         const res = await getJSON(API + '/v3/tables/' + tableId + '/bulk-fetch-records', {
           method: 'POST',
@@ -160,31 +172,94 @@
       bulkFetchRecords,
     };
 
-    const name =
-      (extract.table?.name || tableId).replace(/[^A-Za-z0-9_-]+/g, '_').slice(0, 60);
-    const blob = new Blob([JSON.stringify(extract, null, 2)], { type: 'application/json' });
+    return extract;
+  };
+
+  const slug = (s, fallback) =>
+    String(s || fallback).replace(/[^A-Za-z0-9_-]+/g, '_').slice(0, 60);
+
+  const download = (payload, filename) => {
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'clay_extract_' + name + '.json';
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  };
 
-    window.__clayExtract = extract; // also left on window for console inspection
-    toast(
-      'done: ' +
-        (extract.fields?.length || 0) +
-        ' fields, ' +
-        exampleRecords.length +
-        ' sample rows, ' +
-        bulkFetchRecords.length +
-        '/' +
-        (totalRecordCount ?? recordIds.length) +
-        ' records' +
-        (truncated ? ' (CAPPED)' : '') +
-        '. Downloaded JSON.',
-    );
+  try {
+    if (workbookId && !tableId) {
+      // Workbook URL: enumerate child tables and extract each one.
+      toast('fetching workbook tables…');
+      const wbTables = await getJSON(API + '/v3/workbooks/' + workbookId + '/tables');
+      const list = Array.isArray(wbTables)
+        ? wbTables
+        : wbTables?.results || wbTables?.tables || [];
+      if (!list.length) throw new Error('workbook returned no tables');
+
+      const tables = [];
+      const failures = [];
+      for (let i = 0; i < list.length; i++) {
+        const t = list[i];
+        const label = '[' + (i + 1) + '/' + list.length + ']';
+        try {
+          const one = await extractTable(t.id, null, label);
+          one._meta.workbookId = workbookId;
+          one._meta.tableName = t.name || null;
+          tables.push(one);
+        } catch (e) {
+          console.warn('[clay-extract] table ' + t.id + ' failed:', e.message);
+          failures.push({ tableId: t.id, name: t.name || null, error: e.message });
+        }
+      }
+
+      const payload = {
+        _meta: {
+          extractedAt: new Date().toISOString(),
+          method: 'bookmarklet',
+          scope: 'workbook',
+          workbookId,
+          url: location.href,
+          tableCount: tables.length,
+          failedCount: failures.length,
+        },
+        workbook: { id: workbookId, tables: list.map((t) => ({ id: t.id, name: t.name })) },
+        failures,
+        // One entry per child table, each the same shape a single-table extract produces.
+        tables,
+      };
+
+      download(payload, 'clay_extract_workbook_' + slug(workbookId) + '.json');
+      window.__clayExtract = payload;
+      toast(
+        'done: ' +
+          tables.length +
+          '/' +
+          list.length +
+          ' tables' +
+          (failures.length ? ' (' + failures.length + ' failed)' : '') +
+          '. Downloaded JSON.',
+      );
+    } else {
+      const extract = await extractTable(tableId, urlViewId, '');
+      download(extract, 'clay_extract_' + slug(extract.table?.name, tableId) + '.json');
+      window.__clayExtract = extract;
+      toast(
+        'done: ' +
+          (extract.fields?.length || 0) +
+          ' fields, ' +
+          extract.exampleRecords.length +
+          ' sample rows, ' +
+          extract.bulkFetchRecords.length +
+          '/' +
+          (extract._meta.totalRecordCount ?? extract.recordIds.length) +
+          ' records' +
+          (extract._meta.truncated ? ' (CAPPED)' : '') +
+          '. Downloaded JSON.',
+      );
+    }
     setTimeout(() => document.getElementById('__clay_extract_toast')?.remove(), 6000);
   } catch (err) {
     console.error('[clay-extract]', err);

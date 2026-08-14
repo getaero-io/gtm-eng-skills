@@ -23,6 +23,8 @@ For custom play migrations, **Extraction and Documentation still apply** — the
 
 If you need to extract from Clay (no extract JSON provided), read [clay-extraction.md](../references/clay-extraction.md) for MCP and script-based extraction paths, API endpoints, config structure, and input data formats.
 
+The full observed Clay internal API - every endpoint, plus how to pull the 1398-action catalog with input/output schemas - is in [clay-api-surface.md](../references/clay-api-surface.md). Go there when an `actionKey` is not covered by the mapping table, when you need a table's source filter criteria, or when you want a workbook's real dependency graph instead of deriving one.
+
 If the user already provided an extract JSON or Clay export, skip to §2.
 
 ---
@@ -115,7 +117,9 @@ Answer these **before writing scripts** based on what Phase 1 revealed. Only ans
 
 **Table type (check all that apply):**
 
-- [ ] Has person enrichment columns → verify with `deepline tools search "person enrichment linkedin"`
+- [ ] **Has a provider waterfall** (several finders of the same kind chained by `conditionalRunFormulaText`) → ONE Deepline waterfall play, not one pass per provider
+- [ ] Has phone columns → use `prebuilt/person-to-phone`; confirm the input contract, it needs name + domain while many Clay finders take only a LinkedIn URL
+- [ ] Has person enrichment columns → verify with `deepline tools search "person enrichment linkedin"`. Check `inputsBinding` first: a column keyed `enrich-person` is often wired as a phone or email finder
 - [ ] Has email finding columns → use `name-and-domain-to-email-waterfall` as primary play
 - [ ] Has AI generation columns (use-ai, claygent, octave) → recover prompts verbatim (§2.5)
 - [ ] Has scoring/qualification columns → use ICP criteria verbatim from Clay config
@@ -177,67 +181,47 @@ clay_curl() {
 
 ### Execution Ordering
 
-The `--with` flag only **declares** a column's schema. The column value is empty until executed via `--execute_cells`.
+`deepline enrich` compiles your `--with` specs into a single V2 play and runs them in one pass. Columns execute in the order you declare them, and each `--with` can read any earlier alias via `{{alias}}`. There is no separate execute step.
 
-**Staged pattern:**
+Inspect the compiled play before spending credits:
 
-```
-Stage 1:  Declare all independent columns (--output)
-Stage 2:  Execute run_javascript columns first — local, free, fast
-Stage 3:  Declare validation/AI columns that reference JS output (--in-place)
-Stage 4:  Execute paid/API columns + validation columns
-Stage 5:  Declare merge column (--in-place)
-Stage 6:  Execute merge column
-Stage 7:  Export
+```bash
+deepline enrich --input seed.csv --output work.csv --name clay-<table> \
+  --with '{"alias":"fields","tool":"run_javascript","payload":{"code":"@$WORKDIR/flatten.js"}}' \
+  --with '{"alias":"job_function","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Classify: {{fields.title}}"}}' \
+  --dry-run
 ```
 
-### Column Index Tracking
+`--dry-run` prints the generated `definePlay(...)` source without starting a run. The body reads your CSV with `ctx.csv(...)`, then chains one `.withColumn(alias, ...)` per `--with` and finishes with `.run({ key })`. Read that output to confirm ordering and interpolation before dropping `--dry-run`.
 
-Indices assigned in declaration order, 0-indexed. Track explicitly in comments:
+Order the `--with` flags cheapest-first: `run_javascript` transforms before paid provider calls, so a local derivation is available to the columns that depend on it.
 
-| Index range         | Source                    |
-| ------------------- | ------------------------- |
-| 0 … (seed cols - 1) | Seed CSV columns          |
-| seed_count          | First `--with` column     |
-| last_declared + 1   | First `--in-place` column |
+### Referencing Columns
+
+Reference columns by alias, never by index. `{{alias}}` resolves to a prior `--with` alias or a seed CSV header; there are no positional column arguments in the current CLI.
+
+Interpolation walks the full path: `{{fields.title}}`, `{{fields.company.name}}`, and array indices like `{{li_serper.organic[0].link}}` all resolve. A path that does not exist renders empty rather than erroring, so check a sample row when a value comes back blank.
 
 ### Waiting Strategy
 
+`deepline enrich` blocks until the run reaches a terminal state and writes the output CSV before returning - no polling needed. To inspect fill rates afterward, `deepline csv show --csv work.csv --format json --summary` returns `columnStats` at the **top level** of the JSON (alongside `total_rows`), not nested under `_metadata`.
+
+### Running A Subset Of Rows
+
+`--rows` takes a zero-based inclusive range; `--all` runs everything.
+
 ```bash
-MAX_WAIT=900; ELAPSED=0
-while [ $ELAPSED -lt $MAX_WAIT ]; do
-  sleep 30; ELAPSED=$((ELAPSED + 30))
-  EMPTY=$(deepline csv show --csv work.csv --format json --summary | python3 -c "
-import json, sys
-d = json.load(sys.stdin)
-stats = d.get('_metadata', {}).get('__summary', {}).get('columnStats', {})
-total_empty = sum(
-  int(s.get('non_empty','0/0').split('/')[1].split()[0]) - int(s.get('non_empty','0/0').split('/')[0])
-  for col, s in stats.items() if col in {'workemailprimary','validfln','jobfunction'}
-)
-print(total_empty)" 2>/dev/null || echo "0")
-  echo "${ELAPSED}s elapsed, ~${EMPTY} cells remaining"
-  [ "$EMPTY" = "0" ] && break
-done
+deepline enrich --input seed.csv --output work.csv --name clay-<table> --with '...' --rows 0:3
+deepline enrich --input seed.csv --output work.csv --name clay-<table> --with '...' --all
 ```
 
-For `run_javascript`-only columns: `sleep 15` is sufficient.
+To skip rows a cheaper pass already answered, use `run_if_js` on the expensive `--with` so it only fires where the value is missing:
 
-### Conditional Row Execution
-
-Filter to rows still missing a value before running expensive fallback stages.
-
-**Critical: Filter BEFORE `--in-place` adds fallback columns.** Otherwise the subset CSV has empty fallback columns → duplicate column names → wrong indices.
-
-```
-1. filter_missing → MISSING_CSV
-2. deepline enrich --name <task-slug> --in-place (adds schema cols to work.csv)
-3. deepline enrich --name <task-slug> MISSING_CSV -> MISSING_WORK (adds same cols fresh)
-4. execute on MISSING_WORK
-5. merge_back MISSING_WORK → work.csv
+```bash
+--with '{"alias":"work_email_fallback","tool":"hunter_email_finder","payload":{"domain":"{{domain}}"},"run_if_js":"return !row.work_email"}'
 ```
 
-`--execute_cells --rows` only accepts contiguous ranges. Filter → separate CSV → merge is the workaround.
+This replaces the old filter-to-a-separate-CSV-and-merge workaround. Reuse the same `--name` to let the durable cache skip rows that already succeeded.
 
 ### Architecture Choice: CLI vs Python SDK
 
@@ -251,7 +235,7 @@ The `deepline enrich` CLI pattern still applies for non-AI passes and simple sin
 WITH_ARG=$(python3 - <<'PYEOF'
 import json
 code = "const fn=(row.first_name||'').toLowerCase()..."
-print('col_name=run_javascript:' + json.dumps({'code': code}))
+print(json.dumps({'alias': 'col_name', 'tool': 'run_javascript', 'payload': {'code': code}}))
 PYEOF
 )
 deepline enrich --input seed.csv --output work.csv --name clay-js-transform --with "$WITH_ARG"
@@ -261,19 +245,21 @@ Never hand-build JSON with embedded JS in bash strings.
 
 ### Common Failure Modes
 
-| Symptom                     | Cause                                      | Fix                                             |
-| --------------------------- | ------------------------------------------ | ----------------------------------------------- |
-| Validation on empty string  | `perm_fln` not executed before `valid_fln` | Execute JS first (Stage 2), then add validation |
-| Merge returns null          | Merge inputs not executed                  | Ensure Stage 4 completes before Stage 5         |
-| `{{col}}` empty in prompt   | Column declared but not executed           | Run `--execute_cells` first                     |
-| Wrong column index          | `--in-place` shifted indices               | Re-count from seed CSV length                   |
-| Fallback CSV has duplicates | `filter_missing` after `--in-place`        | Filter BEFORE adding schema cols                |
+| Symptom                      | Cause                                          | Fix                                                    |
+| ----------------------------- | ------------------------------------------------ | --------------------------------------------------------- |
+| `{{col}}` empty in prompt    | Alias declared after the column that reads it  | Move the producing `--with` earlier in the flag order  |
+| Interpolation renders blank  | Path does not exist on that row (`{{a.b.c}}`)  | Check a sample row's actual shape; fix the path        |
+| Unexpected re-charge         | Changed `--name` between runs                  | Reuse the same `--name` so the durable cache applies   |
 
 ---
 
 ## §4 Action Mapping
 
-Full CLI patterns: [clay-action-mappings.md](../references/clay-action-mappings.md). Always verify tool IDs before use.
+**Start with the job-based mapping table in [clay-api-surface.md](../references/clay-api-surface.md#map-by-job-not-by-provider-name).** Clay names one action per provider - 21 phone finders, 15 work-email finders - and those collapse into a single Deepline waterfall. Mapping provider-by-provider covers about 17% of real-table usage; mapping by job covers about 85%.
+
+Then use [clay-action-mappings.md](../references/clay-action-mappings.md) for the exact CLI payload of a specific tool. It is a payload reference, not a complete action list: it has no phone or CRM rows. Always verify tool IDs before use.
+
+For anything neither file maps, pull the action's real input schema from Clay's catalog (see [clay-api-surface.md](../references/clay-api-surface.md)), then map it. Do not guess from the action name.
 
 ### Unknown Action Fallback
 
@@ -443,12 +429,12 @@ Use this mismatch process: check prompt parity → check model parity → check 
 
 ## §8 Critical Rules
 
-- **Execution ordering**: `run_javascript` before `--in-place` columns that reference their values
-- **Conditional row execution**: filter → enrich subset → merge. Never run expensive columns on rows where a cheaper stage already found the answer
-- **Flatten first** (CLI): `fields=run_javascript:{flatten clay_record}` before `{{fields.xxx}}`. Not needed in Python SDK — use `json.loads()` directly
-- **2-level max interpolation**: `{{col.field}}` works; `{{col.field.nested}}` fails silently. Flatten first
+- **Declaration order is execution order**: put `run_javascript` transforms before the paid columns that read them
+- **Gate expensive columns with `run_if_js`**: never pay for a row a cheaper pass already answered
+- **Flatten first** (CLI): a `run_javascript` `--with` step that flattens `clay_record` before `{{fields.xxx}}`. Not needed in Python SDK — use `json.loads()` directly
+- **Interpolation walks the full path**: `{{col.field.nested}}` and `{{col.items[0].field}}` both resolve; a missing path renders empty, not an error
 - **Structured JSON for deeplineagent**: Single invocation per column, all fields in one `jsonSchema`
-- **Separate passes for deps**: A column referenced by `{{xxx}}` must be in a prior enrich call
+- **Declare deps earlier in the same command**: An earlier `--with` in the same `deepline enrich` call is enough - `.withColumn(...)` compiles in declaration order
 - **Python subprocess for payloads**: `python3 -c "import json; print(...)"`
 - **Cookie in env**: Never embed `CLAY_COOKIE` in enrich code or payloads; read it only from `.env.deepline` in the generated shell fetch script
 - **Catch-all is valid**: Accept `valid`, `valid_catch_all`, `catch_all`. NOT `unknown`
@@ -462,17 +448,21 @@ Use this mismatch process: check prompt parity → check model parity → check 
 2. **Phase 1 (§2)**: Table summary, dependency graph, pass plan, prompt extraction, assumptions
 3. **Confirm**: Get user approval on assumptions and pass plan
 4. **Phase 2 (§3)**: Pre-flight → generate `fetch_<table>.sh` + `enrich_<table>.sh`
-5. **Pilot gate**: `--rows 0:0` (structural), then `--rows 0:3` (real APIs)
+5. **Pilot gate**: `--dry-run` (compiles via the Deepline API, no spend), then `--rows 0:3` (real APIs)
 6. **Full run**: After pilot approval
 7. **Phase 3 (§7)**: `compare.py ground_truth.csv enriched.csv` — confirm thresholds pass
 8. **Custom play migration** (optional): If table needs triggers/routing → [deepline-plays.md](deepline-plays.md)
 
 ### Pilot Gate
 
-`run_javascript` needs no pilot. For paid tools, run rows 0:0 first, then 0:3.
+`run_javascript` needs no pilot. For paid tools, compile first, then run rows 0:3, in that order:
 
 ```bash
-./enrich_<table>.sh          # row 0 only
-./enrich_<table>.sh 0:3      # rows 0-3
-./enrich_<table>.sh full     # all rows
+./enrich_<table>.sh --dry-run     # step 1: compile only, temporary flag, no spend
+./enrich_<table>.sh 0:3           # step 2: rows 0-3 against real providers
+./enrich_<table>.sh full          # step 3: all rows
 ```
+
+Pass `--dry-run` as a one-off argument to the script (or a temporary env var it forwards) - never hardcode it into the `deepline enrich` call inside the script. If it stays in the script, every later invocation, including `0:3` and `full`, only compiles and never reaches a provider. Remove it before the real runs.
+
+`--dry-run` compiles and prints the generated play without spending credits. It still calls the Deepline compile API, so it needs auth and network - it is not an offline check.

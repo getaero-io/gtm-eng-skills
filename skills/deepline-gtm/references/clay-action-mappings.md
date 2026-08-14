@@ -370,7 +370,7 @@ Reference structured output fields in downstream passes as `{{col_name.field}}`.
 **Pass 2 — Generation (separate `deepline enrich --in-place` call):**
 
 ```bash
-deepline enrich --input enriched.csv --in-place --rows 0 \
+deepline enrich --input enriched.csv --in-place --name clay-strategic-initiatives --rows 0 \
   --with '{"alias":"strategic_initiatives","tool":"deeplineagent","payload":{"model":"anthropic/claude-sonnet-4.6","prompt":"<Clay prompt translated>\n\nResearch context:\n{{company_research}}","jsonSchema":{"type":"object","properties":{"top_5_initiatives":{"type":"string"},"top_3_sales_initiatives":{"type":"string"},"top_3_go_to_market_initiatives":{"type":"string"},"new_products":{"type":"string"},"hypothesis_of_potential_challenges":{"type":"string"}},"required":["top_5_initiatives"],"additionalProperties":false}}}'
 ```
 
@@ -471,6 +471,12 @@ return { score, tier };
 
 ---
 
+## CRM Read and Write
+
+Clay ships 27 HubSpot actions plus a Salesforce package, and this file does not enumerate them. CRM read/write mappings, plus the two Clay-native table actions (`lookup-row-in-other-table`, `route-row`), live in [clay-api-surface.md](clay-api-surface.md#crm-read-and-write). Go there for any `actionKey` not mapped above.
+
+---
+
 ## Campaign Activation
 
 ### `add-lead-to-campaign` (Smartlead)
@@ -498,7 +504,7 @@ deepline tools execute smartlead_api_request --payload '{
 Or inside `deepline enrich`:
 
 ```bash
---with '{"alias":"campaign_push","tool":"smartlead_api_request","payload":{"method":"POST","path":"/v1/campaigns/<campaign_id>/leads","body":{"lead_list":[{"email":"{{final_email}}","first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company_name}}"]}}}'
+--with '{"alias":"campaign_push","tool":"smartlead_api_request","payload":{"method":"POST","path":"/v1/campaigns/<campaign_id>/leads","body":{"lead_list":[{"email":"{{final_email}}","first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company_name}}"}]}}}'
 ```
 
 ### `add-lead-to-campaign` (Instantly)
@@ -542,7 +548,7 @@ Clay uses `{{f_0sy80p3xxx}}` field IDs in prompts and formula cells. Steps to tr
 | `deeplineagent` with `jsonSchema`    | `{{alias.field_name}}` for flat fields |
 | Flattened Clay field                 | `{{fields.snake_name}}`                |
 
-**2-level max:** `{{alias.field}}` works; `{{alias.field.nested}}` fails — flatten the nested object first with a `run_javascript` pass.
+**Full path:** `{{alias.field}}`, `{{alias.field.nested}}`, and array indices like `{{alias.items[0].field}}` all resolve. A path that does not exist renders empty rather than erroring, so check a sample row when a value comes back blank.
 
 ---
 

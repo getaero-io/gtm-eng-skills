@@ -43,6 +43,12 @@
       "tags": ["reference", "clay"],
       "providers": []
     },
+    "references/clay-api-surface.md": {
+      "kind": "reference",
+      "title": "Clay Internal API Surface",
+      "tags": ["reference", "clay"],
+      "providers": []
+    },
     "references/clay-extraction.md": {
       "kind": "reference",
       "title": "Clay Extraction",

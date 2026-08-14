@@ -76,7 +76,7 @@ deepline enrich --csv contacts.csv --rows 0 --in-place --name linkedin-url-apify
 
 # Scrape + name-validate top result
 deepline enrich --csv contacts.csv --rows 0 --in-place --name linkedin-url-validate-hit \
-  --with '{"alias":"li_validate","tool":"apify_run_actor_sync","payload":{"actorId":"harvestapi/linkedin-profile-scraper","input":{"urls":["{{li_serper_url}}"],},"timeoutMs":90000}}'
+  --with '{"alias":"li_validate","tool":"apify_run_actor_sync","payload":{"actorId":"harvestapi/linkedin-profile-scraper","input":{"urls":["{{li_serper_url}}"]},"timeoutMs":90000}}'
 ```
 
 ### Step 3: Exa semantic search
