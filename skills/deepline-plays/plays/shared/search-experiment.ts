@@ -23,6 +23,8 @@ const MAX_LIVE_CHALLENGES_PER_PROGRAM = 2;
 const MAX_LIVE_CHALLENGES_PER_PROVEN_PROGRAM =
   MAX_LIVE_CHALLENGES_PER_PROGRAM + 1;
 const DEFAULT_EXPLOIT_BATCH_SIZE = 8;
+const DEFAULT_EXPLORATION_PROGRAM_COUNT = 3;
+const DEFAULT_CHALLENGE_WAVE_SIZE = 3;
 
 export type SearchExperimentPhase =
   | 'comparison'
@@ -66,10 +68,18 @@ export type SearchProgramInput<Row extends JsonRow, Context> = {
 export type SearchProgram<Row extends JsonRow, Context> = {
   id: string;
   hypothesis: string;
+  /**
+   * Durable information-shape tags, not provider names. Examples:
+   * structured-index, pivot:name+domain, first-party-web, role:verifier.
+   * The helper covers as many distinct tags as possible in each bounded wave.
+   */
+  diversityFeatures?: readonly string[];
   /** Hard per-invocation ceiling. The helper rejects an over-cap result. */
   maximumCallsPerAttempt: number;
   /** Catalog/quote ceiling used only when this attempt has no cost receipt. */
   maximumDeeplineCreditsPerAttempt?: number;
+  /** Live catalog pricing unit. A result-priced source miss is known to cost zero. */
+  billingUnit?: 'call' | 'result' | 'unknown';
   run(input: SearchProgramInput<Row, Context>): Promise<SearchProgramAttempt>;
 };
 
@@ -94,13 +104,21 @@ export type SearchExperimentContract<Row extends JsonRow> = {
 export type SearchExperimentDefinition<Row extends JsonRow, Context> = {
   contract: SearchExperimentContract<Row>;
   programs: readonly SearchProgram<Row, Context>[];
+  /** Defaults to two. Set to one only for a route already proven deterministic. */
+  minimumExplorationPrograms?: number;
   pilotUnitCount?: number;
   comparisonUnitCount?: number;
   holdoutUnitCount?: number;
   /** Optional alternatives beyond any candidate producers required by a winner. */
   maxFallbacks?: number;
+  /** Programs run in the first shared wave; the rest remain dormant challengers. */
+  explorationProgramCount?: number;
+  /** Dormant programs compared concurrently on one unresolved unit. */
+  challengeWaveSize?: number;
   /** Maximum rows started concurrently while exploiting a learned program. */
   exploitBatchSize?: number;
+  /** Conservative whole-experiment Deepline-credit ceiling. */
+  maximumDeeplineCredits?: number;
 };
 
 export type DatasetFieldSketch = {
@@ -229,7 +247,16 @@ export type SearchCohortResult = SearchCohortCheck & {
 
 export type SearchExperimentResult<Row extends JsonRow> = {
   status: 'promoted' | 'not_promoted';
+  stoppingReason:
+    | 'target_reached'
+    | 'programs_exhausted'
+    | 'budget_exhausted'
+    | 'selection_failed';
   sketch: DatasetSketch;
+  registeredProgramCount: number;
+  exploredProgramIds: string[];
+  remainingProgramIds: string[];
+  unresolvedUnitKeys: string[];
   selectedProgramIds: string[];
   initialSelectedProgramIds: string[];
   scorecard: SearchProgramScore[];
@@ -243,6 +270,8 @@ export type SearchExperimentResult<Row extends JsonRow> = {
   finalCohortChecks: SearchCohortResult[];
   holdoutPassed: boolean;
   totalCalls: number;
+  estimatedDeeplineCredits: number | null;
+  maximumDeeplineCredits: number | null;
   exhaustiveComparisonCalls: number;
   avoidedCalls: number;
   leverage: SearchExperimentLeverage;
@@ -296,6 +325,63 @@ function canonicalText(value: string): string {
 
 function unique<T>(values: readonly T[]): T[] {
   return [...new Set(values)];
+}
+
+function programDiversityFeatures<Row extends JsonRow, Context>(
+  program: SearchProgram<Row, Context>,
+): string[] {
+  const declared = unique(
+    (program.diversityFeatures ?? [])
+      .map(normalize)
+      .filter((feature) => feature.length > 0),
+  ).sort();
+  return declared.length ? declared : [`program:${normalize(program.id)}`];
+}
+
+/**
+ * Greedy maximum coverage over authored information features. The pool may be
+ * large; execution remains bounded. Novel information shape wins first, then
+ * a known lower Deepline-credit ceiling, then stable program ID.
+ */
+export function selectHeterogeneousPrograms<
+  Row extends JsonRow,
+  Context,
+>(input: {
+  programs: readonly SearchProgram<Row, Context>[];
+  count: number;
+  against?: readonly SearchProgram<Row, Context>[];
+}): SearchProgram<Row, Context>[] {
+  const remaining = [...input.programs];
+  const selected: SearchProgram<Row, Context>[] = [];
+  const covered = new Set(
+    (input.against ?? []).flatMap((program) =>
+      programDiversityFeatures(program),
+    ),
+  );
+  const count = Math.max(0, Math.min(input.count, remaining.length));
+  while (selected.length < count) {
+    remaining.sort((left, right) => {
+      const leftNovel = programDiversityFeatures(left).filter(
+        (feature) => !covered.has(feature),
+      ).length;
+      const rightNovel = programDiversityFeatures(right).filter(
+        (feature) => !covered.has(feature),
+      ).length;
+      if (leftNovel !== rightNovel) return rightNovel - leftNovel;
+      const leftKnown = left.maximumDeeplineCreditsPerAttempt !== undefined;
+      const rightKnown = right.maximumDeeplineCreditsPerAttempt !== undefined;
+      if (leftKnown !== rightKnown) return leftKnown ? -1 : 1;
+      const leftCost =
+        left.maximumDeeplineCreditsPerAttempt ?? Number.POSITIVE_INFINITY;
+      const rightCost =
+        right.maximumDeeplineCreditsPerAttempt ?? Number.POSITIVE_INFINITY;
+      return leftCost - rightCost || left.id.localeCompare(right.id);
+    });
+    const winner = remaining.shift()!;
+    selected.push(winner);
+    programDiversityFeatures(winner).forEach((feature) => covered.add(feature));
+  }
+  return selected;
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -650,6 +736,13 @@ function validateDefinition<Row extends JsonRow, Context>(
   if (!Number.isInteger(contract.targetRows) || contract.targetRows < 1) {
     throw new Error('targetRows must be a positive integer.');
   }
+  if (
+    definition.maximumDeeplineCredits !== undefined &&
+    (!Number.isFinite(definition.maximumDeeplineCredits) ||
+      definition.maximumDeeplineCredits < 0)
+  ) {
+    throw new Error('maximumDeeplineCredits must be a non-negative number.');
+  }
   if (!contract.claims.length)
     throw new Error('Search experiment needs claim contracts.');
   const claimIds = contract.claims.map((claim) => normalize(claim.id));
@@ -659,8 +752,17 @@ function validateDefinition<Row extends JsonRow, Context>(
   ) {
     throw new Error('Search experiment claim IDs must be nonempty and unique.');
   }
-  if (!programs.length || programs.length > 5) {
-    throw new Error('Search experiment needs one to five programs.');
+  const minimumExplorationPrograms = definition.minimumExplorationPrograms ?? 2;
+  if (
+    !Number.isInteger(minimumExplorationPrograms) ||
+    minimumExplorationPrograms < 1
+  ) {
+    throw new Error('minimumExplorationPrograms must be a positive integer.');
+  }
+  if (programs.length < minimumExplorationPrograms) {
+    throw new Error(
+      `Search experiment needs at least ${minimumExplorationPrograms} programs.`,
+    );
   }
   const programIds = programs.map((program) => normalize(program.id));
   if (
@@ -672,6 +774,17 @@ function validateDefinition<Row extends JsonRow, Context>(
   for (const program of programs) {
     if (!program.hypothesis.trim())
       throw new Error(`Search program ${program.id} needs a hypothesis.`);
+    if (
+      program.diversityFeatures !== undefined &&
+      (!program.diversityFeatures.length ||
+        program.diversityFeatures.some(
+          (feature) => typeof feature !== 'string' || !feature.trim(),
+        ))
+    ) {
+      throw new Error(
+        `Search program ${program.id} diversityFeatures must be nonempty strings.`,
+      );
+    }
     if (
       !Number.isInteger(program.maximumCallsPerAttempt) ||
       program.maximumCallsPerAttempt < 1
@@ -689,17 +802,45 @@ function validateDefinition<Row extends JsonRow, Context>(
         `Search program ${program.id} needs a non-negative maximumDeeplineCreditsPerAttempt.`,
       );
     }
+    if (
+      program.billingUnit !== undefined &&
+      !['call', 'result', 'unknown'].includes(program.billingUnit)
+    ) {
+      throw new Error(
+        `Search program ${program.id} billingUnit must be call, result, or unknown.`,
+      );
+    }
+    if (
+      definition.maximumDeeplineCredits !== undefined &&
+      program.maximumDeeplineCreditsPerAttempt === undefined
+    ) {
+      throw new Error(
+        `Search program ${program.id} needs maximumDeeplineCreditsPerAttempt when the experiment has a credit ceiling.`,
+      );
+    }
   }
   const maxFallbacks =
     definition.maxFallbacks ?? Math.min(2, programs.length - 1);
   if (!Number.isInteger(maxFallbacks) || maxFallbacks < 0 || maxFallbacks > 2) {
     throw new Error('maxFallbacks must be an integer between 0 and 2.');
   }
+  const explorationProgramCount = Math.min(
+    definition.explorationProgramCount ?? DEFAULT_EXPLORATION_PROGRAM_COUNT,
+    programs.length,
+  );
+  if (maxFallbacks === 0 && explorationProgramCount < programs.length) {
+    throw new Error(
+      'maxFallbacks cannot be zero while registered programs remain dormant.',
+    );
+  }
   for (const [name, value] of [
     ['pilotUnitCount', definition.pilotUnitCount],
     ['comparisonUnitCount', definition.comparisonUnitCount],
     ['holdoutUnitCount', definition.holdoutUnitCount],
     ['exploitBatchSize', definition.exploitBatchSize],
+    ['explorationProgramCount', definition.explorationProgramCount],
+    ['challengeWaveSize', definition.challengeWaveSize],
+    ['minimumExplorationPrograms', definition.minimumExplorationPrograms],
     ['minimumCompleteResultsPerUnit', contract.minimumCompleteResultsPerUnit],
     ['minimumPilotCompleteRows', contract.minimumPilotCompleteRows],
     ['minimumHoldoutCompleteRows', contract.minimumHoldoutCompleteRows],
@@ -707,12 +848,33 @@ function validateDefinition<Row extends JsonRow, Context>(
     if (
       value !== undefined &&
       (!Number.isInteger(value) ||
-        value < (name === 'exploitBatchSize' ? 1 : 0))
+        value <
+          (name === 'exploitBatchSize' ||
+          name === 'explorationProgramCount' ||
+          name === 'challengeWaveSize' ||
+          name === 'minimumExplorationPrograms'
+            ? 1
+            : 0))
     ) {
       throw new Error(
-        `${name} must be a ${name === 'exploitBatchSize' ? 'positive' : 'non-negative'} integer.`,
+        `${name} must be a ${
+          name === 'exploitBatchSize' ||
+          name === 'explorationProgramCount' ||
+          name === 'challengeWaveSize' ||
+          name === 'minimumExplorationPrograms'
+            ? 'positive'
+            : 'non-negative'
+        } integer.`,
       );
     }
+  }
+  if (
+    definition.explorationProgramCount !== undefined &&
+    definition.explorationProgramCount < minimumExplorationPrograms
+  ) {
+    throw new Error(
+      'explorationProgramCount cannot be smaller than minimumExplorationPrograms.',
+    );
   }
   const knownClaims = new Set(contract.claims.map((claim) => claim.id));
   const checkIds = new Set<string>();
@@ -750,12 +912,20 @@ function buildSketch<Row extends JsonRow, Context>(
   exploitRows: Row[];
 } {
   const { rowKey: keyField } = definition.contract;
+  const automaticTopology =
+    definition.pilotUnitCount === undefined &&
+    definition.holdoutUnitCount === undefined;
+  const reservedExploitCount = automaticTopology && rows.length > 1 ? 1 : 0;
   const requestedHoldout =
     definition.holdoutUnitCount ??
-    (rows.length >= 4 ? 2 : rows.length >= 3 ? 1 : 0);
-  const holdoutCount = Math.min(requestedHoldout, Math.max(0, rows.length - 1));
+    (rows.length >= 8 ? 2 : rows.length >= 4 ? 1 : 0);
+  const holdoutCount = Math.min(
+    requestedHoldout,
+    Math.max(0, rows.length - 1 - reservedExploitCount),
+  );
   const requestedPilot =
-    definition.pilotUnitCount ?? Math.min(4, rows.length - holdoutCount);
+    definition.pilotUnitCount ??
+    Math.min(3, rows.length - holdoutCount - reservedExploitCount);
   const pilotCount = Math.max(
     1,
     Math.min(requestedPilot, rows.length - holdoutCount),
@@ -1345,6 +1515,18 @@ function rowsNeedingWork<Row extends JsonRow>(input: {
   );
 }
 
+function catalogProvesZeroCreditMiss<Row extends JsonRow>(input: {
+  program: Pick<SearchProgram<Row, unknown>, 'billingUnit'>;
+  record: AttemptRecord<Row>;
+}): boolean {
+  return Boolean(
+    input.record.attempt &&
+    input.record.observedTotalCalls > 0 &&
+    input.record.attempt.results.length === 0 &&
+    input.program.billingUnit === 'result',
+  );
+}
+
 function summarizeCredits<Row extends JsonRow>(
   records: readonly AttemptRecord<Row>[],
 ): { total: number | null; unobserved: number } {
@@ -1381,7 +1563,14 @@ function estimateProgramCost<Row extends JsonRow>(input: {
       (total, record) =>
         total +
         (record.observedDeeplineCredits ??
-          (record.attempt && record.observedTotalCalls === 0 ? 0 : ceiling)),
+          (record.attempt && record.observedTotalCalls === 0
+            ? 0
+            : catalogProvesZeroCreditMiss({
+                  program: input.program,
+                  record,
+                })
+              ? 0
+              : ceiling)),
       0,
     ),
     basis: 'catalog_upper_bound',
@@ -1466,7 +1655,14 @@ function choosePrograms<Row extends JsonRow, Context>(input: {
   costCoverageFrontier: SearchCostCoveragePoint[];
 } {
   const requiredProgramIds = input.requiredProgramIds ?? new Set<string>();
-  const enriched = input.programs
+  const observedProgramIds = new Set(
+    input.records.map((record) => record.programId),
+  );
+  const portfolioPrograms = input.programs.filter(
+    (program) =>
+      observedProgramIds.has(program.id) || requiredProgramIds.has(program.id),
+  );
+  const enriched = portfolioPrograms
     .map((program) =>
       scoreProgram({
         program: program as SearchProgram<Row, unknown>,
@@ -1476,7 +1672,7 @@ function choosePrograms<Row extends JsonRow, Context>(input: {
     )
     .sort(compareProgramScores);
   const maximumPrograms = Math.min(
-    input.programs.length,
+    portfolioPrograms.length,
     Math.max(1, requiredProgramIds.size) + input.maxFallbacks,
   );
   const rankById = new Map(
@@ -1486,6 +1682,67 @@ function choosePrograms<Row extends JsonRow, Context>(input: {
   const comparisonWasEmpty = enriched.every(
     (score) => score.supportedEvidenceAtoms === 0,
   );
+  if (comparisonWasEmpty) {
+    // There is no evidence to compose, so enumerating every two- or three-way
+    // portfolio adds no information and becomes cubic as the catalog grows.
+    // Keep the cheapest bounded active set only to prevent retrying it while
+    // dormant challenge waves continue through the rest of the pool.
+    const selectedScores = enriched.slice(0, maximumPrograms);
+    const selectedIds = new Set(selectedScores.map((score) => score.programId));
+    const observedDeeplineCredits = selectedScores.every(
+      (score) => score.deeplineCredits !== null,
+    )
+      ? selectedScores.reduce(
+          (total, score) => total + score.deeplineCredits!,
+          0,
+        )
+      : null;
+    const costCredits = selectedScores.every(
+      (score) => score.costCredits !== null,
+    )
+      ? selectedScores.reduce((total, score) => total + score.costCredits!, 0)
+      : null;
+    const costBasis = selectedScores.some(
+      (score) => score.costBasis === 'unknown',
+    )
+      ? ('unknown' as const)
+      : selectedScores.some(
+            (score) => score.costBasis === 'catalog_upper_bound',
+          )
+        ? ('catalog_upper_bound' as const)
+        : ('observed' as const);
+    return {
+      selected: enriched
+        .filter((score) => selectedIds.has(score.programId))
+        .map(
+          (score) =>
+            input.programs.find((program) => program.id === score.programId)!,
+        ),
+      scores: enriched,
+      dependencyCycle: [],
+      costCoverageFrontier: selectedScores.length
+        ? [
+            {
+              programIds: selectedScores.map((score) => score.programId),
+              completeResults: 0,
+              verifiedRequiredClaims: 0,
+              passedCohortChecks: 0,
+              cohortRatioTotal: 0,
+              cohortNumeratorTotal: 0,
+              totalCalls: selectedScores.reduce(
+                (total, score) => total + score.totalCalls,
+                0,
+              ),
+              observedDeeplineCredits,
+              costCredits,
+              costBasis,
+              completeResultsPerCostCredit: null,
+              comparisonWinner: true,
+            },
+          ]
+        : [],
+    };
+  }
   const expandedPortfolios = programCombinations(enriched, maximumPrograms)
     .map((basePrograms) =>
       expandCausalProgramIds({
@@ -1861,6 +2118,24 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
         )
         .map((record) => record.unitKey),
     );
+  const attemptedUnitsForProgram = (programId: string) =>
+    new Set(
+      records
+        .filter((record) => record.programId === programId)
+        .map((record) => record.unitKey),
+    );
+  let budgetBlocked = false;
+  const estimatedDeeplineCredits = (): number | null => {
+    const costs = input.definition.programs.map((program) =>
+      estimateProgramCost({
+        program: program as SearchProgram<Row, unknown>,
+        records: records.filter((record) => record.programId === program.id),
+      }),
+    );
+    return costs.every((cost) => cost.credits !== null)
+      ? costs.reduce((total, cost) => total + cost.credits!, 0)
+      : null;
+  };
 
   const applyRecords = (batch: readonly AttemptRecord<Row>[]) => {
     for (const record of batch) {
@@ -1912,30 +2187,59 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
     programs: readonly SearchProgram<Row, Context>[],
     rows: readonly Row[],
     phase: SearchExperimentPhase,
-  ) => {
+  ): Promise<Set<string>> => {
     const before = materialized();
     const completeCount = before.filter((result) => result.complete).length;
+    const pairs = programs.flatMap((program) =>
+      rows.map((row) => ({ program, row })),
+    );
+    const maximumCredits = input.definition.maximumDeeplineCredits;
+    let admitted = pairs;
+    if (maximumCredits !== undefined) {
+      const current = estimatedDeeplineCredits();
+      const remaining = Math.max(0, maximumCredits - (current ?? 0));
+      if (phase === 'comparison') {
+        const waveCeiling = pairs.reduce(
+          (total, pair) =>
+            total + pair.program.maximumDeeplineCreditsPerAttempt!,
+          0,
+        );
+        admitted = waveCeiling <= remaining ? pairs : [];
+      } else {
+        let reserved = 0;
+        admitted = pairs.filter(({ program }) => {
+          const ceiling = program.maximumDeeplineCreditsPerAttempt!;
+          if (reserved + ceiling > remaining) return false;
+          reserved += ceiling;
+          return true;
+        });
+      }
+      if (!admitted.length && pairs.length) {
+        budgetBlocked = true;
+        return new Set();
+      }
+    }
+    budgetBlocked = false;
     const batch = await Promise.all(
-      programs.flatMap((program) =>
-        rows.map((row) => {
-          const unitKey = unitKeyFor(row);
-          const candidates = before.filter(
-            (result) => result.unitKey === unitKey,
-          );
-          return invokeProgram({
-            ctx: input.ctx,
-            program,
-            row,
-            unitKey,
-            phase,
-            gaps: gapsForUnit(unitKey, before, contract.claims),
-            candidates,
-            remainingTargetRows: Math.max(0, targetRows - completeCount),
-          });
-        }),
-      ),
+      admitted.map(({ program, row }) => {
+        const unitKey = unitKeyFor(row);
+        const candidates = before.filter(
+          (result) => result.unitKey === unitKey,
+        );
+        return invokeProgram({
+          ctx: input.ctx,
+          program,
+          row,
+          unitKey,
+          phase,
+          gaps: gapsForUnit(unitKey, before, contract.claims),
+          candidates,
+          remainingTargetRows: Math.max(0, targetRows - completeCount),
+        });
+      }),
     );
     applyRecords(batch);
+    return new Set(admitted.map(({ program }) => program.id));
   };
 
   const retryUnlockedAttempts = async (
@@ -2001,16 +2305,27 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
     }
   };
 
-  await runWave(input.definition.programs, split.comparisonRows, 'comparison');
+  const explorationPrograms = selectHeterogeneousPrograms({
+    programs: input.definition.programs,
+    count: Math.min(
+      input.definition.explorationProgramCount ??
+        DEFAULT_EXPLORATION_PROGRAM_COUNT,
+      input.definition.programs.length,
+    ),
+  });
+  await runWave(explorationPrograms, split.comparisonRows, 'comparison');
+  const comparisonBudgetBlocked = budgetBlocked;
   // Programs in the common wave intentionally see the same pre-wave ledger.
   // Give source misses one bounded retry when another program discovered a
   // candidate that still has claim or cohort gaps. This admits generic
   // discover -> verify compositions without declaring route-specific stages.
-  await retryUnlockedAttempts(
-    input.definition.programs,
-    split.comparisonRows,
-    'comparison',
-  );
+  if (!comparisonBudgetBlocked) {
+    await retryUnlockedAttempts(
+      explorationPrograms,
+      split.comparisonRows,
+      'comparison',
+    );
+  }
   const maxFallbacks =
     input.definition.maxFallbacks ??
     Math.min(2, input.definition.programs.length - 1);
@@ -2047,22 +2362,23 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
   const selected = finalChoice.selected;
   const initialSelectedProgramIds = selected.map((program) => program.id);
   let activePrograms = [...selected];
-  const selectionPassed = finalChoice.dependencyCycle.length === 0;
-  const pilotResults = materialized().filter((result) =>
+  const selectionPassed =
+    finalChoice.dependencyCycle.length === 0 && !comparisonBudgetBlocked;
+  const pilotResultsBeforeAdaptation = materialized().filter((result) =>
     split.sketch.pilotUnitKeys.includes(result.unitKey),
   );
-  const pilotCohortChecks = evaluateCohorts({
+  const pilotCohortChecksBeforeAdaptation = evaluateCohorts({
     checks: cohortChecks,
-    results: pilotResults,
+    results: pilotResultsBeforeAdaptation,
     unitKeys: split.sketch.pilotUnitKeys,
   });
-  const pilotPassed =
+  const pilotPassedBeforeAdaptation =
     selectionPassed &&
-    pilotResults.filter((result) => result.complete).length >=
+    pilotResultsBeforeAdaptation.filter((result) => result.complete).length >=
       (contract.minimumPilotCompleteRows ?? 1) &&
-    pilotCohortChecks.every((check) => check.pass);
+    pilotCohortChecksBeforeAdaptation.every((check) => check.pass);
 
-  if (pilotPassed && split.holdoutRows.length) {
+  if (pilotPassedBeforeAdaptation && split.holdoutRows.length) {
     for (const program of selected) {
       const results = materialized();
       const holdoutSubset = results.filter((result) =>
@@ -2078,76 +2394,107 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
     await retryUnlockedAttempts(selected, split.holdoutRows, 'holdout');
   }
 
-  const holdoutResults = materialized().filter((result) =>
-    split.sketch.holdoutUnitKeys.includes(result.unitKey),
-  );
-  const holdoutCohortChecks = evaluateCohorts({
-    checks: cohortChecks,
-    results: holdoutResults,
-    unitKeys: split.sketch.holdoutUnitKeys,
-  });
-  const holdoutPassed =
-    !split.holdoutRows.length ||
-    (holdoutResults.filter((result) => result.complete).length >=
-      (contract.minimumHoldoutCompleteRows ?? 1) &&
-      holdoutCohortChecks.every((check) => check.pass));
+  const gateRows = unique([...split.pilotRows, ...split.holdoutRows]);
+  const gateUnitKeys = gateRows.map(unitKeyFor);
+  const qualityGatePassed = (
+    results: readonly SearchLedgerResult<Row>[],
+  ): boolean => {
+    const currentPilotResults = results.filter((result) =>
+      split.sketch.pilotUnitKeys.includes(result.unitKey),
+    );
+    const currentPilotCohorts = evaluateCohorts({
+      checks: cohortChecks,
+      results: currentPilotResults,
+      unitKeys: split.sketch.pilotUnitKeys,
+    });
+    if (
+      currentPilotResults.filter((result) => result.complete).length <
+        (contract.minimumPilotCompleteRows ?? 1) ||
+      currentPilotCohorts.some((check) => !check.pass)
+    )
+      return false;
+    if (!split.holdoutRows.length) return true;
+    const currentHoldoutResults = results.filter((result) =>
+      split.sketch.holdoutUnitKeys.includes(result.unitKey),
+    );
+    const currentHoldoutCohorts = evaluateCohorts({
+      checks: cohortChecks,
+      results: currentHoldoutResults,
+      unitKeys: split.sketch.holdoutUnitKeys,
+    });
+    return (
+      currentHoldoutResults.filter((result) => result.complete).length >=
+        (contract.minimumHoldoutCompleteRows ?? 1) &&
+      currentHoldoutCohorts.every((check) => check.pass)
+    );
+  };
 
-  if (pilotPassed && holdoutPassed) {
+  if (selectionPassed) {
     const challengeCounts = new Map<string, number>();
 
     while (true) {
       const results = materialized();
       const completeCount = results.filter((result) => result.complete).length;
       const cohort = evaluateCohortsForUnitSet(results, allRowsUnitKeys);
-      if (completeCount >= targetRows && cohort.every((check) => check.pass))
+      const gatePassed = qualityGatePassed(results);
+      if (
+        gatePassed &&
+        completeCount >= targetRows &&
+        cohort.every((check) => check.pass)
+      )
         break;
+
+      const eligibleRows = gatePassed ? input.rows : gateRows;
+      const eligibleUnitKeys = gatePassed ? allRowsUnitKeys : gateUnitKeys;
+      const unresolvedAll = unitRowsNeedingWork(
+        eligibleRows,
+        eligibleUnitKeys,
+        results,
+      );
+      if (!unresolvedAll.length) break;
 
       const activeIds = new Set(activePrograms.map((program) => program.id));
       const attemptedUnitKeysByProgram = new Map<string, Set<string>>();
       for (const program of activePrograms) {
         attemptedUnitKeysByProgram.set(
           program.id,
-          attemptedUnitsInPhase('exploit', program.id),
+          attemptedUnitsForProgram(program.id),
         );
       }
       const attemptedByEveryActive = (unitKey: string) =>
         activePrograms.every((program) =>
           attemptedUnitKeysByProgram.get(program.id)!.has(unitKey),
         );
-      const needed = unitRowsNeedingWork(
-        split.exploitRows,
-        allRowsUnitKeys,
-        results,
-      ).filter((row) => !attemptedByEveryActive(unitKeyFor(row)));
-      if (!needed.length) break;
-
+      const needed = unresolvedAll.filter(
+        (row) => !attemptedByEveryActive(unitKeyFor(row)),
+      );
       const batchSize = Math.min(
         input.definition.exploitBatchSize ?? DEFAULT_EXPLOIT_BATCH_SIZE,
         Math.max(1, targetRows - completeCount),
         needed.length,
       );
       const batchRows = needed.slice(0, batchSize);
-      for (const program of activePrograms) {
-        const currentResults = materialized();
-        const attemptedUnitKeys =
-          attemptedUnitKeysByProgram.get(program.id) ??
-          attemptedUnitsInPhase('exploit', program.id);
-        const programRows = unitRowsNeedingWork(
-          batchRows,
-          allRowsUnitKeys,
-          currentResults,
-        ).filter((row) => !attemptedUnitKeys.has(unitKeyFor(row)));
-        if (programRows.length)
-          await runWave([program], programRows, 'exploit');
+      if (batchRows.length) {
+        for (const program of activePrograms) {
+          const currentResults = materialized();
+          const attemptedUnitKeys =
+            attemptedUnitKeysByProgram.get(program.id) ??
+            attemptedUnitsForProgram(program.id);
+          const programRows = unitRowsNeedingWork(
+            batchRows,
+            allRowsUnitKeys,
+            currentResults,
+          ).filter((row) => !attemptedUnitKeys.has(unitKeyFor(row)));
+          if (programRows.length)
+            await runWave([program], programRows, 'exploit');
+        }
+        await retryUnlockedAttempts(activePrograms, batchRows, 'exploit');
       }
-      await retryUnlockedAttempts(activePrograms, batchRows, 'exploit');
 
       const afterBatch = materialized();
-      const unresolved = unitRowsNeedingWork(
-        batchRows,
-        allRowsUnitKeys,
-        afterBatch,
-      );
+      const unresolved = batchRows.length
+        ? unitRowsNeedingWork(batchRows, eligibleUnitKeys, afterBatch)
+        : unitRowsNeedingWork(eligibleRows, eligibleUnitKeys, afterBatch);
       const provenProgramIds = new Set(
         input.definition.programs
           .filter(
@@ -2160,23 +2507,61 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
           )
           .map((program) => program.id),
       );
-      const challengeable = input.definition.programs.filter(
-        (program) =>
-          !activeIds.has(program.id) &&
-          (challengeCounts.get(program.id) ?? 0) <
-            (provenProgramIds.has(program.id)
-              ? MAX_LIVE_CHALLENGES_PER_PROVEN_PROGRAM
-              : MAX_LIVE_CHALLENGES_PER_PROGRAM),
-      );
-      if (!unresolved.length || !challengeable.length || maxFallbacks === 0)
+      if (!unresolved.length) continue;
+      if (maxFallbacks === 0) {
+        if (!batchRows.length) break;
         continue;
+      }
+
+      const challengeableForRow = new Map<
+        string,
+        SearchProgram<Row, Context>[]
+      >();
+      for (const row of unresolved) {
+        const unitKey = unitKeyFor(row);
+        challengeableForRow.set(
+          unitKey,
+          input.definition.programs.filter(
+            (program) =>
+              !activeIds.has(program.id) &&
+              !attemptedUnitsForProgram(program.id).has(unitKey) &&
+              (challengeCounts.get(program.id) ?? 0) <
+                (provenProgramIds.has(program.id)
+                  ? MAX_LIVE_CHALLENGES_PER_PROVEN_PROGRAM
+                  : MAX_LIVE_CHALLENGES_PER_PROGRAM),
+          ),
+        );
+      }
+      const mostOptions = Math.max(
+        0,
+        ...[...challengeableForRow.values()].map((programs) => programs.length),
+      );
+      const challengeRows = unresolved.filter(
+        (row) =>
+          challengeableForRow.get(unitKeyFor(row))!.length === mostOptions &&
+          mostOptions > 0,
+      );
+      if (!challengeRows.length) {
+        if (!batchRows.length) break;
+        continue;
+      }
 
       const challengeRow = selectDiverseRows({
-        rows: unresolved,
+        rows: challengeRows,
         rowKey: contract.rowKey,
         count: 1,
       })[0]!;
       const challengeUnitKey = unitKeyFor(challengeRow);
+      const challengeable = challengeableForRow.get(challengeUnitKey)!;
+
+      const challengeWave = selectHeterogeneousPrograms({
+        programs: challengeable,
+        count: Math.min(
+          input.definition.challengeWaveSize ?? DEFAULT_CHALLENGE_WAVE_SIZE,
+          challengeable.length,
+        ),
+        against: activePrograms,
+      });
       const beforeProgramIds = activePrograms.map((program) => program.id);
       const beforeRecords = recordsForUnit(challengeUnitKey);
       const beforeCoverage = coverageForPrograms({
@@ -2186,18 +2571,25 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
         cohortChecks,
       });
 
-      await runWave(challengeable, [challengeRow], 'challenge');
-      challengeable.forEach((program) =>
-        challengeCounts.set(
-          program.id,
-          (challengeCounts.get(program.id) ?? 0) + 1,
-        ),
+      const executedChallengeIds = await runWave(
+        challengeWave,
+        [challengeRow],
+        'challenge',
       );
+      if (!executedChallengeIds.size && budgetBlocked) break;
+      challengeWave
+        .filter((program) => executedChallengeIds.has(program.id))
+        .forEach((program) =>
+          challengeCounts.set(
+            program.id,
+            (challengeCounts.get(program.id) ?? 0) + 1,
+          ),
+        );
       // A challenger may discover the candidate or partial evidence that an
       // already-active consumer needs. Give prior source misses one bounded
       // retry before judging whether the challenger improved this row.
       await retryUnlockedAttempts(activePrograms, [challengeRow], 'exploit');
-      await retryUnlockedAttempts(challengeable, [challengeRow], 'challenge');
+      await retryUnlockedAttempts(challengeWave, [challengeRow], 'challenge');
 
       const challengeRecords = recordsForUnit(challengeUnitKey);
       const protectedProgramIds = replacementRequiredProgramIds({
@@ -2258,7 +2650,9 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
       adaptations.push({
         unitKey: challengeUnitKey,
         beforeProgramIds,
-        challengedProgramIds: challengeable.map((program) => program.id),
+        challengedProgramIds: challengeWave
+          .filter((program) => executedChallengeIds.has(program.id))
+          .map((program) => program.id),
         promotedProgramIds: promoted ? promotedProgramIds : [],
         afterProgramIds: promoted
           ? activePrograms.map((program) => program.id)
@@ -2276,13 +2670,56 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
     results: finalResults,
     unitKeys: input.rows.map(unitKeyFor),
   });
-  const status =
+  const pilotResults = finalResults.filter((result) =>
+    split.sketch.pilotUnitKeys.includes(result.unitKey),
+  );
+  const pilotCohortChecks = evaluateCohorts({
+    checks: cohortChecks,
+    results: pilotResults,
+    unitKeys: split.sketch.pilotUnitKeys,
+  });
+  const pilotPassed =
+    selectionPassed &&
+    pilotResults.filter((result) => result.complete).length >=
+      (contract.minimumPilotCompleteRows ?? 1) &&
+    pilotCohortChecks.every((check) => check.pass);
+  const holdoutResults = finalResults.filter((result) =>
+    split.sketch.holdoutUnitKeys.includes(result.unitKey),
+  );
+  const holdoutCohortChecks = evaluateCohorts({
+    checks: cohortChecks,
+    results: holdoutResults,
+    unitKeys: split.sketch.holdoutUnitKeys,
+  });
+  const holdoutPassed =
+    !split.holdoutRows.length ||
+    (holdoutResults.filter((result) => result.complete).length >=
+      (contract.minimumHoldoutCompleteRows ?? 1) &&
+      holdoutCohortChecks.every((check) => check.pass));
+  const unresolvedUnitKeys = unitRowsNeedingWork(
+    input.rows,
+    allRowsUnitKeys,
+    finalResults,
+  ).map(unitKeyFor);
+  const exploredProgramIds = unique(records.map((record) => record.programId));
+  const exploredProgramIdSet = new Set(exploredProgramIds);
+  const remainingProgramIds = input.definition.programs
+    .filter((program) => !exploredProgramIdSet.has(program.id))
+    .map((program) => program.id);
+  const targetReached =
     pilotPassed &&
     holdoutPassed &&
     finalResults.filter((result) => result.complete).length >= targetRows &&
-    finalCohortChecks.every((check) => check.pass)
-      ? 'promoted'
-      : 'not_promoted';
+    finalCohortChecks.every((check) => check.pass);
+  const status = targetReached ? 'promoted' : 'not_promoted';
+  const stoppingReason: SearchExperimentResult<Row>['stoppingReason'] =
+    targetReached
+      ? 'target_reached'
+      : comparisonBudgetBlocked || budgetBlocked
+        ? 'budget_exhausted'
+        : selectionPassed
+          ? 'programs_exhausted'
+          : 'selection_failed';
   const totalCalls = traces.reduce(
     (total, trace) => total + trace.totalCalls,
     0,
@@ -2295,6 +2732,7 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
     );
   const avoidedCalls = Math.max(0, exhaustiveComparisonCalls - totalCalls);
   const credits = summarizeCredits(records);
+  const estimatedCredits = estimatedDeeplineCredits();
   const completeResults = finalResults.filter(
     (result) => result.complete,
   ).length;
@@ -2309,7 +2747,12 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
     .sort(compareProgramScores);
   return {
     status,
+    stoppingReason,
     sketch: split.sketch,
+    registeredProgramCount: input.definition.programs.length,
+    exploredProgramIds,
+    remainingProgramIds,
+    unresolvedUnitKeys,
     selectedProgramIds: activePrograms.map((program) => program.id),
     initialSelectedProgramIds,
     scorecard: finalScorecard,
@@ -2323,6 +2766,8 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
     finalCohortChecks,
     holdoutPassed,
     totalCalls,
+    estimatedDeeplineCredits: estimatedCredits,
+    maximumDeeplineCredits: input.definition.maximumDeeplineCredits ?? null,
     exhaustiveComparisonCalls,
     avoidedCalls,
     leverage: {
@@ -2342,7 +2787,7 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
     },
     costCoverageFrontier: provisional.costCoverageFrontier,
     rationale: [
-      `Compared ${input.definition.programs.length} programs on ${split.comparisonRows.length} shared dataset-conditioned unit(s).`,
+      `Registered ${input.definition.programs.length} programs; compared ${explorationPrograms.length} maximally heterogeneous programs on ${split.comparisonRows.length} shared dataset-conditioned unit(s).`,
       finalChoice.dependencyCycle.length
         ? `Rejected cyclic producer dependencies: ${finalChoice.dependencyCycle.join(' -> ')}.`
         : `Selected ${initialSelectedProgramIds.join(' -> ')} by evidence score, marginal coverage, observed Deepline credits when known, and producer dependencies.`,
@@ -2356,7 +2801,12 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
         : 'No holdout was possible for this dataset size.',
       adaptations.length
         ? `Ran ${adaptations.length} bounded live challenge(s); the final waterfall is ${activePrograms.map((program) => program.id).join(' -> ')}.`
-        : 'No live challenge was needed or admitted during batch exploitation.',
+        : 'No live challenge was needed or admitted.',
+      targetReached
+        ? 'Stopped after the final accepted target and cohort checks passed.'
+        : stoppingReason === 'budget_exhausted'
+          ? `Stopped before the next bounded wave would exceed the ${input.definition.maximumDeeplineCredits} Deepline-credit ceiling.`
+          : `Stopped with ${unresolvedUnitKeys.length} unresolved unit(s) after bounded eligible programs were exhausted.`,
       `Observed ${provisional.costCoverageFrontier.length} non-dominated cost/coverage option(s) in the shared comparison wave.`,
       credits.total === null
         ? `Per-attempt Deepline credits were unobserved for ${credits.unobserved} attempt(s); run-level billing delta remains authoritative.`

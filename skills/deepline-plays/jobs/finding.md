@@ -12,12 +12,12 @@ Route by the fact the user actually wants, not by tool name. "Fintechs hiring fr
 
 You do not have rows yet. Search a listed play for the workflow first; if none fits, use `deepline tools search` for the provider contract, then put the pull into a scratchpad play before scaling. The generic structured-company and company-to-contact plays are hidden until their evals pass, so company discovery and company-scoped persona lookup run through direct provider tools for now.
 
-| You need                                                      | Route                                                                       |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Companies by funding round, headcount, HQ, category           | structured company search (Crustdata, free company search, Exa, extractors) |
-| Companies hiring for a role                                   | job-listing/search tool joined to the company set                           |
-| Companies in a portfolio / accelerator batch / curated source | `deepline plays search "<source> company list" --json` first                |
-| Reactors/commenters on a LinkedIn post                        | `deepline plays search engagers --json`                                     |
+| You need                                                      | Route                                                         |
+| ------------------------------------------------------------- | ------------------------------------------------------------- |
+| Companies by funding round, headcount, HQ, category           | structured company search plus qualifying-source verification |
+| Companies hiring for a role                                   | job-listing/search tool joined to the company set             |
+| Companies in a portfolio / accelerator batch / curated source | `deepline plays search "<source> company list" --json` first  |
+| Reactors/commenters on a LinkedIn post                        | `deepline plays search engagers --json`                       |
 
 ```bash
 deepline tools search "company search funding headcount category hq" --json
@@ -41,7 +41,11 @@ Preserve the response's evidence columns when writing the CSV: `funding_round`, 
 
 For "companies hiring fraud engineers," pull job listings and group by company; preserve `hiring_role`, `hiring_url`, `hiring_posted_at`, `hiring_count`. When the user only needs _whether_ a company is hiring (not for what role), the cheaper path is the `growth_6m_percent`-style field many firmographic searches return for free.
 
-For thin coverage (<50-employee companies, niche verticals, recent batches), an Apify employee/company scraper actor is the fallback once you have specific named companies. Actors are slower than structured providers — pull the full employee list for a target, then filter for the persona; do not iterate queries trying to coax more out of a structured provider that is genuinely empty for that target.
+For thin coverage (<50-employee companies, niche verticals, recent batches),
+switch source geometry once you have named companies: retrieve a bounded public
+employee roster, staff directory, association list, or vertical database, then
+filter for the persona. Rephrasing a genuinely empty structured-provider query
+does not create coverage.
 
 ## Finding contacts
 
@@ -80,7 +84,11 @@ post output a list of people — hand off to the qualification section
 
 Niche, local, and public-sector personas — city clerks, school administrators, practice managers, SMB owners — live in directories and public websites, not B2B databases. A zero from the database rung is a routing signal, not an answer: the people verifiably exist online, so keep searching until the route matches where they live.
 
-The discovery ladder: structured provider search → maps/local search → web search with `site:` and directory patterns (the state municipal league, the county site, the association member roster) → **known-source extraction**: when a page lists them, scrape that page (a search tool with contents, a firecrawl-class extractor, or an Apify actor for the specific site) and assemble rows from it with the source URL as the evidence column. An official roster beats any provider for accuracy, and public-sector data is public.
+The discovery ladder: structured entity search → maps/local search → web search
+with source/domain patterns → **known-source extraction**. Once a directory,
+registry, association roster, or staff section is known, traverse that bounded
+source and retain its URLs as evidence. An official roster can be both more
+complete and more authoritative than another open-ended search.
 
 Persistence is not thrash. The anti-pattern the hard stop above guards against is re-running the _same_ provider with reshuffled filters; the discipline here is escalating to the _next independent route_. The hard stop applies per route — never to the mission.
 

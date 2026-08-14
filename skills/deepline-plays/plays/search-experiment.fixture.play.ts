@@ -51,6 +51,10 @@ const makeProgram = <Context>(
 ): SearchProgram<FixtureRow, Context> => ({
   id,
   hypothesis,
+  diversityFeatures: [
+    source === 'official' ? 'first-party-web' : 'public-registry',
+    `segment:${segment}`,
+  ],
   maximumCallsPerAttempt: 1,
   async run({ row }) {
     return {

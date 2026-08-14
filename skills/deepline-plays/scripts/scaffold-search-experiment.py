@@ -72,7 +72,8 @@ def scaffold(output_directory: Path, name: str) -> dict[str, object]:
         "helpers": [str(destination) for _, destination in targets[1:]],
         "next": [
             "Replace the scope rows and frozen claim contract.",
-            "Bind the seed and evidence-closer bodies after live tools describe.",
+            "Browse the full relevant tool categories, then bind a broad program pool with diversityFeatures.",
+            "Keep candidates separate from final accepted claims; acceptance failures must remain experiment gaps.",
             f"deepline plays check {targets[0][1]}",
         ],
     }

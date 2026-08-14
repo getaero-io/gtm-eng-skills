@@ -41,6 +41,10 @@ The batch phone play defaults to headers `FIRST_NAME`, `LAST_NAME`, `COMPANY_DOM
 
 **Run shapes.** For a CSV, run the batch prebuilt directly. For one row, use the scalar prebuilt. For a custom CSV play, compose the scalar prebuilt inside a row `ctx.dataset` with `ctx.runPlay(...)` when no batch prebuilt fits — the prebuilt carries the current provider order, fallbacks, normalization, and no-result handling. Use a stable step key inside the dataset; row identity comes from `ctx.dataset`, so do not generate per-row keys. The child play returns an object (`{ email, email_source, ... }`) — **extract the scalar** so the column exports cleanly:
 
+Before choosing a known or prebuilt route, describe it and record its Deepline
+credit quote or catalog ceiling beside the row-level stop rule. If neither is
+available, label cost `unknown`; do not omit it or infer zero.
+
 ```typescript
 const enriched = await ctx
   .dataset('linkedin_email_waterfall', rows)
@@ -70,7 +74,19 @@ Drop to `ctx.tools.execute(...)` only when you need one explicit provider call t
 - **Sales Navigator URLs do not work in email waterfalls.** `linkedin.com/sales/lead/...` URLs are rejected by every provider that accepts a LinkedIn URL — they are scoped to a Sales Navigator session and have no public-profile equivalent. Feeding them into a waterfall returns zero matches everywhere, even though the same person's `/in/` URL would resolve. Detect the form (`/linkedin\.com\/sales\/lead\//`), resolve the company domain first, then use name + domain.
 - **Personal vs work email is a hard provider split.** "Personal emails" means Gmail/Hotmail/Yahoo/Outlook — the address that follows the person across jobs. Work-email providers (Hunter, LeadMagic) return `@company.com` regardless, because that is the only class they index. Routing a personal-email request to a work-email provider lands the campaign in someone's corporate inbox and burns deliverability. Find the personal-email play with `deepline plays search "personal email" --json`.
 - **Email status is a normalized contract; catch-all means verify, not send.** Statuses: `valid`, `valid_catch_all`, `catch_all`, `unknown`, `invalid`, `do_not_mail`, `spamtrap`, `abuse`, `disposable`. Verdicts: `valid` → send; `valid_catch_all` → send with caution; `catch_all` → `verify_next` (domain accepts mail at any address, so the inbox is unproven — verify with a second independent finder, do not count it as a confirmed pattern hit inside a waterfall); `unknown` → hold; the rest → drop. A `catch_all` whose domain does not match the person's company domain is a strong wrong-person signal (often a previous employer) — flag rather than send.
-- **Validation belongs after recovery.** Recovering an address and confirming deliverability read better as separate stages: validating inside a waterfall step inflates cost (one validator call per attempt, including misses) and conflates recovery coverage with deliverability. Use the two-stage `ctx.dataset` pattern; a single combined stage is right only when the validator steers which provider to try next. Each `ctx.dataset` needs a distinct key after normalization (`email_waterfall`, then `email_validation`) — reusing a key fails the runtime's idempotency check at registration.
+- **Validation follows candidate recovery but precedes claim completion.** Do not validate empty finder attempts, but do not let an unvalidated candidate close `work_email`. A separate `email_validation` dataset is safe only when its rejection reopens the experiment row; otherwise the helper optimizes raw finder coverage and cannot challenge invalid or catch-all results. In an adaptive experiment, make validators acceptance programs that consume candidate emails and produce the final accepted claim. Each physical dataset still needs a distinct key after normalization (`email_waterfall`, then `email_validation`) because reusing a key fails registration.
+- **Key candidate emails by normalized email, not by the lead row.** The input
+  unit stays the lead's stable `rowKey`; every finder result uses the normalized
+  candidate email as `resultKey` and `canonicalEntityKey`. Then agreement merges
+  on one candidate, disagreement remains multiple testable candidates, and a
+  verifier can reject one without poisoning the rest.
+- **A verifier advances through candidates.** Sort candidate identities by
+  observed agreement and finder evidence, then test the bounded slice. Emit a
+  typed rejection result for every invalid, catch-all, unknown, or mismatched
+  verifier outcome; do not return an empty attempt or keep calling only
+  `candidates[0]` while a sibling remains untested. Different finder candidates
+  are alternatives, not rejection evidence. A verifier returning an email other
+  than the candidate is the hard `rejected:disagreement` case.
 - **Use provider data directly when it is already there.** Company/contact responses often include firmographics, employment history, validation status, and confidence in the same payload. Re-running a `deeplineagent` column to get an industry the discovery provider already returned wastes credits and adds synthesis error. AI is for synthesis the providers cannot do, not for re-deriving fields they handed back.
 - **Validate the person before trusting a recovered LinkedIn URL.** Searched-recovered URLs (from name + company) carry a substantial false-positive rate without a name gate: null out URLs where last name does not match exactly or as a substring, or first name does not match exactly / by 3+ char prefix / by a known nickname. Full treatment in the sibling `linkedin-url-lookup` skill.
 - **Email domain ≠ company domain.** After recovery, compare each row's email domain against the company domain it should belong to. Mismatches are often previous-employer or wrong-person matches; more than ~20% mismatch means the contact-finding step needs re-running with better company disambiguation.
@@ -81,15 +97,19 @@ Inside a play, tool results serialize like `deepline tools execute --json`: exec
 
 For enrichment with uncertain coverage, follow `../SKILL.md`:
 
-1. Put viable routes, including the cheapest prebuilt, into one task-authored
-   Play as compact `SearchProgram` functions. Keep the claim contracts inline.
+1. Inventory the full relevant tool categories. Put every route you can bind
+   correctly, including the cheapest prebuilt and useful provider siblings,
+   into one task-authored Play as compact `SearchProgram` functions. The helper
+   executes a small heterogeneous wave and keeps the rest dormant.
 2. Bind raw evidence and verify each candidate field before it can close a
    claim. A retrieved person or URL is a lead, not a filled field.
-3. Let `runSearchExperiment(...)` compare them concurrently on dataset-chosen
+3. Let `runSearchExperiment(...)` compare them on shared dataset-chosen
    sentinels, then run later programs only for unresolved claims.
+   Keep topology counts unset by default so the helper reserves untouched
+   exploitation rows; do not turn a tiny dataset into all-comparison rows.
 4. Let the same run confirm the learned order on untouched rows, enrich in
-   batches, and probe unused programs only on shared rows the current waterfall
-   failed. Useful challengers join later batches automatically, replacing a
+   batches, and probe unused programs on any comparison, holdout, or batch row
+   the current waterfall failed. Useful challengers join later batches automatically, replacing a
    noncausal fallback when the configured waterfall is already full.
 5. Report `experiment.leverage` plus the opening-minus-closing Deepline billing
    balance and the fair comparison's `costCoverageFrontier`. Per-attempt credit
@@ -98,7 +118,7 @@ For enrichment with uncertain coverage, follow `../SKILL.md`:
    `maximumDeeplineCreditsPerAttempt` instead, where the scorer labels it as an
    upper bound rather than actual spend.
 
-The small comparison and challenge waves are intentionally parallel. The
+The helper bounds comparison and challenge work to small shared units. The
 remaining work is best-first, so a useful primary does not force every fallback
 across every row. Routes that have never completed a row receive at most two
 live challenge rows. A displaced route already proven on this dataset remains
@@ -106,11 +126,15 @@ eligible when a later row exposes its stratum again.
 
 ## When the primary route misses
 
-A miss on one route is not a dead row — but a second route is a purchase, not a reflex. A property's coverage ceiling is the union of independent routes. Compare candidate rungs concurrently on the small common wave, then let the experiment invoke later rungs only for unresolved rows and claims. Field-measured:
+A miss on one route is not a dead row — but a second route is a purchase, not a reflex. A property's coverage ceiling is the union of independent routes. Compare candidate rungs on the small common wave, then let the experiment invoke later rungs only for unresolved rows and claims. Field-measured:
 
 - **Mint a different identifier, then re-route.** The strongest escalation is resolving the person's LinkedIn URL and re-entering through the LinkedIn-based email pattern — it also catches stale employer data the original row carried. But bolt on a **hard identity gate**: the resolved profile's employer or geography must corroborate the row, not just the name. Name-only matching on common names confidently returns strangers' emails — a wrong-identity email is worse than a miss, and the reliable tell is an email domain that disagrees with the person's known employer.
 - **Check the registry when the vertical has one** (healthcare NPI/NPPES, clinical trials, government contractors). Registries rarely hold emails but confirm identity and employer for free and often yield a verified phone — evidence that upgrades or vetoes every other route's output.
-- **Escalate to a multi-source aggregator before concluding a ceiling.** Async aggregator tools (BetterContact-class — `deepline tools search aggregator email --json`) cascade many upstream sources per contact and recover emails single-provider waterfalls miss; field-measured on hospital-employed physicians, an aggregator more than doubled work-email coverage after the waterfall, people-search, registry, and pattern rungs had topped out. Prefer aggregators whose contract exposes a pollable job id and per-row deliverability status; one that only resolves within a sync-wait ceiling and returns profiles without contacts wastes the run. Aggregator fills still pass the validation gate.
+- **Test a multi-source aggregation mechanism before concluding a ceiling.**
+  Browse the live email/contact categories for actions that combine independent
+  upstream indexes. Prefer contracts with a pollable job ID and per-row
+  deliverability status. Aggregated fills still pass the same identity and
+  validation gates; provider count does not manufacture consensus.
 - **Feed aggregators only validated identifiers.** An identifier you minted but did not identity-gate (a resolved LinkedIn URL that merely name-matched) poisons aggregator matching — it returns the wrong person with confidence. Gate minted identifiers before any downstream rung.
 - **Check credentials before planning a rung.** Some providers are bring-your-own-credentials (`tools describe` shows the billing source); without a linked account every call fails closed with a credentials error. Confirm the connection or drop the rung — do not count it in projected coverage.
 - **Cut losing rungs fast.** If a rung's first ~5 attempts return nothing usable, stop it — people-search databases and pattern-guessing often hold nothing for a niche population, and burning the full set proves nothing the first five didn't.

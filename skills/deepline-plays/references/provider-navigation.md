@@ -1,222 +1,163 @@
-# Provider navigation: seed, pattern, scale
+# Provider navigation: source geometry to scale path
 
-Use this reference while turning a GTM job into distinct, testable retrieval
-strategies. Providers are components in a source program, not the strategy.
+Use this reference when a category browse does not reveal the right information
+path, or when a successful probe must become a bounded production mechanism.
+Providers are implementations of stages. The mechanism is the full path from
+input uncertainty to terminal evidence.
 
 ## Table of contents
 
-1. Start from the job
-2. Discover the live catalog
-3. Route by retrieval role
-4. Navigate search and third-party data
-5. Probe, learn the pattern, then scale
-6. Provider-specific guidance
-7. Preserve independence and source lineage
-8. Evaluate a strategy pool
-9. Compile the selected route
+1. Start from the contract
+2. Browse the capability map
+3. Choose a source geometry
+4. Design seams
+5. Probe, pattern, scale
+6. Preserve lineage
+7. Evaluate mechanisms
+8. Compile the waterfall
 
-## Start from the job
+## Start from the contract
 
-Write the outcome before searching the catalog:
+Record:
 
-- **Unit:** company, person, location, job, event, or another entity.
-- **Required claims:** the facts each delivered row must establish.
-- **Terminal evidence:** the URL, excerpt, record, and freshness needed to
-  accept each claim.
-- **Cohort rule:** requested complete rows and any cross-row constraints, such
-  as a minimum LinkedIn coverage rate.
-- **Economics:** pilot size, maximum Deepline credits, latency target, and what
-  may remain unresolved.
+- input unit and canonical result identity;
+- required claims and accepted terminal evidence;
+- cohort rules with fixed denominators;
+- target count, freshness, latency, and Deepline credit caps.
 
-This contract separates a useful lead from a completed row. A search result can nominate a company or page; it cannot prove a final claim unless its evidence satisfies the claim policy.
+The contract distinguishes a candidate from a completed row. Search output can
+nominate an entity or page. Only evidence accepted by the claim contract can
+complete it.
 
-## Discover the live catalog
-
-Provider names and action IDs below are starting hints. The installed Deepline catalog is the source of truth for availability, inputs, outputs, limits, and Deepline credit bounds.
-
-Search by the role you need, not by a remembered action name:
+## Browse the capability map
 
 ```bash
-deepline tools search "concept web search source discovery" --json
-deepline tools search "structured company people search filters" --json
-deepline tools search "known URL scrape map crawl extract" --json
-deepline tools search "current role company identity verification" --json
-```
-
-Then inspect only the strongest candidates:
-
-```bash
+deepline tools list
+deepline tools list <category> --json
+deepline tools search "<information role and controls>" --json
+deepline tools grep "<literal capability or provider>" --json
 deepline tools describe <tool-id> --json
 ```
 
-Use the description to bind the literal action ID, current schema, output
-shape, async behavior, and maximum Deepline credits. Do not infer fields,
-enums, or price from this skill. Record catalog gaps instead of inventing calls.
+Start with `tools list`, not a remembered vendor. The first command enumerates
+the live categories. The second gives the exhaustive provider inventory inside
+one category. Search ranks likely actions. Grep finds literal capabilities.
+Keep the exhaustive category result as the candidate pool. Describe the small
+initial wave and every action whose mapping you bind into a dormant program:
+IDs, schemas, result paths, limits, async behavior, Deepline credit ceilings,
+and whether an empty result is charged. A new catalog action should become an
+eligible challenger without forcing it across every row.
 
-## Route by retrieval role
+Names and payloads are live catalog facts. Categories and information roles are
+the durable reasoning layer.
 
-| Role                            | Question                                       | Prefer                                                                            |
-| ------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------- |
-| Seed discovery                  | Where might the answer live?                   | Claude Code or another authoring agent, broad web/SERP search, Exa concept search |
-| Structured candidate generation | Which entities match crisp filters?            | Company, people, jobs, maps, registry, or vertical database tools                 |
-| Known-URL retrieval             | What does this page actually say?              | `ctx.fetch`, single-page scrape, or content retrieval                             |
-| Site planning                   | Which pages on this domain are relevant?       | Sitemap/site map before content retrieval                                         |
-| Repeated retrieval              | How do we fetch an already-known URL set?      | Batch scrape or bounded parallel `ctx.fetch`                                      |
-| Extraction                      | How do we turn retrieved text into fields?     | Deterministic parser first; schema-guided extraction when layout varies           |
-| Terminal verification           | Does this exact source prove this exact claim? | Claim-specific binder and acceptance check over raw source text                   |
+## Choose a source geometry
 
-The authoring agent may use browser, terminal, or its own web tools to discover promising sites and query shapes quickly. That work seeds the Play. Final facts must still be fetched and bound inside the completed Play so each row has a receipt and replay path.
+| Geometry                    | Best first move                                            |
+| --------------------------- | ---------------------------------------------------------- |
+| Crisp entity filters        | Structured company, people, jobs, maps, or registry search |
+| Unknown public source       | Web/SERP or semantic research to discover candidate URLs   |
+| Known authoritative page    | Fetch or scrape that page directly                         |
+| Known domain, unknown paths | Map or sitemap, select URLs, then retrieve content         |
+| Bounded linked section      | Capped crawl with explicit path and page limits            |
+| Variable page layouts       | Schema-guided extraction over the smallest known URL set   |
+| Private operational fact    | CRM, warehouse, product, intent, or first-party event join |
+| Partial identity            | Identity resolution before downstream enrichment           |
+| Repeated known-row lookup   | Batch action or governed row-wise execution                |
 
-## Navigate search and third-party data
+Source geometry determines the mechanism. Vendor reputation does not.
 
-Choose by the shape of uncertainty:
+## Design seams
 
-- Use **structured providers** when filters are crisp and match the provider's
-  ontology: headcount, funding, geography, seniority, technologies, or current
-  employer. They give normalized candidates efficiently, but coverage and
-  freshness vary by segment.
-- Use **web or SERP search** when the source is unknown, the concept is
-  semantic, the fact changes quickly, or niche entities are missing from
-  databases. Search has wider source reach but noisier ranking and weaker
-  completeness guarantees.
-- Use **maps search** for local businesses, storefronts, service areas,
-  addresses, phones, and websites. Ordinary web search often under-ranks these
-  entities.
-- Use **known-source retrieval** when the authoritative directory, registry,
-  portfolio, staff page, ATS, or filing is already known. Repeated search is a
-  costly and less complete substitute for traversing the source itself.
-- Use **private data** when the claim belongs to CRM, warehouse, or product
-  state. Public corroboration does not replace a stable private join.
+A seam is the artifact one stage gives the next. Prefer seams that survive a
+provider swap:
 
-A provider database can supply a lead and an official page can supply proof. That is one end-to-end strategy, not two competing final answers.
+- canonical entity key;
+- candidate URL or bounded URL set;
+- structured provider record with stable identifiers;
+- raw source text plus exact excerpt;
+- unresolved claim IDs;
+- typed miss or adapter failure.
 
-## Probe, learn the pattern, then scale
+Examples of mechanisms:
 
-Use a three-stage transformation:
+```text
+structured candidate search → canonical domain → official page → bound claim
+web source discovery → selected directory → pagination adapter → bound rows
+known people → identity resolution → contact lookup → independent validation
+company set → job/event search → dated source retrieval → signal claim
+```
 
-1. **Probe:** run a few focused searches or inspect a few representative sites.
-   Preserve result URLs, misses, query text, and the source types returned.
-2. **Pattern:** identify the durable access path: a directory pagination rule,
-   sitemap section, URL prefix, page template, registry endpoint, or stable
-   entity key. Write a deterministic adapter and excerpt binder for it.
+The seam, not the provider response object, is what makes a route composable.
+
+## Probe, pattern, scale
+
+1. **Probe:** register broadly, then compare a small maximally heterogeneous
+   wave on the same representative units. Preserve queries, URLs, calls,
+   misses, raw source types, and every dormant eligible program.
+2. **Pattern:** identify the durable access path: stable filter, entity key,
+   directory pagination, sitemap section, URL prefix, or page template.
 3. **Scale:** replace repeated open-ended discovery with the cheapest bounded
-   mechanism that follows the pattern: `ctx.fetch`, a map plus selected batch,
-   a capped crawl, or a structured provider query.
+   path that follows the pattern: batch lookup, direct fetch, map plus selected
+   retrieval, capped crawl, or provider pagination.
 
-Do not scale the seed tool by habit. Claude Code or Serper may reveal a directory that a direct fetch loop should traverse. Exa may reveal a staff-page pattern that Firecrawl map plus batch scrape should execute once domains are known.
+The seed provider need not be the scale provider. A search may reveal an
+official directory that direct retrieval can traverse more completely and
+cheaply. Re-probe when the source template, query policy, or acceptance rule
+changes.
 
-Re-probe when a source template, query policy, or acceptance rule changes.
-Version the adapter and checkpoint IDs so stale cells are recomputed instead of
-silently reused.
+## Preserve lineage
 
-## Provider-specific guidance
+Consensus is agreement between independent terminal sources, not agreement
+between APIs. Provider siblings remain useful route competitors because their
+coverage, latency, and Deepline-credit behavior can differ; they simply do not
+create extra evidence lineages when they terminate at the same source.
 
-### Exa: semantic source discovery
+For every accepted claim, retain the terminal URL or record, publisher/owner,
+raw excerpt, retrieval time, and provider action. Group duplicate URLs,
+syndicated copies, and providers backed by the same corpus into one lineage.
+Keep discovery provenance separate from terminal evidence provenance.
 
-Use Exa for concept-driven company, people, page, and signal discovery. Use
-search or entity search to collect candidate URLs, then contents retrieval to
-inspect the selected pages. Treat answer/synthesis actions as a presentation
-layer when precision matters, not as the evidence-gathering first step.
+An official page and a public registry may form two lineages. Two search tools
+returning the same page form one. A model may reject a bound excerpt that fails
+the contract; it cannot create absent evidence.
 
-Exa ranking is strong for semantic relevance, but one broad query is not a census. Partition along axes that change the result population: geography, vertical, entity type, company-size band, time window, role family, or a known source domain. Keep pilots small. Dedupe by canonical entity and URL before widening.
+## Evaluate mechanisms
 
-Granular queries beat one giant prompt only when the partitions are meaningful.
-Cosmetic paraphrases return correlated rankings and create false coverage.
-Keep entity-category search separate from source/domain-scoped page search;
-mixing those intents can suppress useful results. Confirm the current controls
-with `tools describe` rather than copying old payloads.
+Each program card states:
 
-### Serper: fast live breadth
+```text
+hypothesis → diversity features → seams → terminal lineage → call/credit cap → expected miss
+```
 
-Use Serper for fast Google recall, changing facts, source discovery, and URL
-recovery. Use its maps family for local-business discovery. Validate important
-results by retrieving the returned URL; a snippet is a lead, not durable proof.
+Choose the bounded initial and challenge waves by maximum new diversity-feature
+coverage, then known lower Deepline-credit ceilings. Apply hard claim and cohort
+gates first, then complete-row yield, unique rescues, adapter stability,
+observed Deepline credits, and calls. A catalog credit ceiling is a bound, not
+observed spend. An adapter failure is not a source miss, and a source miss is
+not proof that the entity lacks the fact. Confirmed uncharged misses justify
+broader challenge waves; unknown cost never becomes zero. Compile the described
+pricing unit into `billingUnit`; only a catalog `result` unit proves that a
+source miss cost zero credits.
 
-When many rows need the same search shape, use the catalog's batch route or let
-row-wise calls coalesce when the current compiler supports it. Batch capacity
-and shared option constraints can change. Inspect the live description before
-compiling the Play, and keep positional alignment between query and result.
+If the user supplies a total Deepline-credit limit, set
+`maximumDeeplineCredits` on the experiment and a ceiling on every registered
+program. This is a conservative admission bound, not a substitute for the
+opening-minus-closing billing delta.
+Do not use `maxFallbacks: 0` as a cost control when the pool has dormant
+programs; it disables the very challenge path those programs were registered
+for. Use the experiment credit ceiling for spend.
 
-Batching reduces transport overhead; it does not make searches independent. Queries that differ only by wording still share Google's index and belong to one source-lineage group.
+## Compile the waterfall
 
-### Firecrawl: turn known web scope into content
+Promote the smallest dependency-closed portfolio that passes holdout. Preserve
+the producer/consumer order and invoke later programs only for unresolved
+claims. Keep the registered pool broad and the active waterfall small. On any
+unresolved comparison, pilot, holdout, or exploit unit, give untried programs a
+bounded heterogeneous challenge and retain them only when they add verified
+coverage. Do not re-run the same program/unit pair without new candidate or
+evidence state.
 
-Choose the smallest surface that matches the known scope:
-
-- One known page: scrape it.
-- Known URL list: batch scrape it rather than issuing independent jobs.
-- Known domain, unknown page paths: map first, select relevant URLs, then batch.
-- A bounded site section that requires link following: preview crawl parameters,
-  then crawl with explicit path and page limits.
-- Variable page layouts that resist deterministic parsing: use structured
-  extraction over the smallest known URL set.
-
-Map discovers URLs but does not retrieve their content. Its current catalog
-contract has a large default and a higher hard ceiling, so always pass a small,
-intentional limit. Batch scrape scales with the number of input URLs; dedupe and
-select before submission. Crawl currently defaults to a very large page budget
-and preflights against the requested limit; always preview and set an explicit
-lower limit unless a broad crawl is genuinely intended.
-
-Map, batch, crawl, and extraction constraints can change. Read their live
-descriptions before execution. Treat blocked pages and processed 4xx responses
-as evidence about the route, not invitations to retry blindly.
-
-## Preserve independence and source lineage
-
-Consensus means independent evidence mechanisms agree, not that several tools
-repeat one underlying source.
-
-- Record the final URL, publisher/owner, raw excerpt or record, retrieval time,
-  and provider action for every accepted claim.
-- Assign a lineage group such as `official_site`, `google_index`,
-  `professional_profile_index`, `public_registry`, `private_crm`, or
-  `warehouse`.
-- Collapse duplicate URLs, syndicated copies, and providers backed by the same
-  corpus before counting corroboration.
-- Keep discovery provenance separate from terminal evidence provenance.
-- Let an LLM reject a bound excerpt that fails the claim policy. Do not let it
-  add a fact absent from the excerpt.
-
-Two search vendors agreeing on the same LinkedIn page is one source. An official staff page and a state license record are usually independent sources.
-
-## Evaluate a strategy pool
-
-Each candidate strategy should state:
-
-- hypothesis and source lineage;
-- literal retrieval stages and the handoff between them;
-- query partitions or traversal pattern;
-- expected calls per row and catalog-bound credit ceiling;
-- terminal evidence and binder;
-- likely coverage segment and failure mode;
-- why it is materially different from the other candidates.
-
-Pilot distinct strategies on the same small, representative rows. Promote by:
-
-1. hard claim and cohort constraints;
-2. verified complete-row yield;
-3. marginal coverage over the routes already selected;
-4. adapter stability and source bindability;
-5. Deepline credits and latency.
-
-Copy a current described/quoted ceiling into the program's
-`maximumDeeplineCreditsPerAttempt` only when attempt-level billing attribution
-is unavailable. The experiment labels that value `catalog_upper_bound`; it is
-never presented as observed spend. Whole-run opening-minus-closing billing is
-still authoritative.
-
-Do not average away a hard failure. An adapter break is not a source miss. A
-zero-result source is not proof that the entity lacks the fact. Freeze the
-checks before the holdout; strategies may improve their queries and adapters,
-but they may not weaken acceptance to look better.
-
-## Compile the selected route
-
-After the pilot, turn the winning stages and useful independent fallbacks into
-one deterministic Play. Keep literal provider branches visible. Preserve the
-seed queries, selected URLs, excluded candidates, raw evidence, and stop reason.
-
-At runtime, use search only where uncertainty remains. Exploit learned site or
-query patterns everywhere else. The result should feel adaptive during
-authoring and be inspectable, replay-safe, and bounded in production.
+The resulting Play should contain literal provider calls, explicit seams,
+terminal evidence bindings, and stop conditions. Exploration discovers the
+route. The waterfall makes it deterministic, replayable, and economical.
