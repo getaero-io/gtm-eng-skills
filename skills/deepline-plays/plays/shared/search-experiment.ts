@@ -68,6 +68,8 @@ export type SearchProgram<Row extends JsonRow, Context> = {
   hypothesis: string;
   /** Hard per-invocation ceiling. The helper rejects an over-cap result. */
   maximumCallsPerAttempt: number;
+  /** Catalog/quote ceiling used only when this attempt has no cost receipt. */
+  maximumDeeplineCreditsPerAttempt?: number;
   run(input: SearchProgramInput<Row, Context>): Promise<SearchProgramAttempt>;
 };
 
@@ -166,11 +168,16 @@ export type SearchProgramScore = {
   callsPerVerifiedRequiredClaim: number;
   deeplineCredits: number | null;
   deeplineCreditsPerVerifiedRequiredClaim: number | null;
+  costCredits: number | null;
+  costCreditsPerVerifiedRequiredClaim: number | null;
+  costBasis: SearchCostBasis;
   unobservedCreditAttempts: number;
   sourceMisses: number;
   adapterFailures: number;
   evidenceLineages: string[];
 };
+
+export type SearchCostBasis = 'observed' | 'catalog_upper_bound' | 'unknown';
 
 export type SearchAdaptationTrace = {
   unitKey: string;
@@ -190,6 +197,27 @@ export type SearchExperimentLeverage = {
   deeplineCredits: number | null;
   unobservedCreditAttempts: number;
   completeResultsPerDeeplineCredit: number | null;
+};
+
+/**
+ * A non-dominated option observed during the shared comparison wave.
+ * Coverage already includes every claim's evidence/consensus contract, so a
+ * cheaper point cannot "win" by weakening verification.
+ */
+export type SearchCostCoveragePoint = {
+  programIds: string[];
+  completeResults: number;
+  verifiedRequiredClaims: number;
+  passedCohortChecks: number;
+  cohortRatioTotal: number;
+  cohortNumeratorTotal: number;
+  totalCalls: number;
+  observedDeeplineCredits: number | null;
+  costCredits: number | null;
+  costBasis: SearchCostBasis;
+  completeResultsPerCostCredit: number | null;
+  /** Won the common comparison wave; later pilot/holdout evidence may change the waterfall. */
+  comparisonWinner: boolean;
 };
 
 export type SearchCohortResult = SearchCohortCheck & {
@@ -218,6 +246,8 @@ export type SearchExperimentResult<Row extends JsonRow> = {
   exhaustiveComparisonCalls: number;
   avoidedCalls: number;
   leverage: SearchExperimentLeverage;
+  /** Fair alternatives from the common comparison wave, not uneven exploit history. */
+  costCoverageFrontier: SearchCostCoveragePoint[];
   rationale: string[];
 };
 
@@ -650,6 +680,15 @@ function validateDefinition<Row extends JsonRow, Context>(
         `Search program ${program.id} needs a positive maximumCallsPerAttempt.`,
       );
     }
+    if (
+      program.maximumDeeplineCreditsPerAttempt !== undefined &&
+      (!Number.isFinite(program.maximumDeeplineCreditsPerAttempt) ||
+        program.maximumDeeplineCreditsPerAttempt < 0)
+    ) {
+      throw new Error(
+        `Search program ${program.id} needs a non-negative maximumDeeplineCreditsPerAttempt.`,
+      );
+    }
   }
   const maxFallbacks =
     definition.maxFallbacks ?? Math.min(2, programs.length - 1);
@@ -1055,6 +1094,10 @@ function scoreProgram<Row extends JsonRow>(input: {
   const verifiedRequiredClaims = requiredVerifiedCount(results);
   const completeResults = results.filter((result) => result.complete);
   const credits = summarizeCredits(programRecords);
+  const cost = estimateProgramCost({
+    program: input.program,
+    records: programRecords,
+  });
   const evidence = results.flatMap((result) =>
     result.claimEvaluations.flatMap((claim) => claim.evidence),
   );
@@ -1075,6 +1118,12 @@ function scoreProgram<Row extends JsonRow>(input: {
       verifiedRequiredClaims && credits.total !== null
         ? credits.total / verifiedRequiredClaims
         : null,
+    costCredits: cost.credits,
+    costCreditsPerVerifiedRequiredClaim:
+      verifiedRequiredClaims && cost.credits !== null
+        ? cost.credits / verifiedRequiredClaims
+        : null,
+    costBasis: cost.basis,
     unobservedCreditAttempts: credits.unobserved,
     sourceMisses: programRecords.filter(
       (record) => record.attempt && !record.attempt.results.length,
@@ -1299,17 +1348,43 @@ function rowsNeedingWork<Row extends JsonRow>(input: {
 function summarizeCredits<Row extends JsonRow>(
   records: readonly AttemptRecord<Row>[],
 ): { total: number | null; unobserved: number } {
-  const unobserved = records.filter(
-    (record) => record.observedDeeplineCredits === null,
+  const observedCredits = records.map((record) =>
+    record.observedDeeplineCredits !== null
+      ? record.observedDeeplineCredits
+      : record.attempt && record.observedTotalCalls === 0
+        ? 0
+        : null,
+  );
+  const unobserved = observedCredits.filter(
+    (credits) => credits === null,
   ).length;
   return {
     total: unobserved
       ? null
-      : records.reduce(
-          (total, record) => total + record.observedDeeplineCredits!,
-          0,
-        ),
+      : observedCredits.reduce<number>((total, credits) => total + credits!, 0),
     unobserved,
+  };
+}
+
+function estimateProgramCost<Row extends JsonRow>(input: {
+  program: SearchProgram<Row, unknown>;
+  records: readonly AttemptRecord<Row>[];
+}): { credits: number | null; basis: SearchCostBasis } {
+  const observed = summarizeCredits(input.records);
+  if (observed.total !== null) {
+    return { credits: observed.total, basis: 'observed' };
+  }
+  const ceiling = input.program.maximumDeeplineCreditsPerAttempt;
+  if (ceiling === undefined) return { credits: null, basis: 'unknown' };
+  return {
+    credits: input.records.reduce(
+      (total, record) =>
+        total +
+        (record.observedDeeplineCredits ??
+          (record.attempt && record.observedTotalCalls === 0 ? 0 : ceiling)),
+      0,
+    ),
+    basis: 'catalog_upper_bound',
   };
 }
 
@@ -1333,8 +1408,8 @@ function compareProgramScores(
     right.unitsWithCompleteResults - left.unitsWithCompleteResults ||
     left.adapterFailures - right.adapterFailures ||
     compareNullableCost(
-      left.deeplineCreditsPerVerifiedRequiredClaim,
-      right.deeplineCreditsPerVerifiedRequiredClaim,
+      left.costCreditsPerVerifiedRequiredClaim,
+      right.costCreditsPerVerifiedRequiredClaim,
     ) ||
     left.callsPerVerifiedRequiredClaim - right.callsPerVerifiedRequiredClaim ||
     left.programId.localeCompare(right.programId)
@@ -1388,6 +1463,7 @@ function choosePrograms<Row extends JsonRow, Context>(input: {
   selected: SearchProgram<Row, Context>[];
   scores: SearchProgramScore[];
   dependencyCycle: string[];
+  costCoverageFrontier: SearchCostCoveragePoint[];
 } {
   const requiredProgramIds = input.requiredProgramIds ?? new Set<string>();
   const enriched = input.programs
@@ -1410,7 +1486,7 @@ function choosePrograms<Row extends JsonRow, Context>(input: {
   const comparisonWasEmpty = enriched.every(
     (score) => score.supportedEvidenceAtoms === 0,
   );
-  const portfolios = programCombinations(enriched, maximumPrograms)
+  const expandedPortfolios = programCombinations(enriched, maximumPrograms)
     .map((basePrograms) =>
       expandCausalProgramIds({
         seedProgramIds: basePrograms.map((program) => program.programId),
@@ -1443,9 +1519,34 @@ function choosePrograms<Row extends JsonRow, Context>(input: {
             0,
           )
         : null,
+      costCredits: programs.every((program) => program.costCredits !== null)
+        ? programs.reduce((total, program) => total + program.costCredits!, 0)
+        : null,
+      costBasis: programs.some((program) => program.costBasis === 'unknown')
+        ? ('unknown' as const)
+        : programs.some(
+              (program) => program.costBasis === 'catalog_upper_bound',
+            )
+          ? ('catalog_upper_bound' as const)
+          : ('observed' as const),
     }));
+  const seenPortfolioKeys = new Set<string>();
+  const portfolios = expandedPortfolios.filter((portfolio) => {
+    const key = portfolio.programs
+      .map((program) => program.programId)
+      .sort()
+      .join('\u0000');
+    if (seenPortfolioKeys.has(key)) return false;
+    seenPortfolioKeys.add(key);
+    return true;
+  });
   if (!portfolios.length) {
-    return { selected: [], scores: enriched, dependencyCycle: [] };
+    return {
+      selected: [],
+      scores: enriched,
+      dependencyCycle: [],
+      costCoverageFrontier: [],
+    };
   }
   portfolios.sort((left, right) => {
     if (comparisonWasEmpty) {
@@ -1461,10 +1562,10 @@ function choosePrograms<Row extends JsonRow, Context>(input: {
       right.coverage.cohortRatioTotal - left.coverage.cohortRatioTotal ||
       right.coverage.cohortNumeratorTotal -
         left.coverage.cohortNumeratorTotal ||
+      compareNullableCost(left.costCredits, right.costCredits) ||
+      left.totalCalls - right.totalCalls ||
       right.coverage.evidenceLineages.size -
         left.coverage.evidenceLineages.size ||
-      compareNullableCost(left.deeplineCredits, right.deeplineCredits) ||
-      left.totalCalls - right.totalCalls ||
       left.programs.length - right.programs.length ||
       left.programs
         .map((program) => rankById.get(program.programId)!)
@@ -1479,6 +1580,68 @@ function choosePrograms<Row extends JsonRow, Context>(input: {
   const selectedIds = portfolios[0]!.programs.map(
     (program) => program.programId,
   );
+  const dominates = (
+    left: (typeof portfolios)[number],
+    right: (typeof portfolios)[number],
+  ): boolean => {
+    if (left.costCredits === null || right.costCredits === null) return false;
+    const atLeastAsMuchCoverage =
+      left.coverage.completeResultIdentities.size >=
+        right.coverage.completeResultIdentities.size &&
+      left.coverage.verifiedRequiredClaimKeys.size >=
+        right.coverage.verifiedRequiredClaimKeys.size &&
+      left.coverage.passedCohortChecks >= right.coverage.passedCohortChecks &&
+      left.coverage.cohortRatioTotal >= right.coverage.cohortRatioTotal &&
+      left.coverage.cohortNumeratorTotal >=
+        right.coverage.cohortNumeratorTotal &&
+      (!comparisonWasEmpty || left.programs.length >= right.programs.length);
+    const noMoreCost = left.costCredits <= right.costCredits;
+    const strictlyBetter =
+      left.coverage.completeResultIdentities.size >
+        right.coverage.completeResultIdentities.size ||
+      left.coverage.verifiedRequiredClaimKeys.size >
+        right.coverage.verifiedRequiredClaimKeys.size ||
+      left.coverage.passedCohortChecks > right.coverage.passedCohortChecks ||
+      left.coverage.cohortRatioTotal > right.coverage.cohortRatioTotal ||
+      left.coverage.cohortNumeratorTotal >
+        right.coverage.cohortNumeratorTotal ||
+      (comparisonWasEmpty && left.programs.length > right.programs.length) ||
+      left.costCredits < right.costCredits;
+    return atLeastAsMuchCoverage && noMoreCost && strictlyBetter;
+  };
+  const selectedKey = [...selectedIds].sort().join('\u0000');
+  const costCoverageFrontier = portfolios
+    .filter(
+      (candidate) =>
+        !portfolios.some(
+          (other) => other !== candidate && dominates(other, candidate),
+        ),
+    )
+    .map<SearchCostCoveragePoint>((portfolio) => {
+      const completeResults = portfolio.coverage.completeResultIdentities.size;
+      return {
+        programIds: portfolio.programs.map((program) => program.programId),
+        completeResults,
+        verifiedRequiredClaims:
+          portfolio.coverage.verifiedRequiredClaimKeys.size,
+        passedCohortChecks: portfolio.coverage.passedCohortChecks,
+        cohortRatioTotal: portfolio.coverage.cohortRatioTotal,
+        cohortNumeratorTotal: portfolio.coverage.cohortNumeratorTotal,
+        totalCalls: portfolio.totalCalls,
+        observedDeeplineCredits: portfolio.deeplineCredits,
+        costCredits: portfolio.costCredits,
+        costBasis: portfolio.costBasis,
+        completeResultsPerCostCredit:
+          portfolio.costCredits !== null && portfolio.costCredits > 0
+            ? completeResults / portfolio.costCredits
+            : null,
+        comparisonWinner:
+          portfolio.programs
+            .map((program) => program.programId)
+            .sort()
+            .join('\u0000') === selectedKey,
+      };
+    });
   const dependencies = new Map<string, Set<string>>();
   for (let index = 0; index < selectedIds.length; index += 1) {
     const consumerId = selectedIds[index]!;
@@ -1542,6 +1705,12 @@ function choosePrograms<Row extends JsonRow, Context>(input: {
       : orderedIds.map((id) => byId.get(id)!),
     scores: enriched,
     dependencyCycle,
+    costCoverageFrontier: dependencyCycle.length
+      ? costCoverageFrontier.map((point) => ({
+          ...point,
+          comparisonWinner: false,
+        }))
+      : costCoverageFrontier,
   };
 }
 
@@ -2171,6 +2340,7 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
           ? completeResults / credits.total
           : null,
     },
+    costCoverageFrontier: provisional.costCoverageFrontier,
     rationale: [
       `Compared ${input.definition.programs.length} programs on ${split.comparisonRows.length} shared dataset-conditioned unit(s).`,
       finalChoice.dependencyCycle.length
@@ -2187,6 +2357,7 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
       adaptations.length
         ? `Ran ${adaptations.length} bounded live challenge(s); the final waterfall is ${activePrograms.map((program) => program.id).join(' -> ')}.`
         : 'No live challenge was needed or admitted during batch exploitation.',
+      `Observed ${provisional.costCoverageFrontier.length} non-dominated cost/coverage option(s) in the shared comparison wave.`,
       credits.total === null
         ? `Per-attempt Deepline credits were unobserved for ${credits.unobserved} attempt(s); run-level billing delta remains authoritative.`
         : `Observed ${credits.total} Deepline credits across all experiment attempts.`,

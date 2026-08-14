@@ -170,7 +170,8 @@ const experiment = await runSearchExperiment({
 ```
 
 Each `SearchProgram` contains only `id`, `hypothesis`, a per-attempt call cap,
-and `run({ ctx, row, gaps, candidates, phase })`. A discovery mechanism may
+an optional catalog/quote credit ceiling, and
+`run({ ctx, row, gaps, candidates, phase })`. A discovery mechanism may
 return only identity evidence. A verifier may consume `candidates` and return
 only the claims named by `gaps`. Keep tool IDs and calls literal in these bodies
 so `plays check` and reviewers can see the graph. The helper composes partial
@@ -179,7 +180,8 @@ results, constructs receipts, and owns all accounting.
 ```ts
 return {
   totalCalls: 1,
-  // Set deeplineCredits only from this attempt's receipt. Otherwise omit it.
+  // Set attempt.deeplineCredits only from its receipt. If unavailable, put the
+  // described/quoted ceiling on program.maximumDeeplineCreditsPerAttempt.
   results: [
     {
       resultKey: candidate.id,
@@ -198,7 +200,7 @@ The helper performs this sequence in one run:
 
 1. Run every program concurrently on one or two shared diverse rows. This is the only broad parallel wave.
 2. Retry an incomplete attempt once, in any phase, only when another program materially changed that unit's candidate/evidence ledger and gaps remain.
-3. Rank by complete rows, verified required claims, unit coverage, adapter failures, then calls; retain any candidate producer causally required by a winner.
+3. Rank by complete rows, verified required claims, and cohort coverage. Among equally valid portfolios, prefer lower observed Deepline credits, then fewer calls. Extra providers do not win merely by adding evidence after the frozen consensus requirement is already satisfied. Retain any candidate producer causally required by a winner.
 4. Run producers before their consumers over the remaining pilot rows.
 5. Invoke alternatives only for rows and claims still unresolved, including failed cohort claims.
 6. Freeze the selected order and test untouched holdout rows.
@@ -259,9 +261,13 @@ Deliver complete rows, source URLs/excerpts, unresolved rows, initial and final
 waterfalls, live adaptations, attempt ledger, holdout result, run ID, and
 opening-minus-closing Deepline credits. Also report `experiment.leverage`:
 verified complete rows, calls, exhaustive call baseline, calls avoided, and rows
-per attributed Deepline credit. The opening-minus-closing billing delta is the
+per attributed Deepline credit. Show `experiment.costCoverageFrontier` so the
+user can see the non-dominated provider portfolios observed on the same
+comparison rows: more verified coverage may cost more, while redundant spend
+falls off the frontier. The opening-minus-closing billing delta is the
 authoritative whole-run cost. Unknown per-attempt credits remain unknown; they
-never become a fabricated zero or invalidate a true claim.
+stay visible on the frontier and never become a fabricated zero or invalidate
+a true claim.
 
 ## Gates
 

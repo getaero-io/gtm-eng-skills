@@ -43,6 +43,8 @@ export default definePlay(
         id: 'seed',
         hypothesis: 'The most likely mechanism can discover useful candidates.',
         maximumCallsPerAttempt: 1,
+        // Add maximumDeeplineCreditsPerAttempt from tools describe/quote when
+        // this route cannot return an attempt-level billing receipt.
         async run({ row, gaps }) {
           void row;
           void gaps;
@@ -71,6 +73,8 @@ export default definePlay(
         hypothesis:
           'An independent mechanism can verify unresolved claims on discovered candidates.',
         maximumCallsPerAttempt: 1,
+        // Add maximumDeeplineCreditsPerAttempt from tools describe/quote when
+        // this route cannot return an attempt-level billing receipt.
         async run({ candidates, gaps }) {
           if (!candidates.length || !gaps.length)
             return { totalCalls: 0, deeplineCredits: 0, results: [] };

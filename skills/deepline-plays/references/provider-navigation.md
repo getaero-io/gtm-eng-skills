@@ -200,6 +200,12 @@ Pilot distinct strategies on the same small, representative rows. Promote by:
 4. adapter stability and source bindability;
 5. Deepline credits and latency.
 
+Copy a current described/quoted ceiling into the program's
+`maximumDeeplineCreditsPerAttempt` only when attempt-level billing attribution
+is unavailable. The experiment labels that value `catalog_upper_bound`; it is
+never presented as observed spend. Whole-run opening-minus-closing billing is
+still authoritative.
+
 Do not average away a hard failure. An adapter break is not a source miss. A
 zero-result source is not proof that the entity lacks the fact. Freeze the
 checks before the holdout; strategies may improve their queries and adapters,

@@ -92,8 +92,11 @@ For enrichment with uncertain coverage, follow `../SKILL.md`:
    failed. Useful challengers join later batches automatically, replacing a
    noncausal fallback when the configured waterfall is already full.
 5. Report `experiment.leverage` plus the opening-minus-closing Deepline billing
-   balance. Per-attempt credit fields are optional receipt data; never copy a
-   catalog price into them or turn unknown spend into zero.
+   balance and the fair comparison's `costCoverageFrontier`. Per-attempt credit
+   fields are optional receipt data; never copy a catalog price into them or
+   turn unknown spend into zero. Put a current catalog/quote ceiling in
+   `maximumDeeplineCreditsPerAttempt` instead, where the scorer labels it as an
+   upper bound rather than actual spend.
 
 The small comparison and challenge waves are intentionally parallel. The
 remaining work is best-first, so a useful primary does not force every fallback
