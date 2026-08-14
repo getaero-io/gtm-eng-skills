@@ -515,9 +515,13 @@ export type ResearchExperiment<Row extends UnknownRecord, Context> = {
     require?: {
       minimumVerifiedRequiredClaimCoverage?: number;
       minimumCompleteRows?: number;
+      /** Legacy whole-route gate. Prefer typed per-row failure handling. */
       noAdapterFailures?: boolean;
       noPolicyViolations?: boolean;
-      /** Do not select a topology whose pilot cost could not be observed. */
+      /**
+       * Legacy opt-in cost gate. The runtime may not expose per-call credits;
+       * unknown cost must never be replaced with a fabricated zero or estimate.
+       */
       noUnknownDeeplineCredits?: boolean;
     };
     /** Defaults to quality first, then Deepline credits and wall time. */
@@ -535,6 +539,52 @@ export type ClaimEvaluation = {
   evidence: ResearchEvidence[];
   independentEvidenceClasses: string[];
 };
+
+declare const validatedClaimEvaluationBrand: unique symbol;
+
+/**
+ * An evaluation minted by `evaluateResearchClaimValues(...)` in this process.
+ * The private brand prevents callers from satisfying the pilot contract with a
+ * structurally similar object, while the runtime receipt is checked again when
+ * a strategy is scored.
+ */
+export type ValidatedClaimEvaluation = ClaimEvaluation & {
+  readonly [validatedClaimEvaluationBrand]: true;
+};
+
+type ValidatedClaimEvaluationReceipt = {
+  scope: string;
+  claimId: string;
+  status: ClaimEvaluation['status'];
+  value: unknown;
+  evidenceSnapshots: readonly string[];
+  independentEvidenceClasses: readonly string[];
+};
+
+const validatedClaimEvaluations = new WeakMap<
+  object,
+  ValidatedClaimEvaluationReceipt
+>();
+
+function researchEvidenceSnapshot(evidence: ResearchEvidence): string {
+  return JSON.stringify({
+    source: evidence.source,
+    independenceClass: evidence.independenceClass,
+    url: evidence.url ?? null,
+    text: evidence.text ?? null,
+    publishedAt: evidence.publishedAt ?? null,
+    authority: evidence.authority ?? null,
+    sourceBinding: evidence.sourceBinding
+      ? {
+          kind: evidence.sourceBinding.kind,
+          evidenceText: evidence.sourceBinding.evidenceText,
+          publishedAt: evidence.sourceBinding.publishedAt ?? null,
+          rawSourceContext: evidence.sourceBinding.rawSourceContext,
+          dateExcerpt: evidence.sourceBinding.dateExcerpt ?? null,
+        }
+      : null,
+  });
+}
 
 /**
  * A claim that a topology has not yet established. This is deliberately a
@@ -634,9 +684,9 @@ const DEFAULT_PROMOTION_REQUIREMENTS: NonNullable<
 > = {
   minimumVerifiedRequiredClaimCoverage: 1,
   minimumCompleteRows: 1,
-  noAdapterFailures: true,
+  noAdapterFailures: false,
   noPolicyViolations: true,
-  noUnknownDeeplineCredits: true,
+  noUnknownDeeplineCredits: false,
 };
 
 /**
@@ -682,6 +732,56 @@ function isResearchSourceBoundEvidence(
     (evidence.authority === undefined ||
       evidence.authority === 'authoritative' ||
       evidence.authority === 'supporting')
+  );
+}
+
+/**
+ * Verify that a claim evaluation came from this module's evaluator and still
+ * carries valid literal source bindings. Receipts are intentionally
+ * process-local: evaluate claims and select a strategy in the same Play run.
+ */
+export function isValidatedResearchClaimEvaluation(
+  value: unknown,
+  expectedScope?: string,
+): value is ValidatedClaimEvaluation {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const receipt = validatedClaimEvaluations.get(value);
+  if (!receipt) return false;
+  const evaluation = value as ClaimEvaluation;
+  return (
+    (expectedScope === undefined || receipt.scope === expectedScope) &&
+    evaluation.claimId === receipt.claimId &&
+    evaluation.status === receipt.status &&
+    Object.is(evaluation.value, receipt.value) &&
+    Array.isArray(evaluation.evidence) &&
+    evaluation.evidence.length === receipt.evidenceSnapshots.length &&
+    evaluation.evidence.every(
+      (evidence, index) =>
+        researchEvidenceSnapshot(evidence) === receipt.evidenceSnapshots[index],
+    ) &&
+    evaluation.evidence.every(isResearchSourceBoundEvidence) &&
+    Array.isArray(evaluation.independentEvidenceClasses) &&
+    sameStringArray(
+      evaluation.independentEvidenceClasses,
+      receipt.independentEvidenceClasses,
+    ) &&
+    evaluation.evidence.every((evidence) =>
+      evaluation.independentEvidenceClasses.includes(
+        evidence.independenceClass,
+      ),
+    )
+  );
+}
+
+function sameStringArray(
+  left: readonly string[],
+  right: readonly string[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((item, index) => item === right[index])
   );
 }
 
@@ -980,14 +1080,25 @@ export function evaluateResearchClaimValues<Row extends UnknownRecord>(input: {
   row: Row;
   definitions: readonly ResearchClaim<Row>[];
   claims: Readonly<Record<string, ResearchClaimValue | undefined>>;
-}): ClaimEvaluation[] {
-  return input.definitions.map((definition) =>
-    evaluateClaim({
+  /** Bind receipts to a pilot route/result when they will drive promotion. */
+  receiptScope?: string;
+}): ValidatedClaimEvaluation[] {
+  return input.definitions.map((definition) => {
+    const evaluation = evaluateClaim({
       row: input.row,
       definition,
       result: input.claims[definition.id],
-    }),
-  );
+    });
+    validatedClaimEvaluations.set(evaluation, {
+      scope: input.receiptScope ?? '',
+      claimId: evaluation.claimId,
+      status: evaluation.status,
+      value: evaluation.value,
+      evidenceSnapshots: evaluation.evidence.map(researchEvidenceSnapshot),
+      independentEvidenceClasses: [...evaluation.independentEvidenceClasses],
+    });
+    return evaluation as ValidatedClaimEvaluation;
+  });
 }
 
 /**

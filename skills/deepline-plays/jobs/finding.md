@@ -67,11 +67,11 @@ deepline plays search contact --json
 deepline plays run <play-name> --input '{"company_name":"Acme","domain":"acme.com","roles":"VP Marketing","seniority":"VP"}' --watch
 ```
 
-For a company list → contacts, a small custom play with one `ctx.dataset` stage
-doing company-scoped people search per row is the EXPLOIT shape after route
-comparison. During EXPLORE, expose one column per candidate route plus the
-ledger and scorecard required by `../SKILL.md`. Resolving a domain from a
-company name is mechanical — use a search tool
+For a company list → contacts, a small custom Play doing company-scoped people
+search is the exploit shape after the experiment in `../SKILL.md`. Author each
+candidate route as a `SearchProgram`; the helper creates the evidence ledger,
+comparison, holdout, and scorecard. Resolving a domain from a company name is
+mechanical — use a search tool
 (`deepline tools search search --json`), not `deeplineagent`. Engagers on a
 post output a list of people — hand off to the qualification section
 (`deeplineagent` with a tier `jsonSchema`).
@@ -98,13 +98,12 @@ For high-stakes signals (job changes, recent funding, leadership moves), verify
 with a second source before tagging `HIGH`: single-source is `MEDIUM`,
 conflicting sources are `LOW`.
 
-When several discovery providers return ranked lists, use the generic entity
-reranker in `../shared/reranking.md`. Normalize both people and companies to the
-same contract (`id`, `kind`, attributes, evidence, RRF, verification,
-corroboration), then supply task criteria in JSON. People normally canonicalize
-by LinkedIn URL; companies by domain. The ranking machinery is shared. Only the
-verification adapter differs: current-employment evidence for a person versus
-domain/legal-entity/firmographic evidence for a company.
+When several discovery providers return ranked lists inside one program,
+canonicalize people by LinkedIn URL and companies by domain, then use weighted
+reciprocal-rank fusion only to form a shortlist. Apply source caps so one index
+cannot fill the shortlist through aliases. Ranking is discovery; current-role,
+identity, and firmographic evidence still pass the claim contract before a row
+is complete. Do not use document RRF to choose the winning program.
 
 ## Exit
 

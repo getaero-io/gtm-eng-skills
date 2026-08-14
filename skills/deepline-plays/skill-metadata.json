@@ -26,6 +26,18 @@
       "title": "Shared Guide",
       "tags": ["sdk", "plays"],
       "providers": []
+    },
+    "plays/shared/": {
+      "kind": "code",
+      "title": "Portable Play Helper",
+      "tags": ["sdk", "plays", "strategy", "evidence"],
+      "providers": []
+    },
+    "scripts/": {
+      "kind": "script",
+      "title": "Authoring Helper",
+      "tags": ["strategy", "authoring"],
+      "providers": []
     }
   },
   "default_document": {

@@ -1,6 +1,8 @@
 # Enriching rows
 
-Row-shaped input, target columns to fill: emails, phones, LinkedIn, hydration, signals, AI research, qualification. Seed lists come from `finding.md`; copy built on these columns lives in `writing.md`.
+Row-shaped input, target columns to fill: emails, phones, LinkedIn, hydration,
+signals, AI research, and qualification. Seed lists come from `finding.md`;
+outreach writing belongs in the dedicated outreach-writing skill.
 
 ## Enriching rows
 
@@ -59,7 +61,7 @@ const enriched = await ctx
   .run({ key: 'linkedin_url', description: 'Resolve work emails per row.' });
 ```
 
-Drop to `ctx.tools.execute(...)` only when you need one explicit provider call the prebuilt does not expose. For manual provider fallback, pick the order by measuring marginal coverage per cost on a golden set (`../shared/correctness.md`), not by vendor reputation; give each attempt a stable `id` and stop on first useful result. Prefer `steps(...).step(...).return(...)` so every attempt becomes its own visible, cached column.
+Drop to `ctx.tools.execute(...)` only when you need one explicit provider call the prebuilt does not expose. For uncertain manual fallbacks, use the dataset-conditioned experiment in `../SKILL.md`, not vendor reputation. Give each program a stable `id`; the helper compares on common rows, then calls alternatives only for unresolved gaps.
 
 **Probe the discovery provider's real output before hand-authoring.** The reruns in a custom composition come from provider output shape, not logic. Run the discovery tool once (`deepline tools execute <ref> --input '{...}' --json`), inspect the real payload, then **derive the row key from a guaranteed-present field** (a domain, a stable id) and **assume identifiers can be null** — a LinkedIn URL, a phone, a secondary email are all optionally absent. Keying a `ctx.dataset` on an identifier that some rows lack is what cost a CTO pilot its rerun loop: blank-LinkedIn rows broke the row key, forcing an edit→preflight→run cycle a five-second probe would have prevented.
 
@@ -80,24 +82,28 @@ Inside a play, tool results serialize like `deepline tools execute --json`: exec
 For enrichment with uncertain coverage, follow `../SKILL.md`:
 
 1. Put viable routes, including the cheapest prebuilt, into one task-authored
-   Play with `research-experiment.ts` claim contracts and
-   `research-portfolio.ts` action cards.
+   Play as compact `SearchProgram` functions. Keep the claim contracts inline.
 2. Bind raw evidence and verify each candidate field before it can close a
    claim. A retrieved person or URL is a lead, not a filled field.
-3. Compare verified coverage, required-row completeness, independent evidence
-   contribution, failures, and marginal Deepline credits on the same golden
-   rows.
-4. Build the production waterfall from the measured portfolio, re-planning
-   after every action and applying the field-specific validators required for
-   delivery.
+3. Let `runSearchExperiment(...)` compare them concurrently on dataset-chosen
+   sentinels, then run later programs only for unresolved claims.
+4. Let the same run confirm the learned order on untouched rows, enrich in
+   batches, and probe unused programs only on shared rows the current waterfall
+   failed. Useful challengers join later batches automatically, replacing a
+   noncausal fallback when the configured waterfall is already full.
+5. Report `experiment.leverage` plus the opening-minus-closing Deepline billing
+   balance. Per-attempt credit fields are optional receipt data; never copy a
+   catalog price into them or turn unknown spend into zero.
 
-This comparison is intentionally parallel. Starting with one cheap provider
-and scaling it before the bake-off turns that provider's private coverage
-ceiling into an untested assumption.
+The small comparison and challenge waves are intentionally parallel. The
+remaining work is best-first, so a useful primary does not force every fallback
+across every row. Routes that have never completed a row receive at most two
+live challenge rows. A displaced route already proven on this dataset remains
+eligible when a later row exposes its stratum again.
 
 ## When the primary route misses
 
-A miss on one route is not a dead row — but a second route is a purchase, not a reflex. A property's coverage ceiling is the union of independent routes, and each escalation rung must earn its marginal cost (score rungs the way `../shared/correctness.md` scores waterfall legs). On a bounded miss set, run candidate rungs **in parallel inside one play** — each rung its own column with stable ids — so the ranking lands in one run; go rung-by-rung sequentially only when spend discipline demands later rungs touch only earlier misses. Field-measured:
+A miss on one route is not a dead row — but a second route is a purchase, not a reflex. A property's coverage ceiling is the union of independent routes. Compare candidate rungs concurrently on the small common wave, then let the experiment invoke later rungs only for unresolved rows and claims. Field-measured:
 
 - **Mint a different identifier, then re-route.** The strongest escalation is resolving the person's LinkedIn URL and re-entering through the LinkedIn-based email pattern — it also catches stale employer data the original row carried. But bolt on a **hard identity gate**: the resolved profile's employer or geography must corroborate the row, not just the name. Name-only matching on common names confidently returns strangers' emails — a wrong-identity email is worse than a miss, and the reliable tell is an email domain that disagrees with the person's known employer.
 - **Check the registry when the vertical has one** (healthcare NPI/NPPES, clinical trials, government contractors). Registries rarely hold emails but confirm identity and employer for free and often yield a verified phone — evidence that upgrades or vetoes every other route's output.
@@ -147,6 +153,6 @@ whether the claim passes.
 
 ## Exit
 
-- Research columns exist and copy is next → `writing.md`.
-- Ranking an uncertain route or QA before shipping → `../shared/correctness.md`.
+- Research columns exist and copy is next → use the outreach-writing skill.
+- Ranking an uncertain route or QA before shipping → run the dataset-conditioned experiment and holdout in `../SKILL.md`.
 - A run failed, stalled, or output looks wrong → `../references/debugging.md`.
