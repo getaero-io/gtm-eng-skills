@@ -72,6 +72,12 @@
       "title": "Plays SDK Reference",
       "tags": ["reference", "plays"],
       "providers": []
+    },
+    "references/monitor-contract-reference.md": {
+      "kind": "reference",
+      "title": "Monitor Contract Reference",
+      "tags": ["reference", "monitors"],
+      "providers": []
     }
   },
   "prefixes": {
