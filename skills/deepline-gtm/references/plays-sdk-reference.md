@@ -1214,9 +1214,9 @@ delete/reactivate through this namespace.
 | `available` | `( toolIdOrOptions?: string \| (MonitorsAvailableOptions & { tool?: string }), options?: MonitorsAvailableOptions, ) => Promise<MonitorsAvailableResult>` | Yes | The deployable monitor tools catalog. Call with no tool id for the list, or<br />with a tool id (positional or `{ tool }`) to describe one tool's full<br />payload/stream contract. |
 | `check` | `(definition: MonitorDefinition) => Promise<MonitorCheckResult>` | Yes | Validate a monitor definition without deploying it (no spend). |
 | `deploy` | `( definition: MonitorDefinition, options?: { dryRun?: boolean }, ) => Promise<MonitorDeployResult>` | Yes | Deploy a monitor from a definition. May spend Deepline credits. |
-| `list` | `(options?: MonitorsListOptions) => Promise<MonitorsListResult>` | Yes | List deployed monitors (active by default). |
-| `get` | `(key: string) => Promise<MonitorDetail>` | Yes | Fetch one deployed monitor by public key (without dependents). |
-| `test` | `( key: string, payload: Record<string, unknown>, options?: { validationOnly?: boolean }, ) => Promise<MonitorTestResult>` | Yes | Test a deployed monitor. `validationOnly` safely verifies the callback<br />envelope; omitted options preserve the historic full-ingestion behavior. |
+| `list` | `(options?: MonitorsListOptions) => Promise<MonitorsListResult>` | Yes | List deployed monitors (active by default). `includeConsumers` requires limit <= 20. |
+| `get` | `(key: string) => Promise<MonitorDetail>` | Yes | Fetch one deployed monitor by public key with bounded current listener health. |
+| `test` | `( key: string, payload: Record<string, unknown>, options?: { validationOnly?: boolean; dispatch?: boolean }, ) => Promise<MonitorTestResult>` | Yes | Test a deployed monitor. `validationOnly` safely verifies the callback<br />envelope; omitted options preserve the historic full-ingestion behavior. |
 | `validate` | `(key: string) => Promise<MonitorValidateResult>` | Yes |  |
 | `dependents` | `(key: string) => Promise<MonitorDependents>` | Yes | List the published plays depending on one monitor's output streams. |
 | `update` | `( key: string, patch: Record<string, unknown>, ) => Promise<MonitorUpdateResult>` | Yes | Update a deployed monitor by public key. |
