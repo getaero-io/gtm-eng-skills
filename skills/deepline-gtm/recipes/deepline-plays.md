@@ -143,6 +143,37 @@ Authoring rules:
 - Dataset Handles are async-only, regardless of whether rows are already in memory. Use `await rows.count()`, `await rows.first()`, `await rows.at(index)`, `await rows.peek(limit)`, `await rows.materialize(limit)`, or `for await...of`. Do not use `.length`, numeric indexing, spread, or synchronous `for...of`.
 - Project to flat user-facing columns with `status`, `miss_reason`, evidence/source, and requested output fields.
 
+The most common cell: a tool call. Column resolvers are positional
+`(row, rowCtx)`; call `rowCtx.tools.execute({ id, tool, input, description })`
+(all four required; `id` is the durable receipt key) and read the envelope —
+`result.status`, declared getters, or `result.toolResponse.raw`:
+
+```ts
+import { definePlay } from 'deepline';
+
+export default definePlay(
+  'probe-accounts',
+  async (ctx, input: { rows: Array<{ domain: string }> }) => {
+    const accounts = await ctx
+      .dataset('accounts', input.rows)
+      .withColumn('probe_status', async (row, rowCtx) => {
+        const result = await rowCtx.tools.execute({
+          id: 'probe',
+          tool: 'test_rate_limit',
+          input: { key: row.domain },
+          description: 'Probe the account domain.',
+        });
+        return result.status;
+      })
+      .withColumn('probed', (row) => row.probe_status === 'completed')
+      .run({ key: 'domain' });
+
+    return { accounts };
+  },
+  { description: 'Probe each account domain and flag success.' },
+);
+```
+
 ### Provider fallthrough
 
 New Plays receive typed tool failures. Catch only `ProviderTransientError` when

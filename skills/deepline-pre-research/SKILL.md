@@ -1,7 +1,6 @@
 ---
 name: deepline-pre-research
 description: 'Use when the user wants a last30days-style pre-research pass in Deepline: discover the critical public, private, CRM, workflow, social, and web data sources for a research/enrichment job; compare provider coverage; estimate Deepline credit cost; recommend the source plan before building or running the workflow; or build custom language/messaging from buyer, competitor, community, and CRM evidence. Triggers: pre-research, source discovery, provider strategy, research data sources, ScrapeCreators, X/Twitter data, Reddit comments, public and private datasets, CRM data, workflow data, custom language, messaging language, pain language.'
-disable-model-invocation: false
 ---
 
 # Deepline Pre-Research

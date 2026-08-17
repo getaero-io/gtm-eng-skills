@@ -180,12 +180,14 @@ function validatePolicy(policy: RerankTask['policy']): void {
     'rrf',
     'relevance',
     'freshness',
+    'sourceQuality',
+    'engagement',
     'verification',
     'corroboration',
   ] as const;
   let total = 0;
   for (const name of names) {
-    const value = weights[name];
+    const value = weights[name] ?? 0;
     if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
       fail(`task.policy.weights.${name} must be a finite non-negative number`);
     }
@@ -203,6 +205,9 @@ function validatePolicy(policy: RerankTask['policy']): void {
     'entityMissPenalty',
     'unverifiedPenalty',
     'minimumVerification',
+    'lowModelScoreThreshold',
+    'lowModelScoreMultiplier',
+    'entityMissFinalPenalty',
   ] as const) {
     const value = policy[name];
     if (
@@ -224,6 +229,8 @@ function validateItems(items: RerankItem[]): void {
     'relevance',
     'rrf',
     'freshness',
+    'sourceQuality',
+    'engagement',
     'verification',
     'corroboration',
   ] as const;
@@ -299,7 +306,13 @@ function validateItems(items: RerankItem[]): void {
 
 function validateRawFindings(findings: Array<Record<string, unknown>>): void {
   const stringFields = ['title', 'url', 'snippet'] as const;
-  const scoreFields = ['relevance', 'rrf', 'freshness'] as const;
+  const scoreFields = [
+    'relevance',
+    'rrf',
+    'freshness',
+    'source_quality',
+    'engagement',
+  ] as const;
   for (const [index, finding] of findings.entries()) {
     for (const name of stringFields) {
       if (finding[name] != null && typeof finding[name] !== 'string') {
@@ -335,6 +348,8 @@ function hasDeterministicWeight(
     weights.rrf +
       weights.relevance +
       weights.freshness +
+      (weights.sourceQuality ?? 0) +
+      (weights.engagement ?? 0) +
       weights.verification +
       weights.corroboration >
     0

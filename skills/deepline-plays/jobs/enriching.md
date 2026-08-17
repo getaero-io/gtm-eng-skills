@@ -1,8 +1,9 @@
 # Enriching rows
 
 Row-shaped input, target columns to fill: emails, phones, LinkedIn, hydration,
-signals, AI research, and qualification. Seed lists come from `finding.md`;
-outreach writing belongs in the dedicated outreach-writing skill.
+signals, evidence-backed research, and qualification. Seed lists come from
+`finding.md`; public research follows `researching.md`; outreach writing belongs
+in the dedicated outreach-writing skill.
 
 ## Enriching rows
 
@@ -146,20 +147,38 @@ After a phone is recovered, validate line type and activity with a phone validat
 
 Deterministic logic — normalization, coalescing, templating, parsing, formatting — is plain TypeScript in the play body or a `withColumn` resolver. There is no `run_javascript` tool inside plays; the runtime rejects it. `deeplineagent` is for synthesis: research, classification, scoring, structured generation. Reach for the deterministic option first. Use `jsonSchema` for any structured output a downstream step reads, and confirm the live model menu with `deepline tools describe deeplineagent --json`.
 
+For company or market research, read `researching.md` first. Retrieve and
+persist attributable public evidence before synthesis. A single
+`deeplineagent` answer is not a research route, and an evidence-free schema is
+not a deliverable research column.
+
 ```typescript
 const research = await ctx.tools.execute({
   id: 'company_research',
   tool: 'deeplineagent',
   input: {
     model: '<model-id-from-describe>',
-    prompt: `Research ${row.company_name} (${row.domain}). Return JSON with what_they_build and who_they_sell_to.`,
+    prompt: `Using only the supplied evidence rows, research ${row.company_name} (${row.domain}). Return supported claims or insufficient_evidence.`,
     jsonSchema: {
       type: 'object',
       properties: {
-        what_they_build: { type: 'string' },
-        who_they_sell_to: { type: 'string' },
+        what_they_build: { type: ['string', 'null'] },
+        who_they_sell_to: { type: ['string', 'null'] },
+        supporting_evidence_ids: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+        research_status: {
+          type: 'string',
+          enum: ['supported', 'partial', 'insufficient_evidence'],
+        },
       },
-      required: ['what_they_build', 'who_they_sell_to'],
+      required: [
+        'what_they_build',
+        'who_they_sell_to',
+        'supporting_evidence_ids',
+        'research_status',
+      ],
       additionalProperties: false,
     },
   },

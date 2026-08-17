@@ -64,6 +64,8 @@ export type RerankItem = {
   relevance?: number; // 0..1 token-overlap pre-score from the play's judge
   rrf?: number; // 0..1 fused reciprocal-rank score (optional)
   freshness?: number; // 0..1 recency (optional; 0.5 neutral when unknown)
+  sourceQuality?: number; // 0..1 editorial/source confidence
+  engagement?: number; // 0..1 within-stream normalized engagement
   verification?: number; // 0..1 task-shaped verification strength
   corroboration?: number; // 0..1 independent-source agreement
   entityMiss?: boolean; // finding does not mention the entity (rerank.py penalty)
@@ -83,6 +85,8 @@ export type RerankWeights = {
   rrf: number;
   relevance: number;
   freshness: number;
+  sourceQuality?: number;
+  engagement?: number;
   verification: number;
   corroboration: number;
 };
@@ -93,19 +97,29 @@ export type RerankPolicy = {
   unverifiedPenalty?: number;
   minimumVerification?: number;
   requireVerification?: boolean;
+  lowModelScoreThreshold?: number;
+  lowModelScoreMultiplier?: number;
+  entityMissFinalPenalty?: number;
 };
 
-// Backwards-compatible source ranking. This is the original last30days blend.
+// Last30Days v3 source ranking. Local relevance determines each native stream
+// before fusion; the final blend uses the bounded judge, RRF, freshness,
+// source quality, and normalized engagement.
 export const RESEARCH_RERANK_POLICY: RerankPolicy = {
   weights: {
     model: 0.6,
     rrf: 0.2,
-    relevance: 0.1,
+    relevance: 0,
     freshness: 0.1,
+    sourceQuality: 0.05,
+    engagement: 0.05,
     verification: 0,
     corroboration: 0,
   },
   entityMissPenalty: 0.25,
+  entityMissFinalPenalty: 0.2,
+  lowModelScoreThreshold: 0.2,
+  lowModelScoreMultiplier: 0.3,
 };
 
 // Generic retrieval policy for people, companies, products, and arbitrary
@@ -116,6 +130,8 @@ export const ENTITY_RETRIEVAL_POLICY: RerankPolicy = {
     rrf: 0.25,
     relevance: 0.1,
     freshness: 0.05,
+    sourceQuality: 0,
+    engagement: 0,
     verification: 0,
     corroboration: 0.05,
   },
@@ -131,6 +147,8 @@ export const VERIFIED_ENTITY_RERANK_POLICY: RerankPolicy = {
     rrf: 0.15,
     relevance: 0.1,
     freshness: 0.05,
+    sourceQuality: 0,
+    engagement: 0,
     verification: 0.2,
     corroboration: 0.15,
   },
@@ -165,6 +183,7 @@ export const FRESHNESS_WEIGHT = 0.1;
 export const RELEVANCE_WEIGHT = 0.1;
 // rerank.py ENTITY_MISS_PENALTY = 25 on a ~0..100 spread -> 0.25 on the 0..1 scale.
 export const ENTITY_MISS_PENALTY = 0.25;
+export const ENTITY_MISS_FINAL_PENALTY = 0.2;
 
 // Intent-specific scoring hints, ported from rerank.py INTENT_SCORING_HINTS.
 // `general` is the no-intent default (no extra hint).
@@ -423,6 +442,8 @@ export function fromFindings(
     entity_miss?: boolean;
     rrf?: number;
     freshness?: number;
+    source_quality?: number;
+    engagement?: number;
   }>,
 ): RerankItem[] {
   return findings
@@ -445,6 +466,15 @@ export function fromFindings(
         freshness:
           typeof f.freshness === 'number' && Number.isFinite(f.freshness)
             ? f.freshness
+            : undefined,
+        sourceQuality:
+          typeof f.source_quality === 'number' &&
+          Number.isFinite(f.source_quality)
+            ? f.source_quality
+            : undefined,
+        engagement:
+          typeof f.engagement === 'number' && Number.isFinite(f.engagement)
+            ? f.engagement
             : undefined,
         entityMiss: f.entity_miss === true,
       } as RerankItem;
@@ -555,6 +585,8 @@ export function applyRerank(
     const rerankScore = modelRaw != null ? clamp01(modelRaw / 100) : relevance;
     const rrf = clamp01(item.rrf ?? relevance); // no fused rrf -> anchor on relevance
     const freshness = clamp01(item.freshness ?? 0.5); // unknown recency = neutral
+    const sourceQuality = clamp01(item.sourceQuality ?? 0.6);
+    const engagement = clamp01(item.engagement ?? 0);
     const verification = clamp01(item.verification ?? 0);
     const corroboration = clamp01(item.corroboration ?? 0);
     const verificationFloor =
@@ -570,10 +602,19 @@ export function applyRerank(
       weights.rrf * rrf +
       weights.freshness * freshness +
       weights.relevance * relevance +
+      weights.sourceQuality * sourceQuality +
+      weights.engagement * engagement +
       weights.verification * verification +
       weights.corroboration * corroboration;
+    if (
+      rerankScore < (policy.lowModelScoreThreshold ?? -1) &&
+      policy.lowModelScoreMultiplier !== undefined
+    ) {
+      finalScore *= clamp01(policy.lowModelScoreMultiplier);
+    }
     if (item.entityMiss) {
       finalScore -= policy.entityMissPenalty ?? ENTITY_MISS_PENALTY;
+      finalScore -= policy.entityMissFinalPenalty ?? 0;
     }
     if (belowVerificationFloor && policy.requireVerification !== true) {
       finalScore -= policy.unverifiedPenalty ?? 0;
@@ -619,12 +660,16 @@ export function fallbackRank(
   return sortRanked(ranked);
 }
 
-function normalizedWeights(weights: RerankWeights): RerankWeights {
+type NormalizedRerankWeights = Required<RerankWeights>;
+
+function normalizedWeights(weights: RerankWeights): NormalizedRerankWeights {
   const values = [
     weights.model,
     weights.rrf,
     weights.relevance,
     weights.freshness,
+    weights.sourceQuality ?? 0,
+    weights.engagement ?? 0,
     weights.verification,
     weights.corroboration,
   ].map((value) => (Number.isFinite(value) ? Math.max(0, value) : 0));
@@ -637,8 +682,10 @@ function normalizedWeights(weights: RerankWeights): RerankWeights {
     rrf: values[1]! / total,
     relevance: values[2]! / total,
     freshness: values[3]! / total,
-    verification: values[4]! / total,
-    corroboration: values[5]! / total,
+    sourceQuality: values[4]! / total,
+    engagement: values[5]! / total,
+    verification: values[6]! / total,
+    corroboration: values[7]! / total,
   };
 }
 
@@ -651,6 +698,8 @@ function applyFallbackPolicy(
     normalized.rrf +
     normalized.relevance +
     normalized.freshness +
+    normalized.sourceQuality +
+    normalized.engagement +
     normalized.verification +
     normalized.corroboration;
   if (nonModelTotal <= 0) {

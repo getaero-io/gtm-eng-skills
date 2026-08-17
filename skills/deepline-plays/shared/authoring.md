@@ -14,6 +14,7 @@ Exact SDK signatures (`definePlay`, `ctx.*`, `PlayDataset`, tool-result shapes, 
 - Compose row programs
 - Handle provider failures
 - Parallelism
+- Author the run diagram
 - Common authoring traps
 
 ## Start with prebuilts
@@ -224,6 +225,105 @@ Choose the shape by intent:
 - For large collections, bound in-flight promises; use `ctx.dataset(...).withColumn(...).run()` when the output should materialize as a Runtime Sheet.
 
 This is also why multi-provider trials belong **inside the play**, not in a shell loop of `deepline tools execute` probes: only play code gets durability, receipts, governed concurrency, and a sheet. A one-off `tools execute` is for sniffing a contract; the moment you are trying several providers, that is a play.
+
+## Author the run diagram
+
+**Access-gated beta.** Authored diagrams and the cell trace they power are on by account, not by play. Outside the beta a `@mermaid` block is an inert comment: nothing parses it, no diagram attaches, the canvas stays the inferred graph, `plays check` reports none of the `docflow_*` rules below, and a malformed diagram costs nothing because it is never read. So the whole section is optional. Write the play first; add the diagram only when you know the account has access.
+
+To find out: run `plays check` on a play that has a block. Access shows up as `docflow_*` issues and the per-export diagram echo. Silence means no access — do not read that as a clean diagram. If you need it, ask the Deepline team.
+
+A play's dashboard canvas can be authored, not just inferred. Add a `/** @mermaid */` flowchart block above the imports and the compiler renders it as the run canvas instead of the auto-generated graph; a `// @mermaid-node <id> ...` comment binds a diagram node to real code so it shows live status and run values.
+
+For a new or materially reworked Play in a beta account, start with a small authored diagram. Draw the business story, not every statement: input rows, the decisions or provider cascade that matter, durable datasets, child Plays, and the result. Omit the block when the inferred graph is already clearer. `.skills/deepline-plays/plays/research-kernel.example.play.ts` is the current worked example.
+
+Start from this shape and replace the nouns before adding detail:
+
+```ts
+/** @mermaid
+ * flowchart TD
+ * input[("Input rows")] --> work["Enrich each row"]
+ * work --> output["Return enriched rows"]
+ */
+```
+
+**One block per exported play.** A block names its export in the header — `/** @mermaid batch` — the same place `// @mermaid-node <id>` puts its target. An unnamed block means the default export, so a one-play file needs no name. A file exporting a scalar and a batch play carries two blocks, one each, both above the imports; `plays check` checks every exported play and reports per export. Naming an export the file does not define fails the check with the names it does define, and two blocks claiming one export fails too. Node ids must be unique inside one block. Separate named exports may reuse natural ids such as `input` and `output`; bindings resolve against the enclosing `definePlay` handler.
+
+**A binding resolves by its `out:` name, not by the line it sits on.** Put each `// @mermaid-node` comment directly above the statement it names — inside the handler, above the whole `const rows = await ctx` statement for a chained `.dataset(...)`, or above the `.withColumn(...)` line for a column — and `out:` must name what that statement produces. When the name and the position disagree, `plays check` errors `docflow_binding_drift` and tells you both, rather than silently binding the wrong statement.
+
+Every node declares a `type:` (default `"action"` when omitted). The shape in the diagram must match the `type:`:
+
+| Mermaid         | `type:`      | Use for                                  |
+| --------------- | ------------ | ---------------------------------------- |
+| `id["Label"]`   | `action`     | a step, column, or tool call (default)   |
+| `id{"Label?"}`  | `decision`   | a branch with `yes` and `no` edge labels |
+| `id[("Label")]` | `dataset`    | a `ctx.dataset` or `ctx.csv` row source  |
+| `id[["Label"]]` | `play`       | a `ctx.runPlay` child Play               |
+| `id(["Label"])` | `conceptual` | presentation-only; never binds to code   |
+
+Any other `type:` fails `plays check`, and the error lists the valid set — lean on it.
+
+A `play` node's `out:` names the value the child call produces, same as an action. The card shows the child play's real id under your label — resolved from the `ctx.runPlay` call, not from what you typed — and carries live status like every other bound node. Draw one whenever a step is another play: a reader who cannot see the second run cannot tell which run failed. `plays check` errors if a `play` node names work no `ctx.runPlay` produces, and warns (`docflow_child_play_undrawn`) if the code runs a child play the diagram never shows.
+
+The binding rules the checker enforces (four traps):
+
+- **`out:` names the value the statement produces, not the node id.** For a `ctx.dataset`/`ctx.csv` statement, `out:"<the const you assigned>"`; for a column, `out:"<the withColumn name>"`; for a `ctx.runPlay`, the value the call produces.
+- **`$output` marks the terminal only.** Exactly one node uses `out:"$output"`, on the final returned value. Every other node names a real variable/column.
+- **Draw every runtime dataset, and account for every column it computes.** A missing `ctx.dataset`/`ctx.csv` errors `docflow_dataset_unrepresented`. A `subgraph` wired to a dataset is that dataset's per-row loop, and a diagrammed play must account for every column that dataset computes. A column is accounted for two ways, and only two: a member of the region names it (`out:"<column>"`, and one member may name several, comma-separated), or the run call declares it out of the picture.
+
+```ts
+.run({
+  description: 'Resolve a personal email for each contact row.',
+  // Flat projections of the result the "waterfall" node already draws.
+  undrawnColumns: ['personal_email', 'email_source', 'miss_reason'],
+})
+```
+
+Anything else errors `docflow_dataset_column_undrawn`, naming the column, the construct that produces it, and both remedies. A column drawn by a node that sits outside every region is reported too: per-row work belongs in the loop. Declaring a column the dataset does not compute, or one a node already draws, errors `docflow_undrawn_declaration_invalid`. `plays check` echoes the declared list under the dataset every run, so an opt-out is never invisible. Draw the work; declare the projections. A real waterfall computes 10–23 columns and most of them unpack one result object — draw the cascade, declare the unpacking. A member outside the row work errors `docflow_loop_foreign_step`; a loop touching two datasets errors `docflow_loop_ambiguous`.
+
+- **A decision binds to the value that computes the branch** (`// @mermaid-node id type:"decision" out:"<the branch value>"`); its `yes`/`no` edges point at the follow-on nodes.
+
+- **Say which arm the condition leads to** with `arm:"run"` on the node that arm points at (`// @mermaid-node tierOne out:"priority_tier" arm:"run"`). Your edge labels are prose — `"fit 65 or better"`, `"nicht gefunden"` — so without this the run trace reads the arms by draw order and marks the guess with a `*`. Annotate one arm only: a conditional is boolean, so the sibling resolves to `else` on its own. Optional, and a play without it is unaffected.
+
+**The canvas draws your diagram and nothing else.** Every node, edge, region and label on it comes from your `@mermaid` block, in your words. Nothing reads your compiled code and adds boxes you did not write. So if a node says too little, the fix is a better diagram — not a hope that the UI will fill it in.
+
+**A provider waterfall: one node, or a region of attempts.** Both are authored; pick by whether the attempts are worth reading one at a time.
+
+A single `action` node over the `steps(...)` cascade — `out:"<the const you assigned>"` for `ctx.runSteps`, `out:"<the withColumn name>"` when the cascade fills a column — says "a cascade happens here" and carries how deep it is:
+
+```
+cascade["Find a mobile number"]   # node: 11 tries · 2 off
+```
+
+Those two numbers are the only thing the canvas adds, and they are facts about the node you drew — read from the compiled cascade, so they never go stale. The names of the attempts are not among them: your step ids are internal, and printing them would be the canvas inventing a list you never authored.
+
+To show the attempts, draw them. A `subgraph` whose members are legs is a **waterfall region**; bind each member with `out:"<the step name>"` and label it for a reader:
+
+```
+subgraph cascade["Try each source until one returns a mobile"]
+  dropleads["Dropleads · from LinkedIn"] --> forager["Forager · from email"]
+  forager --> leadmagic["LeadMagic · from LinkedIn"]
+end
+```
+
+The frame carries the same `11 tries · 2 off`, so drawing a subset stays honest — members may be a subset and there is no coverage warning, because a waterfall's later legs mostly never run. Good for a handful of attempts read in order; a sixteen-member region is taller than the rest of the diagram put together, so use the single node there.
+
+A waterfall region shows **no live state**, and the trade is deliberate: a leg's statement is the shared `steps(...)` builder, so observing it would time the builder rather than the attempt. Leg cards carry position, provider, `off`, and a check on the leg this run's result named — never a status pill, and the frame never lights up the way a dataset loop's does. Want the run to move, use the single cascade node, which marks the answering leg by matching your result against the cascade's own step names: a play returning `source: 'hunter_email'` gets the mark, one that names nothing gets none. `plays check` errors `docflow_waterfall_region_invalid` when members span two cascades, or when a member's `out:` names no leg of this one (the error lists the valid step names).
+
+**Malformed mermaid fails the check.** The block has to parse cleanly or the play does not compile — a diagram the parser has to guess at is a diagram that renders wrong, silently. `plays check` errors on a shape it does not know (your label would arrive with its own brackets attached), a shape that never closes, a `subgraph` without its `end`, an `end` without its `subgraph`, a line that is neither an edge nor a declaration, and an edge naming a node nothing ever declares. Each error names the node and quotes the line. Supported shapes: `[…]`, `[[…]]`, `[(…)]`, `([…])`, `{…}`, `{{…}}`, `((…))`, `[/…/]`, `[\…\]`, `[/…\]`, `[\…/]`, `>…]`.
+
+Mermaid styling directives such as `style`, `classDef`, and `linkStyle` are accepted for source compatibility but are not rendered by the run canvas. `plays check` warns `docflow_directive_ignored`; express meaning through node labels, shapes, regions, and labeled edges instead.
+
+**A node label names the thing; it never counts it.** Counts are live — the canvas prints the run's real row count on the node as a status pill, and the run storyline prints it again beside the output. A number typed into the label is a fourth copy that nothing updates, so it goes stale the first time someone passes a different input, and the node then argues with the pill directly above it:
+
+```
+seed[("8k seed rows")]     # the label says 8k, the pill says 10,000 rows,
+                           # and the run was started with rows: 10000
+seed[("Seed rows")]        # the label names the thing; the pill carries the count
+```
+
+That is a real case: a play defaulting to 8,000 rows, run at 10,000, showing "8k seed rows" under a "10,000 rows" pill. Name what the node IS — `"Seed rows"`, `"Probed rows"`, `"Qualified accounts"` — and let the runtime say how many. `plays check` warns `docflow_label_counts_rows` when a label carries a magnitude (`8k`, `10,000 rows`, `500 leads`); a digit that is part of a name (`"SOC 2 signals"`, `"Series B companies"`) is fine and is not flagged. The same rule applies to the play's `description`: describe what it does, not the size of one run's input.
+
+Use human labels (`"Score fit"`, `"Probe attempt B"`), not `step2`. Reading dataset rows back into JS — to chain a second dataset, filter, or tally — is `await ds.materialize()` (or `.peek(n)` for a bounded preview); the `PlayDataset` handle is lazy, so `.rows`/`.toArray()`/array methods on it fail `plays check`.
 
 ## Common authoring traps
 

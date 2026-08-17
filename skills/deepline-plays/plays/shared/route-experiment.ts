@@ -23,6 +23,7 @@ export type SourceOutcome =
   | 'unreachable'
   | 'timeout'
   | 'schema-drift'
+  | 'skipped'
   | 'error';
 
 export type Evidence = {
@@ -31,6 +32,10 @@ export type Evidence = {
   strength?: 'authoritative' | 'weak';
   url?: string;
   text?: string;
+  phase?: 'broad' | 'supplemental';
+  mechanismId?: string;
+  mechanismClass?: string;
+  providerStatus?: SourceOutcome;
 };
 
 export type FactAssertion = {
@@ -120,7 +125,21 @@ export type ExperimentTask = {
   minimumPilotRows?: number;
   minimumRelevantRows?: number;
   portfolioSize?: number;
+  /** What route selection should count as one covered unit. */
+  selectionUnit?: 'item' | 'row';
+  /** Require terminal fact gates to pass before a route earns coverage. */
+  selectionRequiresEligibility?: boolean;
+  /** Prefer maximum pilot coverage, then the cheapest portfolio. */
+  optimizationObjective?: 'utility_per_credit' | 'coverage_then_cost';
   rerankPolicy?: RerankPolicy;
+  research?: {
+    referenceDate: string;
+    freshnessMode?: 'strict_recent' | 'balanced_recent' | 'evergreen_ok';
+    freshnessWindowDays?: number;
+    minimumLocalRelevance?: number;
+    maximumItemsPerAuthor?: number;
+    minimumItemsPerRoute?: number;
+  };
 };
 
 export type RouteContext<Row extends UnknownRecord> = {
@@ -133,6 +152,8 @@ export type RetrievalRoute<Row extends UnknownRecord> = {
   id: string;
   sourceFamilies: string[];
   queryFamily: string;
+  mechanismId?: string;
+  mechanismClass?: string;
   estimatedCreditsPerRow: number;
   weight?: number;
   maxItems?: number;
@@ -150,12 +171,15 @@ export type RouteAttempt = {
   items?: readonly RetrievedItemInput[];
   /** @deprecated Use items. */
   candidates?: readonly RetrievedItemInput[];
-  sourceOutcome?: 'ok' | 'no-results' | 'partial';
+  sourceOutcome?: 'ok' | 'no-results' | 'partial' | 'skipped';
   error?: string;
 };
 
 export type RouteResult = {
   route: string;
+  phase?: 'broad' | 'supplemental';
+  mechanismId?: string;
+  mechanismClass?: string;
   outcome: 'retrieved' | 'empty' | 'excluded';
   sourceOutcome: SourceOutcome;
   items?: RetrievedItem[];
@@ -391,12 +415,18 @@ function normalizeFacts(
 
 export function retrievedItem(input: RetrievedItemInput): RetrievedItem {
   const id = canonicalId.opaque(input.id);
-  const evidence = input.evidence ?? [];
+  const facts = normalizeFacts(input.facts, input.evidence ?? []);
+  const evidence = mergeEvidence(
+    input.evidence ?? [],
+    Object.values(facts).flatMap((assertions) =>
+      assertions.flatMap((assertion) => assertion.evidence),
+    ),
+  );
   return {
     ...input,
     id,
     label: input.label?.trim() || input.title?.trim() || id,
-    facts: normalizeFacts(input.facts, evidence),
+    facts,
     evidence,
     routes: [],
     routeRanks: {},
@@ -408,6 +438,110 @@ export function retrievedItem(input: RetrievedItemInput): RetrievedItem {
     verification: 'eligible',
     verificationReasons: [],
   };
+}
+
+export function freshnessFromPublishedAt(
+  publishedAt: string | undefined,
+  referenceDate: string,
+  mode:
+    | 'strict_recent'
+    | 'balanced_recent'
+    | 'evergreen_ok' = 'balanced_recent',
+  windowDays = 30,
+): number {
+  if (!publishedAt)
+    return mode === 'evergreen_ok' ? 0.4 : mode === 'balanced_recent' ? 0.1 : 0;
+  const published = Date.parse(publishedAt);
+  const reference = Date.parse(referenceDate);
+  if (!Number.isFinite(published) || !Number.isFinite(reference))
+    return mode === 'evergreen_ok' ? 0.4 : mode === 'balanced_recent' ? 0.1 : 0;
+  const ageDays = Math.max(0, (reference - published) / 86_400_000);
+  const strict = Math.max(0, 1 - ageDays / Math.max(1, windowDays));
+  if (mode === 'strict_recent') return strict;
+  if (mode === 'evergreen_ok') return strict * 0.6 + 0.4;
+  return strict * 0.8 + 0.1;
+}
+
+export function normalizeEngagement(
+  values: readonly (number | null | undefined)[],
+): Array<number | undefined> {
+  const logged = values.map((value) =>
+    Number.isFinite(value) && Number(value) > 0
+      ? Math.log1p(Number(value))
+      : undefined,
+  );
+  const available = logged.filter(
+    (value): value is number => value !== undefined,
+  );
+  if (!available.length) return logged;
+  const low = Math.min(...available);
+  const high = Math.max(...available);
+  if (high === low)
+    return logged.map((value) => (value === undefined ? undefined : 0.5));
+  return logged.map((value) =>
+    value === undefined ? undefined : (value - low) / (high - low),
+  );
+}
+
+function researchText(item: RetrievedItem): string {
+  return [
+    item.label,
+    item.title,
+    item.snippet,
+    item.content,
+    ...item.evidence.map((entry) => entry.text),
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+export function rankResearchStream(
+  items: readonly RetrievedItem[],
+  task: ExperimentTask,
+  row: UnknownRecord,
+): RetrievedItem[] {
+  if (!task.research) return [...items];
+  const query = [
+    task.question,
+    ...(task.criteria ?? []),
+    task.primaryEntity?.(row),
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const annotated = items.map((item) => {
+    const relevance = clamp01(
+      item.relevance,
+      tokenOverlapRelevance(query, researchText(item)),
+    );
+    const freshness = clamp01(
+      item.freshness,
+      freshnessFromPublishedAt(
+        item.publishedAt,
+        task.research!.referenceDate,
+        task.research!.freshnessMode,
+        task.research!.freshnessWindowDays,
+      ),
+    );
+    const engagement = clamp01(item.engagement, 0);
+    return {
+      ...item,
+      relevance,
+      freshness,
+      sourceQuality: clamp01(item.sourceQuality, 0.6),
+      engagement,
+      attributes: {
+        ...item.attributes,
+        localRankScore: 0.65 * relevance + 0.25 * freshness + 0.1 * engagement,
+      },
+    };
+  });
+  const minimum = task.research.minimumLocalRelevance ?? 0.15;
+  const pruned = annotated.filter((item) => (item.relevance ?? 0) >= minimum);
+  return (pruned.length ? pruned : annotated).sort(
+    (a, b) =>
+      Number(b.attributes.localRankScore ?? 0) -
+        Number(a.attributes.localRankScore ?? 0) || a.id.localeCompare(b.id),
+  );
 }
 
 /** @deprecated Use retrievedItem. */
@@ -486,6 +620,8 @@ export async function executeRoutes<Row extends UnknownRecord>(input: {
   row: Row;
   rowCtx: DeeplinePlayRuntimeContext;
   routes: readonly RetrievalRoute<Row>[];
+  task?: ExperimentTask;
+  phase?: 'broad' | 'supplemental';
 }): Promise<RouteResult[]> {
   return Promise.all(
     input.routes.map(async (route) => {
@@ -499,19 +635,47 @@ export async function executeRoutes<Row extends UnknownRecord>(input: {
           ? { items: rawAttempt as readonly RetrievedItemInput[] }
           : (rawAttempt as RouteAttempt);
         const drafts = attempt.items ?? attempt.candidates ?? [];
-        const items = drafts
+        let items = drafts.map(retrievedItem);
+        if (input.task?.research)
+          items = rankResearchStream(items, input.task, input.row);
+        const sourceOutcome =
+          attempt.sourceOutcome ?? (items.length ? 'ok' : 'no-results');
+        const annotateEvidence = (evidence: Evidence): Evidence => ({
+          ...evidence,
+          phase: evidence.phase ?? input.phase,
+          mechanismId: evidence.mechanismId ?? route.mechanismId ?? route.id,
+          mechanismClass:
+            evidence.mechanismClass ??
+            route.mechanismClass ??
+            route.sourceFamilies[0] ??
+            route.id,
+          providerStatus: evidence.providerStatus ?? sourceOutcome,
+        });
+        items = items
           .slice(0, route.maxItems ?? route.maxCandidates ?? 8)
-          .map(retrievedItem)
           .map((item, index) => ({
             ...item,
+            evidence: item.evidence.map(annotateEvidence),
+            facts: Object.fromEntries(
+              Object.entries(item.facts).map(([fact, assertions]) => [
+                fact,
+                assertions.map((assertion) => ({
+                  ...assertion,
+                  evidence: assertion.evidence.map(annotateEvidence),
+                })),
+              ]),
+            ),
             routes: [route.id],
             routeRanks: { [route.id]: index + 1 },
           }));
         return {
           route: route.id,
+          phase: input.phase,
+          mechanismId: route.mechanismId ?? route.id,
+          mechanismClass:
+            route.mechanismClass ?? route.sourceFamilies[0] ?? route.id,
           outcome: items.length ? 'retrieved' : 'empty',
-          sourceOutcome:
-            attempt.sourceOutcome ?? (items.length ? 'ok' : 'no-results'),
+          sourceOutcome,
           items,
           candidates: items,
           error: attempt.error?.slice(0, 500) ?? null,
@@ -519,6 +683,10 @@ export async function executeRoutes<Row extends UnknownRecord>(input: {
       } catch (error) {
         return {
           route: route.id,
+          phase: input.phase,
+          mechanismId: route.mechanismId ?? route.id,
+          mechanismClass:
+            route.mechanismClass ?? route.sourceFamilies[0] ?? route.id,
           outcome: 'excluded',
           sourceOutcome: classifyError(error),
           items: [],
@@ -537,6 +705,12 @@ export function weightedRrf(input: {
   results: readonly RouteResult[];
   routes: readonly Pick<RetrievalRoute<UnknownRecord>, 'id' | 'weight'>[];
   poolLimit?: number;
+  normalization?: 'theoretical' | 'last30days';
+  diversity?: {
+    maximumItemsPerAuthor?: number;
+    minimumItemsPerRoute?: number;
+    minimumRouteRelevance?: number;
+  };
 }): RetrievedItem[] {
   const routeWeights = new Map(
     input.routes.map((route) => [route.id, route.weight ?? 1]),
@@ -583,14 +757,27 @@ export function weightedRrf(input: {
           prior.freshness === undefined
             ? item.freshness
             : Math.max(prior.freshness, item.freshness);
+      if (item.sourceQuality !== undefined)
+        prior.sourceQuality =
+          prior.sourceQuality === undefined
+            ? item.sourceQuality
+            : Math.max(prior.sourceQuality, item.sourceQuality);
+      if (item.engagement !== undefined)
+        prior.engagement =
+          prior.engagement === undefined
+            ? item.engagement
+            : Math.max(prior.engagement, item.engagement);
     });
   }
-  return [...fused.values()]
+  const normalized = [...fused.values()]
     .map((item) => ({
       ...item,
-      rrf: theoreticalMax
-        ? Math.max(0, Math.min(1, item.rawRrf / theoreticalMax))
-        : 0,
+      rrf:
+        input.normalization === 'last30days'
+          ? Math.max(0, Math.min(1, item.rawRrf / 0.08))
+          : theoreticalMax
+            ? Math.max(0, Math.min(1, item.rawRrf / theoreticalMax))
+            : 0,
     }))
     .sort(
       (a, b) =>
@@ -598,8 +785,52 @@ export function weightedRrf(input: {
         Math.min(...Object.values(a.routeRanks)) -
           Math.min(...Object.values(b.routeRanks)) ||
         a.id.localeCompare(b.id),
+    );
+  const limit = input.poolLimit ?? 40;
+  if (!input.diversity) return normalized.slice(0, limit);
+
+  const maximumItemsPerAuthor = input.diversity.maximumItemsPerAuthor ?? 3;
+  const minimumItemsPerRoute = input.diversity.minimumItemsPerRoute ?? 2;
+  const minimumRouteRelevance = input.diversity.minimumRouteRelevance ?? 0.25;
+  const reserved: RetrievedItem[] = [];
+  const reservedIds = new Set<string>();
+  for (const route of input.routes) {
+    const routeItems = normalized.filter((item) =>
+      item.routes.includes(route.id),
+    );
+    if (
+      !routeItems.some((item) => (item.relevance ?? 0) >= minimumRouteRelevance)
     )
-    .slice(0, input.poolLimit ?? 40);
+      continue;
+    for (const item of routeItems.slice(0, minimumItemsPerRoute)) {
+      if (!reservedIds.has(item.id)) {
+        reserved.push(item);
+        reservedIds.add(item.id);
+      }
+    }
+  }
+  const ordered = [
+    ...reserved,
+    ...normalized.filter((item) => !reservedIds.has(item.id)),
+  ];
+  const authorCounts = new Map<string, number>();
+  const diversified = ordered.filter((item) => {
+    const author = item.author?.trim().toLowerCase();
+    if (!author) return true;
+    const count = authorCounts.get(author) ?? 0;
+    if (count >= maximumItemsPerAuthor) return false;
+    authorCounts.set(author, count + 1);
+    return true;
+  });
+  return diversified
+    .slice(0, limit)
+    .sort(
+      (a, b) =>
+        b.rawRrf - a.rawRrf ||
+        Math.min(...Object.values(a.routeRanks)) -
+          Math.min(...Object.values(b.routeRanks)) ||
+        a.id.localeCompare(b.id),
+    );
 }
 
 function normalized(value: string): string {
@@ -808,6 +1039,8 @@ function toRerankItem(
     ),
     rrf: item.rrf,
     freshness: clamp01(item.freshness, 0.5),
+    sourceQuality: clamp01(item.sourceQuality, 0.6),
+    engagement: clamp01(item.engagement, 0),
     verification:
       item.verification === 'eligible'
         ? 1
@@ -879,6 +1112,10 @@ export function scoreRoutes<Row extends UnknownRecord>(
   task: ExperimentTask,
 ): RouteScore[] {
   const minimum = task.minimumJudgeScore ?? 50;
+  const unitId = (rowIndex: number, itemId: string) =>
+    task.selectionUnit === 'row'
+      ? String(rowIndex)
+      : `${rowIndex}\u0000${itemId}`;
   const relevantByUnit = new Map<string, Set<string>>();
   rows.forEach((row, rowIndex) => {
     const relevant = new Set(
@@ -888,9 +1125,18 @@ export function scoreRoutes<Row extends UnknownRecord>(
     );
     for (const result of row.route_results ?? []) {
       if (result.outcome === 'excluded') continue;
+      const locallyEligible = new Set(
+        applyFactGates(result.items ?? result.candidates ?? [], task, row)
+          .filter((item) => item.verification === 'eligible')
+          .map((item) => item.id),
+      );
       for (const item of result.items ?? result.candidates ?? []) {
-        if (!relevant.has(item.id)) continue;
-        const unit = `${rowIndex}\u0000${item.id}`;
+        if (
+          !relevant.has(item.id) ||
+          (task.selectionRequiresEligibility && !locallyEligible.has(item.id))
+        )
+          continue;
+        const unit = unitId(rowIndex, item.id);
         const owners = relevantByUnit.get(unit) ?? new Set<string>();
         owners.add(result.route);
         relevantByUnit.set(unit, owners);
@@ -916,10 +1162,19 @@ export function scoreRoutes<Row extends UnknownRecord>(
           .filter((item) => item.judgeScore >= minimum)
           .map((item) => [item.id, item]),
       );
+      const locallyEligible = new Set(
+        applyFactGates(result.items ?? result.candidates ?? [], task, row)
+          .filter((item) => item.verification === 'eligible')
+          .map((item) => item.id),
+      );
       for (const item of result.items ?? result.candidates ?? []) {
         const fused = ranked.get(item.id);
-        if (!fused) continue;
-        const unit = `${rowIndex}\u0000${item.id}`;
+        if (
+          !fused ||
+          (task.selectionRequiresEligibility && !locallyEligible.has(item.id))
+        )
+          continue;
+        const unit = unitId(rowIndex, item.id);
         const firstContribution = !relevantUnits.has(unit);
         relevantUnits.add(unit);
         unitScores[unit] = Math.max(
@@ -967,6 +1222,149 @@ export function scoreRoutes<Row extends UnknownRecord>(
   });
 }
 
+type PortfolioChoice<Row extends UnknownRecord> = {
+  routes: RetrievalRoute<Row>[];
+  covered: Map<string, number>;
+  score: number;
+  reliability: number;
+  credits: number;
+};
+
+function compareCoveragePortfolios<Row extends UnknownRecord>(
+  left: PortfolioChoice<Row>,
+  right: PortfolioChoice<Row>,
+): number {
+  return (
+    left.covered.size - right.covered.size ||
+    right.credits - left.credits ||
+    right.routes.length - left.routes.length ||
+    left.score - right.score ||
+    left.reliability - right.reliability ||
+    right.routes
+      .map((route) => route.id)
+      .join('|')
+      .localeCompare(left.routes.map((route) => route.id).join('|'))
+  );
+}
+
+/** Exact small-portfolio search for the common 2-8 route experiment. */
+function coverageFirstPortfolio<Row extends UnknownRecord>(input: {
+  routes: readonly RetrievalRoute<Row>[];
+  scorecard: readonly RouteScore[];
+  cap: number;
+  maximumCreditsPerRow?: number;
+}): PortfolioChoice<Row> | null {
+  if (input.routes.length > 12)
+    throw new Error(
+      'coverage_then_cost supports at most 12 candidate routes; prune the hypothesis set first.',
+    );
+  const scores = new Map(input.scorecard.map((score) => [score.route, score]));
+  let best: PortfolioChoice<Row> | null = null;
+  const combinations = 1 << input.routes.length;
+  for (let mask = 1; mask < combinations; mask += 1) {
+    const routes = input.routes.filter((_, index) => (mask & (1 << index)) > 0);
+    if (routes.length > input.cap) continue;
+    const credits = routes.reduce(
+      (sum, route) => sum + route.estimatedCreditsPerRow,
+      0,
+    );
+    if (
+      input.maximumCreditsPerRow !== undefined &&
+      credits > input.maximumCreditsPerRow
+    )
+      continue;
+    const covered = new Map<string, number>();
+    for (const route of routes) {
+      const score = scores.get(route.id)!;
+      for (const unit of score.relevantUnits)
+        covered.set(
+          unit,
+          Math.max(covered.get(unit) ?? 0, score.unitScores[unit] ?? 0),
+        );
+    }
+    if (!covered.size) continue;
+    const choice: PortfolioChoice<Row> = {
+      routes,
+      covered,
+      score: [...covered.values()].reduce((sum, value) => sum + value, 0),
+      reliability:
+        routes.reduce(
+          (sum, route) => sum + scores.get(route.id)!.reliability,
+          0,
+        ) / routes.length,
+      credits,
+    };
+    if (!best || compareCoveragePortfolios(choice, best) > 0) best = choice;
+  }
+  return best;
+}
+
+function orderSelectedRoutes<Row extends UnknownRecord>(input: {
+  routes: readonly RetrievalRoute<Row>[];
+  scorecard: readonly RouteScore[];
+}): RouteSelection['promotionEvidence']['selection'] {
+  const scores = new Map(input.scorecard.map((score) => [score.route, score]));
+  const remaining = new Set(input.routes.map((route) => route.id));
+  const covered = new Map<string, number>();
+  const selected: RetrievalRoute<Row>[] = [];
+  const ordered: RouteSelection['promotionEvidence']['selection'] = [];
+  while (remaining.size) {
+    const choices = [...remaining]
+      .map((id) => {
+        const route = input.routes.find((entry) => entry.id === id)!;
+        const score = scores.get(id)!;
+        const marginal = score.relevantUnits.filter(
+          (unit) => !covered.has(unit),
+        );
+        const improvements = score.relevantUnits.filter(
+          (unit) => score.unitScores[unit]! > (covered.get(unit) ?? 0),
+        );
+        const gain = improvements.reduce(
+          (sum, unit) =>
+            sum +
+            Math.max(0, score.unitScores[unit]! - (covered.get(unit) ?? 0)),
+          0,
+        );
+        return {
+          route,
+          score,
+          marginal,
+          improvements,
+          gain,
+          novelty: routeNovelty(route, selected),
+          efficiency:
+            marginal.length / Math.max(route.estimatedCreditsPerRow, 0.0001),
+        };
+      })
+      .sort(
+        (a, b) =>
+          b.efficiency - a.efficiency ||
+          b.marginal.length - a.marginal.length ||
+          b.gain - a.gain ||
+          a.route.estimatedCreditsPerRow - b.route.estimatedCreditsPerRow ||
+          a.route.id.localeCompare(b.route.id),
+      );
+    const next = choices[0]!;
+    remaining.delete(next.route.id);
+    selected.push(next.route);
+    for (const unit of next.score.relevantUnits)
+      covered.set(
+        unit,
+        Math.max(covered.get(unit) ?? 0, next.score.unitScores[unit]!),
+      );
+    ordered.push({
+      route: next.route.id,
+      marginalRelevantItems: next.marginal.length,
+      cumulativeRelevantItems: covered.size,
+      marginalRelevantCandidates: next.marginal.length,
+      cumulativeRelevantCandidates: covered.size,
+      novelty: next.novelty,
+      estimatedCreditsPerRow: next.route.estimatedCreditsPerRow,
+    });
+  }
+  return ordered;
+}
+
 function routeNovelty<Row extends UnknownRecord>(
   route: RetrievalRoute<Row>,
   selected: readonly RetrievalRoute<Row>[],
@@ -996,12 +1394,56 @@ export function selectRoutes<Row extends UnknownRecord>(input: {
   maximumCreditsPerRow?: number;
 }): RouteSelection {
   const scorecard = scoreRoutes(input.rows, input.routes, input.task);
+  const minimumPilotRows = input.task.minimumPilotRows ?? 3;
+  const minimumRelevantRows = input.task.minimumRelevantRows ?? 2;
+  const cap = input.task.portfolioSize ?? Math.min(3, input.routes.length);
+  if (input.task.optimizationObjective === 'coverage_then_cost') {
+    const portfolio = coverageFirstPortfolio({
+      routes: input.routes,
+      scorecard,
+      cap,
+      maximumCreditsPerRow: input.maximumCreditsPerRow,
+    });
+    const ordered = portfolio
+      ? orderSelectedRoutes({ routes: portfolio.routes, scorecard })
+      : [];
+    const relevantPilotRows = portfolio
+      ? new Set(
+          [...portfolio.covered.keys()].map((unit) =>
+            input.task.selectionUnit === 'row'
+              ? unit
+              : unit.split('\u0000', 1)[0],
+          ),
+        ).size
+      : 0;
+    const promoted =
+      input.rows.length >= minimumPilotRows &&
+      relevantPilotRows >= minimumRelevantRows &&
+      Boolean(portfolio);
+    return {
+      type: 'deepline.route_selection',
+      schemaVersion: 1,
+      status: promoted ? 'promoted' : 'not_promoted',
+      selectedRouteIds: promoted ? ordered.map((entry) => entry.route) : [],
+      estimatedCreditsPerRow: promoted ? portfolio!.credits : 0,
+      promotionEvidence: {
+        pilotRows: input.rows.length,
+        relevantPilotRows,
+        minimumPilotRows,
+        minimumRelevantRows,
+        scorecard,
+        selection: promoted ? ordered : [],
+        reason: promoted
+          ? 'Selected the maximum-coverage eligible portfolio under the credit cap, then preferred lower cost, simpler topology, stronger evidence, and reliability.'
+          : `Promotion needs ${minimumPilotRows} pilot rows and relevant items on ${minimumRelevantRows} rows.`,
+      },
+    };
+  }
   const remaining = new Set(input.routes.map((route) => route.id));
   const covered = new Map<string, number>();
   const selected: RetrievalRoute<Row>[] = [];
   const selection: RouteSelection['promotionEvidence']['selection'] = [];
   let credits = 0;
-  const cap = input.task.portfolioSize ?? Math.min(3, input.routes.length);
   while (remaining.size && selected.length < cap) {
     const choices = [...remaining]
       .map((id) => {
@@ -1063,8 +1505,6 @@ export function selectRoutes<Row extends UnknownRecord>(input: {
       estimatedCreditsPerRow: next.route.estimatedCreditsPerRow,
     });
   }
-  const minimumPilotRows = input.task.minimumPilotRows ?? 3;
-  const minimumRelevantRows = input.task.minimumRelevantRows ?? 2;
   const relevantPilotRows = new Set(
     [...covered.keys()].map((unit) => unit.split('\u0000', 1)[0]),
   ).size;
@@ -1150,6 +1590,13 @@ export function validateExperiment<Row extends UnknownRecord>(
       config.maximumCreditsPerRow < 0)
   )
     throw new Error('maximumCreditsPerRow must be finite and non-negative.');
+  if (
+    config.task.optimizationObjective === 'coverage_then_cost' &&
+    config.routes.length > 12
+  )
+    throw new Error(
+      'coverage_then_cost supports at most 12 candidate routes; prune the hypothesis set first.',
+    );
   if (config.routes.length < (config.phase === 'exploit' ? 1 : 2))
     throw new Error(
       config.phase === 'exploit'
@@ -1197,6 +1644,13 @@ export function createRouteExperiment<Row extends UnknownRecord>(
       results: row.route_results ?? [],
       routes: config.routes,
       poolLimit: config.globalPoolLimit,
+      normalization: config.task.research ? 'last30days' : 'theoretical',
+      diversity: config.task.research
+        ? {
+            maximumItemsPerAuthor: config.task.research.maximumItemsPerAuthor,
+            minimumItemsPerRoute: config.task.research.minimumItemsPerRoute,
+          }
+        : undefined,
     });
   const rankedItems = (row: ExperimentRow & Row) =>
     rerankItems({
@@ -1280,7 +1734,7 @@ export function createRouteExperiment<Row extends UnknownRecord>(
   ) => finalRankedItems(row);
   return {
     routeResults: (row: Row, rowCtx: DeeplinePlayRuntimeContext) =>
-      executeRoutes({ row, rowCtx, routes: config.routes }),
+      executeRoutes({ row, rowCtx, routes: config.routes, task: config.task }),
     fusedItems,
     judgeResult: async (
       row: ExperimentRow & Row,

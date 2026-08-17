@@ -1,0 +1,615 @@
+{
+  "name": "last30days-public-private-corpus",
+  "version": "1.0.0-reconstructed",
+  "description": "20 real last30days GTM prompts used to eval the deepline-pre-research query planner. Each case asserts route classification, source-family coverage, and extraction-key emission are same-or-better than what last30days actually returned.",
+  "provenance": {
+    "reconstructedOn": "2026-08-10",
+    "reconstructedFrom": [
+      "~/.deepline-evals/eval-deepline-pre-research-corpus-fixed-1/public_private_corpus_results.json (20/20 pass)",
+      "~/.deepline-evals/eval-deepline-pre-research-standalone-deepline-pre-research-public-private-corpus-1/public_private_corpus_results.json (5/20 pre-fix)"
+    ],
+    "note": "Original corpus JSON was never committed and is absent from disk. Case fields are recovered exactly from preserved expected_* values in the run outputs."
+  },
+  "defaults": {
+    "depth": "deep",
+    "fromDate": null,
+    "toDate": null,
+    "requiredBaseSources": [
+      "reddit",
+      "web",
+      "x"
+    ],
+    "requiredBaseExtractionKeys": [
+      "company_names",
+      "dataset_or_api_names",
+      "domains",
+      "handles",
+      "linkedin_urls",
+      "subreddits",
+      "urls"
+    ]
+  },
+  "cases": [
+    {
+      "id": "auc-propensity-lead-scoring",
+      "topic": "improve AUC propensity model small sample lead scoring win-loss",
+      "kind": "public_gtm_dataset",
+      "expectedQueryTypes": [
+        "gtm_dataset"
+      ],
+      "last30daysSources": [
+        "GitHub",
+        "Web",
+        "Instagram",
+        "Reddit",
+        "TikTok",
+        "X"
+      ],
+      "mustIncludeSources": [
+        "github",
+        "instagram",
+        "tiktok"
+      ],
+      "mustIncludeExtractionKeys": [
+        "pain_phrases"
+      ],
+      "regression": {
+        "preFixRoute": "breaking_news",
+        "preFixMissingExtractionKeys": [
+          "pain_phrases"
+        ],
+        "preFixSameOrBetter": false
+      }
+    },
+    {
+      "id": "paid-ads-audience-enrichment-workflow",
+      "topic": "B2B paid ads audience enrichment customer match workflow personal email hashes LinkedIn matched audiences Meta Google match rate",
+      "kind": "private_workflow",
+      "expectedQueryTypes": [
+        "private_workflow"
+      ],
+      "last30daysSources": [
+        "Reddit",
+        "X",
+        "TikTok",
+        "Web"
+      ],
+      "mustIncludeSources": [
+        "crm",
+        "tiktok",
+        "warehouse",
+        "workflow"
+      ],
+      "mustIncludeExtractionKeys": [
+        "crm_object_ids",
+        "workflow_run_ids"
+      ],
+      "regression": {
+        "preFixRoute": "private_workflow",
+        "preFixMissingExtractionKeys": [],
+        "preFixSameOrBetter": true
+      }
+    },
+    {
+      "id": "claude-code-gtm-workflows",
+      "topic": "Claude Code GTM workflows",
+      "kind": "private_workflow",
+      "expectedQueryTypes": [
+        "private_workflow"
+      ],
+      "last30daysSources": [
+        "Reddit",
+        "X"
+      ],
+      "mustIncludeSources": [
+        "crm",
+        "warehouse",
+        "workflow"
+      ],
+      "mustIncludeExtractionKeys": [
+        "workflow_run_ids"
+      ],
+      "regression": {
+        "preFixRoute": "breaking_news",
+        "preFixMissingExtractionKeys": [
+          "workflow_run_ids"
+        ],
+        "preFixSameOrBetter": false
+      }
+    },
+    {
+      "id": "ai-sales-enrichment-workflows",
+      "topic": "AI sales enrichment workflows",
+      "kind": "public_gtm_dataset",
+      "expectedQueryTypes": [
+        "gtm_dataset"
+      ],
+      "last30daysSources": [
+        "Reddit"
+      ],
+      "mustIncludeSources": [
+        "github"
+      ],
+      "mustIncludeExtractionKeys": [
+        "pain_phrases"
+      ],
+      "regression": {
+        "preFixRoute": "gtm_dataset",
+        "preFixMissingExtractionKeys": [],
+        "preFixSameOrBetter": true
+      }
+    },
+    {
+      "id": "ai-sales-enrichment-agent",
+      "topic": "AI sales enrichment workflows --agent",
+      "kind": "public_gtm_dataset",
+      "expectedQueryTypes": [
+        "gtm_dataset"
+      ],
+      "last30daysSources": [
+        "Reddit",
+        "X",
+        "YouTube",
+        "Web"
+      ],
+      "mustIncludeSources": [
+        "youtube"
+      ],
+      "mustIncludeExtractionKeys": [],
+      "regression": {
+        "preFixRoute": "gtm_dataset",
+        "preFixMissingExtractionKeys": [],
+        "preFixSameOrBetter": true
+      }
+    },
+    {
+      "id": "claude-code-gtm-agent",
+      "topic": "Claude Code GTM workflows --agent",
+      "kind": "private_workflow",
+      "expectedQueryTypes": [
+        "private_workflow"
+      ],
+      "last30daysSources": [
+        "Reddit",
+        "X"
+      ],
+      "mustIncludeSources": [
+        "crm",
+        "warehouse",
+        "workflow"
+      ],
+      "mustIncludeExtractionKeys": [
+        "workflow_run_ids"
+      ],
+      "regression": {
+        "preFixRoute": "breaking_news",
+        "preFixMissingExtractionKeys": [
+          "workflow_run_ids"
+        ],
+        "preFixSameOrBetter": false
+      }
+    },
+    {
+      "id": "plg-signup-onboarding-retention",
+      "topic": "PLG signup onboarding retention developer tools CLI-first signup flow activation",
+      "kind": "public_gtm_dataset",
+      "expectedQueryTypes": [
+        "gtm_dataset"
+      ],
+      "last30daysSources": [
+        "Reddit",
+        "X",
+        "TikTok",
+        "Instagram",
+        "Hacker News",
+        "Web"
+      ],
+      "mustIncludeSources": [
+        "hn",
+        "instagram",
+        "tiktok",
+        "youtube"
+      ],
+      "mustIncludeExtractionKeys": [
+        "category_terms",
+        "pain_phrases"
+      ],
+      "regression": {
+        "preFixRoute": "breaking_news",
+        "preFixMissingExtractionKeys": [
+          "category_terms",
+          "pain_phrases"
+        ],
+        "preFixSameOrBetter": false
+      }
+    },
+    {
+      "id": "salesforce-opportunity-win-loss",
+      "topic": "Salesforce opportunity fields and signals for predictive win-loss lead scoring B2B",
+      "kind": "private_workflow",
+      "expectedQueryTypes": [
+        "private_workflow"
+      ],
+      "last30daysSources": [
+        "Reddit",
+        "X",
+        "TikTok",
+        "Instagram",
+        "Web"
+      ],
+      "mustIncludeSources": [
+        "crm",
+        "instagram",
+        "tiktok",
+        "warehouse",
+        "workflow"
+      ],
+      "mustIncludeExtractionKeys": [
+        "crm_object_ids",
+        "deal_or_opportunity_ids"
+      ],
+      "regression": {
+        "preFixRoute": "private_workflow",
+        "preFixMissingExtractionKeys": [],
+        "preFixSameOrBetter": true
+      }
+    },
+    {
+      "id": "seo-page-level-fixes",
+      "topic": "best page-level SEO fixes for internal linking canonical tags freshness signals noindex pruning",
+      "kind": "public_research",
+      "expectedQueryTypes": [
+        "concept",
+        "how_to"
+      ],
+      "last30daysSources": [
+        "Reddit",
+        "X",
+        "TikTok",
+        "Web"
+      ],
+      "mustIncludeSources": [
+        "hn"
+      ],
+      "mustIncludeExtractionKeys": [],
+      "regression": {
+        "preFixRoute": "breaking_news",
+        "preFixMissingExtractionKeys": [],
+        "preFixSameOrBetter": false
+      }
+    },
+    {
+      "id": "azure-warehouse-salesforce-reverse-etl",
+      "topic": "moving Azure data warehouse data into Salesforce reverse ETL and zero copy options",
+      "kind": "private_workflow",
+      "expectedQueryTypes": [
+        "private_workflow"
+      ],
+      "last30daysSources": [
+        "Reddit",
+        "X",
+        "YouTube",
+        "TikTok",
+        "Instagram",
+        "Web"
+      ],
+      "mustIncludeSources": [
+        "crm",
+        "instagram",
+        "tiktok",
+        "warehouse",
+        "workflow",
+        "youtube"
+      ],
+      "mustIncludeExtractionKeys": [
+        "crm_object_ids",
+        "workflow_run_ids"
+      ],
+      "regression": {
+        "preFixRoute": "custom_language",
+        "preFixMissingExtractionKeys": [],
+        "preFixSameOrBetter": false
+      }
+    },
+    {
+      "id": "blitzapi-signaliz-providers",
+      "topic": "BlitzAPI and Signaliz B2B data sourcing providers",
+      "kind": "public_gtm_dataset",
+      "expectedQueryTypes": [
+        "gtm_dataset"
+      ],
+      "last30daysSources": [
+        "Reddit",
+        "X",
+        "TikTok",
+        "Web"
+      ],
+      "mustIncludeSources": [
+        "github",
+        "tiktok"
+      ],
+      "mustIncludeExtractionKeys": [
+        "competitor_names"
+      ],
+      "regression": {
+        "preFixRoute": "breaking_news",
+        "preFixMissingExtractionKeys": [
+          "competitor_names"
+        ],
+        "preFixSameOrBetter": false
+      }
+    },
+    {
+      "id": "data-broker-reseller-compliance",
+      "topic": "data broker reseller compliance best practices misuse prevention FCRA GLBA DPPA acceptable use",
+      "kind": "public_gtm_dataset",
+      "expectedQueryTypes": [
+        "gtm_dataset"
+      ],
+      "last30daysSources": [
+        "Reddit",
+        "X",
+        "TikTok",
+        "Web"
+      ],
+      "mustIncludeSources": [
+        "github",
+        "tiktok"
+      ],
+      "mustIncludeExtractionKeys": [
+        "category_terms"
+      ],
+      "regression": {
+        "preFixRoute": "how_to",
+        "preFixMissingExtractionKeys": [
+          "category_terms"
+        ],
+        "preFixSameOrBetter": false
+      }
+    },
+    {
+      "id": "partner-enablement-kit",
+      "topic": "partner enablement kit best practices for B2B SaaS partner programs",
+      "kind": "public_gtm_dataset",
+      "expectedQueryTypes": [
+        "gtm_dataset"
+      ],
+      "last30daysSources": [
+        "Reddit",
+        "X",
+        "YouTube",
+        "TikTok",
+        "Instagram",
+        "Web"
+      ],
+      "mustIncludeSources": [
+        "instagram",
+        "tiktok",
+        "youtube"
+      ],
+      "mustIncludeExtractionKeys": [
+        "category_terms",
+        "pain_phrases"
+      ],
+      "regression": {
+        "preFixRoute": "how_to",
+        "preFixMissingExtractionKeys": [
+          "category_terms",
+          "pain_phrases"
+        ],
+        "preFixSameOrBetter": false
+      }
+    },
+    {
+      "id": "plg-retention-levers",
+      "topic": "PLG retention levers sales-led usage retention signup funnel conversion",
+      "kind": "public_gtm_dataset",
+      "expectedQueryTypes": [
+        "gtm_dataset"
+      ],
+      "last30daysSources": [
+        "Reddit",
+        "X",
+        "TikTok",
+        "Instagram"
+      ],
+      "mustIncludeSources": [
+        "instagram",
+        "tiktok"
+      ],
+      "mustIncludeExtractionKeys": [
+        "pain_phrases"
+      ],
+      "regression": {
+        "preFixRoute": "breaking_news",
+        "preFixMissingExtractionKeys": [
+          "pain_phrases"
+        ],
+        "preFixSameOrBetter": false
+      }
+    },
+    {
+      "id": "identity-fraud-kyc-b2b",
+      "topic": "identity verification fraud prevention account takeover data breach KYC regulation B2B fintech banking",
+      "kind": "public_gtm_dataset",
+      "expectedQueryTypes": [
+        "gtm_dataset"
+      ],
+      "last30daysSources": [
+        "Reddit",
+        "X",
+        "TikTok",
+        "Instagram",
+        "Polymarket",
+        "Web"
+      ],
+      "mustIncludeSources": [
+        "instagram",
+        "polymarket",
+        "tiktok"
+      ],
+      "mustIncludeExtractionKeys": [
+        "category_terms"
+      ],
+      "regression": {
+        "preFixRoute": "breaking_news",
+        "preFixMissingExtractionKeys": [
+          "category_terms"
+        ],
+        "preFixSameOrBetter": false
+      }
+    },
+    {
+      "id": "production-account-scoring",
+      "topic": "production B2B propensity and rules-based account scoring benchmarks and validation",
+      "kind": "public_gtm_dataset",
+      "expectedQueryTypes": [
+        "gtm_dataset"
+      ],
+      "last30daysSources": [
+        "Reddit",
+        "X",
+        "YouTube",
+        "TikTok",
+        "Instagram",
+        "Web"
+      ],
+      "mustIncludeSources": [
+        "instagram",
+        "tiktok",
+        "youtube"
+      ],
+      "mustIncludeExtractionKeys": [
+        "pain_phrases"
+      ],
+      "regression": {
+        "preFixRoute": "breaking_news",
+        "preFixMissingExtractionKeys": [
+          "pain_phrases"
+        ],
+        "preFixSameOrBetter": false
+      }
+    },
+    {
+      "id": "event-follow-up-sequence",
+      "topic": "in-person B2B event follow-up best practices email LinkedIn sequence post event",
+      "kind": "public_gtm_dataset",
+      "expectedQueryTypes": [
+        "gtm_dataset"
+      ],
+      "last30daysSources": [
+        "Reddit",
+        "X",
+        "YouTube",
+        "TikTok",
+        "Instagram"
+      ],
+      "mustIncludeSources": [
+        "instagram",
+        "tiktok",
+        "youtube"
+      ],
+      "mustIncludeExtractionKeys": [
+        "pain_phrases",
+        "personas"
+      ],
+      "regression": {
+        "preFixRoute": "how_to",
+        "preFixMissingExtractionKeys": [
+          "pain_phrases",
+          "personas"
+        ],
+        "preFixSameOrBetter": false
+      }
+    },
+    {
+      "id": "paid-ads-match-rates",
+      "topic": "B2B paid ads audience enrichment match rates Google Customer Match Meta Custom Audiences LinkedIn Matched Audiences personal email hashes LinkedIn URLs",
+      "kind": "public_gtm_dataset",
+      "expectedQueryTypes": [
+        "gtm_dataset"
+      ],
+      "last30daysSources": [
+        "Reddit",
+        "X",
+        "TikTok",
+        "Instagram",
+        "Web"
+      ],
+      "mustIncludeSources": [
+        "instagram",
+        "tiktok"
+      ],
+      "mustIncludeExtractionKeys": [],
+      "regression": {
+        "preFixRoute": "gtm_dataset",
+        "preFixMissingExtractionKeys": [],
+        "preFixSameOrBetter": true
+      }
+    },
+    {
+      "id": "plg-activation-churn-signals",
+      "topic": "PLG activation retention churn signals B2B SaaS developer tools onboarding support bugs billing overcharges",
+      "kind": "public_gtm_dataset",
+      "expectedQueryTypes": [
+        "gtm_dataset"
+      ],
+      "last30daysSources": [
+        "Reddit",
+        "X",
+        "YouTube",
+        "TikTok",
+        "Hacker News",
+        "Web"
+      ],
+      "mustIncludeSources": [
+        "hn",
+        "tiktok",
+        "youtube"
+      ],
+      "mustIncludeExtractionKeys": [
+        "category_terms",
+        "pain_phrases"
+      ],
+      "regression": {
+        "preFixRoute": "breaking_news",
+        "preFixMissingExtractionKeys": [
+          "category_terms",
+          "pain_phrases"
+        ],
+        "preFixSameOrBetter": false
+      }
+    },
+    {
+      "id": "new-product-launch-account-targeting",
+      "topic": "how companies target accounts for new product launches with AI tools or historical scoring models",
+      "kind": "public_gtm_dataset",
+      "expectedQueryTypes": [
+        "gtm_dataset"
+      ],
+      "last30daysSources": [
+        "Reddit",
+        "X",
+        "YouTube",
+        "TikTok",
+        "Instagram",
+        "Web"
+      ],
+      "mustIncludeSources": [
+        "instagram",
+        "tiktok",
+        "youtube"
+      ],
+      "mustIncludeExtractionKeys": [
+        "pain_phrases"
+      ],
+      "regression": {
+        "preFixRoute": "breaking_news",
+        "preFixMissingExtractionKeys": [
+          "pain_phrases"
+        ],
+        "preFixSameOrBetter": false
+      }
+    }
+  ]
+}
