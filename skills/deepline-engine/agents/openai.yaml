@@ -1,0 +1,6 @@
+interface:
+  display_name: 'Deepline Engine'
+  short_description: 'Orchestrate transition Plays as a state machine'
+  default_prompt: 'Use $deepline-engine to turn my states and transitions into a durable orchestrator Play backed by Customer DB input and output tables. Reuse compatible workspace Plays or prebuilts before creating missing transition Plays.'
+policy:
+  allow_implicit_invocation: false

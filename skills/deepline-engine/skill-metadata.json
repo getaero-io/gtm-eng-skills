@@ -1,0 +1,25 @@
+{
+  "title": "Deepline Engine",
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Deepline Engine",
+      "tags": ["engine", "play", "state-machine"],
+      "providers": []
+    }
+  },
+  "prefixes": {
+    "references/": {
+      "kind": "reference",
+      "title": "Engine Reference",
+      "tags": ["engine", "state-machine"],
+      "providers": []
+    }
+  },
+  "default_document": {
+    "kind": "reference",
+    "title": "Engine Reference",
+    "tags": ["engine"],
+    "providers": []
+  }
+}
