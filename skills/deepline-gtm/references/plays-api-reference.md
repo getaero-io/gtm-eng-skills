@@ -463,6 +463,8 @@ Either `name` (for live plays) or `artifactStorageKey` (for packaged ad hoc runs
 | `packagedFiles` | `unknown[]` | No | Additional staged file references (dependencies, data files). |
 | `force` | `boolean` | No | Compatibility flag; active sibling runs are allowed. |
 | `forceToolRefresh` | `boolean` | No | Explicit cache-bypass flag for durable dataset and tool-call reuse. |
+| `maxConcurrentExternalCalls` | `number` | No | Per-run ceiling for concurrently resident provider-tool executions and<br />direct ctx.fetch calls. The server validates the supported range. |
+| `maxConcurrentRows` | `number` | No | Run-wide default and ceiling for live dataset-map row resolvers. |
 | `waitForCompletionMs` | `number` | No | Optionally let the start request wait briefly and return a terminal result. |
 | `profile` | `string` | No | Per-run execution profile override. The server defaults to absurd. The<br />Only `absurd` is accepted; most callers should leave this unset. |
 | `integrationMode` | `'live' \| 'eval_stub' \| 'fixture'` | No | Optional per-run provider execution mode for eval/smoke runs. |
