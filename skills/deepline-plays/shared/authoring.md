@@ -246,7 +246,7 @@ Start from this shape and replace the nouns before adding detail:
  */
 ```
 
-**One block per exported play.** A block names its export in the header — `/** @mermaid batch` — the same place `// @mermaid-node <id>` puts its target. An unnamed block means the default export, so a one-play file needs no name. A file exporting a scalar and a batch play carries two blocks, one each, both above the imports; `plays check` checks every exported play and reports per export. Naming an export the file does not define fails the check with the names it does define, and two blocks claiming one export fails too. Node ids must be unique inside one block. Separate named exports may reuse natural ids such as `input` and `output`; bindings resolve against the enclosing `definePlay` handler.
+**One block per exported play.** A block names the play in the header — `/** @mermaid contact-to-phone-waterfall` — the same place `// @mermaid-node <id>` puts its target. An export name (`scalar`, `batch`) works too, but the play's own name is the one a reader recognises. An unnamed block means the default export, so a one-play file needs no name. A file exporting a scalar and a batch play carries two blocks, one each, both above the imports; `plays check` checks every exported play and reports per export. Naming an export the file does not define fails the check with the names it does define, and two blocks claiming one export fails too. Node ids must be unique inside one block. Separate named exports may reuse natural ids such as `input` and `output`; bindings resolve against the enclosing `definePlay` handler.
 
 **A binding resolves by its `out:` name, not by the line it sits on.** Put each `// @mermaid-node` comment directly above the statement it names — inside the handler, above the whole `const rows = await ctx` statement for a chained `.dataset(...)`, or above the `.withColumn(...)` line for a column — and `out:` must name what that statement produces. When the name and the position disagree, `plays check` errors `docflow_binding_drift` and tells you both, rather than silently binding the wrong statement.
 
@@ -283,6 +283,17 @@ Anything else errors `docflow_dataset_column_undrawn`, naming the column, the co
 - **A decision binds to the value that computes the branch** (`// @mermaid-node id type:"decision" out:"<the branch value>"`); its `yes`/`no` edges point at the follow-on nodes.
 
 - **Say which arm the condition leads to** with `arm:"run"` on the node that arm points at (`// @mermaid-node tierOne out:"priority_tier" arm:"run"`). Your edge labels are prose — `"fit 65 or better"`, `"nicht gefunden"` — so without this the run trace reads the arms by draw order and marks the guess with a `*`. Annotate one arm only: a conditional is boolean, so the sibling resolves to `else` on its own. Optional, and a play without it is unaffected.
+
+**Every box binds a statement, or says no statement runs it.** A diagram is a claim about the code: click a box and it answers with the tool it called, the columns it wrote, what this run did there. A box bound to nothing cannot answer, and the canvas cannot tell the two apart — so it renders a box plainly labelled `Hunter` as "this node has nothing configured".
+
+When the work genuinely has no statement to point at — the legs live in another module, the providers are a list a loop walks, the box is the outcome of a branch rather than a step — declare it:
+
+```
+ * cascade --> answer(["Return the email and how it was found"])
+ * class hunter,prospeo,answer sketch
+```
+
+`class <ids> sketch` is mermaid's own class statement, so the block stays a diagram any renderer can draw. A sketched box keeps its `type:` — a sketched decision is still a diamond — and loses only the promise that there is something to click into: it draws dashed and its panel says no statement in this play runs it. `plays check` fails on a box that is neither bound nor declared, and names both exits.
 
 **The canvas draws your diagram and nothing else.** Every node, edge, region and label on it comes from your `@mermaid` block, in your words. Nothing reads your compiled code and adds boxes you did not write. So if a node says too little, the fix is a better diagram — not a hope that the UI will fill it in.
 
