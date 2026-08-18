@@ -10,7 +10,7 @@ Write the matrix before the Play:
 | ------------- | -------------------------------------------------------------- | ----------- | ---------------------- | ------------------- | ------------ | ---------- |
 | `<state>`     | `<explicit field, durable lookup, or user-defined classifier>` | `<table>`   | `<owned/prebuilt/new>` | `<states>`          | `<table>`    | `<yes/no>` |
 
-Do not fill missing cells with guessed business logic. Unknown transitions stay unresolved until the user defines them.
+Infer routine structural details from the request and project conventions, and record those assumptions. Do not invent missing business policy. Ask only when competing interpretations would materially change a state decision, allowed transition, transformation, or terminal outcome.
 
 ## Table roles
 
@@ -49,7 +49,7 @@ deepline plays describe <owned-or-prebuilt-candidate> --json
 
 `--all` includes Plays created in the user's workspace as well as prebuilts. Search by the transformation's outcome and input contract, not a guessed name. Prefer an exact owned or prebuilt contract over new code. Record why each candidate fits or fails; a similar title is not enough.
 
-The orchestrator composes the selected Play with `ctx.runPlay`. That boundary accepts scalar child Plays only. A child that uses `ctx.dataset()`, `ctx.csv()`, a Runtime Sheet, an event wait, or an explicit timeout owns a separate lifecycle and cannot be used as an inline transition. When no compatible Play exists, author a scalar transition Play and include it in the engine's dependency-ordered check and publication workflow after the user approves publishing.
+The orchestrator composes the selected Play with `ctx.runPlay`. That boundary accepts scalar child Plays only. A child that uses `ctx.dataset()`, `ctx.csv()`, a Runtime Sheet, an event wait, or an explicit timeout owns a separate lifecycle and cannot be used as an inline transition. When no compatible Play exists, author a scalar transition Play and include it in the engine's automatic dependency-ordered check and publication workflow.
 
 ## Maintained source tree
 
@@ -58,7 +58,7 @@ Generate the engine in a durable project directory that follows the repository's
 - orchestrator Play
 - newly authored child transition Plays
 - shared state and transition types
-- README describing the contract, local validation, and approval boundaries
+- README describing the contract, local validation, and automatic publication and synthetic-test boundaries
 - Mermaid `stateDiagram-v2` source for the complete machine
 
 Do not put these artifacts in an ignored `tmp/` directory. Before handoff, confirm the chosen directory is durable and visible to the project's source-control workflow.
@@ -145,11 +145,11 @@ Choose one model explicitly:
 - **One transition per invocation:** easiest to observe and repair. Choose an explicit supported caller, such as an API/CLI submission, webhook, schedule, or another user-approved dispatch path, to start the next run from the next-state input. Writing an arbitrary Customer DB table does not itself trigger a Play; SQL listeners bind only to supported monitor tool streams.
 - **Multiple transitions per invocation:** lower handoff latency, but one run owns more control flow. Persist every state boundary before continuing so a resume does not repeat completed work.
 
-The same state and table contracts apply to both.
+Infer the model from the workflow. When no external event must occur between states, default to multiple transitions through terminal completion. Record the choice and its retry and observability implications. The same state and table contracts apply to both.
 
 ## Test matrix
 
-Before a real run, prove:
+Before publication, prove with static checks and provider-free fixtures:
 
 - every declared state dispatches to the intended transition Play
 - every transition reuses a described compatible owned/prebuilt Play or has a checked new transition Play
@@ -162,12 +162,20 @@ Before a real run, prove:
 - two different business keys remain independent
 - the Play passes `deepline plays check <file.play.ts>`
 
-Use synthetic rows for these tests. Provider calls, publication, triggers, and real Customer DB mutation require the user's approval.
+Do not execute a provider during this pre-publication matrix. Defer provider-backed edge tests to the bounded pilot after the caps and workspace gate below are verified. Use synthetic rows for all tests. An explicit request to build an engine authorizes publication. The bounded paid pilot below additionally requires an explicit internal/test workspace or explicit user approval for the paid pilot and scope. It does not authorize real customer rows, trigger installation, a larger run, or unrelated Customer DB mutations.
 
-## Publication order
+## Automatic publication and paid pilot
 
-One explicit user instruction to publish approves the complete publication workflow for the engine. Check all new child Plays, publish the children needed for `ctx.runPlay` resolution, check the orchestrator against the live child contracts, publish the orchestrator, then verify every published version. Do not pause for a second approval between dependency publication and orchestrator publication.
+Inspect live Deepline balance and pricing before publishing paid code. Choose the pilot records and calculate the per-run cap. Put a static `billing.maxCreditsPerRun` no greater than the orchestrator cap on every newly authored provider-backed child before its first check or publication, then check and publish the capped children needed for `ctx.runPlay` resolution. A published child is independently callable, so relying only on the parent's inline cap leaves its root-run path unbounded. Never publish an uncapped revision of a newly authored paid child.
 
-Verify each publication by reconciling the publish result with both `deepline plays describe <name> --json` and `deepline plays versions --name <name> --json`. Report the checked version, published version, live revision, and any mismatch. Stop on a failed check, publish, or verification instead of publishing a dependent Play against an uncertain contract.
+Place the static `billing.maxCreditsPerRun` in the orchestrator source before checking or publishing it. A preliminary uncapped live revision creates an avoidable window for unbounded runs, especially if bindings are added later.
 
-Publication approval does not include running the engine, calling providers, installing triggers, or mutating Customer DB. Those actions require separate approval.
+Check the capped orchestrator against the live child contracts and publish it once. Verify each publication with `deepline plays get <name> --json`: inspect `play.liveRevision.version` and the static `billing.maxCreditsPerRun` in `play.liveRevision.sourceCode`, not a working revision. Reconcile that version with the publication result and `deepline plays versions --name <name> --json`. `plays describe` and revision summaries omit the billing limit, so they cannot verify a cap by themselves. Report the checked version, published version, live revision, every provider-backed Play's live cap, and any mismatch. Stop on a failed check, publish, or verification instead of publishing a dependent Play against an uncertain contract.
+
+Calculate and disclose the aggregate pilot maximum as `(number of pilot top-level runs + one replay attempt) × billing.maxCreditsPerRun`. A per-run cap resets for each top-level run, so presenting it as the whole pilot bound understates exposure. Do not hardcode a credit-to-currency conversion. If credits are zero or unavailable, stop; quote any CLI-provided recovery commands exactly, but do not run them without approval.
+
+Run without another approval in an explicit internal/test workspace. A customer workspace additionally requires explicit approval for the provider, record count, per-run cap, and aggregate maximum plus a verified supported path for restoring the exact consumed test credits. If either is missing, use an internal/test workspace. Do not turn this into a second design review or ask again between pilot records covered by the same bound.
+
+Submit one representative synthetic record through the published engine and its real paid transitions. Add at most two more synthetic records only when distinct branches need coverage, and keep all records within one bounded pilot. Stop when outputs are wrong, coverage is poor, a required field is missing, or observed cost per usable result is too high. Replaying a completed transition with the same idempotency key must not create another provider charge, output, or handoff. When the engine has no paid transition, run the same live pilot and report zero spend; adding an unrelated provider would test a different workflow.
+
+Show the pilot inputs, final outputs, observed Deepline spend, published `billing.maxCreditsPerRun`, aggregate bound, and replay result in the deliverable. If a customer workspace was used, restore every Deepline credit consumed by the test and verify the resulting balance; include the restoration receipt. Retain exact per-step traces, including provider calls and charges, and offer them on request instead of including them by default. Real customer data, installed triggers, a larger run, or other external side effects require separate approval. Before a larger paid run, show the pilot results, observed spend, proposed scope, and proposed Deepline-credit cap, then ask for explicit approval. Scaling requires a newly checked and published revision with that approved cap; do not silently remove or raise the pilot cap.
