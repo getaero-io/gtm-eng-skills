@@ -5,43 +5,172 @@ description: 'ACCESS-GATED beta. Deepline Monitors are provider event feeds (job
 
 # Deepline Monitors
 
-Monitors are **access-gated Deepline-native signal feeds**. In the dashboard
-they are called **Monitors**. The customer launch currently includes the
-Company Radar and Contact Radar only. A monitor provisions a Deepline-managed
-feed; events land in a table in your Customer DB. There is **no run to kick
-off** — a monitor streams as events arrive.
+Monitors are **access-gated Deepline-native signal feeds**. The customer launch
+includes Company Radar and Contact Radar. A monitor provisions a Deepline-managed
+feed; events land in a Customer DB table. There is **no run to kick off** — it
+streams as events arrive.
+
+## The job: turn a future signal into a useful decision
+
+A monitor is not a dashboard setting. It is a promise that a future real-world
+event will reach the right workflow. Earn that trust: show the route, give a
+small piece of evidence now, prove the stored definition says what was asked,
+then let live events validate delivery over time. Each step answers a different
+question; do not pretend one proves all four.
 
 ## Step 0 — access gate (do this first)
 
-Monitors are an access-gated beta. **Before any other monitor command**, confirm
-access:
+Monitors are an access-gated beta. Before any monitor command, confirm access:
 
 ```bash
-deepline monitors status
+deepline monitors status --json
 ```
 
 - **You have access** → proceed.
-- **No access** → **STOP.** Do not run any other monitor command. Tell the user
-  to contact the Deepline team to request monitor access.
+- **No access** → stop. Do not run other monitor commands; tell the user to
+  contact the Deepline team to request access.
 
-Anyone with a valid Deepline login can run the check; only the answer is gated.
-`--json` returns `{ "has_access": boolean, "reason": string }` — branch on
-`has_access`.
+The response is `{ "has_access": boolean, "reason": string }`; branch on
+`has_access`. Other failures need diagnosis, not reinterpretation as rollout
+denial.
 
-## Monitors vs plays
+## Start with the customer story
 
-- **Monitor** = the upstream feed. It _produces_ a stream of
-  provider events into a Customer DB table. It has no schedule and no manual run;
-  it fires whenever the provider sends a webhook.
-- **Play** = the logic that _reacts_. A play binds to the monitor's table with a
-  `sqlListeners` trigger and runs inline when matching rows are written. Plays
-  own all webhook/cron/manual/SQL-listener triggering; monitors do not run plays
-  themselves — they just feed the table the play watches.
+Before commands, show this picture with the customer's company, signal, and
+destination substituted in. Lead with what becomes possible, not with schemas
+or command names.
 
-Reach for a monitor when the user wants to _continuously capture_ a provider's
-events (email replies, new job postings, funding rounds, intent signals) into
-their warehouse. Reach for a play when the user wants to _act on_ those events,
-or for any on-demand or scheduled enrichment/sourcing task.
+```mermaid
+flowchart LR
+  ask["You: tell me when Stripe posts a CFO role"] --> monitor["Monitor\nwatches for new job postings"]
+  provider["A new Stripe job appears"] --> monitor
+  monitor --> stream["Shared signal feed\na new job-opening row"]
+  stream --> play["Play\nchecks: is this Stripe + CFO?"]
+  play --> slack["Slack\nthe team gets the alert"]
+```
+
+Say it plainly: **the monitor keeps watch. When it sees a new matching job, it
+adds that job to the shared signal feed. That new row wakes the Play. The Play
+checks the details we care about, then sends the Slack message.** The same Play
+could instead update a CRM, create a task, or enrich the company.
+
+The important boundary is that a monitor does not itself send Slack messages,
+and it does not create a private channel for one workflow. Several monitors can
+write to the same feed; each Play decides which new rows deserve action. That
+keeps one useful source of truth, but a Play filter controls downstream action
+only, not monitor ingestion cost.
+
+## First proof of value: one filtered monitor
+
+Do not make a customer wait days to discover whether the intended filter took
+effect. Start with one narrow monitor and prove the stored definition after the
+requested write. This is the fastest feedback loop and guards against false success.
+
+**Example outcome:** “Tell me when Stripe posts a Chief Financial Officer job,
+then let a Play react.” Read the live tool contract before using this example.
+
+### Optional: test the closest real signal
+
+Offer a small live probe when it helps the customer decide whether to deploy.
+Do not make every monitor pretend it has one. A credible proxy has the same
+**thing** (job, job change, review, post) and the same **moment** (new or
+current) as the monitor. An adjacent lookup can be useful research, but it is
+not evidence that the monitor will fire.
+
+| Monitor is watching for…                             | Find a credible probe with…                                                 | Do not mistake this for…      |
+| ---------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------- |
+| Job postings                                         | `deepline tools search "job postings" --json`                               | A people or title search      |
+| A tracked contact changing jobs                      | `deepline tools search "job change" --json`                                 | The contact's current profile |
+| A provider webhook, campaign event, or website visit | The connected provider's test event or a deliberate test visit after deploy | A separate provider REST read |
+| Any other signal                                     | `deepline tools search "<signal in plain English>" --json`                  | A loosely related enrichment  |
+
+Read the shortlisted tool's live contract and price. Only run a one-result or
+one-event probe after the customer approves its cost. Prefer the same provider
+as the monitor when it exposes a callable read/search surface; otherwise say
+that no faithful preflight exists instead of inventing one.
+
+A successful current-data probe answers “does this filter find the kind of
+thing we mean today?” Read its identifying fields, date, and URL before saying
+it matched. An empty result says only that this search found nothing now. It
+cannot prove that a future monitor will never deliver an event. The durable
+proof remains: deploy, read back the stored definition, then observe a real
+matching event reach the Play.
+
+Do not execute a monitor type as though it were an on-demand search. In
+particular, do not substitute a people search for a job-posting or job-change
+test: it answers a different customer question.
+
+### Every monitor gets a customer-reviewable preview
+
+Never leave the customer with only a definition JSON. Give them one of these
+three review artifacts and label it honestly:
+
+1. **Current signal sample.** A one-result probe from a matching callable
+   source, when one exists. This is real data now, not a delivery guarantee.
+2. **Event contract card.** The `outputs` from `monitors check` or
+   `deploy --dry-run` name the stream, table, and fields a future event will
+   contain. Translate that into a short customer-facing card: “a new job will
+   have a title, company, URL, and posting date.” This is an expected shape,
+   not an observed event.
+3. **Safe callback diagnostic.** After the customer has approved deployment,
+   `monitors get <key> --json` may return `sample_payload`. Run it through the
+   deployed monitor without writing a row or waking a Play:
+
+   ```bash
+   deepline monitors test <key> '<sample_payload from monitors get>' --json
+   ```
+
+   The result should say `accepted: true`, `test_mode: validation_only`,
+   `persisted_rows: 0`, and `dispatched_bound_plays: 0`. Show the returned
+   `preview_payload` to the customer. It proves Deepline accepts that event
+   shape against this monitor's real binding; it does not prove the upstream
+   provider emitted it.
+
+For a monitor without `sample_payload`, use its connected provider's own test
+event after deployment, then read the resulting row and Play delivery health.
+Do not fabricate a provider webhook body just to fill the gap. `monitors test
+--dispatch` writes rows and can wake Plays, so use it only when the customer has
+explicitly approved a real end-to-end test.
+
+```bash
+# Learn the live job-opening payload fields, output stream, and event price.
+deepline tools get deepline_native.company_job_openings --json
+MONITOR='{
+  "key": "stripe-cfo-job-openings",
+  "name": "Stripe CFO job openings",
+  "tool": "deepline_native.company_radar",
+  "payload": {
+    "domain": "stripe.com",
+    "radar_type": "company_job_openings",
+    "job_titles": "\"Chief Financial Officer\""
+  }
+}'
+# These are safe. They validate the exact definition and show cost/reuse.
+deepline monitors check "$MONITOR" --json
+deepline monitors deploy --dry-run "$MONITOR" --json
+# After showing scope, shared-stream impact, and price:
+deepline monitors deploy "$MONITOR" --json
+deepline monitors get stripe-cfo-job-openings --json
+```
+
+The proof is the final `get`, not the deploy response: it must show
+`definition.payload.job_titles` as `"Chief Financial Officer"`, the expected
+domain/radar type, and `status: active`. If any intended field differs, report a
+failed write. Do not wait for events to infer the filter.
+
+For a requested filter change, use the same tight loop:
+
+```bash
+deepline monitors update stripe-cfo-job-openings \
+  '{"payload":{"job_titles":"\"Chief Financial Officer\" OR \"VP Finance\""}}' --json
+deepline monitors get stripe-cfo-job-openings --json
+```
+
+When managing a fleet, prove this loop on one monitor first. Keep workers
+bounded and save each requested patch/read-back result. A
+`provider_monitor_control_state_conflict` (HTTP 409) means another writer changed
+the monitor first: read it again and retry only if needed. Never treat a 409 as
+success or retry it blindly.
 
 ## Find monitor types and read their filters
 
@@ -53,8 +182,8 @@ Browse them, then read one type's exact filters + stream columns:
 deepline tools list --categories monitors
 deepline tools search "company radar"
 
-# Read the full contract for ONE type
-deepline tools get deepline_native.company_radar
+# Read one specific monitor variant's full contract
+deepline tools get deepline_native.company_job_openings
 ```
 
 (`deepline monitors available [tool-id]` is a legacy alias for the same
@@ -91,57 +220,10 @@ All commands accept `--json` (also automatic when stdout is piped).
 
 ## Monitors as code (SDK)
 
-Monitors are **fully expressible as SDK code**, not CLI-only. The CLI is a thin
-terminal surface over the same product model: every `deepline monitors` verb maps
-to a `client.monitors.*` method, and monitor definitions have a typed authoring
-helper, `defineMonitor`, that mirrors `definePlay`. Reach for the SDK when the
-monitor lifecycle is part of a script, an agent loop, or a play repo — the same
-access gate, endpoints, and pricing apply.
-
-```ts
-import { DeeplineClient, defineMonitor } from 'deepline';
-
-const client = new DeeplineClient();
-
-// Access gate first — same contract as `deepline monitors status`.
-const access = await client.monitors.status(); // { has_access, reason }
-if (!access.has_access) throw new Error(access.reason ?? 'No monitor access');
-
-// Discover deployable monitor types (compact list, or describe one by id).
-const catalog = await client.monitors.available(); // list mode
-const radar = await client.monitors.available('deepline_native.company_radar');
-
-// Author a typed definition (compile-time checked key/tool/payload/controls).
-const monitor = defineMonitor({
-  key: 'company-job-openings',
-  tool: 'deepline_native.company_radar',
-  name: 'Company job openings',
-  payload: { domain: 'stripe.com', radar_type: 'company_job_openings' },
-});
-
-// Validate (no spend), preview the deploy plan, then deploy for real.
-const check = await client.monitors.check(monitor);
-const plan = await client.monitors.deploy(monitor, { dryRun: true });
-const deployed = await client.monitors.deploy(monitor);
-
-// Lifecycle — one method per CLI verb.
-const list = await client.monitors.list({ status: 'all' }); // total/is_truncated/next_cursor
-const detail = await client.monitors.get('company-job-openings');
-const dependents = await client.monitors.dependents('company-job-openings');
-await client.monitors.update('company-job-openings', { name: 'Renamed' });
-await client.monitors.reactivate('company-job-openings', { dryRun: true });
-await client.monitors.delete('company-job-openings', {
-  localOnly: true,
-  dryRun: true,
-});
-```
-
-Every read-only method (`status`, `available`, `check`, `list`, `get`,
-`dependents`, and any `{ dryRun: true }` mutation preview) is safe to call
-without approval. `deploy`, `update`, `reactivate`, and `delete` mutate workspace
-or provider state and can spend credits — get explicit approval first, exactly as
-with the CLI (see "Get approval before mutations"). The reuse, shared-stream, and
-per-event pricing rules below apply to the SDK path unchanged.
+The CLI and SDK use the same monitor model. Use the typed SDK in scripts, agent
+loops, or play repositories. Read
+[`../references/monitor-sdk.md`](../references/monitor-sdk.md); this recipe's
+access, cost visibility, read-back, shared-stream, and pricing rules still apply.
 
 ## Recover from errors
 
@@ -160,22 +242,8 @@ Monitor errors return an actionable next step — follow it before retrying.
 
 A monitor suspended for insufficient credits stays disabled until you explicitly
 reactivate it. Ask the user to add credits, run `monitors reactivate <key>
---dry-run`, show the approval summary, and reactivate only after approval. While
+--dry-run`, show the impact summary, then reactivate when they ask. While
 suspended, connected plays do not run.
-
-## Workflow
-
-1. Run `status`.
-2. Run `tools list --categories monitors` and `tools get <type>` to read filters,
-   stream columns, and pricing (see "Find monitor types and read their filters").
-3. Run `monitors list --status all` and `monitors get <key>` to inspect reuse and
-   dependents.
-4. Compare the monitor with a scheduled play over provider actions; ask the user
-   when the cost/scope tradeoff is material.
-5. Run `check`, then the mutation's built-in dry-run when one exists.
-6. Show the approval summary below and obtain explicit approval.
-7. Execute the approved mutation.
-8. Run `get` to verify definition, billing, streams, and dependent plays.
 
 **Edit existing monitors; do not delete and recreate them manually.**
 `deepline monitors update <key> '<patch>'` and `client.monitors.update(key,
@@ -224,8 +292,8 @@ Before creating, updating, disabling, reactivating, or deleting a monitor:
 4. Explain whether the mutation will add rows, stop rows, or change which rows
    enter the shared table.
 5. Explain the published pricing basis, state that total future spend is unknown
-   without measured event volume, and describe downstream behavior. Then obtain
-   approval when the change can affect another consumer.
+   without measured event volume, and describe downstream behavior. When the
+   change can affect another consumer, name that impact before doing it.
 
 Use `sqlListeners.where` when a dependent play needs narrower behavior and the
 stream row schema exposes a suitable field such as domain, campaign, event type,
@@ -290,7 +358,7 @@ When a pilot is empty:
    into a coverage percentage.
 4. Propose one controlled diagnostic at a time: keep the monitor and wait for
    future events, test a known recent ground-truth example, or relax one filter
-   on a small subset. Obtain approval before any mutation or paid diagnostic.
+   on a small subset. State scope and live price before a paid diagnostic.
 5. Report the result as provider coverage evidence for that sample, not a
    universal verdict on the signal.
 
@@ -306,14 +374,14 @@ Do not issue an unbounded `Promise.all` across hundreds of paid mutations.
 Preserve each monitor's result, retry only explicit transient failures, and run
 the full-registry reuse check before creating new monitors.
 
-## Get approval before mutations
+## Make mutations legible, not ceremonial
 
-Run `status`, `tools list`/`tools get` (type discovery), `monitors list`,
-`monitors get`, `check`, and dependency inspection without approval because they
-are read-only. Creating, updating, reactivating,
-or deleting a monitor changes workspace or provider state and can spend credits.
-Before asking for approval, tell the user what changes, what stays the same, and
-what can cost credits. Keep it short.
+`status`, `tools list`/`tools get` (type discovery), `monitors list`,
+`monitors get`, `check`, and dependency inspection are read-only. Creating,
+updating, reactivating, or deleting a monitor changes workspace or provider
+state and can spend credits. When the customer asks for that change, state what
+changes, what stays the same, and what can cost credits, then execute it. Keep
+the summary short. If they asked only to design or review, stay read-only.
 
 ```text
 Changes
@@ -331,14 +399,12 @@ Cost
 - <known lifecycle charge; future volume is unknown unless measured>
 - <replacement note; mention backfill only when provider evidence proves one>
 - Check: <result; update has no dry-run>
-
-Approve this update? (yes/no)
 ```
 
 For deploy, reactivate, and delete, include the built-in dry-run result. Update
-has no dry-run, so use the read-only planning sequence below. A request to design
-or create a monitor is not final approval. Ask again after scope and price are
-known.
+has no dry-run, so use the read-only planning sequence below. A request to create
+or change a monitor is the authorization to make that requested change; do not
+insert a second confirmation gate after the scope and price are known.
 
 ## Update a monitor
 
@@ -375,8 +441,6 @@ Cost
 - Ongoing price: <live credits per accepted event>
 - Deepline will update the upstream provider resource.
 - A backfill is not guaranteed. If the provider emits initial or replayed findings, accepted findings use the normal event price.
-
-Approve this update? (yes/no)
 ```
 
 Before updating:
@@ -397,10 +461,10 @@ Before updating:
    equivalent `sqlListeners.where` change before broadening the monitor. This
    preserves play behavior; apply the per-event pricing callout above when
    explaining spend.
-6. Ask once for approval. After approval, pass only the intended patch to
-   `monitors update`. Read its `change_summary` when present. Then verify with
-   `monitors get` and the live play bindings. Report what changed, what stayed
-   the same, and which table receives future events.
+6. Pass only the intended patch to `monitors update`. Read its `change_summary`
+   when present. Then verify with `monitors get` and the live play bindings.
+   Report what changed, what stayed the same, and which table receives future
+   events.
 
 ## When to reach for a monitor
 
