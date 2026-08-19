@@ -110,6 +110,12 @@ for optional-field coverage).
 on 90% of supplied engineers” uses `pilot_units`; “hiring signal on 10% of
 complete farm owners” uses `complete_results`.
 
+Set `targetRows` to the user’s explicit delivery target when they give one.
+Otherwise set it to every supplied or bounded-scope unit and keep recovering
+gaps. A pass floor such as “three of five is fine” is an acceptable outcome,
+not permission to silently stop at three when the user asked for maximum
+coverage.
+
 For open-world search, make each input unit a bounded population partition or
 source scope. For known-row enrichment, preserve the exact supplied rows. Let
 the helper select diverse sentinels and untouched holdout units.
@@ -191,6 +197,12 @@ every-row spend. State each program as:
 hypothesis → diversity features → seams → terminal lineage → call/credit cap → expected miss
 ```
 
+For an uncertain job, do a short source-first pass before writing code. It
+produces 5–10 compact strategy cards from actual registries, pages, private
+joins, and source artifacts; the catalog maps those cards to executable
+programs. Read `references/strategy-pre-research.md`. This is an authoring
+step, not a runtime agent or a new configuration language.
+
 Use `diversityFeatures` for durable information shape, such as
 `structured-index`, `pivot:name+domain`, `first-party-web`, or
 `role:acceptance-test`. Do not put the provider name there. Two APIs reaching
@@ -198,14 +210,15 @@ the same terminal pages may still compete on coverage and economics, but they
 form one evidence lineage. One provider can support several mechanisms when its
 actions reach genuinely different corpora.
 
-### Subagents: hypothesis generators
+### Subagents: strategy authors
 
 The parent owns the contract, sample, catalog snapshot, and final pool. Author
 the seed first. Use one or two subagents only when multiple source geometries
 remain plausible and a wrong choice costs more than one short ideation wave.
-Give each the same context and request one mechanism card. They do not browse or
-execute providers. The parent admits distinct paths and binds their calls;
-subagents propose hypotheses, not verdicts.
+Give each the same contract and an assigned source lane. They return one card
+and one ordinary TypeScript strategy block. They do not execute providers. The
+parent rejects false diversity, then binds the admitted blocks into one
+deterministic experiment; subagents propose routes, not verdicts.
 
 ## 4. Author one experiment Play
 
@@ -216,9 +229,19 @@ python3 <skill-root>/scripts/scaffold-search-experiment.py \
   ./deepline/data/<task-slug> --name <task-slug>
 ```
 
-Edit four seams: scope rows, contract, literal `SearchProgram` bodies, and final
-output mapping. The generated template is the source of truth for helper types
-and evidence binding. Copied helpers are runtime dependencies.
+Edit four seams: scope rows, contract, literal strategy blocks, and final output
+mapping. A strategy block is ordinary async TypeScript: it can call tools,
+fetch a source, or compose local code. The generated template owns pilot/rank/
+holdout/exploit/retry; `boundClaim`, `found`, and `attempt` only make the
+evidence/output boundary mechanical. Copied helpers are runtime dependencies.
+
+Default to inline strategy blocks in the one generated Play: this is the
+fastest way to author and run 3–5 candidates locally. Promote a stable block
+to a reusable **scalar child Play** only when reuse or delegated ownership is
+worth a publish step. The parent must call each child with a literal
+`ctx.runPlay(...)`; a child receives one row and returns a scalar attempt, so it
+cannot own `ctx.csv`, `ctx.dataset`, waits, or a batch run. The parent remains
+the single durable experiment and final dataset.
 
 Leave `pilotUnitCount`, `comparisonUnitCount`, and `holdoutUnitCount` unset
 unless the user supplied a split. The automatic topology selects diverse
@@ -281,12 +304,13 @@ cost. Never expose provider spend.
 
 ## Conditional references
 
-| Condition                                       | Read                                |
-| ----------------------------------------------- | ----------------------------------- |
-| Open-world company or people discovery          | `jobs/finding.md`                   |
-| Known-row enrichment or scoring                 | `jobs/enriching.md`                 |
-| Webhook, cron, review gate, dry-run, activation | `jobs/automating.md`                |
-| Tool choice, source geometry, or scale pattern  | `references/provider-navigation.md` |
-| Failed, stalled, empty, or misshapen run        | `references/debugging.md`           |
-| General Play syntax outside the scaffold        | `shared/authoring.md`               |
-| Replay, receipts, resume, and cost accounting   | `shared/durability.md`              |
+| Condition                                          | Read                                  |
+| -------------------------------------------------- | ------------------------------------- |
+| Open-world company or people discovery             | `jobs/finding.md`                     |
+| Known-row enrichment or scoring                    | `jobs/enriching.md`                   |
+| Webhook, cron, review gate, dry-run, activation    | `jobs/automating.md`                  |
+| Tool choice, source geometry, or scale pattern     | `references/provider-navigation.md`   |
+| Source-first strategy generation or subagent lanes | `references/strategy-pre-research.md` |
+| Failed, stalled, empty, or misshapen run           | `references/debugging.md`             |
+| General Play syntax outside the scaffold           | `shared/authoring.md`                 |
+| Replay, receipts, resume, and cost accounting      | `shared/durability.md`                |

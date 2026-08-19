@@ -58,6 +58,10 @@ def scaffold(output_directory: Path, name: str) -> dict[str, object]:
             skill_root / "plays" / "shared" / "search-experiment.ts",
             output_directory / "shared" / "search-experiment.ts",
         ),
+        (
+            skill_root / "plays" / "shared" / "search-strategy.ts",
+            output_directory / "shared" / "search-strategy.ts",
+        ),
     ]
     existing = [destination for _, destination in targets if destination.exists()]
     if existing:
@@ -72,8 +76,9 @@ def scaffold(output_directory: Path, name: str) -> dict[str, object]:
         "helpers": [str(destination) for _, destination in targets[1:]],
         "next": [
             "Replace the scope rows and frozen claim contract.",
-            "Browse the full relevant tool categories, then bind a broad program pool with diversityFeatures.",
-            "Keep candidates separate from final accepted claims; acceptance failures must remain experiment gaps.",
+            "Use pre-research to write 5–10 source-mechanism cards, then implement the strongest 3–5 as ordinary strategy blocks.",
+            "Describe each selected tool, then change only its literal call input and declared getter; do not guess raw response paths.",
+            "Keep candidates separate from final accepted claims; acceptance failures remain experiment gaps and trigger dormant strategies.",
             f"deepline plays check {targets[0][1]}",
         ],
     }

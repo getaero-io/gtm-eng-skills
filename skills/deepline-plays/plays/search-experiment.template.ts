@@ -1,126 +1,72 @@
 import { definePlay } from 'deepline';
 import {
-  bindResearchEvidenceToSource,
-  type ResearchClaimValue,
-} from './shared/research-experiment';
-import {
-  applyRejectOnlyDecision,
-  extractGroundedPersonCandidates,
-} from './shared/grounded-extraction';
-import {
   runSearchExperiment,
   type SearchProgram,
-  type SearchProgramResult,
   verifiedSearchClaimValue,
 } from './shared/search-experiment';
+import { attempt, boundClaim, found } from './shared/search-strategy';
 
-type ScopeRow = {
-  scope: string;
-};
+type ScopeRow = { scope: string };
 
-// rowKey identifies the input unit being tested. canonicalEntityKey identifies
-// a discovered result. They are usually different for open-world search.
+// 1. Replace this with supplied rows, a small CSV-derived sample, or bounded
+// source scopes. The row key is the input unit, not a discovered candidate.
 const rows: ScopeRow[] = [{ scope: 'replace-with-a-real-input-scope' }];
-
-function bindLiteralClaim(input: {
-  value: unknown;
-  source: string;
-  independenceClass: string;
-  excerpt: string;
-  rawSourceText: string;
-  url?: string;
-}): ResearchClaimValue | undefined {
-  const evidence = bindResearchEvidenceToSource({
-    source: input.source,
-    independenceClass: input.independenceClass,
-    excerpt: input.excerpt,
-    rawSourceText: input.rawSourceText,
-    ...(input.url ? { url: input.url } : {}),
-    authority: 'authoritative',
-  });
-  return evidence ? { value: input.value, evidence: [evidence] } : undefined;
-}
 
 export default definePlay(
   'search-experiment-template',
   async (ctx) => {
+    // 2. A strategy is ordinary TypeScript. It can call one provider, several
+    // sequential tools, fetch a public source, or use local code. Add 3–5
+    // structurally different strategies by copying a block below. The helper
+    // pilots a small shared wave in parallel; it does not spend every strategy
+    // on every row.
     const programs: SearchProgram<ScopeRow, typeof ctx>[] = [
       {
-        id: 'seed',
-        hypothesis: 'The most likely mechanism can discover useful candidates.',
-        diversityFeatures: [
-          'role:candidate-generator',
-          'replace-with-source-universe',
-          'replace-with-input-pivot',
-        ],
+        id: 'structured-source',
+        hypothesis: 'A structured source directly covers this scope.',
+        diversityFeatures: ['structured-index', 'pivot:scope'],
         maximumCallsPerAttempt: 1,
         billingUnit: 'unknown',
-        // Add maximumDeeplineCreditsPerAttempt from tools describe/quote when
-        // this route cannot return an attempt-level billing receipt. Also set
-        // billingUnit to the described call/result unit; leave it unknown when absent.
-        async run({ row, gaps }) {
+        async run({ row }) {
+          // 3. Copy this call and replace exactly: tool, input, getter, source,
+          // lineage. `tools describe <tool>` is the authority for input and
+          // getter names. Never guess a raw response path. This draft throws
+          // before a paid run until all five marked values are real.
           void row;
-          void gaps;
-          // CATALOG_REQUIRED: replace this return with one literal call:
+          throw new Error(
+            'CATALOG_REQUIRED: replace the structured-source strategy block with one described tool call.',
+          );
           // const response = await ctx.tools.execute({
-          //   id: 'described-tool-id', tool: 'described-tool-id',
-          //   input: { described_input: row.scope },
-          //   description: 'Resolve this scope with the seed mechanism.',
+          //   id: 'stable_step_id', tool: 'described_tool_id',
+          //   input: { described_input: row.scope }, description: 'Describe the lookup.',
           // });
-          // const raw = JSON.stringify(response.toolResponse.raw);
-          // const value = response.extractedValues.described_value.get();
-          // Candidate identity is the normalized discovered value, never the
-          // input row key: email, domain, profile URL, source URL, stable ID.
-          // const canonicalEntityKey = String(value);
-          // const claim = bindLiteralClaim({
-          //   value, source: 'described-tool-id', independenceClass: 'terminal-corpus',
-          //   excerpt: String(value), rawSourceText: raw,
-          // });
-          // return { totalCalls: 1, results: claim ? [{
-          //   resultKey: canonicalEntityKey, canonicalEntityKey,
-          //   claims: { entity_identity: claim },
-          // }] : [] };
-          void bindLiteralClaim;
-          return { totalCalls: 0, deeplineCredits: 0, results: [] };
+          // const value = response.extractedValues.described_getter?.get() ?? null;
+          // if (!value) return attempt({ totalCalls: 1 }); // typed source miss
+          // const entity = String(value).trim();
+          // const claim = boundClaim({ value: entity, source: 'described_tool_id',
+          //   independenceClass: 'structured-corpus', excerpt: entity,
+          //   rawSourceText: JSON.stringify(response.toolResponse.raw ?? null) });
+          // return attempt({ totalCalls: 1, results: [found({
+          //   canonicalEntityKey: entity, claims: { entity_identity: claim },
+          // })] });
         },
       },
       {
-        id: 'evidence-closer',
-        hypothesis:
-          'An independent mechanism can verify unresolved claims on discovered candidates.',
-        diversityFeatures: [
-          'role:acceptance-test',
-          'replace-with-independent-lineage',
-          'pivot:canonical-entity',
-        ],
-        maximumCallsPerAttempt: 2,
+        id: 'public-source',
+        hypothesis: 'A distinct public source directly covers this scope.',
+        diversityFeatures: ['first-party-web', 'pivot:scope'],
+        maximumCallsPerAttempt: 1,
         billingUnit: 'unknown',
-        // Add maximumDeeplineCreditsPerAttempt from tools describe/quote when
-        // this route cannot return an attempt-level billing receipt. Also set
-        // billingUnit to the described call/result unit; leave it unknown when absent.
-        async run({ candidates, gaps }) {
-          if (!candidates.length || !gaps.length)
-            return { totalCalls: 0, deeplineCredits: 0, results: [] };
-          const candidatesToTest = candidates.slice(0, 2);
-          const results: SearchProgramResult[] = [];
-          for (const candidate of candidatesToTest) {
-            // CATALOG_REQUIRED: call the acceptance mechanism, then push this
-            // same candidate identity with either an accepted claim or a typed
-            // verifier rejection. Different finder candidates are alternatives,
-            // not hard failures merely because they disagree with each other.
-            void candidate;
-          }
-          // CATALOG_REQUIRED: inspect candidatesToTest in order. For every
-          // candidate called, emit the same canonicalEntityKey with either an
-          // accepted claim or hardCheckFailures such as rejected:catch_all.
-          // Never test only candidates[0] when another bounded sibling exists.
-          // Set deeplineCredits only from this attempt's receipt; otherwise omit it.
-          // Use this extractor only when the contract contains a person claim.
-          // A model may pass grounded candidates through applyRejectOnlyDecision;
-          // retained IDs can remove candidates but cannot create facts/evidence.
-          void extractGroundedPersonCandidates;
-          void applyRejectOnlyDecision;
-          return { totalCalls: 0, results };
+        async run({ row }) {
+          // Copy/edit this whole block for another source geometry. A different
+          // vendor with the same terminal corpus is a coverage challenger, not
+          // independent claim consensus.
+          void row;
+          throw new Error(
+            'CATALOG_REQUIRED: replace the public-source strategy block with one described tool call.',
+          );
+          // Use the same `attempt → found → boundClaim` shape as above, with a
+          // distinct source corpus, join, or proof path.
         },
       },
     ];
@@ -131,42 +77,23 @@ export default definePlay(
       definition: {
         contract: {
           rowKey: 'scope',
-          targetRows: 1,
+          // This is the desired coverage target. A weaker acceptable floor is
+          // a cohort check, never a reason to stop recoverable rows early.
+          targetRows: rows.length,
           claims: [
             {
               id: 'entity_identity',
               question: 'What exact entity satisfies this scope?',
               allowAuthoritativeSingle: true,
-              // For a time-bounded claim, also set both fields:
-              // maximumEvidenceAgeDays: 30,
-              // referenceDate: 'YYYY-MM-DD',
-            },
-            {
-              id: 'optional_supporting_signal',
-              question:
-                'What optional evidence would make this row more useful?',
-              required: false,
-            },
-          ],
-          cohortChecks: [
-            {
-              id: 'identity_coverage',
-              minimumRatio: 1,
-              // Allowed: pilot_units, eligible_results, complete_results.
-              // targetRows is a stopping count, never a denominator.
-              denominator: 'complete_results',
-              verifiedClaimId: 'entity_identity',
             },
           ],
           minimumPilotCompleteRows: 1,
         },
         programs,
-        // maximumDeeplineCredits: replace-with-a-whole-experiment-credit-cap,
+        // maximumDeeplineCredits: <whole-experiment cap>,
       },
     });
 
-    // Consume accepted values through the public accessor. Do not inspect the
-    // copied helper or trust raw provider fields at the output boundary.
     const verifiedRows = experiment.finalResults
       .filter((result) => result.complete)
       .map((result) => ({
@@ -180,8 +107,5 @@ export default definePlay(
 
     return { experiment, verifiedRows };
   },
-  {
-    description:
-      'Dataset-conditioned search experiment. Replace the contract and literal program bodies.',
-  },
+  { description: 'Explore and exploit a verified GTM search route' },
 );
