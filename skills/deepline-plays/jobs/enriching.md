@@ -40,7 +40,16 @@ deepline runs export <run-id> --out leads_with_emails.csv
 
 The batch phone play defaults to headers `FIRST_NAME`, `LAST_NAME`, `COMPANY_DOMAIN`, `CONTACT_EMAIL`, `LINKEDIN_URL`; the job-change play adds `COMPANY_NAME`, `TITLE`. Job-change output appends `job_change`, `job_changed`, `confidence_tier`, `new_company`, `new_title` — treat `HIGH` as detector-and-verification agreement, `MEDIUM` as a single-source signal, `LOW` as no reliable change. Pilot job-change on two data rows (`head -3 input.csv > pilot.csv`) because its multiple provider branches can hide a missing-column or verification-path issue on a single row.
 
-**Run shapes.** For a CSV, run the batch prebuilt directly. For one row, use the scalar prebuilt. For a custom CSV play, compose the scalar prebuilt inside a row `ctx.dataset` with `ctx.runPlay(...)` when no batch prebuilt fits — the prebuilt carries the current provider order, fallbacks, normalization, and no-result handling. Use a stable step key inside the dataset; row identity comes from `ctx.dataset`, so do not generate per-row keys. The child play returns an object (`{ email, email_source, ... }`) — **extract the scalar** so the column exports cleanly:
+**Run shapes.** A proven scalar or batch prebuilt is the incumbent, not the
+whole experiment. For live coverage work, compare it with one heterogeneous
+challenger on the smallest shared row set, then exploit the observed winner and
+open dormant routes only for unresolved rows. Compose a scalar prebuilt inside
+an incumbent `SearchProgram` with `ctx.runPlay(...)`; the prebuilt carries the
+current provider order, fallbacks, normalization, and no-result handling. Use a
+stable step key inside the dataset; row identity comes from `ctx.dataset`, so do
+not generate per-row keys. The child play returns an object
+(`{ email, email_source, ... }`) — **extract the scalar** so the column exports
+cleanly:
 
 Before choosing a known or prebuilt route, describe it and record its Deepline
 credit quote or catalog ceiling beside the row-level stop rule. If neither is

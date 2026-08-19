@@ -10,7 +10,125 @@ Route by the fact the user actually wants, not by tool name. "Fintechs hiring fr
 
 ## Finding companies
 
-You do not have rows yet. Search a listed play for the workflow first; if none fits, use `deepline tools search` for the provider contract, then put the pull into a scratchpad play before scaling. The generic structured-company and company-to-contact plays are hidden until their evals pass, so company discovery and company-scoped persona lookup run through direct provider tools for now.
+You do not have rows yet. Search a listed Play for the workflow first; if none
+fits, use `deepline tools search` and `tools describe` to bind the provider
+contract into the generated experiment Play. A direct provider call is one
+sentinel probe for a getter or payload, never the row-collection workflow.
+
+**Execution gate for company → contact asks:** unless the user supplied the
+company rows, stage one is a live provider-backed company-discovery Play. Public
+research may seed filters or strategy cards, but not a hand-picked final cohort.
+Stage two receives the accepted company dataset and runs its own contact-route
+comparison. Each unknown stage gets two active alternatives and, when the
+catalog offers one, a dormant recovery route. A malformed getter pauses that
+route: inspect and repair it or replace it before treating the row as a miss.
+
+When five or more routes are viable, bind at least two additional, materially
+different dormant company or contact routes. Each needs an actual described
+getter or literal source artifact. A call followed by an unconditional empty
+`results` return is not a route test; it hides a mapping gap and falsely
+shrinks the recovery pool.
+
+The durable artifact has two experiment receipts, not a serial provider loop:
+
+1. A company-discovery experiment compares the same bounded market partition
+   across two routes, keeps a third route dormant, and emits an accepted company
+   dataset with the qualification claims.
+2. A company-scoped people experiment receives that dataset, compares two
+   contact mechanisms on the same first companies, then applies the observed
+   winner to later companies and opens its dormant route only for missing or
+   rejected contacts.
+
+For this two-stage shape, vary the information geometry, not just the vendor:
+
+- company candidate index: a structured company/search/registry route that can
+  enumerate a bounded population;
+- company qualifier: an official site, filing, registry, or cited-web route
+  that proves the requested business role and revenue condition;
+- person candidate index: a current-role/profile route keyed by accepted domain;
+- role qualifier: a first-party leadership page or cited-web/profile route that
+  proves the exact current responsibility and, when requested, profile URL.
+
+Two indexes can compete on coverage and price, but they are a fragile pair when
+they share a taxonomy mistake or a missing person getter. Register the proof
+route as a separate end-to-end program or a dormant recovery program. On an
+index miss, move to the independent proof route before declaring the row empty.
+
+For an open-world company ask, stage-one `rows` are search partitions, not
+company names. Use bounded scopes such as a registry page, a geography × NAICS
+slice, a directory page, or a query shard. The discovery programs emit company
+domains and qualification claims. A remembered list of famous companies is not
+a discovery cohort, even if every name later verifies.
+
+Keep the handoff boring code. Do not make contact calls while the company route
+is still being debugged. First run the company experiment to a completed
+`companyExperiment`, then derive the next stage's rows from accepted results:
+
+For an open-world request, write those partitions in `companyRows` and bind two
+or more company programs to them. A provider index and a first-party/registry
+qualifier are useful routes when each can produce the company-stage contract.
+Annual reports and known-company pages can attach proof after discovery; they
+do not substitute for the company experiment. Use the generated
+`--company-to-person` runner command for the first output so it verifies both
+experiments and the accepted-company handoff before exporting.
+
+```ts
+const contactRows = companyExperiment.finalResults
+  .filter((result) => result.complete)
+  .map((result) => ({
+    domain: verifiedSearchClaimValue<string>(result, 'company_domain'),
+    company_name: verifiedSearchClaimValue<string>(result, 'company_name'),
+  }));
+
+const contactExperiment = await runSearchExperiment({
+  ctx,
+  rows: contactRows,
+  definition: { contract: contactContract, programs: contactPrograms,
+    explorationProgramCount: 2 },
+});
+```
+
+The only stage seam is the accepted company row. Define company claims
+(`company_name`, `company_domain`, qualification evidence) and contact claims
+(name, current responsibility, profile/evidence) separately. If the company
+experiment produces too few accepted rows, repair or supplement it before
+authoring the contact calls. This makes provider payload debugging local: one
+sentinel per route, one stage at a time.
+
+Do not retain a `harvestedCompanies`, `rawCandidates`, or similar side list to
+feed contacts. Those are retrieval candidates, not accepted companies. The
+only legitimate contact input is the mapped `companyExperiment.finalResults`
+above. If that leaves too few rows, the company experiment has exposed the
+actual gap: add or repair a qualification route, then rerun that stage.
+
+Do not collapse those columns into one JSON `company_profile` / `contact_profile`
+claim. The experiments need separate required claims for revenue, revenue
+evidence, contact name, exact title, current-company evidence, and LinkedIn
+when the user requested it. A person result passes only when its title or bound
+responsibility evidence names sales, commercial, revenue, growth, customer, or
+business development. A generic CEO is not a closest-role fallback.
+
+Make the business qualifier a claim, not a loose provider filter. If the ask is
+for operators, owners, manufacturers, care providers, or another semantic
+subclass, bind evidence that the company performs that role and encode obvious
+exclusions. A matching industry label or keyword alone does not prove it: it
+will admit suppliers, contractors, agencies, directories, and similar near
+misses. The same rule applies to revenue, geography, scale, and recency.
+
+Direct provider probes are allowed to learn a payload or getter. They do not
+replace either experiment receipt. For a request for ten contacts, aim to
+produce more than ten qualified companies upstream so a real contact miss does
+not force an unsupported substitute; nevertheless, preserve and recover every
+accepted company row until the requested coverage is met or the absence ledger
+says it cannot be.
+The people stage follows the same rule. It starts with competing contact routes
+on shared accepted companies, then applies an observed route to later companies.
+If a people index stalls, misses, or exposes an adapter seam, keep that company
+on the frontier and spend the next distinct contact route on it. A single
+provider batch over every accepted company is a collection pass, not a
+coverage-learning experiment.
+
+When a database comes up thin, change where the fact lives:
 
 | You need                                                      | Route                                                         |
 | ------------------------------------------------------------- | ------------------------------------------------------------- |
@@ -27,7 +145,15 @@ deepline plays check ./company-discovery.play.ts
 deepline plays run ./company-discovery.play.ts --input '{"target_count":25}' --watch
 ```
 
-Tools are the live provider catalog; plays are the workflow surface. Use tools to discover the missing ingredient, then put the ingredient in the play — the first provider call that contributes candidates should move into a play before you scale it, so the run has a replayable source of truth and the next run reuses completed steps instead of reparsing terminal JSON. When `tools execute --json` returns a `starter_script`, use it as the first draft. Keep durable stage names stable: candidate pull, evidence attachment, contact lookup, email waterfall, export.
+Tools are the live provider catalog; plays are the workflow surface. One direct
+call may probe a route's real input and output shape. The second paid call for
+the JTBD belongs inside the experiment Play: make the strongest known route the
+incumbent, add a heterogeneous challenger, and keep the rest dormant. Otherwise
+the terminal becomes a manual waterfall that cannot reuse receipts, learn an
+order, or reopen failed rows. When `tools execute --json` returns a
+`starter_script`, use it as the program body draft. Keep durable stage names
+stable: candidate pull, evidence attachment, contact lookup, email waterfall,
+export.
 
 **Durable discovery rules** (the difference between "built the list from real data" and "fell back to training-data names after tool friction"):
 
@@ -61,6 +187,14 @@ the easiest titles or treat the exact-title route as the market. Spelling and
 word-order equivalents may stay strict; adjacent functions, lower seniority,
 former holders, and reporting-line proxies are relaxations and need approval.
 
+“Closest role” means the closest **supported responsibility**, not the highest
+person in the org chart. A CEO is not a sales, commercial, clinical, security,
+or product leader merely because the CEO ultimately owns the company. Accept a
+fallback only when current evidence names the requested responsibility. When a
+user asks for N qualified contacts, over-provision companies and keep searching
+until N people pass that semantic contract; do not fill the count with generic
+executives.
+
 ```bash
 # People across companies
 deepline tools search "people search" --json
@@ -79,6 +213,24 @@ mechanical — use a search tool
 (`deepline tools search search --json`), not `deeplineagent`. Engagers on a
 post output a list of people — hand off to the qualification section
 (`deeplineagent` with a tier `jsonSchema`).
+
+Company discovery and contact discovery are different stages, not competing
+routes. Calling one company provider and one people provider creates a pipeline,
+not consensus. Compare alternatives that answer the same stage contract, then
+compose the winning company route with the winning contact route and challenge
+only the gaps.
+
+Within either stage, two title filters against one people database are one
+candidate program, not two independent strategies. They may improve its recall,
+but the program must return one typed outcome so the experiment can compare it
+with a genuinely different route. Let `runSearchExperiment` fan program calls
+out in parallel; never place the competing provider calls in `Promise.all` over
+every company. That spends the fallback wave before it knows which company is a
+gap.
+
+If the two query paths have materially different observed miss behavior, they
+may instead be separate coverage/economic candidates. Mark their shared source
+lineage so the contract does not mistake them for independent confirmation.
 
 ## When databases come up thin: keep searching, change the route
 

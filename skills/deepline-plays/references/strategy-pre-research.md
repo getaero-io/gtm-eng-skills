@@ -1,16 +1,31 @@
 # Pre-research → strategy cards
 
-Use this before a costly GTM Play when the route is uncertain. It is an authoring step, not a runtime primitive and not a new DSL.
+Use this before a costly GTM Play when source discovery, rather than execution,
+is the uncertainty. It is an authoring step, not a runtime primitive and not a
+new DSL. It never delays the first executable comparison: if a card does not
+produce a literal artifact/query/path quickly, leave it dormant and run the
+strongest executable cards.
 
 The point is to turn an ambiguous request into several independently plausible ways to produce the same **required, verifiable row**. A card is a short hypothesis. A candidate Play is ordinary TypeScript that implements one card.
 
 ## The fast path
 
-1. State the required row, its stable identity key, and the evidence needed to accept it.
-2. Do a short public-source fanout. Search for exact registries, directories, APIs, communities, company sites, and private/customer datasets relevant to the job. Record the artifact or URL actually found, not a source family recalled from memory.
-3. Write 5–10 cards. Make the first set structurally different, not merely different providers with the same query.
-4. Use the live catalog to map each card to available tools. Describe only the tools selected for a tiny pilot.
-5. Implement the best 3–5 cards as normal candidate Plays. Pilot them on the same small rows, rank complete evidenced outputs per Deepline credit, then run the winners on the batch. Keep non-winners for gaps and retries.
+1. State the required row, its stable identity key, and the evidence needed to
+   accept it.
+2. Do a short public-source fanout. Search for exact registries, directories,
+   APIs, communities, company sites, and private/customer datasets relevant to
+   the job. Record the artifact or URL actually found, not a source family
+   recalled from memory.
+3. Write 2–5 executable cards first; expand to 5–10 only when a costly or
+   low-coverage job needs more source geometry. Make them structurally
+   different, not merely different providers with the same query.
+4. Map each card to its cheapest viable executor: a direct public API/page via
+   `ctx.fetch`, a prebuilt Play, a described tool, a private connector, or pure
+   local parsing of a fetched artifact. Describe only the provider tools chosen
+   for a tiny pilot.
+5. Implement the first two cards as ordinary strategy blocks. Pilot them on the
+   same small rows, rank complete evidenced outputs per Deepline credit, then
+   add the strongest dormant cards only where a gap remains.
 
 If the route is already obvious, use two cards and a one-row pilot. Do not manufacture research ceremony.
 
@@ -25,7 +40,8 @@ Claim: <the same required row this lane can complete>
 Corpus: <exact public/private source or source class discovered>
 Join: <domain, registry id, company name + geography, LinkedIn URL, CRM id, ...>
 Proof: <URL, bound excerpt, record id, or provider field that makes the result acceptable>
-Route: <candidate tools after catalog lookup>; probe: <one query / one row>
+Executor: <public API/page, local parser, Play, provider tool, private connector>
+Route: <literal call/query/path>; probe: <one query / one row>
 Risk: <likely miss, ambiguity, stale data, or adapter failure>
 ```
 
@@ -55,16 +71,34 @@ Useful lanes include:
 - a private CRM, warehouse, product, or workflow join;
 - a signal route such as hiring, funding, technology, reviews, or community activity.
 
-Do not count these as separate lanes: the same corpus queried with synonymous wording, several vendors returning the same unverified field, or a downstream person lookup versus its upstream company discovery. Sequential stages are complementary; candidate lanes must be alternatives for the same stage.
+The provider catalog does not constrain this list. For example, a government
+registry can be queried through its documented API, a filing can be fetched and
+locally parsed, and a known member directory can be traversed from its index.
+Use provider tools when they reduce work or add coverage, not because the
+catalog made a better source invisible.
+
+Do not count these as separate lanes: the same corpus queried with synonymous
+wording, several vendors returning the same unverified field, or a downstream
+person lookup versus its upstream company discovery. Sequential stages are
+complementary; candidate lanes must be alternatives for the same stage.
 
 ## Catalog and cost discipline
 
-Public/cheap proof determines what should be attempted; the catalog determines how it can be materialized. After the fanout:
+Public/private proof determines what should be attempted; the catalog is only
+one materialization option. After the fanout:
 
-1. Search the live catalog by capability, not by a favored vendor.
-2. Describe the few tool actions a card will pilot. Confirm required inputs, getters, evidence fields, and Deepline-facing billing.
-3. Probe each card on identical rows. Save run receipts and record `complete`, `source_miss`, or `adapter_failure`.
-4. Rank by accepted evidenced rows, coverage of unresolved gaps, latency, and Deepline credits. A no-result is information: it must be classified and should trigger a distinct lane, query, or join key before spending more on the same failed route.
+1. Choose an executor per card: `ctx.fetch` for a documented public surface,
+   local parsing for a returned artifact, a private connector for user-owned
+   data, or a live catalog route when it is the best match.
+2. Search the live catalog by capability, not by a favored vendor, for the
+   cards that need it. Describe the few tool actions a card will pilot. Confirm required inputs,
+   getters, evidence fields, and Deepline-facing billing.
+3. Probe each card on identical rows. Save run receipts and record `complete`,
+   `source_miss`, or `adapter_failure`.
+4. Rank by accepted evidenced rows, coverage of unresolved gaps, latency, and
+   Deepline credits. A no-result is information: it must be classified and
+   should trigger a distinct lane, query, or join key before spending more on
+   the same failed route.
 
 Never quote or optimize around provider cost. Show only Deepline credits. Full-scope paid execution still needs its normal approval gate.
 
@@ -78,7 +112,35 @@ Subagents may research and write cards in parallel, then author one normal candi
 - a hard instruction to return a card plus an ordinary TypeScript Play, not a new abstraction;
 - a small pilot cap and the output schema needed by the parent experiment.
 
-The parent agent deduplicates cards, rejects false diversity, picks the 3–5 strongest independent candidates, and wires them into the deterministic pilot/rank/exploit helper. It does not ask a runtime agent to invent strategy while a customer batch is running.
+The parent agent deduplicates cards, rejects false diversity, picks the first
+two strongest independent candidates, and wires them into the deterministic
+pilot/rank/exploit helper. It does not ask a runtime agent to invent strategy
+while a customer batch is running.
+
+## Optional reusable scalar strategy Play
+
+Keep the first experiment inline. When a strategy has earned reuse, publish it
+as a scalar per-unit Play and adapt it literally in the parent. The child returns
+the existing attempt shape; it does not own a CSV or dataset.
+
+```ts
+import type { SearchProgramAttempt } from './shared/search-experiment';
+
+async run({ row, unitKey, phase, gaps, candidates }) {
+  return ctx.runPlay<SearchProgramAttempt>(
+    'registry_strategy',
+    'mining-registry-strategy',
+    { row, unitKey, phase, gaps, candidates },
+    { description: 'Probe the registry strategy for this unit.' },
+  );
+}
+```
+
+The child returns `{ totalCalls, deeplineCredits?, results }`; each result is
+the same `{ resultKey, canonicalEntityKey, claims, hardCheckFailures? }` used
+by the inline template. The child must already be published, the play name must
+be literal, and the parent stays responsible for the final dataset and the one
+shared experiment ledger.
 
 ## Definition of done before scaling
 

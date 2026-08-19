@@ -1,10 +1,10 @@
 /**
  * Dataset-conditioned explore/exploit orchestration for agent-authored Plays.
  *
- * The agent supplies claim contracts and a few literal search programs. This
- * helper chooses diverse rows, runs one fair comparison wave, closes only the
- * remaining evidence gaps, confirms the learned order on untouched rows, and
- * then exploits it. Provider choice and semantic acceptance remain authored;
+ * The agent supplies claim contracts and a broad pool of literal programs.
+ * This helper chooses a bounded heterogeneous wave, closes only the remaining
+ * evidence gaps, confirms the learned order on untouched rows, and then
+ * exploits it. Provider choice and semantic acceptance remain authored;
  * scheduling, accounting, and promotion are deterministic.
  */
 
@@ -69,6 +69,12 @@ export type SearchProgram<Row extends JsonRow, Context> = {
   id: string;
   hypothesis: string;
   /**
+   * The best route known before this dataset-conditioned experiment. It is
+   * always included in the first shared wave, then must earn promotion on the
+   * same evidence and cost contract as every challenger.
+   */
+  incumbent?: boolean;
+  /**
    * Durable information-shape tags, not provider names. Examples:
    * structured-index, pivot:name+domain, first-party-web, role:verifier.
    * The helper covers as many distinct tags as possible in each bounded wave.
@@ -93,7 +99,8 @@ export type SearchCohortCheck = {
 
 export type SearchExperimentContract<Row extends JsonRow> = {
   rowKey: keyof Row & string;
-  targetRows: number;
+  /** Explicit stopping count. Omit to maximize coverage across every supplied row. */
+  targetRows?: number;
   claims: readonly ResearchClaim<Row>[];
   cohortChecks?: readonly SearchCohortCheck[];
   minimumCompleteResultsPerUnit?: number;
@@ -195,6 +202,27 @@ export type SearchProgramScore = {
   evidenceLineages: string[];
 };
 
+/**
+ * Stable, export-friendly route metrics for the scorecard dataset a Play
+ * returns beside final rows. This is diagnostic evidence for an eval, never a
+ * replacement for the hard claim and cohort gates used by selection.
+ */
+export function routeScorecardRows(
+  scorecard: readonly SearchProgramScore[],
+): Array<Record<string, string | number | null>> {
+  return scorecard.map((score) => ({
+    program_id: score.programId,
+    complete_results: score.completeResults,
+    verified_required_claims: score.verifiedRequiredClaims,
+    source_misses: score.sourceMisses,
+    adapter_failures: score.adapterFailures,
+    total_calls: score.totalCalls,
+    deepline_credits: score.deeplineCredits,
+    cost_basis: score.costBasis,
+    evidence_lineages: score.evidenceLineages.join(' | '),
+  }));
+}
+
 export type SearchCostBasis = 'observed' | 'catalog_upper_bound' | 'unknown';
 
 export type SearchAdaptationTrace = {
@@ -250,11 +278,16 @@ export type SearchExperimentResult<Row extends JsonRow> = {
   stoppingReason:
     | 'target_reached'
     | 'programs_exhausted'
+    | 'adapter_failures'
     | 'budget_exhausted'
     | 'selection_failed';
+  /** Resolved stopping count: the authored target or every supplied row. */
+  targetRows: number;
   sketch: DatasetSketch;
   registeredProgramCount: number;
   exploredProgramIds: string[];
+  /** Programs whose adapter failed on a unit that remains unresolved. */
+  failedProgramIds: string[];
   remainingProgramIds: string[];
   unresolvedUnitKeys: string[];
   selectedProgramIds: string[];
@@ -359,6 +392,14 @@ export function selectHeterogeneousPrograms<
     ),
   );
   const count = Math.max(0, Math.min(input.count, remaining.length));
+  const incumbentIndex = remaining.findIndex((program) => program.incumbent);
+  if (count > 0 && incumbentIndex >= 0) {
+    const [incumbent] = remaining.splice(incumbentIndex, 1);
+    selected.push(incumbent!);
+    programDiversityFeatures(incumbent!).forEach((feature) =>
+      covered.add(feature),
+    );
+  }
   while (selected.length < count) {
     remaining.sort((left, right) => {
       const leftNovel = programDiversityFeatures(left).filter(
@@ -733,7 +774,10 @@ function validateDefinition<Row extends JsonRow, Context>(
   if (!rows.length)
     throw new Error('Search experiment needs at least one row.');
   const { contract, programs } = definition;
-  if (!Number.isInteger(contract.targetRows) || contract.targetRows < 1) {
+  if (
+    contract.targetRows !== undefined &&
+    (!Number.isInteger(contract.targetRows) || contract.targetRows < 1)
+  ) {
     throw new Error('targetRows must be a positive integer.');
   }
   if (
@@ -770,6 +814,9 @@ function validateDefinition<Row extends JsonRow, Context>(
     unique(programIds).length !== programIds.length
   ) {
     throw new Error('Search program IDs must be nonempty and unique.');
+  }
+  if (programs.filter((program) => program.incumbent).length > 1) {
+    throw new Error('Search experiment accepts at most one incumbent program.');
   }
   for (const program of programs) {
     if (!program.hypothesis.trim())
@@ -2086,7 +2133,27 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
   const cohortChecks = contract.cohortChecks ?? [];
   const minimumCompleteResultsPerUnit =
     contract.minimumCompleteResultsPerUnit ?? 1;
-  const targetRows = contract.targetRows;
+  const targetRows = contract.targetRows ?? input.rows.length;
+  const targetsEveryUnit = contract.targetRows === undefined;
+  const completedTargetCount = (
+    results: readonly SearchLedgerResult<Row>[],
+  ): number => {
+    if (!targetsEveryUnit)
+      return results.filter((result) => result.complete).length;
+    const completeCountsByUnit = new Map<string, number>();
+    for (const result of results) {
+      if (!result.complete) continue;
+      completeCountsByUnit.set(
+        result.unitKey,
+        (completeCountsByUnit.get(result.unitKey) ?? 0) + 1,
+      );
+    }
+    return unique(allRowsUnitKeys).filter(
+      (unitKey) =>
+        (completeCountsByUnit.get(unitKey) ?? 0) >=
+        minimumCompleteResultsPerUnit,
+    ).length;
+  };
   const evaluateCohortsForUnitSet = (
     results: readonly SearchLedgerResult<Row>[],
     unitKeys: readonly string[],
@@ -2189,7 +2256,7 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
     phase: SearchExperimentPhase,
   ): Promise<Set<string>> => {
     const before = materialized();
-    const completeCount = before.filter((result) => result.complete).length;
+    const completedTargets = completedTargetCount(before);
     const pairs = programs.flatMap((program) =>
       rows.map((row) => ({ program, row })),
     );
@@ -2234,7 +2301,7 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
           phase,
           gaps: gapsForUnit(unitKey, before, contract.claims),
           candidates,
-          remainingTargetRows: Math.max(0, targetRows - completeCount),
+          remainingTargetRows: Math.max(0, targetRows - completedTargets),
         });
       }),
     );
@@ -2286,10 +2353,10 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
       });
       if (!needed.length) continue;
 
-      const completeCount = results.filter((result) => result.complete).length;
+      const completedTargets = completedTargetCount(results);
       if (
         phase === 'exploit' &&
-        completeCount >= targetRows &&
+        completedTargets >= targetRows &&
         cohort.every((check) => check.pass)
       )
         return;
@@ -2297,7 +2364,7 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
         phase === 'exploit'
           ? Math.min(
               input.definition.exploitBatchSize ?? DEFAULT_EXPLOIT_BATCH_SIZE,
-              Math.max(1, targetRows - completeCount),
+              Math.max(1, targetRows - completedTargets),
               needed.length,
             )
           : needed.length;
@@ -2434,12 +2501,12 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
 
     while (true) {
       const results = materialized();
-      const completeCount = results.filter((result) => result.complete).length;
+      const completedTargets = completedTargetCount(results);
       const cohort = evaluateCohortsForUnitSet(results, allRowsUnitKeys);
       const gatePassed = qualityGatePassed(results);
       if (
         gatePassed &&
-        completeCount >= targetRows &&
+        completedTargets >= targetRows &&
         cohort.every((check) => check.pass)
       )
         break;
@@ -2470,7 +2537,7 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
       );
       const batchSize = Math.min(
         input.definition.exploitBatchSize ?? DEFAULT_EXPLOIT_BATCH_SIZE,
-        Math.max(1, targetRows - completeCount),
+        Math.max(1, targetRows - completedTargets),
         needed.length,
       );
       const batchRows = needed.slice(0, batchSize);
@@ -2702,6 +2769,14 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
     finalResults,
   ).map(unitKeyFor);
   const exploredProgramIds = unique(records.map((record) => record.programId));
+  const unresolvedUnitKeySet = new Set(unresolvedUnitKeys);
+  const failedProgramIds = unique(
+    records
+      .filter(
+        (record) => record.error && unresolvedUnitKeySet.has(record.unitKey),
+      )
+      .map((record) => record.programId),
+  );
   const exploredProgramIdSet = new Set(exploredProgramIds);
   const remainingProgramIds = input.definition.programs
     .filter((program) => !exploredProgramIdSet.has(program.id))
@@ -2709,7 +2784,7 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
   const targetReached =
     pilotPassed &&
     holdoutPassed &&
-    finalResults.filter((result) => result.complete).length >= targetRows &&
+    completedTargetCount(finalResults) >= targetRows &&
     finalCohortChecks.every((check) => check.pass);
   const status = targetReached ? 'promoted' : 'not_promoted';
   const stoppingReason: SearchExperimentResult<Row>['stoppingReason'] =
@@ -2717,9 +2792,11 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
       ? 'target_reached'
       : comparisonBudgetBlocked || budgetBlocked
         ? 'budget_exhausted'
-        : selectionPassed
-          ? 'programs_exhausted'
-          : 'selection_failed';
+        : failedProgramIds.length
+          ? 'adapter_failures'
+          : selectionPassed
+            ? 'programs_exhausted'
+            : 'selection_failed';
   const totalCalls = traces.reduce(
     (total, trace) => total + trace.totalCalls,
     0,
@@ -2748,9 +2825,11 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
   return {
     status,
     stoppingReason,
+    targetRows,
     sketch: split.sketch,
     registeredProgramCount: input.definition.programs.length,
     exploredProgramIds,
+    failedProgramIds,
     remainingProgramIds,
     unresolvedUnitKeys,
     selectedProgramIds: activePrograms.map((program) => program.id),
@@ -2806,7 +2885,9 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
         ? 'Stopped after the final accepted target and cohort checks passed.'
         : stoppingReason === 'budget_exhausted'
           ? `Stopped before the next bounded wave would exceed the ${input.definition.maximumDeeplineCredits} Deepline-credit ceiling.`
-          : `Stopped with ${unresolvedUnitKeys.length} unresolved unit(s) after bounded eligible programs were exhausted.`,
+          : stoppingReason === 'adapter_failures'
+            ? `Stopped with ${unresolvedUnitKeys.length} unresolved unit(s) and adapter failures in ${failedProgramIds.join(', ')}; these failures are not evidence of source absence.`
+            : `Stopped with ${unresolvedUnitKeys.length} unresolved unit(s) after bounded eligible programs were exhausted.`,
       `Observed ${provisional.costCoverageFrontier.length} non-dominated cost/coverage option(s) in the shared comparison wave.`,
       credits.total === null
         ? `Per-attempt Deepline credits were unobserved for ${credits.unobserved} attempt(s); run-level billing delta remains authoritative.`
