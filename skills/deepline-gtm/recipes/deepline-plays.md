@@ -14,7 +14,7 @@ Read budget: normal tasks should use this recipe plus at most one plays referenc
 | If the task is...                                                               | Use instead                                                                                             |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | A single existing prebuilt exactly solves the request                           | `deepline plays search` -> `deepline plays describe` -> direct `deepline plays run`                     |
-| Ordinary row enrichment, waterfall columns, CSV processing, or per-row research | `enriching-and-researching.md` and `deepline enrich`                                                    |
+| Ordinary row enrichment, waterfall columns, CSV processing, or per-row research | `enriching-and-researching.md` (prebuilt plays and their batch forms)                                                    |
 | Company/contact/TAM sourcing strategy                                           | `finding-companies-and-contacts.md` and matching GTM recipe                                             |
 | Persisted webhook/cron-style automation, orchestration, or fanout               | Stay in this recipe and author a custom play with explicit inputs, idempotency, and run/export behavior |
 | Exact SDK or HTTP syntax is the only question                                   | Load the generated reference named in Exact Syntax Escrow below                                         |
@@ -149,13 +149,23 @@ The most common cell: a tool call. Column resolvers are positional
 `result.status`, declared getters, or `result.toolResponse.raw`:
 
 ```ts
+/** @mermaid probe-accounts
+ * flowchart TD
+ * accounts[("Account rows")] --> loop
+ * subgraph loop["For each account"]
+ *   probe["Probe the domain"] --> flag["Flag success"]
+ * end
+ * loop --> out["Return the probed accounts"]
+ */
 import { definePlay } from 'deepline';
 
 export default definePlay(
   'probe-accounts',
   async (ctx, input: { rows: Array<{ domain: string }> }) => {
+    // @mermaid-node accounts type:"dataset" out:"accounts"
     const accounts = await ctx
       .dataset('accounts', input.rows)
+      // @mermaid-node probe out:"probe_status"
       .withColumn('probe_status', async (row, rowCtx) => {
         const result = await rowCtx.tools.execute({
           id: 'probe',
@@ -165,14 +175,52 @@ export default definePlay(
         });
         return result.status;
       })
+      // @mermaid-node flag out:"probed"
       .withColumn('probed', (row) => row.probe_status === 'completed')
       .run({ key: 'domain' });
 
+    // @mermaid-node out out:"$output"
     return { accounts };
   },
   { description: 'Probe each account domain and flag success.' },
 );
 ```
+
+### The `@mermaid` block is the play's UI
+
+That comment block above the imports is what the dashboard draws for this play
+— every box, edge, region, and label, in your words; nothing is auto-added. So
+when the user asks to change how a play looks on its canvas — rename a box,
+group steps into a loop, show a decision — you are being asked to edit this
+block. Edit it, run `deepline plays check`, republish. That's the whole flow.
+
+How to add one to a play, using the example above:
+
+1. **Draw the flow** in a `/** @mermaid <play-name> ... */` block above the
+   imports. Shapes say what things are: `id["a step"]`, `id{"a decision?"}`,
+   `id[("a dataset")]`, `id[["a child play"]]`. Wrap per-row work in a
+   `subgraph` connected to its dataset and it renders as the loop.
+2. **Bind each box to the statement that runs it** with `// @mermaid-node <id>
+   out:"<what it produces>"` directly above that statement — the assigned
+   const for a dataset, the column name for a `withColumn`, `out:"$output"`
+   once on the return. A bound box is alive in the dashboard: click it and it
+   answers with live status, run values, and per-row traces.
+3. **A box no single statement runs** (the route lives in another module, or
+   inside a loop) gets declared instead of bound: add it to a `class a,b
+   sketch` line. It draws dashed and its panel says it's a sketch — honest
+   scenery instead of looking misconfigured.
+4. **For a decision**, put `type:"decision"` on the diamond and `arm:"run"` on
+   the node its positive edge reaches; the sibling arm resolves itself. Each
+   dataset you run must be drawn, and each computed column either appears as a
+   loop member's `out:` or is declared away in `.run({ undrawnColumns:
+   [...] })`.
+5. **`deepline plays check` is your reviewer.** It names any box that points at
+   nothing and offers both exits (bind it, or declare it a sketch); it catches
+   a binding whose `out:` drifted from the statement; it rejects a diagram
+   that claims work the code doesn't do. Fix what it names and re-check.
+
+Rendering is account-gated beta — without access the block is an inert
+comment, so it's always safe to author.
 
 ### Provider fallthrough
 

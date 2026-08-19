@@ -5,17 +5,26 @@ description: 'Convert a Clay table configuration into local Deepline scripts. Ha
 
 # Clay → Deepline Migration
 
+> **Deprecated recipe.** It converts Clay tables to the deprecated `deepline
+> enrich` surface. Convert Clay tables to custom plays instead: one
+> `withColumn` per Clay column, per [deepline-plays.md](deepline-plays.md).
+> The action-mapping tables below remain useful for choosing the equivalent
+> Deepline tool per Clay action.
+
 ## Choosing your migration target
 
-| Signal in Clay table                                                    | Target                                                                 | Why                                             |
-| ----------------------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------- |
-| Batch rows, no triggers, one-time or manual re-runs                     | **Enrich migration** (this recipe)                                     | `deepline enrich` scripts, run locally          |
-| Webhook trigger, row routing (`route-row`), CRM writes, campaign pushes | **Custom play migration** → see [deepline-plays.md](deepline-plays.md) | Compose tools/plays with explicit orchestration |
-| Hybrid: batch enrichment + downstream push to CRM/campaign              | **Enrich migration first**, then a **custom play** for the push        | Split at the enrichment boundary                |
+Every migration targets a Deepline play. The shape differs by table:
 
-Most Clay tables are enrich migrations. This recipe covers that path end-to-end.
+| Signal in Clay table                                                    | Target play shape                                                      |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Batch rows, no triggers, one-time or manual re-runs                     | CSV-input play: one `.withColumn(...)` per Clay action (this recipe)   |
+| Webhook trigger, row routing (`route-row`), CRM writes, campaign pushes | Custom play with triggers/orchestration → [deepline-plays.md](deepline-plays.md) |
+| Hybrid: batch enrichment + downstream push to CRM/campaign              | CSV-input play first, then a second play for the push                  |
 
-For custom play migrations, **Extraction and Documentation still apply** — then follow [deepline-plays.md](deepline-plays.md) with the extracted config as the source artifact.
+Most Clay tables are batch tables. This recipe covers that path end-to-end;
+for trigger/routing tables, **Extraction and Documentation still apply** — then
+follow [deepline-plays.md](deepline-plays.md) with the extracted config as the
+source artifact.
 
 ---
 
@@ -109,11 +118,11 @@ Check actual cell values across 3+ records before counting AI passes:
 
 ---
 
-## §3 Phase 2: Pre-flight + Script Generation
+## §3 Phase 2: Pre-flight + Play Authoring
 
 ### Pre-flight Checklist
 
-Answer these **before writing scripts** based on what Phase 1 revealed. Only answer questions that apply.
+Answer these **before writing the play** based on what Phase 1 revealed. Only answer questions that apply.
 
 **Table type (check all that apply):**
 
@@ -143,8 +152,8 @@ project/
 ├── prompts/
 │   └── <name>.txt            # One file per AI column with source header
 ├── scripts/
-│   ├── fetch_<table>.sh      # Fetches Clay records → seed_<table>.csv
-│   └── enrich_<table>.sh     # Runs deepline enrich passes → output_<table>.csv
+│   └── fetch_<table>.sh      # Fetches Clay records → seed_<table>.csv
+└── <table>.play.ts           # The migrated table: one column per Clay action
 ```
 
 ### Cookie Pattern (mandatory)
@@ -179,77 +188,63 @@ clay_curl() {
 | Fetch records   | `POST /v3/tables/{TABLE_ID}/bulk-fetch-records`         | Body: `{"recordIds": [...], "includeExternalContentFieldIds": []}` |
 | Response format | `{"results": [{id, cells, ...}]}`                       | Key is `results`; record ID is `.id` (not `.recordId`)             |
 
-### Execution Ordering
+### Play Shape and Column Order
 
-`deepline enrich` compiles your `--with` specs into a single V2 play and runs them in one pass. Columns execute in the order you declare them, and each `--with` can read any earlier alias via `{{alias}}`. There is no separate execute step.
+The migrated table is a play file: the body reads the seed CSV with `ctx.csv(...)`, chains one `.withColumn(alias, ...)` per Clay action in dependency order, and finishes with `.run({ key })`. Author it per [deepline-plays.md](deepline-plays.md); columns execute in declaration order, and each column can read any earlier alias.
 
-Inspect the compiled play before spending credits:
+Validate before spending credits:
 
 ```bash
-deepline enrich --input seed.csv --output work.csv --name clay-<table> \
-  --with '{"alias":"fields","tool":"run_javascript","payload":{"code":"@$WORKDIR/flatten.js"}}' \
-  --with '{"alias":"job_function","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Classify: {{fields.title}}"}}' \
-  --dry-run
+deepline plays check <table>.play.ts
 ```
 
-`--dry-run` prints the generated `definePlay(...)` source without starting a run. The body reads your CSV with `ctx.csv(...)`, then chains one `.withColumn(alias, ...)` per `--with` and finishes with `.run({ key })`. Read that output to confirm ordering and interpolation before dropping `--dry-run`.
-
-Order the `--with` flags cheapest-first: `run_javascript` transforms before paid provider calls, so a local derivation is available to the columns that depend on it.
+`plays check` compiles the play and reports errors without starting a run. Order columns cheapest-first: `run_javascript` transforms before paid provider calls, so a local derivation is available to the columns that depend on it.
 
 ### Referencing Columns
 
-Reference columns by alias, never by index. `{{alias}}` resolves to a prior `--with` alias or a seed CSV header; there are no positional column arguments in the current CLI.
+Reference columns by alias, never by index. In a payload template, `{{alias}}` resolves to an earlier column or a seed CSV header.
 
 Interpolation walks the full path: `{{fields.title}}`, `{{fields.company.name}}`, and array indices like `{{li_serper.organic[0].link}}` all resolve. A path that does not exist renders empty rather than erroring, so check a sample row when a value comes back blank.
 
-### Waiting Strategy
-
-`deepline enrich` blocks until the run reaches a terminal state and writes the output CSV before returning - no polling needed. To inspect fill rates afterward, `deepline csv show --csv work.csv --format json --summary` returns `columnStats` at the **top level** of the JSON (alongside `total_rows`), not nested under `_metadata`.
-
-### Running A Subset Of Rows
-
-`--rows` takes a zero-based inclusive range; `--all` runs everything.
+### Running and Waiting
 
 ```bash
-deepline enrich --input seed.csv --output work.csv --name clay-<table> --with '...' --rows 0:3
-deepline enrich --input seed.csv --output work.csv --name clay-<table> --with '...' --all
+deepline plays run --file <table>.play.ts --input '{"csv": "seed.csv"}' --watch
+deepline runs export <run-id> --out output_<table>.csv
 ```
 
-To skip rows a cheaper pass already answered, use `run_if_js` on the expensive `--with` so it only fires where the value is missing:
+`--watch` blocks until the run reaches a terminal state. To inspect fill rates on the export, `deepline csv show --csv output_<table>.csv --format json --summary` returns `columnStats` at the **top level** of the JSON (alongside `total_rows`), not nested under `_metadata`.
+
+### Piloting A Subset Of Rows
+
+Pilot on a slice of the seed CSV before the full run:
 
 ```bash
---with '{"alias":"work_email_fallback","tool":"hunter_email_finder","payload":{"domain":"{{domain}}"},"run_if_js":"return !row.work_email"}'
+head -4 seed.csv > pilot.csv   # header + 3 rows
+deepline plays run --file <table>.play.ts --input '{"csv": "pilot.csv"}' --watch
 ```
 
-This replaces the old filter-to-a-separate-CSV-and-merge workaround. Reuse the same `--name` to let the durable cache skip rows that already succeeded.
+To skip rows a cheaper pass already answered, gate the expensive column with `runIf` so it only fires where the value is missing:
 
-### Architecture Choice: CLI vs Python SDK
+```ts
+runIf: (row) => !row.work_email,
+```
+
+This replaces the old filter-to-a-separate-CSV-and-merge workaround. Tool receipts are content-addressed on tool + input, so re-running the play does not re-bill results it already bought.
+
+### Architecture Choice: Play vs Python SDK
 
 For Claygent-heavy tables, use a **pure Python script** with `deepline tools execute exa_search` + `deeplineagent`. Enables parallel execution with `ThreadPoolExecutor`, full retry/confidence control.
 
-The `deepline enrich` CLI pattern still applies for non-AI passes and simple single-column `deeplineagent` enrichments.
-
-### Python Subprocess for JSON Payloads
-
-```bash
-WITH_ARG=$(python3 - <<'PYEOF'
-import json
-code = "const fn=(row.first_name||'').toLowerCase()..."
-print(json.dumps({'alias': 'col_name', 'tool': 'run_javascript', 'payload': {'code': code}}))
-PYEOF
-)
-deepline enrich --input seed.csv --output work.csv --name clay-js-transform --with "$WITH_ARG"
-```
-
-Never hand-build JSON with embedded JS in bash strings.
+The play pattern still applies for non-AI passes and simple single-column `deeplineagent` enrichments — and unlike shell-assembled JSON, the play is a real TypeScript file: JS transforms live in the file directly with no quoting or escaping problems.
 
 ### Common Failure Modes
 
 | Symptom                      | Cause                                          | Fix                                                    |
 | ----------------------------- | ------------------------------------------------ | --------------------------------------------------------- |
-| `{{col}}` empty in prompt    | Alias declared after the column that reads it  | Move the producing `--with` earlier in the flag order  |
+| `{{col}}` empty in prompt    | Alias declared after the column that reads it  | Move the producing column earlier in the play          |
 | Interpolation renders blank  | Path does not exist on that row (`{{a.b.c}}`)  | Check a sample row's actual shape; fix the path        |
-| Unexpected re-charge         | Changed `--name` between runs                  | Reuse the same `--name` so the durable cache applies   |
+| Unexpected re-charge         | Input value changed between runs               | Receipts key on tool + input; identical inputs reuse   |
 
 ---
 
@@ -354,7 +349,7 @@ Expected failure rate: ~15%.
 
 ## §6 Patterns and Antipatterns
 
-Clay-specific patterns. For general Deepline patterns (email plays, interpolation, deeplineagent, enrich flags), follow `enriching-and-researching.md` from the deepline-gtm.
+Clay-specific patterns. For general Deepline patterns (email plays, interpolation, deeplineagent, column shapes), follow `enriching-and-researching.md` from the deepline-gtm.
 
 ### Prompt Recovery
 
@@ -375,11 +370,11 @@ Use `name-and-domain-to-email-waterfall` as primary play. Accept `valid`, `valid
 
 ### Cookie Security
 
-Read `CLAY_COOKIE` only in the generated shell script. Single quotes belong in `.env.deepline`. Add `.env.deepline` and `output/` to `.gitignore`. Never place the cookie in an enrich payload.
+Read `CLAY_COOKIE` only in the generated shell script. Single quotes belong in `.env.deepline`. Add `.env.deepline` and `output/` to `.gitignore`. Never place the cookie in a play payload.
 
 ### run_javascript
 
-`run_javascript` does not expose fetch or process.env. Use it for deterministic row transforms only. Route HTTP through `generic_http_request`, or fetch Clay records in `scripts/fetch_<table>.sh` with `clay_curl`. Build `--with` payloads via a JSON-aware tool such as `jq` or a Python subprocess.
+`run_javascript` does not expose fetch or process.env. Use it for deterministic row transforms only. Route HTTP through `generic_http_request`, or fetch Clay records in `scripts/fetch_<table>.sh` with `clay_curl`. Column payloads live in the play file as real TypeScript, so no shell JSON assembly is needed.
 
 ### Clay API Calls
 
@@ -430,13 +425,11 @@ Use this mismatch process: check prompt parity → check model parity → check 
 ## §8 Critical Rules
 
 - **Declaration order is execution order**: put `run_javascript` transforms before the paid columns that read them
-- **Gate expensive columns with `run_if_js`**: never pay for a row a cheaper pass already answered
-- **Flatten first** (CLI): a `run_javascript` `--with` step that flattens `clay_record` before `{{fields.xxx}}`. Not needed in Python SDK — use `json.loads()` directly
+- **Gate expensive columns with `runIf`**: never pay for a row a cheaper pass already answered
+- **Flatten first**: a `run_javascript` column that flattens `clay_record` before `{{fields.xxx}}`. Not needed in Python SDK — use `json.loads()` directly
 - **Interpolation walks the full path**: `{{col.field.nested}}` and `{{col.items[0].field}}` both resolve; a missing path renders empty, not an error
 - **Structured JSON for deeplineagent**: Single invocation per column, all fields in one `jsonSchema`
-- **Declare deps earlier in the same command**: An earlier `--with` in the same `deepline enrich` call is enough - `.withColumn(...)` compiles in declaration order
-- **Python subprocess for payloads**: `python3 -c "import json; print(...)"`
-- **Cookie in env**: Never embed `CLAY_COOKIE` in enrich code or payloads; read it only from `.env.deepline` in the generated shell fetch script
+- **Cookie in env**: Never embed `CLAY_COOKIE` in play code or payloads; read it only from `.env.deepline` in the generated shell fetch script
 - **Catch-all is valid**: Accept `valid`, `valid_catch_all`, `catch_all`. NOT `unknown`
 - **Prompts verbatim**: Use exact text from source — small differences cause systematic drift
 
@@ -447,22 +440,21 @@ Use this mismatch process: check prompt parity → check model parity → check 
 1. **Extraction (§1)**: Extract Clay table config (or skip if user provides extract)
 2. **Phase 1 (§2)**: Table summary, dependency graph, pass plan, prompt extraction, assumptions
 3. **Confirm**: Get user approval on assumptions and pass plan
-4. **Phase 2 (§3)**: Pre-flight → generate `fetch_<table>.sh` + `enrich_<table>.sh`
-5. **Pilot gate**: `--dry-run` (compiles via the Deepline API, no spend), then `--rows 0:3` (real APIs)
+4. **Phase 2 (§3)**: Pre-flight → write `fetch_<table>.sh` + `<table>.play.ts`
+5. **Pilot gate**: `deepline plays check` (compiles, no spend), then a 3-row pilot CSV (real APIs)
 6. **Full run**: After pilot approval
 7. **Phase 3 (§7)**: `compare.py ground_truth.csv enriched.csv` — confirm thresholds pass
-8. **Custom play migration** (optional): If table needs triggers/routing → [deepline-plays.md](deepline-plays.md)
+8. **Trigger/routing migration** (optional): If table needs triggers/routing → [deepline-plays.md](deepline-plays.md)
 
 ### Pilot Gate
 
-`run_javascript` needs no pilot. For paid tools, compile first, then run rows 0:3, in that order:
+`run_javascript` needs no pilot. For paid tools, compile first, then run 3 rows, in that order:
 
 ```bash
-./enrich_<table>.sh --dry-run     # step 1: compile only, temporary flag, no spend
-./enrich_<table>.sh 0:3           # step 2: rows 0-3 against real providers
-./enrich_<table>.sh full          # step 3: all rows
+deepline plays check <table>.play.ts                                        # step 1: compile only, no spend
+head -4 seed.csv > pilot.csv
+deepline plays run --file <table>.play.ts --input '{"csv": "pilot.csv"}' --watch   # step 2: 3 rows, real providers
+deepline plays run --file <table>.play.ts --input '{"csv": "seed.csv"}' --watch    # step 3: all rows
 ```
 
-Pass `--dry-run` as a one-off argument to the script (or a temporary env var it forwards) - never hardcode it into the `deepline enrich` call inside the script. If it stays in the script, every later invocation, including `0:3` and `full`, only compiles and never reaches a provider. Remove it before the real runs.
-
-`--dry-run` compiles and prints the generated play without spending credits. It still calls the Deepline compile API, so it needs auth and network - it is not an offline check.
+`plays check` compiles the play without spending credits. It still calls the Deepline compile API, so it needs auth and network — it is not an offline check.

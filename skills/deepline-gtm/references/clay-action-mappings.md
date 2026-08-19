@@ -14,7 +14,7 @@ Every Clay action maps to a specific Deepline CLI tool or native play. Use actua
 4. **Use the mapping below as a fallback** — when no native play or dedicated tool exists.
 
 ```bash
-# Standard discovery pattern before writing any --with spec
+# Standard discovery pattern before writing any play column
 deepline tools search "<action intent>"     # find current options
 deepline tools describe <candidate_tool_id> # verify it exists + see payload schema
 ```
@@ -25,7 +25,7 @@ deepline tools describe <candidate_tool_id> # verify it exists + see payload sch
 
 ## Model Translation
 
-| Clay model                       | Deepline `--with` params                | Notes                                            |
+| Clay model                       | Deepline column params                  | Notes                                            |
 | -------------------------------- | --------------------------------------- | ------------------------------------------------ |
 | `gpt-4.1`, `claude` (clay-argon) | `"model":"anthropic/claude-sonnet-4.6"` | Complex reasoning, larger structured outputs     |
 | `gpt-4.1-mini`                   | `"model":"openai/gpt-5.4-mini"`         | Clay's mid-tier model for claygent-style columns |
@@ -73,16 +73,16 @@ deepline tools describe <candidate_tool_id> # verify it exists + see payload sch
 
 **Best single tool** — `leadmagic_profile_search`:
 
-```bash
---with '{"alias":"person_profile","tool":"leadmagic_profile_search","payload":{"profile_url":"{{linkedin_url}}"}}'
+```ts
+.withColumn('person_profile', 'leadmagic_profile_search', { profile_url: "{{linkedin_url}}" })
 ```
 
 Key output paths: `.output.body.full_name`, `.output.body.work_experience[0].company_website`, `.output.body.company_website`
 
 **Richer fallback** — `crustdata_person_enrichment`:
 
-```bash
---with '{"alias":"person_profile","tool":"crustdata_person_enrichment","payload":{"linkedinProfileUrl":"{{linkedin_url}}"}}'
+```ts
+.withColumn('person_profile', 'crustdata_person_enrichment', { linkedinProfileUrl: "{{linkedin_url}}" })
 ```
 
 Key output paths: `.output.body[0].name`, `.output.body[0].email`, `.output.body[0].current_employers[0].employer_company_website_domain[0]`
@@ -115,8 +115,8 @@ const joinKey = row['company_domain'] || row['domain']; // ← your join key col
 return rows.find((c) => c.domain === joinKey) || null;
 ```
 
-```bash
---with '{"alias":"company_data","tool":"run_javascript","payload":{"code":"@$WORKDIR/join_company.js"}}'
+```ts
+.withColumn('company_data', 'run_javascript', { code: "@$WORKDIR/join_company.js" })
 ```
 
 ---
@@ -127,22 +127,25 @@ The entire Clay waterfall group collapses to one native play. Pick based on avai
 
 **Have LinkedIn URL + name + domain** (preferred — highest hit rate):
 
-```bash
---with '{"alias":"work_email","tool":"name-and-domain-to-email-waterfall","payload":{"linkedin_url":"{{linkedin_url}}","first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{company_domain}}"}}'
+```ts
+.withColumn('work_email', 'name-and-domain-to-email-waterfall', { linkedin_url: "{{linkedin_url}}", first_name: "{{first_name}}", last_name: "{{last_name}}", domain: "{{company_domain}}" })
+
 ```
 
 Compiles to: `dropleads_email_finder → hunter_email_finder → leadmagic_email_finder → deepline_native_enrich_contact → crustdata_person_enrichment → peopledatalabs_enrich_contact`
 
 **Have name + company only**:
 
-```bash
---with '{"alias":"work_email","tool":"name-and-domain-to-email-waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{company_domain}}"}}'
+```ts
+.withColumn('work_email', 'name-and-domain-to-email-waterfall', { first_name: "{{first_name}}", last_name: "{{last_name}}", domain: "{{company_domain}}" })
+
 ```
 
 **Have first + last + domain only** (cost-efficient — tries pattern validation first):
 
-```bash
---with '{"alias":"work_email","tool":"name-and-domain-to-email-waterfall","payload":{"first_name":"{{first_name}}","last_name":"{{last_name}}","domain":"{{domain}}"}}'
+```ts
+.withColumn('work_email', 'name-and-domain-to-email-waterfall', { first_name: "{{first_name}}", last_name: "{{last_name}}", domain: "{{domain}}" })
+
 ```
 
 Compiles to: `leadmagic_email_validation (first.last@, firstlast@, first_last@) → dropleads_email_finder → hunter_email_finder → leadmagic_email_finder → deepline_native_enrich_contact → peopledatalabs_enrich_contact`
@@ -157,8 +160,8 @@ Compiles to: `leadmagic_email_validation (first.last@, firstlast@, first_last@) 
 
 Default — `leadmagic_email_validation`:
 
-```bash
---with '{"alias":"email_valid","tool":"leadmagic_email_validation","payload":{"email":"{{work_email}}"}}'
+```ts
+.withColumn('email_valid', 'leadmagic_email_validation', { email: "{{work_email}}" })
 ```
 
 LeadMagic returns four relevant statuses (as `.output.body.email_status`):
@@ -175,16 +178,16 @@ LeadMagic returns four relevant statuses (as `.output.body.email_status`):
 
 Alternative — `zerobounce_validate` (more detailed sub_status, better for catch-all domains):
 
-```bash
---with '{"alias":"email_valid","tool":"zerobounce_validate","payload":{"email":"{{work_email}}"}}'
+```ts
+.withColumn('email_valid', 'zerobounce_validate', { email: "{{work_email}}" })
 ```
 
 Check `.status` and `.sub_status`. Use `zerobounce_validate` for each email; Deepline disables ZeroBounce batch validation because the upstream batch endpoint currently returns 403 Access denied from Deepline egress.
 
 Alternative — `dropleads_email_verifier` (cheapest option):
 
-```bash
---with '{"alias":"email_valid","tool":"dropleads_email_verifier","payload":{"email":"{{work_email}}"}}'
+```ts
+.withColumn('email_valid', 'dropleads_email_verifier', { email: "{{work_email}}" })
 ```
 
 Run `deepline tools search "email validation"` to see all current options.
@@ -216,8 +219,8 @@ const perms = [
 return { permutations: perms, comma_separated_list: perms.join(',') };
 ```
 
-```bash
---with '{"alias":"email_permutations","tool":"run_javascript","payload":{"code":"@$WORKDIR/email_permutations.js"}}'
+```ts
+.withColumn('email_permutations', 'run_javascript', { code: "@$WORKDIR/email_permutations.js" })
 ```
 
 Prefer `name-and-domain-to-email-waterfall` over a hand-built waterfall when you already have a clean company domain.
@@ -302,8 +305,9 @@ enriched = json.loads(result.stdout).get("result", {}).get("company", {})
 
 For LLM-quality normalization:
 
-```bash
---with '{"alias":"normalized_company","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Normalize this company name: {{company_raw}}. Strip legal suffixes (Inc, LLC, Corp, Ltd, Holdings, Group). Return title case. Return ONLY the name, nothing else."}}'
+```ts
+.withColumn('normalized_company', 'deeplineagent', { model: "openai/gpt-5.4-mini", prompt: "Normalize this company name: {{company_raw}}. Strip legal suffixes (Inc, LLC, Corp, Ltd, Holdings, Group). Return title case. Return ONLY the name, nothing else." })
+
 ```
 
 For pure string normalization (cheaper):
@@ -325,8 +329,9 @@ return name
 
 ### `chat-gpt-schema-mapper`
 
-```bash
---with '{"alias":"job_function","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Classify this job title into a function label. Rules: all lowercase except BizOps/RevOps/GTM Ops, <4 words, describe the vertical. Return ONLY the label.\n\nJob title: {{job_title}}"}}'
+```ts
+.withColumn('job_function', 'deeplineagent', { model: "openai/gpt-5.4-mini", prompt: "Classify this job title into a function label. Rules: all lowercase except BizOps/RevOps/GTM Ops, <4 words, describe the vertical. Return ONLY the label.\n\nJob title: {{job_title}}" })
+
 ```
 
 No `jsonSchema` needed for a single-value string output.
@@ -337,12 +342,14 @@ No `jsonSchema` needed for a single-value string output.
 
 ### `use-ai` (useCase: `use-ai`, no web tools)
 
-```bash
-# fast reasoning / generation
---with '{"alias":"data_warehouse_formatted","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"<exact Clay prompt with {{field}} refs translated>"}}'
+```ts
+// fast reasoning / generation
+.withColumn('data_warehouse_formatted', 'deeplineagent', { model: "openai/gpt-5.4-mini", prompt: "<exact Clay prompt with {{field}} refs translated>" })
 
-# larger structured output
---with '{"alias":"strategic_summary","tool":"deeplineagent","payload":{"model":"anthropic/claude-sonnet-4.6","prompt":"<prompt>","jsonSchema":{"type":"object","properties":{"response":{"type":"string"},"top_5_initiatives":{"type":"string"},"top_3_sales_initiatives":{"type":"string"}},"required":["response"],"additionalProperties":false}}}'
+
+// larger structured output
+.withColumn('strategic_summary', 'deeplineagent', { model: "anthropic/claude-sonnet-4.6", prompt: "<prompt>", jsonSchema: { type: "object", properties: { response: { type: "string" }, top_5_initiatives: { type: "string" }, top_3_sales_initiatives: { type: "string" } }, required: ["response"], additionalProperties: false } })
+
 ```
 
 Reference structured output fields in downstream passes as `{{col_name.field}}`. If you need deeper nesting, flatten it first.
@@ -357,21 +364,23 @@ Reference structured output fields in downstream passes as `{{col_name.field}}`.
 
 **Pass 1 — Research:**
 
-```bash
---with '{"alias":"company_research","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Use the research context to summarize {{company_domain}} ({{company_name}}). Return JSON with summary, initiatives, and sources.","jsonSchema":{"type":"object","properties":{"summary":{"type":"string"},"initiatives":{"type":"string"},"sources":{"type":"string"}},"required":["summary","initiatives"],"additionalProperties":false}}}'
+```ts
+.withColumn('company_research', 'deeplineagent', { model: "openai/gpt-5.4-mini", prompt: "Use the research context to summarize {{company_domain}} ({{company_name}}). Return JSON with summary, initiatives, and sources.", jsonSchema: { type: "object", properties: { summary: { type: "string" }, initiatives: { type: "string" }, sources: { type: "string" } }, required: ["summary", "initiatives"], additionalProperties: false } })
+
 ```
 
 **Alternative research via exa_search** (deterministic, auditable):
 
-```bash
---with '{"alias":"exa_research","tool":"exa_search","payload":{"query":"{{company_name}} {{company_domain}} strategic initiatives GTM 2024 2025","num_results":5,"contents":{"text":true,"highlights":true}}}'
+```ts
+.withColumn('exa_research', 'exa_search', { query: "{{company_name}} {{company_domain}} strategic initiatives GTM 2024 2025", num_results: 5, contents: { text: true, highlights: true } })
+
 ```
 
-**Pass 2 — Generation (separate `deepline enrich --in-place` call):**
+**Pass 2 — Generation (a later play column reading `{{company_research}}`):**
 
-```bash
-deepline enrich --input enriched.csv --in-place --name clay-strategic-initiatives --rows 0 \
-  --with '{"alias":"strategic_initiatives","tool":"deeplineagent","payload":{"model":"anthropic/claude-sonnet-4.6","prompt":"<Clay prompt translated>\n\nResearch context:\n{{company_research}}","jsonSchema":{"type":"object","properties":{"top_5_initiatives":{"type":"string"},"top_3_sales_initiatives":{"type":"string"},"top_3_go_to_market_initiatives":{"type":"string"},"new_products":{"type":"string"},"hypothesis_of_potential_challenges":{"type":"string"}},"required":["top_5_initiatives"],"additionalProperties":false}}}'
+```ts
+.withColumn('strategic_initiatives', 'deeplineagent', { model: "anthropic/claude-sonnet-4.6", prompt: "<Clay prompt translated>\n\nResearch context:\n{{company_research}}", jsonSchema: { type: "object", properties: { top_5_initiatives: { type: "string" }, top_3_sales_initiatives: { type: "string" }, top_3_go_to_market_initiatives: { type: "string" }, new_products: { type: "string" }, hypothesis_of_potential_challenges: { type: "string" } }, required: ["top_5_initiatives"], additionalProperties: false } })
+
 ```
 
 ---
@@ -390,14 +399,16 @@ If a native tool exists (e.g. `octave_qualify_person`, `octave_sequence_runner`)
 
 ### `octave-qualify-person`
 
-```bash
---with '{"alias":"qualify_person","tool":"deeplineagent","payload":{"model":"anthropic/claude-sonnet-4.6","prompt":"Score this prospect against our ICP (0-10 total). ICP: [paste ICP criteria]. Prospect — Title: {{title}}, Company: {{company_name}}, Domain: {{company_domain}}, LinkedIn: {{linkedin_url}}, Initiatives: {{strategic_initiatives}}.\n\nScoring dimensions: persona fit (0-4) + seniority (0-2) + hiring signals (0-2) + strategic fit (0-2).\nTier: A=8-10, B=5-7, C=0-4. Qualified if score>=6.\nReturn JSON.","jsonSchema":{"type":"object","properties":{"score":{"type":"number"},"tier":{"type":"string","enum":["A","B","C"]},"qualified":{"type":"boolean"},"rationale":{"type":"string"},"disqualifiers":{"type":"array","items":{"type":"string"}}},"required":["score","tier","qualified","rationale"],"additionalProperties":false}}}'
+```ts
+.withColumn('qualify_person', 'deeplineagent', { model: "anthropic/claude-sonnet-4.6", prompt: "Score this prospect against our ICP (0-10 total). ICP: [paste ICP criteria]. Prospect — Title: {{title}}, Company: {{company_name}}, Domain: {{company_domain}}, LinkedIn: {{linkedin_url}}, Initiatives: {{strategic_initiatives}}.\n\nScoring dimensions: persona fit (0-4) + seniority (0-2) + hiring signals (0-2) + strategic fit (0-2).\nTier: A=8-10, B=5-7, C=0-4. Qualified if score>=6.\nReturn JSON.", jsonSchema: { type: "object", properties: { score: { type: "number" }, tier: { type: "string", enum: ["A", "B", "C"] }, qualified: { type: "boolean" }, rationale: { type: "string" }, disqualifiers: { type: "array", items: { type: "string" } } }, required: ["score", "tier", "qualified", "rationale"], additionalProperties: false } })
+
 ```
 
 ### `octave-enrich-person`
 
-```bash
---with '{"alias":"person_enriched","tool":"deeplineagent","payload":{"model":"anthropic/claude-sonnet-4.6","prompt":"Research this person using public sources. Name: {{first_name}} {{last_name}}, Title: {{title}}, Company: {{company_name}}, LinkedIn: {{linkedin_url}}. Return JSON with background, career_summary, and notable_achievements.","jsonSchema":{"type":"object","properties":{"background":{"type":"string"},"career_summary":{"type":"string"},"notable_achievements":{"type":"string"}},"required":["background","career_summary"],"additionalProperties":false}}}'
+```ts
+.withColumn('person_enriched', 'deeplineagent', { model: "anthropic/claude-sonnet-4.6", prompt: "Research this person using public sources. Name: {{first_name}} {{last_name}}, Title: {{title}}, Company: {{company_name}}, LinkedIn: {{linkedin_url}}. Return JSON with background, career_summary, and notable_achievements.", jsonSchema: { type: "object", properties: { background: { type: "string" }, career_summary: { type: "string" }, notable_achievements: { type: "string" } }, required: ["background", "career_summary"], additionalProperties: false } })
+
 ```
 
 ### `octave-run-sequence-runner` (email generation)
@@ -406,14 +417,16 @@ Two passes:
 
 **Pass 1 — Gather signals (separate enrich call):**
 
-```bash
---with '{"alias":"sequence_signals","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Summarize outbound signals for {{first_name}} ({{title}} at {{company_name}}). Use context: {{qualify_person}} / {{strategic_initiatives}} / {{tension_mapping}}. Return key talking points and pain hypotheses."}}'
+```ts
+.withColumn('sequence_signals', 'deeplineagent', { model: "openai/gpt-5.4-mini", prompt: "Summarize outbound signals for {{first_name}} ({{title}} at {{company_name}}). Use context: {{qualify_person}} / {{strategic_initiatives}} / {{tension_mapping}}. Return key talking points and pain hypotheses." })
+
 ```
 
 **Pass 2 — Write email:**
 
-```bash
---with '{"alias":"email_sequence","tool":"deeplineagent","payload":{"model":"anthropic/claude-sonnet-4.6","prompt":"Write a cold email (subject + body, body <70 words). Recipient: {{first_name}}, {{title}}, {{company_name}}. Signals: {{sequence_signals}}. Tone: casual, direct. No buzzwords.","jsonSchema":{"type":"object","properties":{"subject":{"type":"string"},"body":{"type":"string"}},"required":["subject","body"],"additionalProperties":false}}}'
+```ts
+.withColumn('email_sequence', 'deeplineagent', { model: "anthropic/claude-sonnet-4.6", prompt: "Write a cold email (subject + body, body <70 words). Recipient: {{first_name}}, {{title}}, {{company_name}}. Signals: {{sequence_signals}}. Tone: casual, direct. No buzzwords.", jsonSchema: { type: "object", properties: { subject: { type: "string" }, body: { type: "string" } }, required: ["subject", "body"], additionalProperties: false } })
+
 ```
 
 ---
@@ -427,8 +440,9 @@ Skip for automation unless explicitly needed (run-as-button in Clay). Two option
 **Option 1 — `crustdata_linkedin_posts` (keyword/filter based):**
 Good for finding posts about a company or topic. Filters by `MEMBER` or `COMPANY` LinkedIn filter type. Not profile-URL-specific.
 
-```bash
---with '{"alias":"li_posts","tool":"crustdata_linkedin_posts","payload":{"keyword":"{{company_name}}","filters":[{"filter_type":"AUTHOR_COMPANY","type":"in","value":["{{company_name}}"]}],"limit":5,"datePosted":"past-quarter"}}'
+```ts
+.withColumn('li_posts', 'crustdata_linkedin_posts', { keyword: "{{company_name}}", filters: [ { filter_type: "AUTHOR_COMPANY", type: "in", value: ["{{company_name}}"] } ], limit: 5, datePosted: "past-quarter" })
+
 ```
 
 **Option 2 — Apify actor (profile-URL-specific):**
@@ -501,10 +515,11 @@ deepline tools execute smartlead_api_request --payload '{
 }'
 ```
 
-Or inside `deepline enrich`:
+Or as a play column:
 
-```bash
---with '{"alias":"campaign_push","tool":"smartlead_api_request","payload":{"method":"POST","path":"/v1/campaigns/<campaign_id>/leads","body":{"lead_list":[{"email":"{{final_email}}","first_name":"{{first_name}}","last_name":"{{last_name}}","company_name":"{{company_name}}"}]}}}'
+```ts
+.withColumn('campaign_push', 'smartlead_api_request', { method: 'POST', path: '/v1/campaigns/<campaign_id>/leads', body: { lead_list: [{ email: '{{final_email}}', first_name: '{{first_name}}', last_name: '{{last_name}}', company_name: '{{company_name}}' }] }, })
+
 ```
 
 ### `add-lead-to-campaign` (Instantly)

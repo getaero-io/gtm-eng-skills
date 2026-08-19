@@ -2,7 +2,7 @@
 """
 Flatten deepline_native_search_contact output into one CSV row per person.
 
-Use after a deepline enrich pass whose contact column contains the persisted
+Use after a play run whose contact column contains the persisted
 search_contact result. The source CSV is never modified.
 """
 

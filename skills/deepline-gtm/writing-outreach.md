@@ -133,19 +133,15 @@ When you already have contact + company context in CSV columns, use `run_javascr
 
 **Critical: avoid mail-merge output.** If every email has the same structure with only `{{first_name}}` and `{{company_name}}` swapped, it's a template — not personalized outreach. Each email must reference something specific to the company (product, use case, industry, recent news). Use `company_description`, `one_liner`, `company_research`, or other enrichment columns in your JS template or `deeplineagent` prompt so each email is substantively different.
 
-```bash
-# Fast path: template personalization via run_javascript
-deepline enrich --input enriched.csv --in-place --name outreach-pain-point \
-  --with '{"alias":"outbound_email","tool":"run_javascript","payload":{"code":"@${OUTPUT_DIR}/template_email.js"}}'
+Author the generation column(s) as a custom play over your enriched CSV
+([recipes/deepline-plays.md](recipes/deepline-plays.md)) with
+one `withColumn` per output:
 
-# AI path: deeplineagent when the row already has the research
-deepline enrich --input enriched.csv --in-place --name outreach-trigger \
-  --with '{"alias":"outbound_email","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Write a concise personalized cold email to {{first_name}} at {{company_name}} using this context: {{company_research}}. Return JSON with subject and email.","jsonSchema":{"type":"object","properties":{"subject":{"type":"string"},"email":{"type":"string"}},"required":["subject","email"],"additionalProperties":false}}}'
-
-# Research-first path: deeplineagent when the row still needs fresh research
-deepline enrich --input enriched.csv --in-place --name outreach-opener \
-  --with '{"alias":"research_backed_email","tool":"deeplineagent","payload":{"model":"openai/gpt-5.4-mini","prompt":"Research {{company_domain}} and write a personalized cold email to {{first_name}}. Use Deepline-managed tools if needed. Return JSON with subject and email.","jsonSchema":{"type":"object","properties":{"subject":{"type":"string"},"email":{"type":"string"}},"required":["subject","email"],"additionalProperties":false}}}'
-```
+- Fast path: a `run_javascript` column applying a deterministic template.
+- AI path: a `deeplineagent` column with the research columns interpolated into
+  the prompt and a `jsonSchema` of `{subject, email}`.
+- Research-first path: a research `deeplineagent` column, then the generation
+  column consuming it.
 
 Notes:
 
@@ -228,9 +224,8 @@ SEQ_WITH=$(jq -nc --arg product "$PRODUCT_CONTEXT" '{
 
 printf "prospect_payload\n{\"person\":{\"firstName\":\"Rachael\",\"lastName\":\"Foster\",\"title\":\"Vice President AMER Field Marketing, Public Sector, Services, & Community\"},\"company\":{\"name\":\"Cloudera\",\"domain\":\"cloudera.com\"}}\n" > ./qualification_email_seed.csv
 
-deepline enrich --input ./qualification_email_seed.csv --output ./qualification_email_seed_enriched.csv --name outreach-qualification-email \
-  --with "$QUAL_WITH" \
-  --with "$SEQ_WITH"
+# Run both columns as a custom play over the seed CSV (one withColumn per
+# payload above) — recipes/deepline-plays.md has the authoring loop.
 ```
 
 ## Prompt Templates (Copy/Paste)
@@ -318,17 +313,12 @@ deepline csv show --csv leads.csv --summary
 
 ### Re-run a column
 
-`deepline csv` is local inspection only. To recompute a column, re-run the enrich pass that produced it, reusing the same `--name` so unchanged rows come from the durable cache:
-
-```bash
-deepline enrich --input leads.csv --in-place --name <same-name-as-before> \
-  --with '{"alias":"<column>","tool":"<tool_id>","payload":{...}}' \
-  --with-force <column> --rows 0:10
-```
-
-`--with-force` re-runs only the named aliases; `--force` re-runs every alias.
+`deepline csv` is local inspection only. To recompute a column, re-run the
+play that produced it: completed cells are reused from the durable dataset by
+default, and `deepline plays run --force` starts a fresh run graph when you
+genuinely want everything recomputed.
 
 ### CLI-only debug posture
 
 - If you need to inspect or re-execute, use these playground commands directly.
-- If you need to add columns or add providers, switch back to `deepline enrich` workflow docs instead of extending this page.
+- If you need to add columns or add providers, switch back to [enriching-and-researching.md](enriching-and-researching.md) instead of extending this page.

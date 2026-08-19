@@ -19,7 +19,21 @@ Find LinkedIn profile URLs when you have a name, with or without company context
 1. **Read [enriching-and-researching.md](../enriching-and-researching.md)** — the LinkedIn enrichment section covers provider selection and validation patterns.
 2. **Read [finding-companies-and-contacts.md](../finding-companies-and-contacts.md)** — if you also need to find contacts first.
 
-## Provider sequence
+## Prebuilt first
+
+`prebuilt/person-to-linkedin` runs this whole sequence with validation built in:
+
+```bash
+deepline plays run prebuilt/person-to-linkedin --input '{"first_name":"Jane","last_name":"Smith","company_name":"Acme"}'
+# CSV:
+deepline plays run prebuilt/person-to-linkedin-batch --input '{"csv":"contacts.csv"}'
+deepline runs export <run-id> --out contacts_with_linkedin.csv
+```
+
+Use the manual sequence below only when forking the prebuilt for a custom
+provider order (`deepline plays get prebuilt/person-to-linkedin --source --out ./fork.play.ts`).
+
+## Provider sequence (inside the play / for a fork)
 
 Follow this order. Stop when you get a validated match.
 
@@ -33,10 +47,7 @@ deepline tools execute dropleads_search_people --payload '{"filters":{"keywords"
 
 For batch:
 
-```bash
-deepline enrich --csv contacts.csv --rows 0 --in-place --name linkedin-url-search-pilot \
-  --with '{"alias":"li_url","tool":"dropleads_search_people","payload":{"filters":{"keywords":["{{first_name}}","{{last_name}}"],"jobTitles":["{{title}}"]},"pagination":{"page":1,"limit":1}}}'
-```
+_In a fork/custom play, this step is one `withColumn` calling the same tool per row._
 
 ### Step 2: Serper Google search + Apify validation
 
@@ -70,14 +81,11 @@ If validation fails, try the next Serper result. If all Serper results fail vali
 For batch:
 
 ```bash
-# Find candidates
-deepline enrich --csv contacts.csv --rows 0 --in-place --name linkedin-url-apify-profile \
-  --with '{"alias":"li_serper","tool":"serper_google_search","payload":{"query":"\"{{first_name}} {{last_name}}\" \"{{company}}\" site:linkedin.com/in","num":3}}'
-
-# Scrape + name-validate top result
-deepline enrich --csv contacts.csv --rows 0 --in-place --name linkedin-url-validate-hit \
-  --with '{"alias":"li_validate","tool":"apify_run_actor_sync","payload":{"actorId":"harvestapi/linkedin-profile-scraper","input":{"urls":["{{li_serper_url}}"]},"timeoutMs":90000}}'
+deepline tools execute serper_google_search --input '{"query":"\"Jane Smith\" \"Acme\" site:linkedin.com/in","num":3}'
+deepline tools execute apify_run_actor_sync --input '{"actorId":"harvestapi/linkedin-profile-scraper","input":{"urls":["<top-hit-url>"]},"timeoutMs":90000}'
 ```
+
+_In a fork/custom play these are two `withColumn` steps: search, then scrape + name-validate the top hit._
 
 ### Step 3: Exa semantic search
 
@@ -93,10 +101,7 @@ Exa is a weak fallback for name-only lookup (23% validated vs serper's 74% in a 
 
 Structured people search with company domain context.
 
-```bash
-deepline enrich --csv contacts.csv --rows 0 --in-place --name linkedin-url-commit-candidate \
-  --with '{"alias":"linkedin","tool":"crustdata_people_search","payload":{"companyDomain":"{{domain}}","titleKeywords":["{{title}}"],"limit":1}}'
-```
+_In a fork/custom play, this step is one `withColumn` calling the same tool per row._
 
 ### Step 5: Prospeo (paid)
 

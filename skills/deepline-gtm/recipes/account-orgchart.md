@@ -93,24 +93,36 @@ Merge CRM results first. In the org chart, give CRM contacts a **CRM badge** and
 
 ### 1. Resolve target identity
 
+This recipe orchestrates ONE account (or one person). Run the calls below
+directly with real values. Building org charts across a LIST of accounts, or
+rerunning this weekly? Author the pipeline once as a custom play
+([deepline-plays.md](deepline-plays.md)) — each step below becomes one column,
+and the tier pulls become `ctx.runPlay('prebuilt/company-to-contact', ...)`.
+
 **If LinkedIn URL given:**
 
 ```bash
-deepline enrich --input seed.csv --in-place --name orgchart-target-profile \
-  --with '{"alias":"target_profile","tool":"leadmagic_profile_search","payload":{"profile_url":"{{linkedin_url}}"},"extract_js":"(data) => ({ name: (data?.first_name || \"\") + \" \" + (data?.last_name || \"\"), title: data?.current_position || data?.headline || \"\", company_name: data?.current_company || \"\", location: data?.location || \"\" })"}'
+deepline tools execute leadmagic_profile_search --input '{"profile_url": "'"$LINKEDIN_URL"'"}'
 ```
+
+Read the target's identity off the result (prefer the documented getters from
+`deepline tools describe leadmagic_profile_search`): name = `first_name` +
+`last_name`, title = `current_position` falling back to `headline`, company =
+`current_company`, plus `location`. These four drive every matching signal
+downstream.
 
 Then resolve domain if missing:
 
 ```bash
-deepline enrich --input seed.csv --in-place --name orgchart-domain-search \
-  --with '{"alias":"domain_search","tool":"exa_search","payload":{"query":"{{company_name}} official website","numResults":1}}'
-deepline enrich --input seed.csv --in-place --name orgchart-domain-extract \
-  --with '{"alias":"domain","tool":"run_javascript","payload":{"code":"const r=row.domain_search;const url=((r?.results||[])[0]?.url)||\"\";const m=url.match(/^https?:\\/\\/(www\\.)?([^\\/]+)/);return m?m[2]:null;"}}'
+deepline tools execute exa_search --input '{"query": "'"$COMPANY"' official website", "numResults": 1}'
 ```
 
-**If name + company given:**
-Create seed CSV with columns: `name`, `company_name`, `domain`. If no domain, resolve with exa_search as above.
+Take the registrable domain from the top result's URL — and prefer the domain
+a later enrichment result reports over one you inferred.
+
+**If name + company given:** resolve the LinkedIn URL first with
+`prebuilt/person-to-linkedin` (see §2-person step 2), or go straight to the
+company-wide waterfall with the domain.
 
 ### §2-person. Person-centric flow (2-up / 2-down around one person)
 
@@ -150,17 +162,20 @@ echo "company_domain,company_name" > "$WORK_DIR/accounts.csv"
 echo "\"$DOMAIN\",\"$COMPANY\"" >> "$WORK_DIR/accounts.csv"
 ```
 
-**Source 1: Deepline Native**
+**Source 1: role-targeted contact discovery**
+
+The prebuilt covers this step — one call per seniority tier:
 
 ```bash
-deepline enrich --input "$WORK_DIR/accounts.csv" --output "$WORK_DIR/dn-csuite.csv" --name orgchart-dn-csuite \
-  --with '{"alias":"people","tool":"deepline_native_search_contact","payload":{"domain":"{{company_domain}}","title_filters":[{"name":"csuite","filter":"CEO OR CTO OR CFO OR COO OR CMO OR CRO OR Founder"}]}}'
-deepline enrich --input "$WORK_DIR/accounts.csv" --output "$WORK_DIR/dn-vp.csv" --name orgchart-dn-vp \
-  --with '{"alias":"people","tool":"deepline_native_search_contact","payload":{"domain":"{{company_domain}}","title_filters":[{"name":"vp","filter":"VP OR Vice President OR SVP"}]}}'
-deepline enrich --input "$WORK_DIR/accounts.csv" --output "$WORK_DIR/dn-dir.csv" --name orgchart-dn-dir \
-  --with '{"alias":"people","tool":"deepline_native_search_contact","payload":{"domain":"{{company_domain}}","title_filters":[{"name":"dir","filter":"Head OR Director OR Senior Director"}]}}'
-deepline enrich --input "$WORK_DIR/accounts.csv" --output "$WORK_DIR/dn-mgr.csv" --name orgchart-dn-mgr \
-  --with '{"alias":"people","tool":"deepline_native_search_contact","payload":{"domain":"{{company_domain}}","title_filters":[{"name":"mgr","filter":"Manager OR Senior Manager"}]}}'
+deepline plays run prebuilt/company-to-contact --input '{"domain": "'"$DOMAIN"'", "roles": ["CEO", "CTO", "CFO", "COO", "CMO", "CRO", "Founder"], "seniority": "C-Level"}'
+deepline plays run prebuilt/company-to-contact --input '{"domain": "'"$DOMAIN"'", "roles": ["VP", "SVP"], "seniority": "VP"}'
+```
+
+Need exact tier control the play's contract doesn't expose (custom title
+filters, more tiers)? Call the underlying tool directly:
+
+```bash
+deepline tools execute deepline_native_search_contact --input '{"domain": "'"$DOMAIN"'", "title_filters": [{"name": "dir", "filter": "Head OR Director OR Senior Director"}, {"name": "mgr", "filter": "Manager OR Senior Manager"}]}'
 ```
 
 Expected: ~25-35 people.
@@ -168,15 +183,14 @@ Expected: ~25-35 people.
 **Source 2: Dropleads (FREE)**
 
 ```bash
-deepline enrich --input "$WORK_DIR/accounts.csv" --output "$WORK_DIR/dropleads.csv" --name orgchart-dropleads \
-  --with '{"alias":"people","tool":"dropleads_search_people","payload":{"filters":{"companyDomains":["{{company_domain}}"]},"pagination":{"page":1,"limit":100}}}'
+deepline tools execute dropleads_search_people --input '{"filters": {"companyDomains": ["'"$DOMAIN"'"]}, "pagination": {"page": 1, "limit": 100}}'
 ```
 
 Expected: +60-80 net new.
 
 **Source 3: LinkedIn employee scrape**
 
-Prefer `deepline enrich` for repeatable roster enrichment and use a direct actor call only as a probe. Resolve the company's LinkedIn page from the domain first, then run the current company-employees actor after confirming the contract:
+Prefer a custom play for repeatable roster enrichment and use a direct actor call only as a probe. Resolve the company's LinkedIn page from the domain first, then run the current company-employees actor after confirming the contract:
 
 ```bash
 deepline tools describe apify_run_actor_sync

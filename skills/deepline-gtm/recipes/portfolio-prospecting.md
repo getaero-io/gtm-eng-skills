@@ -29,9 +29,10 @@ deepline tools execute parallel_extract --payload '{"urls":["https://www.ycombin
 **Step 2: Filter to companies hiring your target role (optional).**
 
 ```bash
-deepline enrich --input yc_companies.csv --in-place --name portfolio-role-filter-pilot --rows 0:2 \
-  --with '{"alias":"exa_jobs","tool":"exa_search","payload":{"query":"GTM Engineer site:ycombinator.com","numResults":50,"type":"auto"}}'
+deepline tools execute exa_search --input '{"query":"GTM Engineer site:ycombinator.com","numResults":50,"type":"auto"}'
 ```
+
+For per-company filtering across the whole list, add this as a column in a custom play ([deepline-plays.md](deepline-plays.md)).
 
 **Step 3: Find contacts at each company.**
 

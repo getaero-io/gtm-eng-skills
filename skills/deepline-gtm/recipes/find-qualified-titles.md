@@ -66,12 +66,12 @@ for free; people-search is for when you already know the persona and need volume
   defaults to a small page. If you select many titles or expect many holders, set
   `page_size` high enough (or paginate with `page_number`) so matches aren't silently
   truncated. Don't assume 10 is enough when you passed 30 titles.
-- **Materialize nested output into flat columns before referencing it.** In `deepline enrich`
+- **Materialize nested output into flat columns before referencing it.** In a play,
   row cells, `company_titles` currently appears under `row.titles.output.titles`
   and `deeplineagent` structured JSON under `row.icp_match.result.object.<field>` or
   `row.icp_match.extracted_json.<field>`.
   A bare placeholder like `{{titles.output.titles}}` does NOT resolve, and a raw array
-  placeholder breaks the JSON `--with` spec. Extract with `run_javascript` first.
+  placeholder breaks a JSON payload spec. Extract with `run_javascript` first.
   Direct `deepline tools execute --json` uses the V2 envelope (`toolResponse.raw...`),
   so do not copy direct execute paths into row-level JS without inspecting the persisted row.
   - Inside `run_javascript`, use the persisted row shape:
@@ -87,44 +87,15 @@ for free; people-search is for when you already know the persona and need volume
 
 ## Pipeline
 
-```bash
-# 1 - full title roster per company (FREE)
-deepline enrich --input companies.csv --output titles.csv \
-  --name find-qualified-titles-roster \
-  --with '{"alias":"titles","tool":"company_titles","payload":{"domain":"{{domain}}"}}'
+This is a five-column custom play over `companies.csv` — author it once per
+[deepline-plays.md](deepline-plays.md) with these columns in order (single-company
+probes: run the same tool via `deepline tools execute`):
 
-# 1b - flatten titles into a scalar column
-deepline enrich --input titles.csv --output titles_flat.csv \
-  --name find-qualified-titles-flatten-roster \
-  --with '{"alias":"titles_flat","tool":"run_javascript","payload":{"code":"const t = row.titles?.output?.titles || row.titles?.result?.data?.output?.titles || []; return JSON.stringify(t);"}}'
-
-# 2 - LLM filters the roster to the ICP (cheap)
-deepline enrich --input titles_flat.csv --output matched.csv \
-  --name find-qualified-titles-icp-match \
-  --with '{
-    "alias":"icp_match","tool":"deeplineagent",
-    "payload":{
-      "model":"openai/gpt-5.4-mini",
-      "prompt":"ICP: <describe the buying-power roles, e.g. Marketing Ops, Sales Ops, RevOps, Salesforce admin/architect; senior IC and above; exclude recruiters/finance/support/plain reps>. From this exact title list return ONLY matching titles as exact strings: {{titles_flat}}. Return JSON.",
-      "jsonSchema":{"type":"object","properties":{"matched_titles":{"type":"array","items":{"type":"string"}},"reasoning":{"type":"string"}},"required":["matched_titles","reasoning"],"additionalProperties":false}
-    }
-  }'
-
-# 2b - flatten matched_titles (V2 raw cells use result.object / extracted_json)
-deepline enrich --input matched.csv --output matched_flat.csv \
-  --name find-qualified-titles-flatten-matches \
-  --with '{"alias":"matched_titles","tool":"run_javascript","payload":{"code":"const match = row.icp_match || {}; const t = match?.extracted_json?.matched_titles || match?.result?.object?.matched_titles || match?.object?.matched_titles || []; return JSON.stringify(t.slice(0,100));"}}'
-
-# 3 - find the people. search_contact returns all exact matches for every matched title
-#   (LinkedIn only - email/phone redacted). Quote the array placeholder. Raise page_size
-#   if you selected many titles so matches aren't truncated.
-deepline enrich --input matched_flat.csv --output contacts.csv \
-  --name find-qualified-titles-contacts \
-  --with '{
-    "alias":"contacts","tool":"deepline_native_search_contact",
-    "payload":{"domain":"{{domain}}","title_lists":[{"name":"icp","titles":"{{matched_titles}}"}],"page_size":50}
-  }'
-```
+1. `titles` — `company_titles` with `{"domain": row.domain}` (FREE roster).
+2. `titles_flat` — `run_javascript`: `const t = row.titles?.output?.titles || row.titles?.result?.data?.output?.titles || []; return JSON.stringify(t);`
+3. `icp_match` — `deeplineagent`, model `openai/gpt-5.4-mini`, prompt: `ICP: <describe the buying-power roles, e.g. Marketing Ops, Sales Ops, RevOps, Salesforce admin/architect; senior IC and above; exclude recruiters/finance/support/plain reps>. From this exact title list return ONLY matching titles as exact strings: ${row.titles_flat}. Return JSON.` with `jsonSchema {matched_titles: string[], reasoning: string}`.
+4. `matched_titles` — `run_javascript`: `const match = row.icp_match || {}; const t = match?.extracted_json?.matched_titles || match?.result?.object?.matched_titles || match?.object?.matched_titles || []; return JSON.stringify(t.slice(0,100));`
+5. `contacts` — `deepline_native_search_contact` with `{"domain": row.domain, "title_lists":[{"name":"icp","titles": <matched_titles array>}], "page_size": 50}`. Returns all exact matches per title (LinkedIn only — email/phone redacted); raise `page_size` when many titles matched.
 
 Contacts land at `contacts.output.persons[]` (legacy rows may use
 `contacts.result.data.output.persons[]`) with name, title, `linkedin_url`, seniority,

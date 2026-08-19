@@ -2,7 +2,7 @@
 
 Use this doc for discovery, sourcing, TAM/list building, known-source extraction, contact discovery, and hiring-qualified company search before any row-level enrichment.
 
-This doc does **not** cover email waterfalls, row-level `deepline enrich` mechanics, coalescing, validation, or personalization columns. If you already have rows and need to fill or transform columns, stop and use `enriching-and-researching.md`.
+This doc does **not** cover email waterfalls, row-level play mechanics, coalescing, validation, or personalization columns. If you already have rows and need to fill or transform columns, stop and use `enriching-and-researching.md`.
 
 ## Core rules
 
@@ -22,7 +22,7 @@ Subagent output contract:
 Search-to-enrichment handoff rules:
 
 - stop adding ad-hoc row-level scripts once you have a seed list
-- move per-column work into `deepline enrich --with ...`
+- move per-column work to a play per `enriching-and-researching.md`
 - keep lineage in-sheet with `_metadata`
 
 ## Company search providers (ROI order)
@@ -349,7 +349,7 @@ deepline tools execute serper_google_search --payload '{"query":"\"Jane Smith\" 
 | `crustdata_v2_job_search`                | Indexed job-listing discovery and hiring signals                                                             | company fields, title, location, job metadata                                                                     | dynamic                                     | Use company-domain or company-id filters. Coverage is thinner on smaller companies; use `employee_metrics.growth_6m_percent` first when available.                                   |
 | `crustdata_people_search`                | LinkedIn-oriented person discovery                                                                           | company domain, title keywords                                                                                    | ~1 cr                                       | —                                                                                                                                                                                    |
 | `exa_search`                             | Concept-driven company/people discovery, gap-filling                                                         | semantic query only (no ICP filters)                                                                              | ~5 cr with contents                         | Expect to discard 30-50%. `category:"company"` is incompatible with domain/text filters.                                                                                             |
-| `exa_people_search`                      | Contacts at small startups (<50 emp)                                                                         | query string                                                                                                      | ~1 cr/result                                | Returns structured entities. Use via `deepline enrich`.                                                                                                                              |
+| `exa_people_search`                      | Contacts at small startups (<50 emp)                                                                         | query string                                                                                                      | ~1 cr/result                                | Returns structured entities. Use via a custom play column.                                                                                                                              |
 | `exa_research`                           | Deep multi-source synthesis                                                                                  | outputSchema, multi-query                                                                                         | ~10 cr                                      | Slow. Use for research, not list building.                                                                                                                                           |
 | `dropleads_search_people`                | People discovery + segmentation with structured filters                                                      | job titles, seniority, headcount, geography, keywords                                                             | free                                        | Near-zero coverage for <50 emp startups. `keywords` must be split: `["GTM","Engineer"]` not `["GTM Engineer"]`.                                                                      |
 | `dropleads_get_lead_count`               | Sizing before full pull                                                                                      | same as search_people                                                                                             | free                                        | —                                                                                                                                                                                    |
@@ -427,7 +427,7 @@ Exa is a semantic web index -- it finds pages by meaning, not just keywords.
 deepline tools execute exa_search --payload '{"query":"GTM engineer job opening at Y Combinator startup","numResults":15,"type":"neural","includeDomains":["ycombinator.com"],"contents":{"highlights":{"numSentences":2,"highlightsPerUrl":1}}}'
 ```
 
-**Tool selection:** `exa_search` (general-purpose, start here), `exa_company_search` (category:"company" shorthand), `exa_people_search` (structured person entities via `deepline enrich`), `exa_answer` (fact-checking only, low recall), `exa_research` (deep multi-source, supports `outputSchema`).
+**Tool selection:** `exa_search` (general-purpose, start here), `exa_company_search` (category:"company" shorthand), `exa_people_search` (structured person entities, best as a play column), `exa_answer` (fact-checking only, low recall), `exa_research` (deep multi-source, supports `outputSchema`).
 
 ```bash
 # Concept-based company search (category OK here)
