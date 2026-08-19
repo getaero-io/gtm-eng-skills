@@ -201,10 +201,14 @@ How to add one to a play, using the example above:
    `id[("a dataset")]`, `id[["a child play"]]`. Wrap per-row work in a
    `subgraph` connected to its dataset and it renders as the loop.
 2. **Bind each box to the statement that runs it** with `// @mermaid-node <id>
-   out:"<what it produces>"` directly above that statement — the assigned
-   const for a dataset, the column name for a `withColumn`, `out:"$output"`
-   once on the return. A bound box is alive in the dashboard: click it and it
-   answers with live status, run values, and per-row traces.
+   out:"<identifier>"` directly above that statement. `out:` is code, not
+   prose: the exact assigned const name for a dataset (`out:"result"`), the
+   column name for a `withColumn`, `out:"$output"` once on the return —
+   comma-separated identifiers or property paths only. The human words go in
+   the box label in the drawing (`search["Find B2B SaaS companies"]`), never
+   in `out:` (`out:"raw companies"` is rejected). A bound box is alive in the
+   dashboard: click it and it answers with live status, run values, and
+   per-row traces.
 3. **A box no single statement runs** (the route lives in another module, or
    inside a loop) gets declared instead of bound: add it to a `class a,b
    sketch` line. It draws dashed and its panel says it's a sketch — honest
