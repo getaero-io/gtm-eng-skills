@@ -200,10 +200,10 @@ Expected: +80-100 net new.
 After building initial hierarchy, identify gaps (e.g., "5 Sales Directors but no VP Sales"):
 
 ```bash
-deepline tools execute peopledatalabs_person_search --payload '{"size":30,"sql":"SELECT * FROM person WHERE job_company_website = \"DOMAIN\" AND (job_title_levels = \"cxo\" OR job_title_levels = \"vp\")"}'
+deepline tools execute peopledatalabs_person_search --payload '{"size":5,"query":{"bool":{"filter":[{"term":{"job_company_website":"DOMAIN"}},{"terms":{"job_title_levels":["cxo","vp"]}},{"exists":{"field":"linkedin_url"}}]}}}'
 ```
 
-Pull CXO+VP only, then dedupe. Keep this surgical so the user does not pay for broad duplicate coverage.
+Pull at most five CXO+VP profiles, then dedupe. Fetch another small page only if the specific hierarchy gap remains. PDL bills every returned profile, so a broad page followed by deduplication still spends credits on duplicates.
 
 Merge all results, deduplicate by slugified name.
 
