@@ -224,10 +224,11 @@ export default definePlay(
   },
   {
     webhook: {
-      hmac: {
-        secretEnv: 'HUBSPOT_WEBHOOK_SECRET',
-        header: 'x-hubspot-signature-v3',
-        algorithm: 'sha256',
+      auth: {
+        type: 'standard-webhooks',
+        headerFamily: 'standard',
+        signingSecrets: ['INBOUND_RELAY_WEBHOOK_SECRET'],
+        toleranceSeconds: 300,
       },
     },
   },
