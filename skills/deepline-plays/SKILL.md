@@ -240,6 +240,10 @@ Change only these seams on the first pass:
 3. One heterogeneous challenger that can satisfy the same stage contract.
 4. The final row mapping.
 
+Keep the top-level `definePlay` description short and concrete. The UI shows it
+below the Play identifier. Catalog categories are derived from the registered
+tools used by the Play; do not author category metadata on the Play itself.
+
 The final mapping is the CSV contract. Use the field names the user asked for
 exactly: an internal `company_domain` claim can export as `domain`,
 `contact_title` as `title`, and `contact_linkedin` as `linkedin_url`. A useful

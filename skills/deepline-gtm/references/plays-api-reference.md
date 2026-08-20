@@ -292,6 +292,7 @@ while True:
 | `PATCH` | `/api/v2/notifications/:notificationId` | `updateNotification` | SDK-facing route. | `src/app/api/v2/notifications/[notificationId]/route.ts` |
 | `POST` | `/api/v2/notifications/:notificationId/test` | `testNotification` | SDK-facing route. | `src/app/api/v2/notifications/[notificationId]/test/route.ts` |
 | `GET` | `/api/v2/notifications/slack/channels` | `listNotificationChannels` | SDK-facing route. | `src/app/api/v2/notifications/slack/channels/route.ts` |
+| `POST` | `/api/v2/plays/:name/pin` | `setPlayPinned` | SDK-facing route. | `src/app/api/v2/plays/[name]/pin/route.ts` |
 | `POST` | `/api/v2/plays/:name/restore` | `restorePlay` | SDK-facing route. | `src/app/api/v2/plays/[name]/restore/route.ts` |
 | `DELETE` | `/api/v2/plays/:name/share` | `unpublishSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
 | `GET` | `/api/v2/plays/:name/share` | `getSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
@@ -321,6 +322,7 @@ These entries come from the compatible SDK/API change ledger and explain additiv
 
 | Change | Reason |
 |---|---|
+| `2026-08-play-catalog-metadata` | Adds POST /api/v2/plays/:name/pin plus the setPlayPinned SDK method and plays pin\|unpin CLI commands, and exposes derived canonical tool categories on Play catalog reads with an optional categories filter. These are additive catalog capa... |
 | `2026-08-play-run-input-replay` | Adds authenticated GET /api/v2/runs/:runId/input and POST /api/v2/runs/:runId/rerun routes, plus runs.input/getRunInput/runs.rerun/rerun SDK methods and deepline runs get --input / deepline runs rerun commands. These are additive capabil... |
 | `2026-07-sdk-enrich-compiler-source-imports` | Resolves shared enrich-plan compiler imports through TypeScript source paths so server-side MCP callers can reuse the same compiler without relying on built JavaScript artifacts. This is an internal build-resolution change: installed CLI... |
 | `2026-07-play-detached-runtime-progress` | Corrects the customer-visible status and CLI progress wording for a Play that is actively executing in a detached runtime receipt: it reports running rather than waiting, and identifies that execution state instead of incorrectly suggest... |
@@ -328,7 +330,6 @@ These entries come from the compatible SDK/API change ledger and explain additiv
 | `2026-07-play-cost-estimates` | Adds an opt-in include_cost_estimates query parameter and optional costEstimate response field to GET /api/v2/plays, and adds the same optional field to GET /api/v2/plays/:name/live. This is additive and backward compatible: route paths,... |
 | `2026-07-sdk-enrich-direct-tool-runtime-context` | Makes newly published deepline enrich generated plays type their legacy direct-tool helper against the existing DeeplinePlayRuntimeContext tools capability instead of an incompatible hand-written execute signature. This is a compatible l... |
 | `2026-07-sdk-enrich-no-ambient-pick` | Makes newly published deepline enrich generated plays pass the existing DeeplinePlayRuntimeContext directly to their direct-tool helper instead of relying on TypeScript's ambient Pick utility type. This is a compatible local generated-so... |
-| `2026-07-sdk-play-page-open-opt-in` | Makes newly published deepline plays run and enrich clients print the play page URL by default and require the new --open flag to launch a browser; the retired --no-open flag now fails loudly. The API contract is unchanged: route paths,... |
 
 ## Public Types
 
