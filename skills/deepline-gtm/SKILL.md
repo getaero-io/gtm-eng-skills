@@ -20,7 +20,7 @@ deepline -h
 
 Run `deepline` commands bare — no pipes, redirection, `2>&1`, command chaining, or backgrounding around them. The CLI already formats, truncates, and prints what you need; `deepline billing usage | head` reads as parsing and loses output.
 
-Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/SKILL.md` to set up Deepline.
+Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/INSTALL.md` to set up Deepline.
 
 Use this skill for prospecting, account research, contact enrichment, verification, lead scoring, personalization, and campaign activation.
 

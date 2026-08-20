@@ -16,6 +16,10 @@ deepline auth status
 deepline -h
 ```
 
+## CLI resolution
+
+Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/INSTALL.md` to set up Deepline.
+
 Improve a Play through one loop:
 
 ```text

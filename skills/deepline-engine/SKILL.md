@@ -17,6 +17,10 @@ deepline auth status
 deepline -h
 ```
 
+## CLI resolution
+
+Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/INSTALL.md` to set up Deepline.
+
 Build an engine from the state machine the user defines.
 
 An engine is an orchestrator Deepline Play that accepts an input, determines its state, calls the transition Play for that state, and produces a new state. The durable data plane lives in Customer DB: every state has an input table and an output table. The output of one transition can become the input to the next state.
