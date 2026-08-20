@@ -313,6 +313,14 @@ New artifacts pin authoring contract edition 3. Check, publish, and run use the 
 | `ctx.fetch.init.method` | `string` | No | HTTP method. Mutating methods require an Idempotency-Key. |
 | `ctx.fetch.init.headers.Idempotency-Key` | `string` | No | Required for mutating HTTP methods to make replay safe. |
 
+### Durable call keys are static
+
+Durable call keys — the ctx.fetch key, the ctx.dataset key, the ctx.step id — must be static string literals. The key names a durable receipt, so check, publish, and replay have to agree on it before the body runs. A key computed at runtime cannot be resolved at check time and is rejected.
+
+This is an architectural constraint, not a style rule. A play cannot loop over a computed key, so it cannot page a large table with a helper like page(pageNumber). Unrolling one literal key per page is not a design at any real page count.
+
+Push the aggregation server-side and call it once: a SQL function, a view, or a provider endpoint that returns the whole result. Keep unrolled literal keys only for a handful of genuinely distinct calls. To fan out over rows, use ctx.dataset with a static key — the per-row receipt identity comes from the row, not from the key.
+
 ### Durable HTTP batches
 
 A static ctx.fetch key inside a loop is a warning because every iteration must still have distinct method, URL, body, or safe headers. One durable receipt must never stand in for every request.
@@ -407,7 +415,7 @@ Signature: `export function definePlay<TInput, TOutput extends PlayReturnObject>
 |---|---|---:|---|
 | `name` | `string` | Yes | Play name. |
 | `fn` | `(ctx: DeeplinePlayRuntimeContext, input: TInput) => Promise<TOutput>` | Yes | Play function. |
-| `bindings` | `PlayBindings` | No | Trigger bindings. |
+| `bindings` | [`PlayBindings`](#playbindings) | No | Trigger bindings. |
 
 #### Returns
 
@@ -455,11 +463,11 @@ Signature: `csv<T = Record<string, unknown>>( path: string | CsvInput<T & object
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `path` | `string \| CsvInput<T & object>` | Yes |  |
-| `options` | `CsvOptions` | No |  |
+| `options` | [`CsvOptions`](#csvoptions) | No |  |
 
 #### Returns
 
-`Promise<PlayDataset<T>>`
+`Promise<PlayDataset<T>>` — see [`PlayDataset`](#playdataset)
 
 
 ### `CsvOptions`
@@ -555,7 +563,7 @@ run( options?: DatasetRunOptions<InputRow>, ): Promise<PlayDataset<OutputRow>>;
 
 #### Run Returns
 
-`Promise<PlayDataset<OutputRow>>`
+`Promise<PlayDataset<OutputRow>>` — see [`PlayDataset`](#playdataset)
 
 Execute the row-column program and return a durable dataset handle.
 `upsert` preserves row-by-row enrichment. `net_new` admits and returns only
@@ -672,7 +680,7 @@ Signature: `execute<TOutput = PlayLooseObject>( request: PlayToolExecutionReques
 
 #### Returns
 
-`Promise<ToolExecuteResult<TOutput>>`
+`Promise<ToolExecuteResult<TOutput>>` — see [`ToolExecuteResult`](#toolexecuteresult)
 
 
 ### `ToolExecutionRequest`
@@ -691,19 +699,121 @@ Signature: `export type ToolExecutionRequest = PlayToolExecutionRequest;`
 
 Execute a durable, replay-safe HTTP request.
 
-Signature: `fetch( key: string, url: string | URL, init?: PlaySecretAwareRequestInit, options?: FetchOptions, ): Promise<PlayFetchResponse>;`
+Signature: `fetch( key: string, url: string | URL, init?: SecretAwareRequestInit, options?: FetchOptions, ): Promise<PlayFetchResponse>;`
 #### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `key` | `string` | Yes |  |
 | `url` | `string \| URL` | Yes |  |
-| `init` | `PlaySecretAwareRequestInit` | No |  |
+| `init` | [`SecretAwareRequestInit`](#secretawarerequestinit) | No |  |
 | `options` | `FetchOptions` | No |  |
 
 #### Returns
 
-`Promise<PlayFetchResponse>`
+`Promise<PlayFetchResponse>` — see [`PlayFetchResponse`](#playfetchresponse)
+
+
+### `ctx.secrets.get(name)`
+
+Reference a workspace secret by name without reading its value. This is the only supported way to authenticate an outbound request from a Play: `process.env.X` is rejected at check time because an env read puts the raw value in a play variable, where it can reach a log line or a replay artifact. A handle cannot — pass it to `bearer` or `header` and the runtime resolves it only while attaching the header. Names are uppercased; manage stored values with `deepline secrets set` / `deepline secrets list`.
+
+Signature: `get(name: string): SecretHandle;`
+#### Parameters
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `name` | `string` | Yes |  |
+
+#### Returns
+
+`SecretHandle` — see [`SecretHandle`](#secrethandle)
+
+
+### `ctx.secrets.bearer(secret)`
+
+Send the secret as `Authorization: Bearer <value>`.
+
+Signature: `bearer(secret: SecretHandle): SecretAuth;`
+#### Parameters
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `secret` | [`SecretHandle`](#secrethandle) | Yes |  |
+
+#### Returns
+
+`SecretAuth` — see [`SecretAuth`](#secretauth)
+
+
+### `ctx.secrets.header(header, secret)`
+
+Send the secret as a named header, for APIs that do not use bearer tokens — `x-api-key`, `apikey`, `private-token`, and similar.
+
+Signature: `header(header: string, secret: SecretHandle): SecretAuth;`
+#### Parameters
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `header` | `string` | Yes |  |
+| `secret` | [`SecretHandle`](#secrethandle) | Yes |  |
+
+#### Returns
+
+`SecretAuth` — see [`SecretAuth`](#secretauth)
+
+
+### `SecretAwareRequestInit`
+
+The `init` accepted by `ctx.fetch`. Same shape as `RequestInit` plus `auth`.
+
+#### Fields
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `headers` | `HeadersInit` | No | Ordinary request headers, recorded in the durable receipt. Never interpolate a secret value here — use `auth`. |
+| `auth` | `SecretAuth` | No | The single authenticated header for this request. One value, not a list: exactly one `ctx.secrets` auth attaches per `ctx.fetch`. An API wanting two credentialed headers at once — Supabase with both `apikey` and `Authorization` — cannot express both. Put the must-stay-secret credential in `auth`; pass a genuinely non-secret second value in `headers`. If both are secret, the request needs a server-side proxy holding one of them. |
+
+
+### `PlayFetchResponse`
+
+The value `ctx.fetch(...)` resolves to: a plain durable record, not a WHATWG `Response`. The body is read once at request time so the call can be checkpointed and replayed, so `bodyText` and `json` are already-materialized properties. There is no `.json()`, `.text()`, or `.body` to await — `await res.json()` is a type error, not a typing problem.
+
+#### Fields
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `ok` | `boolean` | Yes | True when the response status is in the 2xx range. |
+| `status` | `number` | Yes | HTTP status code as returned by the upstream server. |
+| `statusText` | `string` | Yes | HTTP status text as returned by the upstream server. |
+| `url` | `string` | Yes | Final response URL after any redirects. |
+| `headers` | `Record<string, string>` | Yes | Response headers, lowercased, with any known secret values redacted. |
+| `bodyText` | `string` | Yes | Full response body as text, with any known secret values redacted. |
+| `json` | `unknown \| null` | Yes | The parsed body, eagerly decoded at request time. Read it as a property — `const body = res.json`, never `await res.json()`. Null when the body is empty AND when it is not valid JSON: a malformed payload is reported as null rather than thrown, so check `res.ok` and fall back to `res.bodyText` before treating null as an empty result. |
+
+
+### `SecretHandle`
+
+An opaque reference to a workspace secret, returned by `ctx.secrets.get`. The handle never carries the value into play code: it stringifies to `[secret:NAME]` and throws on `JSON.stringify`, so a secret cannot reach a play variable, a log line, a dataset cell, or a replay artifact even by accident. Only the runtime resolves it, at the moment it attaches the request header.
+
+#### Fields
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `name` | `string` | Yes | Name of the workspace secret, uppercased. Never its value. |
+
+
+### `SecretAuth`
+
+One resolved authentication scheme, built by `ctx.secrets.bearer` or `ctx.secrets.header` and attached to a request through `init.auth`.
+
+#### Fields
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `kind` | `'bearer' \| 'header'` | Yes | `bearer` sends `Authorization: Bearer <value>`; `header` sends a named header. |
+| `secret` | `SecretHandle` | Yes | The handle whose value the runtime attaches. |
+| `header` | `string` | No | Header name, set only when `kind` is `header`. |
 
 
 ### `ctx.runSteps(program, input, options)`
@@ -879,7 +989,11 @@ Deepline creates these values while decoding the versioned wire payload.
 Customer code normally reads `ToolExecutionError` fields instead of
 constructing an error.
 
-Signature: `export type ToolExecutionErrorOptions = Omit< ToolExecutionFailureV1, 'schemaVersion' > & { details?: Record<string, unknown>; };`
+#### Fields
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `details` | `Record<string, unknown>` | No | Local diagnostic context inherited from DeeplineError. This is not part of<br />the portable failure payload and is intentionally omitted by serialization. |
 
 
 ### `ToolExecutionError`

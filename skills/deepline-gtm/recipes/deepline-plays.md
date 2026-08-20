@@ -133,7 +133,7 @@ Authoring rules:
 
 - Prefer typed inline input. Import validators only if generated refs or bootstrap output prove they exist.
 - Use `ctx.csv`, `ctx.dataset`, `ctx.tools.execute`, `ctx.runPlay`, `ctx.step`, `ctx.fetch`, and `ctx.secrets`.
-- Do not use local `fs`, raw `fetch`, shell commands, env reads, `Date.now`, or `Math.random` inside play bodies; replay can re-run the body and corrupt state.
+- Do not use local `fs`, raw `fetch`, shell commands, env reads, `Date.now`, or `Math.random` inside play bodies; replay can re-run the body and corrupt state. For credentials use `ctx.secrets`, never `process.env` — see External HTTP And Secrets below.
 - Use stable ids for paid work. Rename ids only to refresh wrong/stale provider data or changed semantics.
 - Prefer one paid operation per dataset cell. Put shaping, projection, `status`, `miss_reason`, display fields, and transformations in separate pure columns after the paid column.
 - For recurring sourcing, use `.run({ key: 'domain', mode: 'net_new' })` on the candidate table. It atomically returns only previously unseen domains; ordinary `upsert` reruns return known rows too. This cannot suppress rows at a provider before that provider returns them.
@@ -185,6 +185,67 @@ export default definePlay(
   { description: 'Probe each account domain and flag success.' },
 );
 ```
+
+### External HTTP And Secrets
+
+A play reaches a non-Deepline API with `ctx.fetch`, and authenticates it with
+`ctx.secrets`. `process.env.X` is rejected by `plays check`: an env read puts
+the raw value in a play variable, where it can reach a log line or a replay
+artifact. A secret handle cannot — it stringifies to `[secret:NAME]`, throws on
+`JSON.stringify`, and is resolved only by the runtime while it attaches the
+header.
+
+```ts
+import { definePlay } from 'deepline';
+
+export default definePlay(
+  'campaign-name-sync',
+  async (ctx) => {
+    const res = await ctx.fetch(
+      'list-campaigns',
+      'https://api.instantly.ai/api/v2/campaigns',
+      { auth: ctx.secrets.bearer(ctx.secrets.get('INSTANTLY_API_KEY')) },
+    );
+    if (!res.ok) {
+      throw new Error(`Instantly returned ${res.status}: ${res.bodyText}`);
+    }
+    const body = res.json as { items?: Array<{ name: string }> } | null;
+    return { names: (body?.items ?? []).map((item) => item.name) };
+  },
+  { description: 'Read campaign names from Instantly with a workspace secret.' },
+);
+```
+
+**Durable call keys must be static string literals.** The `ctx.fetch` key, the
+`ctx.dataset` key, and the `ctx.step` id all name a durable receipt, so check,
+publish, and replay have to agree on them before the body runs. A computed key
+fails check with `ctx.fetch key must be a non-empty static string. The value
+could not be resolved statically.`
+
+Plan around it before you write the play, because it decides the shape:
+
+- A play **cannot page a large table**. `for (const p of pages) ctx.fetch(key(p), ...)`
+  does not compile, and unrolling 149 literal keys is not a design.
+- Instead **push the aggregation server-side and call it once** — a SQL
+  function, a view, or a provider endpoint that returns the whole result. This
+  is usually the better architecture anyway: one durable call, one receipt.
+- To fan out over rows, use `ctx.dataset` with a static key. Per-row receipt
+  identity comes from the row, not from the key — that is the supported way to
+  do N-of-something.
+
+Three more things that cost people iterations:
+
+- `res.json` is a **property**, not a method. The body is read once at request
+  time so the call can be checkpointed and replayed, so `await res.json()` is a
+  type error. It is `null` both when the body is empty and when it is not valid
+  JSON, so check `res.ok` and fall back to `res.bodyText`.
+- Exactly **one** auth attaches per `ctx.fetch`. `init.auth` is a single value,
+  not a list. An API wanting two credentialed headers at once (Supabase with
+  both `apikey` and `Authorization`) cannot express both. Put the must-stay-secret
+  credential in `auth`; pass a genuinely non-secret second value in `headers`.
+- Manage stored values with `deepline secrets set` / `deepline secrets list`.
+  Names are uppercased. Declare them in `bindings.secrets` when the play needs
+  them present at publish time.
 
 ### The `@mermaid` block is the play's UI
 
