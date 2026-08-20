@@ -63,6 +63,16 @@ or job-change delivery.
 Do not present a company monitor as person monitoring, or a people lookup as
 proof that a company signal will arrive.
 
+### Define a high-signal hit
+
+A hit is useful only when it is in the approved company or person scope, recent,
+matches the chosen provider filter, and gives the team a specific next action.
+The result table must make those facts visible.
+
+Use only filters in the live `payload_schema`. Its output columns are what a
+Play can test. Do not infer a title, seniority, or role filter from another
+radar.
+
 ## Historical scouting and batch rollout
 
 There is no separate search product or `tail` command. Read the existing monitor
@@ -143,9 +153,9 @@ When rows arrive, show a small safe sample as a decision table:
 | <company/person> | <event> | <filter evidence> | <date> | <keep/refine/stop> |
 
 After the table, ask whether the filters match what the customer considers a
-useful signal. Recommend the next adjustment yourself: tighten title, role,
-seniority, or domain/person scope when the sample is noisy; preserve a working
-filter when the sample is on-target.
+useful signal. Recommend one supported filter adjustment: tighten title, role,
+seniority, or domain/person scope only when the live schema exposes it. Preserve
+a working filter when the sample is on-target.
 
 When the customer approves the bounded calibration, own the iteration: change
 one filter at a time, re-check live price, verify the stored definition, and run
@@ -188,9 +198,11 @@ Before any lifecycle mutation:
 4. State whether the mutation adds rows, stops rows, or changes incoming rows;
    name the live `pricing.display` and `charge_timing`.
 
-Reuse a monitor with the same tool and scope. Use a Play filter for narrower
-downstream behavior. Reactivate a disabled matching monitor instead of creating
-another one.
+Reuse a monitor with the same tool and scope. For noisy or event-priced signals,
+use a provider payload filter to prevent unwanted events from being ingested.
+Use `sqlListeners.where` only to decide which ingested rows wake a Play; it does
+not reduce ingestion or event charges. Reactivate a disabled matching monitor
+instead of creating another one.
 
 Choose the narrowest provider filter that meets the stated use case. A broad
 monitor is appropriate only for stated reuse and carries more event exposure.
