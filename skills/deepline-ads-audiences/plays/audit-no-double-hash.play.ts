@@ -88,4 +88,8 @@ export default definePlay(
       double_hashed_provider_hashes: 0,
     };
   },
+  {
+    description:
+      'Verify a paid-ads upload payload is hash-only, deduped, and free of hash-of-hash mistakes before it reaches a platform.',
+  },
 );

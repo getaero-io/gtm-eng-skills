@@ -425,4 +425,8 @@ export default definePlay(
       evaluated_rows: evaluated,
     };
   },
+  {
+    description:
+      'Compare personal-email providers on the same contact sample, reporting hit rate, unique hashes added, and Deepline spend.',
+  },
 );

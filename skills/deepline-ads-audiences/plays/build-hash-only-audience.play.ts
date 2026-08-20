@@ -187,4 +187,8 @@ export default definePlay(
       unique_hash_lift: enrichedAudit.outputRows - baselineAudit.outputRows,
     };
   },
+  {
+    description:
+      'Build a validated hash-only paid-ads upload file from contact rows, normalizing and hashing identifiers exactly once.',
+  },
 );

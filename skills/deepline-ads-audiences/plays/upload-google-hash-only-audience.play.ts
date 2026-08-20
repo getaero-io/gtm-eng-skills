@@ -41,9 +41,12 @@ export default definePlay(
       tool: 'google_ads_audiences_create_audience',
       input: {
         account_id: input.account_id,
-        login_account_id: input.login_account_id,
+        // Only send login_account_id when the caller supplied one; the tool
+        // rejects an explicit undefined, and it is only needed for MCC access.
+        ...(input.login_account_id
+          ? { login_account_id: input.login_account_id }
+          : {}),
         name: input.audience_name,
-        description: input.description,
         membership_life_span_days: 540,
         membership_status: 'OPEN',
         upload_key_types: ['CONTACT_ID'],
@@ -65,7 +68,9 @@ export default definePlay(
       tool: 'google_ads_audiences_sync_audience_members',
       input: {
         account_id: input.account_id,
-        login_account_id: input.login_account_id,
+        ...(input.login_account_id
+          ? { login_account_id: input.login_account_id }
+          : {}),
         audience_id: audienceId,
         mode: 'append',
         rows,
@@ -85,7 +90,9 @@ export default definePlay(
       tool: 'google_ads_audiences_get_audience_status',
       input: {
         account_id: input.account_id,
-        login_account_id: input.login_account_id,
+        ...(input.login_account_id
+          ? { login_account_id: input.login_account_id }
+          : {}),
         audience_id: audienceId,
       },
       description: 'Read back Google audience status after upload.',
@@ -99,5 +106,9 @@ export default definePlay(
       sync_result: syncResult,
       status_result: statusResult,
     };
+  },
+  {
+    description:
+      'Create a Google Customer Match audience, upload hash-only rows, and read the resulting status back.',
   },
 );

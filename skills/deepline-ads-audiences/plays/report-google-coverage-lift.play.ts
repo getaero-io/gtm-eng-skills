@@ -234,7 +234,7 @@ export default definePlay(
     const best = bestRow(rows);
     const spendTotal = totalSpend(input.spend);
     const reportRows = await ctx
-      .dataset('google_coverage_lift_report', rows)
+      .dataset('coverage_lift', rows)
       .run({ description: 'Google Ads audience match-rate lift report.' });
 
     return {
@@ -251,5 +251,9 @@ export default definePlay(
       report_rows: reportRows,
       follow_up_message: buildMessage(input, rows),
     };
+  },
+  {
+    description:
+      'Calculate Google Customer Match coverage lift, estimated matched identifiers, and spend efficiency against a baseline audience.',
   },
 );

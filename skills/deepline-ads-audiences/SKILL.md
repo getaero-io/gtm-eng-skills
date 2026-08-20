@@ -47,8 +47,11 @@ This skill is not for cold outbound, sequencing, or copywriting. Personal emails
 | "what is a hash", "why is my match rate low", first-time user          | Explain the mechanic before quoting a plan.                      | `shared/audience-basics.md`                               |
 | "Make sure hashes are not double hashed"                              | Run the no-double-hash audit play before upload.                 | `plays/audit-no-double-hash.play.ts`                      |
 | "enrich this list", "buy personal emails/hashes", "run the ladder"     | Run the waterfall. Each layer only sees rows still missing a hash. | `plays/enrich-audience-waterfall.play.ts`                 |
-| "Compare enriched versus unenriched"                                  | Build both hash-only datasets and report lift.                   | `plays/enrich-audience-waterfall.play.ts`                 | Run the personal-identifier ladder as a true waterfall: each layer only sees rows still missing a hash, and ContactOut runs as a bulk pass beside it. Reports attempted, hits, and skipped per layer. | `{ "file": "contacts.csv", "includeContactOut": true, "includeRawEmailFallback": false }`                                                                                  |
-| `plays/build-hash-only-audience.play.ts`                  |
+| "Compare enriched versus unenriched"                                  | Build both hash-only datasets and report lift.                   | `plays/enrich-audience-waterfall.play.ts`                 |
+| "include phone numbers", "add phones"                                 | Hash existing phones digits-only with country code.              | `shared/upload-failure-modes.md`                          |
+| "what was the match rate", "did it match"                             | Read `contactIdInfo.matchRatePercentage`, not the range enum.     | `shared/upload-failure-modes.md`                          |
+| "put it in a sheet", "customer will upload"                           | Publish the validated file to Sheets; verify by row count.       | `shared/upload-failure-modes.md`                          |
+| "upload keeps failing", "422", "audience is locked"                   | Meta locks on write. Send the audience in one call.              | `shared/upload-failure-modes.md`                          |
 | "Upload to Google"                                                    | Validate hash-only rows, create Google audience, sync, readback. | `plays/upload-google-hash-only-audience.play.ts`          |
 | "Upload to Facebook and Google", "upload to FB/Google", "Meta + GAds" | Validate once, then upload to Google and Meta.                   | `plays/upload-facebook-google-hash-only-audience.play.ts` |
 
@@ -213,6 +216,40 @@ ContactOut converts LinkedIn URLs straight into hashed emails, but it does not w
 
 → Read `shared/contactout-hash-pool.md` before planning or running a pass. It covers why attribution cannot be recovered, the measured overlap and multi-address rates, and the Meta result.
 
+### A work email is not a personal hash
+
+Scope the waterfall on whether a row has a usable personal identifier, not on
+whether it has any email. A work-email-only contact must run through every layer;
+a work email is the L0 baseline.
+
+The same mistake hides inside a `personal_email` column. In one run 151 rows held
+a corporate address there, and each one exempted a contact from enrichment.
+Re-running only those rows hit 64.9%, against 27.5% on the main pass, for 4.23
+USD. Check the domain, not the column name.
+
+### Order the ladder by what a miss costs
+
+Two providers at similar prices are not equivalent, because they bill differently
+on a miss:
+
+| Billing | Providers | Consequence |
+| --- | --- | --- |
+| Per call, hit or miss | LimaData, Aviato | Every attempted row costs the same |
+| Per result or match | LeadMagic, ContactOut | Misses are free, so they suit a thin remainder |
+
+Measured on one 5,549-row list, cheapest first:
+
+| Layer | Attempted | Hit rate | Spend |
+| --- | --- | --- | --- |
+| LimaData | 1,775 | 27.5% | 49.70 USD |
+| LimaData, corporate-personal redo | 151 | 64.9% | 4.23 USD |
+| ContactOut bulk | 1,772 | 53.0% | 52.64 USD |
+| LeadMagic | 1,285 | 5.4% | 4.76 USD |
+
+Run the cheapest per-call provider first so it absorbs the easy hits. A low hit
+rate on the remainder means the pool is exhausted: LeadMagic cost 4.76 USD to
+establish that, where a per-call provider bills the same for the same answer.
+
 Stop after the hash providers by default. Report attempted rows, row hits, unique hashes added, contacts still missing personal hashes, and Deepline spend. Then ask whether the user wants to spend more on broader raw personal-email providers, quoting the current per-contact cost from `deepline tools describe <tool_id> --json` rather than a remembered figure. Rates change, and a stale quote in an approval gate is how users end up agreeing to a number that no longer holds.
 
 Only run the expanded coverage pass after explicit approval. In that pass, try providers such as LeadMagic, ContactOut, Wiza, Datagma, Crustdata, Prospeo, FullEnrich, PDL, or Deepline native personal-email waterfalls on rows still missing personal hashes. Normalize and SHA-256 hash raw personal emails exactly once, record provider-level lift and Deepline spend, and keep the default upload payload hash-only.
@@ -292,6 +329,29 @@ Valid upload row fields include:
 
 Prefer `email_sha256` when a provider returns a paid-ads-ready hash. Provider hashes must pass through exactly as lowercase 64-character hex. Do not double-hash provider hashes.
 
+### Standard upload file shape
+
+Use one shape for every run, so the audit, the Sheets export and both platform
+uploads read the same file:
+
+```
+email,phone,fn,ln,country
+```
+
+- `email` and `phone` hold 64-character lowercase SHA-256 digests, or nothing.
+- Every row carries at least one of the two. Drop rows with neither.
+- `fn` and `ln` are lowercase `a-z` only. `country` is a two-letter code.
+- Keep a parallel `..._lineage.csv` with a `source` column naming the layer that
+  produced each hash.
+
+Blank cells are deliberate: a ContactOut-pool row has no name, a phone-only row
+has no email.
+
+Before uploading, assert that each column holds one identifier type and that no
+value is the SHA-256 of another value in the file. Both failures upload cleanly
+and match nothing.
+→ Read `shared/upload-failure-modes.md`.
+
 When a provider returns raw personal email:
 
 1. Trim whitespace.
@@ -334,7 +394,28 @@ deepline tools execute linkedin_ads_audiences_sync_audience_members --payload '{
 
 Use `append` for Google when uploading into a newly created empty audience if `replace` returns provider-side Data Manager payload errors. Report that clearly because it indicates connector behavior that should be fixed.
 
+### Upload the whole audience in one call
+
+Meta locks an audience on write and rejects later writes with HTTP 422 until
+ingestion finishes, so a batched loop leaves the audience holding part of the
+list. Send every row in one `sync_audience_members` call, and pass the payload as
+`--payload @file.json` because inline JSON exceeds the shell argument limit.
+
+Omit blank string fields rather than sending `""`; the schema declares
+`minLength: 1` and an empty value fails the whole batch.
+→ Read `shared/upload-failure-modes.md`.
+
 ## Step 6: Verify and Report
+
+Read Google's match rate from
+`ingestedUserListInfo.contactIdInfo.matchRatePercentage`. The `matchRateRange`
+enum beside it stays unset, so reading the enum alone reports `null` for an
+audience with a real rate, and a report that renders `null` as 0% turns a good
+run into an apparent failure. Meta exposes no per-audience match rate.
+
+`uploaded_count` and `invalid_count` describe whether rows parsed, not whether
+people matched. Report acceptance and match rate separately.
+→ Read `shared/upload-failure-modes.md`.
 
 Run status checks after upload:
 

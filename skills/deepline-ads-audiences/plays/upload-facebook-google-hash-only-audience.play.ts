@@ -24,6 +24,11 @@ export default definePlay(
     const sourceDataset = await ctx.csv<HashOnlyRow>(input.file);
     const sourceRows = (await sourceDataset.materialize()) as HashOnlyRow[];
     const { rows, audit } = prepareHashOnlyUploadRows(sourceRows);
+    // Narrow the optional ids once. Each platform branch only runs when its id
+    // is present, but the tool payloads require a string, not string|undefined.
+    const googleAccountId = input.google_account_id ?? '';
+    const metaAdAccountId = input.meta_ad_account_id ?? '';
+    const metaAudienceId = input.meta_audience_id ?? '';
 
     if (
       rows.length === 0 ||
@@ -52,10 +57,11 @@ export default definePlay(
               id: 'create_google_audience',
               tool: 'google_ads_audiences_create_audience',
               input: {
-                account_id: input.google_account_id,
-                login_account_id: input.google_login_account_id,
+                account_id: googleAccountId,
+                ...(input.google_login_account_id
+                  ? { login_account_id: input.google_login_account_id }
+                  : {}),
                 name: input.audience_name,
-                description: input.description,
                 membership_life_span_days: 540,
                 membership_status: 'OPEN',
                 upload_key_types: ['CONTACT_ID'],
@@ -76,8 +82,10 @@ export default definePlay(
               id: 'sync_google_audience_members',
               tool: 'google_ads_audiences_sync_audience_members',
               input: {
-                account_id: input.google_account_id,
-                login_account_id: input.google_login_account_id,
+                account_id: googleAccountId,
+                ...(input.google_login_account_id
+                  ? { login_account_id: input.google_login_account_id }
+                  : {}),
                 audience_id: audienceId,
                 mode: 'append',
                 rows,
@@ -95,8 +103,10 @@ export default definePlay(
               id: 'get_google_audience_status',
               tool: 'google_ads_audiences_get_audience_status',
               input: {
-                account_id: input.google_account_id,
-                login_account_id: input.google_login_account_id,
+                account_id: googleAccountId,
+                ...(input.google_login_account_id
+                  ? { login_account_id: input.google_login_account_id }
+                  : {}),
                 audience_id: audienceId,
               },
               description: 'Read back Google audience status after upload.',
@@ -122,8 +132,8 @@ export default definePlay(
               id: 'sync_meta_audience_members',
               tool: 'meta_audiences_sync_audience_members',
               input: {
-                ad_account_id: input.meta_ad_account_id,
-                audience_id: input.meta_audience_id,
+                ad_account_id: metaAdAccountId,
+                audience_id: metaAudienceId,
                 mode: 'replace',
                 rows,
               },
@@ -131,7 +141,7 @@ export default definePlay(
                 'Upload hash-only audience members to an existing Meta Custom Audience.',
             });
             return {
-              audience_id: input.meta_audience_id,
+              audience_id: metaAudienceId,
               sync_result: syncResult,
             };
           })()
@@ -143,5 +153,9 @@ export default definePlay(
       google,
       meta,
     };
+  },
+  {
+    description:
+      'Upload the same validated hash-only rows to a Google Customer Match audience and an existing Meta Custom Audience.',
   },
 );

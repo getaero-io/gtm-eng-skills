@@ -109,4 +109,8 @@ export default definePlay(
       evaluated_rows: evaluated,
     };
   },
+  {
+    description:
+      'Measure LeadMagic personal-email coverage and cost per hit on a sample of contacts before committing to a full run.',
+  },
 );
