@@ -249,43 +249,32 @@ Three more things that cost people iterations:
 
 ### The `@mermaid` block is the play's UI
 
-That comment block above the imports is what the dashboard draws for this play
-— every box, edge, region, and label, in your words; nothing is auto-added. So
-when the user asks to change how a play looks on its canvas — rename a box,
-group steps into a loop, show a decision — you are being asked to edit this
-block. Edit it, run `deepline plays check`, republish. That's the whole flow.
+The block is what the dashboard draws for this play. "Change how the play
+looks" = edit the block, `deepline plays check`, republish.
 
-How to add one to a play, using the example above:
+Rules, using the example above:
 
-1. **Draw the flow** in a `/** @mermaid <play-name> ... */` block above the
-   imports. Shapes say what things are: `id["a step"]`, `id{"a decision?"}`,
-   `id[("a dataset")]`, `id[["a child play"]]`. Wrap per-row work in a
-   `subgraph` connected to its dataset and it renders as the loop.
-2. **Bind each box to the statement that runs it** with `// @mermaid-node <id>
-   out:"<identifier>"` directly above that statement. `out:` is code, not
-   prose: the exact assigned const name for a dataset (`out:"result"`), the
-   column name for a `withColumn`, `out:"$output"` once on the return —
-   comma-separated identifiers or property paths only. The human words go in
-   the box label in the drawing (`search["Find B2B SaaS companies"]`), never
-   in `out:` (`out:"raw companies"` is rejected). A bound box is alive in the
-   dashboard: click it and it answers with live status, run values, and
-   per-row traces.
-3. **A box no single statement runs** (the route lives in another module, or
-   inside a loop) gets declared instead of bound: add it to a `class a,b
-   sketch` line. It draws dashed and its panel says it's a sketch — honest
-   scenery instead of looking misconfigured.
-4. **For a decision**, put `type:"decision"` on the diamond and `arm:"run"` on
-   the node its positive edge reaches; the sibling arm resolves itself. Each
-   dataset you run must be drawn, and each computed column either appears as a
-   loop member's `out:` or is declared away in `.run({ undrawnColumns:
-   [...] })`.
-5. **`deepline plays check` is your reviewer.** It names any box that points at
-   nothing and offers both exits (bind it, or declare it a sketch); it catches
-   a binding whose `out:` drifted from the statement; it rejects a diagram
-   that claims work the code doesn't do. Fix what it names and re-check.
-
-Rendering is account-gated beta — without access the block is an inert
-comment, so it's always safe to author.
+1. **One block per export.** Forked prebuilts carry two: `/** @mermaid scalar
+   */` and `/** @mermaid batch */`. Every line is a node, edge, `subgraph`, or
+   `class` — prose lines are errors. A `subgraph` wired to its dataset renders
+   as the loop. ~12 boxes max, labels under 48 chars, no counts in labels.
+2. **Shapes are cosmetic except two.** `{…}` = decision; `[[…]]` claims a
+   `ctx.runPlay` (error otherwise). Datasets come from `type:"dataset"` on
+   the annotation — required for every dataset you `.run()`.
+3. **Bind with `// @mermaid-node <id> out:"<identifier>"`** above the
+   statement. `out:` is code: the assigned const (`out:"result"`), the column
+   name inside a loop, `out:"$output"` on returns. Words go in the box label,
+   never in `out:` (`out:"raw companies"` is rejected). Also available:
+   `in:"row.domain"`, `label:"…"`.
+4. **A box no statement runs**: `class a,b sketch` (or `type:"conceptual"`).
+   Never sketch a subgraph id. Undrawn computed columns go in
+   `.run({ undrawnColumns: [...] })`.
+5. **Decisions**: unique label on every branch edge (`ok -->|found| next` —
+   unlabeled is an error), max 3 branches, `arm:"run"` on the `runIf` run
+   side.
+6. **`plays check` reviews all this — for docflow-gated accounts.** Ungated,
+   the block isn't validated yet: author it to these rules anyway; they're
+   exactly what check enforces.
 
 ### Provider fallthrough
 
