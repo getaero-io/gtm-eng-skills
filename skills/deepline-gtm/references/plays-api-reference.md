@@ -292,6 +292,7 @@ while True:
 | `PATCH` | `/api/v2/notifications/:notificationId` | `updateNotification` | SDK-facing route. | `src/app/api/v2/notifications/[notificationId]/route.ts` |
 | `POST` | `/api/v2/notifications/:notificationId/test` | `testNotification` | SDK-facing route. | `src/app/api/v2/notifications/[notificationId]/test/route.ts` |
 | `GET` | `/api/v2/notifications/slack/channels` | `listNotificationChannels` | SDK-facing route. | `src/app/api/v2/notifications/slack/channels/route.ts` |
+| `POST` | `/api/v2/plays/:name/restore` | `restorePlay` | SDK-facing route. | `src/app/api/v2/plays/[name]/restore/route.ts` |
 | `DELETE` | `/api/v2/plays/:name/share` | `unpublishSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
 | `GET` | `/api/v2/plays/:name/share` | `getSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
 | `PATCH` | `/api/v2/plays/:name/share` | `updateSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
