@@ -2,6 +2,55 @@
 
 Use the research kernel for known entities, account briefs, current signals,
 buyer language, customer examples, market maps, and claims needing evidence.
+This page is complete for that job.
+
+## 0. Compile a source plan when the ask starts as "what sources?"
+
+When the request names source families rather than a route, compile before
+binding tools. `plays/shared/source-plan.ts` turns objective, query type, source
+families, and extraction keys into stages; it does not claim a source exists.
+Search and describe the live catalog for every leg, then mark it native, generic
+route, private connector, or gap.
+
+```typescript
+import { compileSourcePlan } from './shared/source-plan';
+
+const plan = compileSourcePlan({
+  objective: 'Build a target-account dataset from public records.',
+  queryType: 'gtm_dataset',
+  sourceFamilies: ['web', 'reddit', 'x', 'github'],
+  extractionKeys: ['domains', 'dataset_or_api_names', 'company_names'],
+});
+```
+
+A private-only plan has no public discovery stage to mint an identity, so supply
+one stable input (`initialInputs: ['domain_or_account_key']`) instead of scanning
+a CRM broadly.
+
+| Compiled stage          | Author in the Play                                                             |
+| ----------------------- | ------------------------------------------------------------------------------ |
+| `public-fanout`         | parallel search/fetch routes with source URLs and source status                |
+| `artifact-resolution`   | canonical dataset/API URL, schema, parser, stable join key                     |
+| `identity-resolution`   | company/person/account identity gates before any private lookup                |
+| `private-join`          | authorized CRM, warehouse, workflow, or support lookup with private provenance |
+| `supplemental-gap-fill` | independent route for still-missing extraction keys only                       |
+| `terminal-extraction`   | one output row preserving every requested key and its evidence                 |
+
+Gates: a provider name never replaces a source family; no broad CRM/warehouse
+query before identity resolution; a chosen route may not drop extraction keys
+(preserve nulls and an explicit miss status); and an unconfirmed source is
+generic, private, or gap — never "native".
+
+Offline regression for the compiler itself:
+
+```bash
+bun .skills/deepline-plays/scripts/evaluate-source-plan-corpus.ts \
+  --corpus .skills/deepline-pre-research/evals/last30days-public-private-corpus.json \
+  --pre-research-planner .skills/deepline-pre-research/scripts/query_design.py
+```
+
+That checks planning only. Tool availability, adapters, coverage, and credit
+economics still need a live run.
 
 ## 1. Freeze the claim matrix
 
@@ -76,6 +125,31 @@ failed mechanism, not an acceptable source-coverage result.
 Do not rebuild fanout, fusion, ranking, coverage, or retry logic in the task
 Play. Do not add pilot/selection/exploit unless the actual job is comparing
 routes for a larger later run.
+
+When it is — `scripts/init-strategy-play.sh`, backed by
+`plays/shared/route-experiment.ts` — set the task controls explicitly rather than
+letting them default:
+
+```typescript
+const task = {
+  question: 'Return one verified answer for every input row.',
+  selectionUnit: 'row' as const, // 'item' for ranked discovery
+  selectionRequiresEligibility: true, // deterministic gates decide what ships
+  optimizationObjective: 'coverage_then_cost' as const,
+  minimumPilotRows: 3,
+  minimumRelevantRows: 2,
+  portfolioSize: 3,
+};
+```
+
+Selection is a small set-cover problem: with 2–8 candidates, evaluate every
+portfolio allowed by `portfolioSize` and the credit cap instead of trusting
+vendor intuition. Decide lexicographically — verified units covered, then
+estimated credits, then route count and latency, then task-fit score, then
+reliability, then source diversity as the tiebreak. A route that finds nothing
+new after cheaper routes are selected does not earn an exploit slot. For a ranked
+list the unit is `row + canonical item`; for one-answer enrichment it is the row
+regardless of candidate count; for claim research it is `row + claim`.
 
 ## 3. Broad discovery
 

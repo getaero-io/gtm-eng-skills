@@ -1,9 +1,35 @@
 # Enriching rows
 
 Row-shaped input, target columns to fill: emails, phones, LinkedIn, hydration,
-signals, evidence-backed research, and qualification. Seed lists come from
-`finding.md`; public research follows `researching.md`; outreach writing belongs
-in the dedicated outreach-writing skill.
+signals, evidence-backed research, and qualification. This page is complete for
+that job. Seed lists come from `finding.md`; public research follows
+`researching.md`; outreach writing belongs in the dedicated outreach-writing
+skill.
+
+## Pilot without lying to yourself
+
+One schema-probe row, then 3–5 stratified rows: easy, normal, sparse or niche,
+and collision-prone. The scaffold's `--input-csv` writes exactly that as
+`fixture.csv`. Run every candidate route on the same denominator.
+
+Count only terminal outputs that pass the task's gates: current employer and
+accepted title before a person counts; deliverability or line validity before
+contact coverage; attributable evidence before a research claim counts; a
+canonical dedup key before a discovery item counts. Ten candidates for the wrong
+company are zero covered rows, and raw response size is not coverage.
+
+Classify every attempt as retrieved, no-results, partial, rate-limited,
+auth-failed, unreachable, timeout, schema-drift, or error. Only retrieved and
+no-results belong in the coverage denominator — an adapter failure is not a
+source miss.
+
+Treat pilot and exploit as one budget. An **admission floor** is the minimum
+balance needed to launch a call, which is not the amount charged; take it from
+the live tool contract or the first excluded probe. Keep the pilot small enough
+that at least one viable route stays admissible for the full denominator. If the
+catalog exposes no floor, treat it as unknown rather than zero, probe the
+cheapest route before a high-fanout paid one, and request one terminal result per
+pilot row. The exploit denominator excludes rows the pilot already solved.
 
 ## Enriching rows
 
@@ -26,6 +52,27 @@ Route by the identifiers each row has:
 | existing `email`                                         | validation status + verdict | email verifier                                     | `deepline tools search "email verifier" --json` |
 | name, optional company                                   | LinkedIn profile URL        | name → LinkedIn URL waterfall                      | `deepline plays search linkedin --json`         |
 | row + ICP description                                    | tier / fit classification   | structured AI column with `jsonSchema`             | (see AI research)                               |
+
+## When the primary route misses
+
+A miss on one route is not a dead row — but a second route is a purchase, not a reflex. A property's coverage ceiling is the union of independent routes. Compare candidate rungs on the small common wave, then let the experiment invoke later rungs only for unresolved rows and claims. Field-measured:
+
+- **Mint a different identifier, then re-route.** The strongest escalation is resolving the person's LinkedIn URL and re-entering through the LinkedIn-based email pattern — it also catches stale employer data the original row carried. But bolt on a **hard identity gate**: the resolved profile's employer or geography must corroborate the row, not just the name. Name-only matching on common names confidently returns strangers' emails — a wrong-identity email is worse than a miss, and the reliable tell is an email domain that disagrees with the person's known employer.
+- **Check the registry when the vertical has one** (healthcare NPI/NPPES, clinical trials, government contractors). Registries rarely hold emails but confirm identity and employer for free and often yield a verified phone — evidence that upgrades or vetoes every other route's output.
+- **Test a multi-source aggregation mechanism before concluding a ceiling.**
+  Browse the live email/contact categories for actions that combine independent
+  upstream indexes. Prefer contracts with a pollable job ID and per-row
+  deliverability status. Aggregated fills still pass the same identity and
+  validation gates; provider count does not manufacture consensus.
+- **Feed aggregators only validated identifiers.** An identifier you minted but did not identity-gate (a resolved LinkedIn URL that merely name-matched) poisons aggregator matching — it returns the wrong person with confidence. Gate minted identifiers before any downstream rung.
+- **Check credentials before planning a rung.** Some providers are bring-your-own-credentials (`tools describe` shows the billing source); without a linked account every call fails closed with a credentials error. Confirm the connection or drop the rung — do not count it in projected coverage.
+- **Cut losing rungs fast.** If a rung's first ~5 attempts return nothing usable, stop it — people-search databases and pattern-guessing often hold nothing for a niche population, and burning the full set proves nothing the first five didn't. Read the COST RECEIPT's CUT CANDIDATE lines: one run kept a rung at 3.95 credits/call for ten rounds and zero results because the scorecard showed no cost.
+- **Emit every fact the evidence already paid for.** A registry or maps route that returned a verified phone while resolving the practice was already billed for it. One run held that phone in a local variable, never emitted it, and shipped nulls for a cohort where 19 of 43 were hospital-employed with no public mailbox. Add the column before concluding the ceiling.
+- **Recognize a structural ceiling — after the aggregator rung.** Some populations keep work emails behind directories few sources index, and their mail domains block SMTP validation, so correct pattern guesses can't be promoted to fills. Once waterfall, re-route, registry, and aggregator rungs are all measured, the right output is the validated fills, honest nulls with miss reasons, and a channel pivot the evidence already paid for (verified practice phone, mobile). Report the measured ceiling instead of buying the same misses again.
+
+After a phone is recovered, validate line type and activity with a phone validator (`deepline tools search phone --json`). A number that connects to the wrong person costs more than a missing number.
+
+**Cohort patches are not the method.** A domain blocklist, place-name stopwords, or a specialty regex tuned to one roster do not port to the next job. Three rules do: a URL must corroborate the name it is attached to (use `coherenceChecks`); consensus must be scoped to the relevant sub-population; and a derived contact needs independent verification. Carry those forward, not the lists.
 
 Plays encode provider sequencing, validation, row progress, and retry behavior — row-level enrichment should run through a prebuilt or scratchpad play, not loose `tools execute` calls. Keep custom `definePlay(...)` names short (`email-wf`, `phone-wf`, `company-fit`): the persisted sheet table is `normalized play name + ctx.dataset key`, and Postgres caps that combined identifier at 63 characters.
 
@@ -75,7 +122,7 @@ const enriched = await ctx
   .run({ key: 'linkedin_url', description: 'Resolve work emails per row.' });
 ```
 
-Drop to `ctx.tools.execute(...)` only when you need one explicit provider call the prebuilt does not expose. For uncertain manual fallbacks, use the dataset-conditioned experiment in `../SKILL.md`, not vendor reputation. Give each program a stable `id`; the helper compares on common rows, then calls alternatives only for unresolved gaps.
+Drop to `ctx.tools.execute(...)` only when you need one explicit provider call the prebuilt does not expose. For uncertain manual fallbacks, use the dataset-conditioned experiment, not vendor reputation. Give each program a stable `id`; the helper compares on common rows, then calls alternatives only for unresolved gaps.
 
 **Probe the discovery provider's real output before hand-authoring.** The reruns in a custom composition come from provider output shape, not logic. Run the discovery tool once (`deepline tools execute <ref> --input '{...}' --json`), inspect the real payload, then **derive the row key from a guaranteed-present field** (a domain, a stable id) and **assume identifiers can be null** — a LinkedIn URL, a phone, a secondary email are all optionally absent. Keying a `ctx.dataset` on an identifier that some rows lack is what cost a CTO pilot its rerun loop: blank-LinkedIn rows broke the row key, forcing an edit→preflight→run cycle a five-second probe would have prevented.
 
@@ -105,7 +152,7 @@ Inside a play, tool results serialize like `deepline tools execute --json`: exec
 
 ## Compare first, then build the waterfall
 
-For enrichment with uncertain coverage, follow `../SKILL.md`:
+For enrichment with uncertain coverage:
 
 1. Inventory the full relevant tool categories. Put every route you can bind
    correctly, including the cheapest prebuilt and useful provider siblings,
@@ -121,36 +168,18 @@ For enrichment with uncertain coverage, follow `../SKILL.md`:
    batches, and probe unused programs on any comparison, holdout, or batch row
    the current waterfall failed. Useful challengers join later batches automatically, replacing a
    noncausal fallback when the configured waterfall is already full.
-5. Report `experiment.leverage` plus the opening-minus-closing Deepline billing
-   balance and the fair comparison's `costCoverageFrontier`. Per-attempt credit
-   fields are optional receipt data; never copy a catalog price into them or
-   turn unknown spend into zero. Put a current catalog/quote ceiling in
-   `maximumDeeplineCreditsPerAttempt` instead, where the scorer labels it as an
-   upper bound rather than actual spend.
+5. Report `experiment.leverage`, the fair comparison's `costCoverageFrontier`,
+   and the COST RECEIPT block from `scripts/cost-receipt.py` verbatim. Declare
+   each program's `tools: [...]` so that block can attribute observed credits per
+   route; without it the scorecard can only show a catalog upper bound. Never
+   copy a catalog price into a per-attempt credit field or turn unknown spend
+   into zero, and never divide total credits by successes.
 
 The helper bounds comparison and challenge work to small shared units. The
 remaining work is best-first, so a useful primary does not force every fallback
 across every row. Routes that have never completed a row receive at most two
 live challenge rows. A displaced route already proven on this dataset remains
 eligible when a later row exposes its stratum again.
-
-## When the primary route misses
-
-A miss on one route is not a dead row — but a second route is a purchase, not a reflex. A property's coverage ceiling is the union of independent routes. Compare candidate rungs on the small common wave, then let the experiment invoke later rungs only for unresolved rows and claims. Field-measured:
-
-- **Mint a different identifier, then re-route.** The strongest escalation is resolving the person's LinkedIn URL and re-entering through the LinkedIn-based email pattern — it also catches stale employer data the original row carried. But bolt on a **hard identity gate**: the resolved profile's employer or geography must corroborate the row, not just the name. Name-only matching on common names confidently returns strangers' emails — a wrong-identity email is worse than a miss, and the reliable tell is an email domain that disagrees with the person's known employer.
-- **Check the registry when the vertical has one** (healthcare NPI/NPPES, clinical trials, government contractors). Registries rarely hold emails but confirm identity and employer for free and often yield a verified phone — evidence that upgrades or vetoes every other route's output.
-- **Test a multi-source aggregation mechanism before concluding a ceiling.**
-  Browse the live email/contact categories for actions that combine independent
-  upstream indexes. Prefer contracts with a pollable job ID and per-row
-  deliverability status. Aggregated fills still pass the same identity and
-  validation gates; provider count does not manufacture consensus.
-- **Feed aggregators only validated identifiers.** An identifier you minted but did not identity-gate (a resolved LinkedIn URL that merely name-matched) poisons aggregator matching — it returns the wrong person with confidence. Gate minted identifiers before any downstream rung.
-- **Check credentials before planning a rung.** Some providers are bring-your-own-credentials (`tools describe` shows the billing source); without a linked account every call fails closed with a credentials error. Confirm the connection or drop the rung — do not count it in projected coverage.
-- **Cut losing rungs fast.** If a rung's first ~5 attempts return nothing usable, stop it — people-search databases and pattern-guessing often hold nothing for a niche population, and burning the full set proves nothing the first five didn't.
-- **Recognize a structural ceiling — after the aggregator rung.** Some populations keep work emails behind directories few sources index, and their mail domains block SMTP validation, so correct pattern guesses can't be promoted to fills. Once waterfall, re-route, registry, and aggregator rungs are all measured, the right output is the validated fills, honest nulls with miss reasons, and a channel pivot the evidence already paid for (verified practice phone, mobile). Report the measured ceiling instead of buying the same misses again.
-
-After a phone is recovered, validate line type and activity with a phone validator (`deepline tools search phone --json`). A number that connects to the wrong person costs more than a missing number.
 
 ## Custom AI research and qualification
 
@@ -209,5 +238,5 @@ whether the claim passes.
 ## Exit
 
 - Research columns exist and copy is next → use the outreach-writing skill.
-- Ranking an uncertain route or QA before shipping → run the dataset-conditioned experiment and holdout in `../SKILL.md`.
+- Ranking an uncertain route or QA before shipping → run the pilot and untouched holdout above.
 - A run failed, stalled, or output looks wrong → `../references/debugging.md`.

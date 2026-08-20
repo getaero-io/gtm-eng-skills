@@ -62,6 +62,7 @@ export default definePlay(
         ],
         maximumCallsPerAttempt: 1,
         billingUnit: 'unknown',
+        tools: [], // catalog tool ids for the observed-credit join; [] = calls none
         async run({ row }) {
           // Copy one literal described company call and named getter here.
           // Return only companies with bound company_name, company_domain, and qualification evidence.
@@ -85,6 +86,7 @@ export default definePlay(
         ],
         maximumCallsPerAttempt: 1,
         billingUnit: 'unknown',
+        tools: [], // catalog tool ids for the observed-credit join; [] = calls none
         async run({ row }) {
           void row;
           throw new Error('CATALOG_REQUIRED: bind company proof route.');
@@ -100,6 +102,7 @@ export default definePlay(
         ],
         maximumCallsPerAttempt: 1,
         billingUnit: 'unknown',
+        tools: [], // catalog tool ids for the observed-credit join; [] = calls none
         async run({ row }) {
           void row;
           throw new Error('CATALOG_REQUIRED: bind company recovery route.');
@@ -120,6 +123,7 @@ export default definePlay(
         ],
         maximumCallsPerAttempt: 1,
         billingUnit: 'unknown',
+        tools: [], // catalog tool ids for the observed-credit join; [] = calls none
         async run({ row }) {
           // Copy one literal described people call and named getter here.
           // Bind contact_name, contact_title, and contact_linkedin from this response.
@@ -137,6 +141,7 @@ export default definePlay(
         ],
         maximumCallsPerAttempt: 1,
         billingUnit: 'unknown',
+        tools: [], // catalog tool ids for the observed-credit join; [] = calls none
         async run({ row }) {
           void row;
           throw new Error('CATALOG_REQUIRED: bind role proof route.');
@@ -152,6 +157,7 @@ export default definePlay(
         ],
         maximumCallsPerAttempt: 1,
         billingUnit: 'unknown',
+        tools: [], // catalog tool ids for the observed-credit join; [] = calls none
         async run({ row }) {
           void row;
           throw new Error('CATALOG_REQUIRED: bind people recovery route.');
@@ -176,6 +182,8 @@ export default definePlay(
             },
           ],
           minimumPilotCompleteRows: 1,
+          // One row can pass every `accept` and still mix two entities.
+          coherenceChecks: [],
         },
         programs: companyPrograms,
         explorationProgramCount: 2,
@@ -222,6 +230,7 @@ export default definePlay(
                   },
                 ],
                 minimumPilotCompleteRows: 1,
+                coherenceChecks: [],
               },
               programs: contactPrograms,
               explorationProgramCount: 2,

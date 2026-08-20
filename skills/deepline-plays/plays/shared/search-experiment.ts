@@ -25,6 +25,23 @@ const MAX_LIVE_CHALLENGES_PER_PROVEN_PROGRAM =
 const DEFAULT_EXPLOIT_BATCH_SIZE = 8;
 const DEFAULT_EXPLORATION_PROGRAM_COUNT = 3;
 const DEFAULT_CHALLENGE_WAVE_SIZE = 3;
+/** Marks a candidate rejected by a cross-claim coherence gate. */
+const INCOHERENT_FAILURE_PREFIX = 'incoherent:';
+/**
+ * Hard ceiling on the dependency-closed waterfall. Portfolio selection
+ * enumerates every subset up to this size, so the bound is combinatorial, not
+ * stylistic: at 4 a twelve-program pool already enumerates 793 portfolios.
+ * Raising it further needs a different selection algorithm, not a bigger number.
+ */
+const MAX_ALLOWED_FALLBACKS = 4;
+/**
+ * Loud guard so a wide pool plus a raised cap cannot turn selection into a
+ * hang. Enumeration actually runs over the programs that were *observed*, which
+ * is normally far fewer than the registered pool, so this pool-level bound is a
+ * conservative backstop: it admits the existing 100-program × maxFallbacks-2
+ * case (5,050 subsets) and rejects 100 × 3 (166,750).
+ */
+const MAX_ENUMERATED_PORTFOLIOS = 20_000;
 
 export type SearchExperimentPhase =
   | 'comparison'
@@ -86,6 +103,14 @@ export type SearchProgram<Row extends JsonRow, Context> = {
   maximumDeeplineCreditsPerAttempt?: number;
   /** Live catalog pricing unit. A result-priced source miss is known to cost zero. */
   billingUnit?: 'call' | 'result' | 'unknown';
+  /**
+   * Catalog tool ids this program calls, exactly as `tools describe` names them.
+   * The run's billing breakdown is keyed by the same operation id, so declaring
+   * them here is what turns the scorecard's cost column from a catalog bound
+   * into observed credits after the run. Leave unset for a program that calls no
+   * Deepline tool (a direct fetch, a local artifact, deterministic code).
+   */
+  tools?: readonly string[];
   run(input: SearchProgramInput<Row, Context>): Promise<SearchProgramAttempt>;
 };
 
@@ -97,11 +122,34 @@ export type SearchCohortCheck = {
   verifiedClaimId: string;
 };
 
+/**
+ * A cross-claim gate. Every claim validates in isolation, so a candidate can
+ * satisfy each `accept` while describing two different entities — a practice
+ * name from one org beside a website belonging to another. This hook is the
+ * only place that sees a candidate's verified claims together.
+ *
+ * Return `null` to accept, or a short reason to reject. A rejection records
+ * `incoherent:<id>` as a hard check failure, which keeps the candidate visible
+ * as a tested rejection and reopens the unit for another program.
+ */
+export type SearchCoherenceCheck<Row extends JsonRow> = {
+  id: string;
+  check(input: {
+    row: Row;
+    unitKey: string;
+    canonicalEntityKey: string;
+    /** Verified claim values only, keyed by claim id. Unverified claims are absent. */
+    verified: Readonly<Record<string, unknown>>;
+  }): string | null;
+};
+
 export type SearchExperimentContract<Row extends JsonRow> = {
   rowKey: keyof Row & string;
   /** Explicit stopping count. Omit to maximize coverage across every supplied row. */
   targetRows?: number;
   claims: readonly ResearchClaim<Row>[];
+  /** Cross-claim gates run after per-claim validation. See SearchCoherenceCheck. */
+  coherenceChecks?: readonly SearchCoherenceCheck<Row>[];
   cohortChecks?: readonly SearchCohortCheck[];
   minimumCompleteResultsPerUnit?: number;
   minimumPilotCompleteRows?: number;
@@ -183,8 +231,19 @@ export function verifiedSearchClaimValue<Value = unknown>(
   return evaluation?.status === 'verified' ? (evaluation.value as Value) : null;
 }
 
+/**
+ * Whether a registered program ever got a chance to produce evidence.
+ * `never_reached` is not a source miss: the source was never asked. Reporting
+ * the two as one number is how a structurally unreachable route gets read as a
+ * measured coverage ceiling.
+ */
+export type SearchProgramReachability = 'ran' | 'never_reached';
+
 export type SearchProgramScore = {
   programId: string;
+  /** Invocations of this program across every phase. Zero means never reached. */
+  attempts: number;
+  reachability: SearchProgramReachability;
   completeResults: number;
   unitsWithCompleteResults: number;
   verifiedRequiredClaims: number;
@@ -199,26 +258,50 @@ export type SearchProgramScore = {
   unobservedCreditAttempts: number;
   sourceMisses: number;
   adapterFailures: number;
+  incoherentResults: number;
   evidenceLineages: string[];
+  /**
+   * Declared catalog tool ids, for the post-run observed-credit join.
+   * `null` means the program declared nothing, so its spend is unknown; an
+   * empty array is the author asserting this route calls no Deepline tool.
+   */
+  toolIds: string[] | null;
 };
 
 /**
  * Stable, export-friendly route metrics for the scorecard dataset a Play
  * returns beside final rows. This is diagnostic evidence for an eval, never a
  * replacement for the hard claim and cohort gates used by selection.
+ *
+ * `deepline_credits` is only populated when the attempt carried a receipt.
+ * `tool_ids` exists so `cost-receipt.py` can join the run's billing breakdown
+ * onto these rows after the run and produce observed per-route credits — a
+ * scorecard whose cost column is empty cannot rank routes by cost, which is
+ * the whole reason it exists.
  */
 export function routeScorecardRows(
   scorecard: readonly SearchProgramScore[],
 ): Array<Record<string, string | number | null>> {
   return scorecard.map((score) => ({
     program_id: score.programId,
+    attempts: score.attempts,
+    reachability: score.reachability,
     complete_results: score.completeResults,
     verified_required_claims: score.verifiedRequiredClaims,
     source_misses: score.sourceMisses,
+    incoherent_results: score.incoherentResults,
     adapter_failures: score.adapterFailures,
     total_calls: score.totalCalls,
     deepline_credits: score.deeplineCredits,
     cost_basis: score.costBasis,
+    // '' = undeclared, so this route's spend is unknown. 'none' = the author
+    // asserted it calls no Deepline tool, so zero is a fact, not a gap.
+    tool_ids:
+      score.toolIds === null
+        ? ''
+        : score.toolIds.length
+          ? score.toolIds.join(' | ')
+          : 'none',
     evidence_lineages: score.evidenceLineages.join(' | '),
   }));
 }
@@ -868,8 +951,26 @@ function validateDefinition<Row extends JsonRow, Context>(
   }
   const maxFallbacks =
     definition.maxFallbacks ?? Math.min(2, programs.length - 1);
-  if (!Number.isInteger(maxFallbacks) || maxFallbacks < 0 || maxFallbacks > 2) {
-    throw new Error('maxFallbacks must be an integer between 0 and 2.');
+  const allowedFallbacks = Math.min(
+    MAX_ALLOWED_FALLBACKS,
+    Math.max(0, programs.length - 1),
+  );
+  if (
+    !Number.isInteger(maxFallbacks) ||
+    maxFallbacks < 0 ||
+    maxFallbacks > allowedFallbacks
+  ) {
+    throw new Error(
+      `maxFallbacks must be an integer between 0 and ${allowedFallbacks} for ${programs.length} registered program(s).`,
+    );
+  }
+  if (
+    countProgramCombinations(programs.length, maxFallbacks + 1) >
+    MAX_ENUMERATED_PORTFOLIOS
+  ) {
+    throw new Error(
+      `maxFallbacks ${maxFallbacks} over ${programs.length} programs could enumerate more than ${MAX_ENUMERATED_PORTFOLIOS} portfolios during selection. Lower maxFallbacks or register fewer competing programs.`,
+    );
   }
   const explorationProgramCount = Math.min(
     definition.explorationProgramCount ?? DEFAULT_EXPLORATION_PROGRAM_COUNT,
@@ -1096,6 +1197,7 @@ function mergeClaimGroup(
 function materializeLedger<Row extends JsonRow>(input: {
   ledger: Map<string, LedgerEntry<Row>>;
   claims: readonly ResearchClaim<Row>[];
+  coherenceChecks?: readonly SearchCoherenceCheck<Row>[];
 }): SearchLedgerResult<Row>[] {
   const requiredClaimIds = input.claims
     .filter((claim) => claim.required !== false)
@@ -1146,6 +1248,27 @@ function materializeLedger<Row extends JsonRow>(input: {
       );
       const contradiction = entry.contradiction || conflictingValues;
       const hardCheckFailures = [...entry.hardCheckFailures];
+      if (input.coherenceChecks?.length) {
+        const verifiedValues: Record<string, unknown> = {};
+        for (const evaluation of claimEvaluations) {
+          if (verified.has(evaluation.claimId)) {
+            verifiedValues[evaluation.claimId] = evaluation.value;
+          }
+        }
+        for (const coherence of input.coherenceChecks) {
+          const reason = coherence.check({
+            row: entry.row,
+            unitKey: entry.unitKey,
+            canonicalEntityKey: entry.canonicalEntityKey,
+            verified: verifiedValues,
+          });
+          if (typeof reason === 'string' && reason.trim()) {
+            hardCheckFailures.push(
+              `${INCOHERENT_FAILURE_PREFIX}${coherence.id}:${reason.trim()}`,
+            );
+          }
+        }
+      }
       return {
         identity: entry.identity,
         unitKey: entry.unitKey,
@@ -1295,6 +1418,7 @@ function scoreProgram<Row extends JsonRow>(input: {
   program: SearchProgram<Row, unknown>;
   records: readonly AttemptRecord<Row>[];
   claims: readonly ResearchClaim<Row>[];
+  coherenceChecks?: readonly SearchCoherenceCheck<Row>[];
 }): SearchProgramScore {
   const programRecords = input.records.filter(
     (record) => record.programId === input.program.id,
@@ -1303,7 +1427,11 @@ function scoreProgram<Row extends JsonRow>(input: {
   for (const record of programRecords) {
     addAttemptToLedger(ledger, record);
   }
-  const results = materializeLedger({ ledger, claims: input.claims });
+  const results = materializeLedger({
+    ledger,
+    claims: input.claims,
+    coherenceChecks: input.coherenceChecks,
+  });
   const totalCalls = programRecords.reduce(
     (total, record) => total + record.observedTotalCalls,
     0,
@@ -1320,6 +1448,8 @@ function scoreProgram<Row extends JsonRow>(input: {
   );
   return {
     programId: input.program.id,
+    attempts: programRecords.length,
+    reachability: programRecords.length ? 'ran' : 'never_reached',
     completeResults: completeResults.length,
     unitsWithCompleteResults: unique(
       completeResults.map((result) => result.unitKey),
@@ -1346,9 +1476,15 @@ function scoreProgram<Row extends JsonRow>(input: {
       (record) => record.attempt && !record.attempt.results.length,
     ).length,
     adapterFailures: programRecords.filter((record) => record.error).length,
+    incoherentResults: results.filter((result) =>
+      result.hardCheckFailures.some((failure) =>
+        failure.startsWith(INCOHERENT_FAILURE_PREFIX),
+      ),
+    ).length,
     evidenceLineages: unique(
       evidence.map((item) => item.independenceClass),
     ).sort(),
+    toolIds: input.program.tools ? [...input.program.tools].sort() : null,
   };
 }
 
@@ -1356,6 +1492,7 @@ function coverageForPrograms<Row extends JsonRow>(input: {
   programIds: ReadonlySet<string>;
   records: readonly AttemptRecord<Row>[];
   claims: readonly ResearchClaim<Row>[];
+  coherenceChecks?: readonly SearchCoherenceCheck<Row>[];
   cohortChecks: readonly SearchCohortCheck[];
 }): {
   completeResultIdentities: Set<string>;
@@ -1370,7 +1507,11 @@ function coverageForPrograms<Row extends JsonRow>(input: {
     if (input.programIds.has(record.programId))
       addAttemptToLedger(ledger, record);
   }
-  const results = materializeLedger({ ledger, claims: input.claims });
+  const results = materializeLedger({
+    ledger,
+    claims: input.claims,
+    coherenceChecks: input.coherenceChecks,
+  });
   const cohort = evaluateCohorts({
     checks: input.cohortChecks,
     results,
@@ -1435,6 +1576,20 @@ function coverageImproved(
       after.cohortRatioTotal === before.cohortRatioTotal &&
       after.cohortNumeratorTotal > before.cohortNumeratorTotal)
   );
+}
+
+/** Number of nonempty subsets of `poolSize` values with at most `maximumSize` members. */
+function countProgramCombinations(
+  poolSize: number,
+  maximumSize: number,
+): number {
+  let total = 0;
+  let choose = 1;
+  for (let size = 1; size <= Math.min(maximumSize, poolSize); size += 1) {
+    choose = (choose * (poolSize - size + 1)) / size;
+    total += choose;
+  }
+  return total;
 }
 
 function programCombinations<T>(
@@ -1692,6 +1847,7 @@ function choosePrograms<Row extends JsonRow, Context>(input: {
   programs: readonly SearchProgram<Row, Context>[];
   records: readonly AttemptRecord<Row>[];
   claims: readonly ResearchClaim<Row>[];
+  coherenceChecks?: readonly SearchCoherenceCheck<Row>[];
   maxFallbacks: number;
   requiredProgramIds?: ReadonlySet<string>;
   cohortChecks: readonly SearchCohortCheck[];
@@ -1715,6 +1871,7 @@ function choosePrograms<Row extends JsonRow, Context>(input: {
         program: program as SearchProgram<Row, unknown>,
         records: input.records,
         claims: input.claims,
+        coherenceChecks: input.coherenceChecks,
       }),
     )
     .sort(compareProgramScores);
@@ -1809,6 +1966,7 @@ function choosePrograms<Row extends JsonRow, Context>(input: {
         programIds: new Set(programs.map((program) => program.programId)),
         records: input.records,
         claims: input.claims,
+        coherenceChecks: input.coherenceChecks,
         cohortChecks: input.cohortChecks,
       }),
       totalCalls: programs.reduce(
@@ -2127,8 +2285,9 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
   const traces: SearchAttemptTrace[] = [];
   const adaptations: SearchAdaptationTrace[] = [];
   const unitKeyFor = (row: Row) => rowKey(row, contract.rowKey);
+  const coherenceChecks = contract.coherenceChecks ?? [];
   const materialized = () =>
-    materializeLedger({ ledger, claims: contract.claims });
+    materializeLedger({ ledger, claims: contract.claims, coherenceChecks });
   const allRowsUnitKeys = input.rows.map(unitKeyFor);
   const cohortChecks = contract.cohortChecks ?? [];
   const minimumCompleteResultsPerUnit =
@@ -2400,6 +2559,7 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
     programs: input.definition.programs,
     records,
     claims: contract.claims,
+    coherenceChecks,
     maxFallbacks,
     cohortChecks,
   });
@@ -2423,6 +2583,7 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
       (record) => record.phase === 'comparison' || record.phase === 'pilot',
     ),
     claims: contract.claims,
+    coherenceChecks,
     maxFallbacks,
     cohortChecks,
   });
@@ -2570,6 +2731,7 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
                 program: program as SearchProgram<Row, unknown>,
                 records,
                 claims: contract.claims,
+                coherenceChecks,
               }).completeResults > 0,
           )
           .map((program) => program.id),
@@ -2635,6 +2797,7 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
         programIds: new Set(beforeProgramIds),
         records: beforeRecords,
         claims: contract.claims,
+        coherenceChecks,
         cohortChecks,
       });
 
@@ -2670,6 +2833,7 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
         programs: input.definition.programs,
         records: challengeRecords,
         claims: contract.claims,
+        coherenceChecks,
         maxFallbacks,
         requiredProgramIds:
           optionalActiveCount < maxFallbacks
@@ -2684,6 +2848,7 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
         programIds: new Set(afterProgramIds),
         records: challengeRecords,
         claims: contract.claims,
+        coherenceChecks,
         cohortChecks,
       });
       const promotedProgramIds = afterProgramIds.filter(
@@ -2819,6 +2984,7 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
         program: program as SearchProgram<Row, unknown>,
         records,
         claims: contract.claims,
+        coherenceChecks,
       }),
     )
     .sort(compareProgramScores);
@@ -2888,6 +3054,9 @@ export async function runSearchExperiment<Row extends JsonRow, Context>(input: {
           : stoppingReason === 'adapter_failures'
             ? `Stopped with ${unresolvedUnitKeys.length} unresolved unit(s) and adapter failures in ${failedProgramIds.join(', ')}; these failures are not evidence of source absence.`
             : `Stopped with ${unresolvedUnitKeys.length} unresolved unit(s) after bounded eligible programs were exhausted.`,
+      remainingProgramIds.length
+        ? `Never reached: ${remainingProgramIds.join(', ')}. These registered program(s) were never invoked, so their zero results are not evidence of source absence and must not be read as a coverage ceiling.`
+        : 'Every registered program was invoked at least once.',
       `Observed ${provisional.costCoverageFrontier.length} non-dominated cost/coverage option(s) in the shared comparison wave.`,
       credits.total === null
         ? `Per-attempt Deepline credits were unobserved for ${credits.unobserved} attempt(s); run-level billing delta remains authoritative.`

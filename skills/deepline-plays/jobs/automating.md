@@ -2,7 +2,23 @@
 
 Use this for webhook, cron, monitor, review-gated, and activation Plays. The
 trigger starts a stage graph; it does not change the truth contract of each
-search, enrichment, signal, or scoring stage.
+search, enrichment, signal, or scoring stage. This page is complete for that job.
+
+## What replay actually costs
+
+A receipt is content-addressed on tool plus input, and the cache is workspace-
+global, not run-scoped. Measured on a 3-row email waterfall: first run 0.31
+credits, identical rerun 0.01 (the compute tick; `providerEvents: 0`). A third
+run over a different CSV sharing two rows also charged 0.01. So a rerun is a
+resume — edit a stage, rerun, and the completed prefix re-pays nothing. There is
+no separate resume switch.
+
+Two consequences for automation. Keep reuse keys stable: rename an input and you
+change the key and re-pay, which is why one play file edited in place beats
+`-v2` / `-final` variants. And one bad row does not sink the run — a blank row in
+a 3-row CSV completed with `status: completed`, `errors: []`, only the two valid
+rows dispatched, and the blank row exported with an empty value and no
+fabrication.
 
 ## Freeze the execution contract
 

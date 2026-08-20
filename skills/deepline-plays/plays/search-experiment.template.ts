@@ -45,22 +45,17 @@ export default definePlay(
         diversityFeatures: ['replace-with-source', 'replace-with-pivot'],
         maximumCallsPerAttempt: 1,
         billingUnit: 'unknown',
+        tools: [], // catalog tool ids for the observed-credit join; [] = calls none
         async run({ row }) {
           // Run `tools describe <id> --json | show-declared-getters.py` and copy one getter.
-          // const response = await ctx.tools.execute({
-          //   id: 'described-tool-id', tool: 'described-tool-id',
-          //   input: { described_input: row.scope }, description: 'First route.',
-          // });
+          // const response = await ctx.tools.execute({ id: 'described-tool-id',
+          //   tool: 'described-tool-id', input: { described_input: row.scope }, description: 'First route.' });
           // const value = response.extractedValues.described_value?.get() ?? null;
-          // List getters return a handle plus provider-row key map:
-          // const list = response.extractedLists.described_list;
-          // if (!list) throw new Error('GETTER_REQUIRED: described_list');
-          // const records = await list.get().peek(10);
-          // const domainKey = list.keys.company_domain; const value = domainKey ? records[0]?.[domainKey] : null;
-          // `list.keys` is the mapping contract: do not guess record.entities paths.
+          // List getters: map rows through `list.keys`, never a guessed raw path.
+          // Worked example in SKILL.md, "Catalog".
           // Raw is evidence context for boundClaim, never first extraction.
           // const raw = JSON.stringify(response.toolResponse.raw);
-          // `boundClaim` calls bindResearchEvidenceToSource; a value without an exact source binding is a candidate, not a claim.
+          // `boundClaim` calls bindResearchEvidenceToSource: an unbound value is a candidate, not a claim.
           // const claim = boundClaim({ value, source: 'described-tool-id', independenceClass: 'terminal-corpus', excerpt: String(value), rawSourceText: raw });
           // return attempt({ totalCalls: 1, results: claim ? [found({ canonicalEntityKey: String(value), claims: { entity_identity: claim } })] : [] });
           void row;
@@ -77,6 +72,7 @@ export default definePlay(
         diversityFeatures: ['replace-with-independent'],
         maximumCallsPerAttempt: 1,
         billingUnit: 'unknown',
+        tools: [],
         async run({ row }) {
           // Change tool, literal input, named getter, lineage, and evidence rule.
           void row;
@@ -89,6 +85,7 @@ export default definePlay(
         diversityFeatures: ['replace-with-dormant'],
         maximumCallsPerAttempt: 1,
         billingUnit: 'unknown',
+        tools: [],
         async run({ row }) {
           // An active-route variant spent only on verified gaps.
           void row;
@@ -113,6 +110,8 @@ export default definePlay(
             },
           ],
           minimumPilotCompleteRows: 1,
+          // One row can pass every `accept` and still mix two entities; this is the only cross-claim gate.
+          coherenceChecks: [],
         },
         programs,
         explorationProgramCount: 2,

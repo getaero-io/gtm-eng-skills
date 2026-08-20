@@ -1,6 +1,48 @@
 # Finding companies and contacts
 
-Turn an ICP into a company set, then contacts at those companies. No rows exist yet; the moment you have row-shaped output, hand off to `enriching.md`. Cross-cutting rules (pilot, over-provision, null-on-empty, evidence) live in `../SKILL.md`.
+Turn an ICP into a company set, then contacts at those companies. No rows exist
+yet; the moment you have row-shaped output, hand off to `enriching.md`. This page
+is complete for discovery.
+
+## Pilot and compile
+
+Pilot on one schema-probe partition, then 3–5 stratified ones. Count only items
+that pass the gates — company identity before company-derived contacts, a
+canonical dedup key before a discovery item counts. Classify each attempt as
+retrieved, no-results, partial, rate-limited, auth-failed, unreachable, timeout,
+schema-drift, or error; only retrieved and no-results enter the denominator.
+
+Selection chooses routes; compilation chooses when to call them. Three shapes:
+
+```text
+one answer per row   rows → cheap direct route → verified fills
+                                └→ misses → identifier route → misses → aggregator
+
+ranked discovery     structured search ─┐
+                     SERP extraction ───┼→ canonical fusion → rerank → enrich survivors
+                     registry search ───┘
+
+multi-hop            company candidates → canonical company resolution
+                       → scoped people routes in parallel → person identity/title gate
+                       → contact recovery waterfall → validator
+```
+
+Never run contact providers before the person gate: a cheap wrong identity
+poisons every expensive downstream call. For ranked discovery the union of
+complementary routes is the product, so run them concurrently and fuse on
+canonical IDs. For one answer per row, order by verified marginal fills per
+credit and give later routes only unresolved rows.
+
+Stop when target coverage or list size is reached, the next route exceeds the
+credit cap, the next route added no verified unit in the pilot, two attempts of
+the same mechanism family produced nothing new, or the remaining gaps need a
+source or credential outside the authorized scope. Persist unresolved rows and
+gap reasons; they are the next iteration's input, not permission to fabricate.
+
+Before delivery, assert the artifact schema against the frozen contract in code:
+exact CSV header names, exact top-level JSON keys, stable denominator keys, row
+counts. Do not substitute `company` for `company_name` or nest a requested
+top-level field.
 
 ## Companies first, then people
 
@@ -83,8 +125,11 @@ const contactRows = companyExperiment.finalResults
 const contactExperiment = await runSearchExperiment({
   ctx,
   rows: contactRows,
-  definition: { contract: contactContract, programs: contactPrograms,
-    explorationProgramCount: 2 },
+  definition: {
+    contract: contactContract,
+    programs: contactPrograms,
+    explorationProgramCount: 2,
+  },
 });
 ```
 
@@ -206,7 +251,7 @@ deepline plays run <play-name> --input '{"company_name":"Acme","domain":"acme.co
 ```
 
 For a company list → contacts, a small custom Play doing company-scoped people
-search is the exploit shape after the experiment in `../SKILL.md`. Author each
+search is the exploit shape after the pilot above. Author each
 candidate route as a `SearchProgram`; the helper creates the evidence ledger,
 comparison, holdout, and scorecard. Resolving a domain from a company name is
 mechanical — use a search tool
@@ -246,12 +291,12 @@ Persistence is not thrash. The anti-pattern the hard stop above guards against i
 
 ## Convergence and dedup
 
-Define the target row count up front (usually the user's ask). Over-provision per
-`../SKILL.md` (each downstream stage has ~15-20% falloff), filter, and stop when
+Define the target row count up front (usually the user's ask). Over-provision
+(each downstream stage loses ~15-20%), filter, and stop when
 the filtered set hits target. The ~80% marginal-return heuristic applies only
 when rows are interchangeable, such as building any 100 matching companies.
 It does not apply to one-result-per-company work: each unresolved named entity
-must enter the gap loop in `../SKILL.md`. Deduplicate by canonical key (domain
+must enter the gap loop. Deduplicate by canonical key (domain
 for companies, LinkedIn URL or email for people) **after** filtering, not before
 — keying first can drop valid rows whose key is missing from one merge source.
 For high-stakes signals (job changes, recent funding, leadership moves), verify
