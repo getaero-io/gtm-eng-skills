@@ -44,12 +44,19 @@ and materially changes the result or external action, ask one concise question
 with a recommendation. Otherwise state a reasonable assumption in the result
 and keep moving.
 
-**A monitor filter is a hypothesis, not a finished configuration.** When a
-user wants to tune a monitor, see examples, or test signal quality before it
-runs continuously, read [`recipes/deepline-monitors.md`](recipes/deepline-monitors.md)
-and run a bounded historical preview using the monitor itself. Show the real
-matching events, interpret their fit, then keep, refine, or stop the watcher.
-Do not replace this with a plan, a made-up example, or a current-people search.
+**Calibrate monitor filters from real events.** When history is supported, use
+one broad, price-approved preview unless the user asks for forward-only. Run it
+after pricing in test workspaces; in customer workspaces, ask one approval after
+showing the price. A dry-run proves configuration, not signal quality. Refine
+only from observed matches. This applies to titles, department, seniority,
+geography, event category, and every other supported field. Read
+[`recipes/deepline-monitors.md`](recipes/deepline-monitors.md), then keep,
+refine, or stop the watcher. Do not substitute a plan, made-up examples, or a
+people search.
+
+Start with recoverable identifiers, the live contract, and Deepline price; then
+preview the signal when supported. Forward-only tuning needs forward
+observation. Do not ask implementation questions.
 
 **Discovery order: companies first, then people.** When the task requires finding contacts at companies matching criteria (portfolio, ICP, hiring signal), discover the company set first, then find people at each company. Do not start with broad people-search queries.
 
