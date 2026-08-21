@@ -339,9 +339,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.2.0` |
+| SDK version | `0.3.0` |
 | SDK HTTP API | `v2` |
-| Checked-in SDK fallback | `0.2.0` |
+| Checked-in SDK fallback | `0.3.0` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.219` |
 | Generated sources | `sdk/src/client.ts`<br />`sdk/src/errors.ts`<br />`sdk/src/play.ts`<br />`shared_libs/play-runtime/cell-staleness.ts`<br />`shared_libs/play-runtime/tool-result-types.ts`<br />`shared_libs/plays/authoring-contract.ts`<br />`shared_libs/plays/dataset.ts`<br />`shared_libs/tool-execution-error.ts` |
@@ -867,8 +867,9 @@ behavior depend on whether rows happen to be resident.
 Canonical result returned by Deepline tool execution.
 
 The top-level object is Deepline-owned execution metadata and semantic
-extraction state. Raw tool/provider data lives under `toolResponse.raw`;
-response metadata lives under `toolResponse.meta`. Semantic single-value
+extraction state. The canonical provider response lives under
+`toolResponse.rawV2`; `toolResponse.raw` remains the legacy compatibility
+projection. Response metadata lives under `toolResponse.meta`. Semantic single-value
 getters live under `extractedValues.<name>.get()`, and list getters live
 under `extractedLists.<name>.get()`.
 

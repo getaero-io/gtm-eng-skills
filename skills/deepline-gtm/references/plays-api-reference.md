@@ -6,9 +6,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 | Field | Value |
 |---|---|
-| SDK version | `0.2.0` |
+| SDK version | `0.3.0` |
 | SDK HTTP API | `v2` |
-| Checked-in SDK fallback | `0.2.0` |
+| Checked-in SDK fallback | `0.3.0` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.1.219` |
 | Generated sources | `src/lib/sdk/api-routes.ts`<br />`sdk/src/types.ts`<br />`sdk/src/client.ts`<br />`sdk/src/release.ts` |
@@ -360,7 +360,7 @@ schema, examples, pricing, and extraction guidance before executing.
 | `inputSchema` | `Record<string, unknown>` | No | JSON Schema describing the tool's input parameters. |
 | `outputSchema` | `Record<string, unknown>` | No | JSON Schema describing the tool's output shape. |
 | `pricing` | `ToolPricingSummary \| null` | No | User-facing pricing summary. Internal provider/settlement costs are intentionally omitted. |
-| `usageGuidance` | `{ execute?: string; prefer?: string[]; access?: { extractedLists?: { expression?: string; meaning?: string; }; extractedValues?: { expression?: string; meaning?: string; }; rawToolResponse?: { expression?: string; meaning?: string; }; invalidGetterHint?: string; }; toolExecutionResult?: { type?: 'ToolExecutionResult'; toolResponse?: { raw?: string; meta?: string; }; meta?: string; extractedLists?: \| Array<{ name: string; expression: string; details?: { strategy?: string; rawToolOutputPaths?: string[]; candidatePaths?: string[]; }; }> \| Record< string, { expression: string; details?: { strategy?: string; rawToolOutputPaths?: string[]; candidatePaths?: string[]; }; } >; extractedValues?: \| Array<{ name: string; expression: string; details?: { strategy?: string; rawToolOutputPaths?: string[]; candidatePaths?: string[]; }; }> \| Record< string, { expression: string; details?: { strategy?: string; rawToolOutputPaths?: string[]; candidatePaths?: string[]; }; } >; [key: string]: unknown; }; }` | No | Copyable play-runtime guidance for V2 tool execution results. |
+| `usageGuidance` | `{ execute?: string; prefer?: string[]; access?: { extractedLists?: { expression?: string; meaning?: string; }; extractedValues?: { expression?: string; meaning?: string; }; rawToolResponse?: { expression?: string; meaning?: string; }; canonicalToolResponse?: { expression?: string; meaning?: string; }; invalidGetterHint?: string; }; toolExecutionResult?: { type?: 'ToolExecutionResult'; toolResponse?: { raw?: string; rawV2?: string; view?: string; responseMeta?: string; meta?: string; }; meta?: string; extractedLists?: \| Array<{ name: string; expression: string; details?: { strategy?: string; rawToolOutputPaths?: string[]; candidatePaths?: string[]; }; }> \| Record< string, { expression: string; details?: { strategy?: string; rawToolOutputPaths?: string[]; candidatePaths?: string[]; }; } >; extractedValues?: \| Array<{ name: string; expression: string; details?: { strategy?: string; rawToolOutputPaths?: string[]; candidatePaths?: string[]; }; }> \| Record< string, { expression: string; details?: { strategy?: string; rawToolOutputPaths?: string[]; candidatePaths?: string[]; }; } >; [key: string]: unknown; }; }` | No | Copyable play-runtime guidance for V2 tool execution results. |
 | `search_score` | `number` | No | Search relevance score returned by ranked tool search. |
 | `search_matches` | `Array<{ field: string; value: string; term?: string; }>` | No | Search match snippets returned by ranked tool search. |
 | `connected` | `boolean` | No | Whether this tool is callable in the current workspace. `false` for a<br />bring-your-own-credential provider that has not been connected. |
@@ -416,7 +416,8 @@ Includes matching tools plus render/action hints used by the CLI and agents.
 
 Standard provider/tool execution envelope returned by low-level SDK calls.
 
-`toolResponse.raw` contains the provider result. `extractedValues` and
+`toolResponse.rawV2` contains the complete scrubbed provider response;
+`toolResponse.raw` is derived locally as the legacy provider-result projection. `extractedValues` and
 `extractedLists` contain Deepline-normalized getters when the tool exposes
 them. Billing fields are Deepline-facing and must not expose provider spend.
 
@@ -427,7 +428,7 @@ them. Billing fields are Deepline-facing and must not expose provider spend.
 | `status` | `string` | Yes |  |
 | `job_id` | `string` | No |  |
 | `meta` | `Record<string, unknown>` | No |  |
-| `toolResponse` | `{ raw: TData; meta?: TMeta; }` | Yes |  |
+| `toolResponse` | `{ raw: TData; rawV2?: unknown; view?: 'data' \| 'rawV2'; meta?: TMeta; responseMeta?: TMeta; }` | Yes |  |
 | `extractedLists` | `Record<string, unknown>` | No |  |
 | `extractedValues` | `Record<string, unknown>` | No |  |
 | `billing` | `Record<string, unknown>` | No |  |
