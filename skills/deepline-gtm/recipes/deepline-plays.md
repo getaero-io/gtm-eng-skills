@@ -14,7 +14,7 @@ Read budget: normal tasks should use this recipe plus at most one plays referenc
 | If the task is...                                                               | Use instead                                                                                             |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | A single existing prebuilt exactly solves the request                           | `deepline plays search` -> `deepline plays describe` -> direct `deepline plays run`                     |
-| Ordinary row enrichment, waterfall columns, CSV processing, or per-row research | `enriching-and-researching.md` (prebuilt plays and their batch forms)                                                    |
+| Ordinary row enrichment, waterfall columns, CSV processing, or per-row research | `enriching-and-researching.md` (prebuilt plays and their batch forms)                                   |
 | Company/contact/TAM sourcing strategy                                           | `finding-companies-and-contacts.md` and matching GTM recipe                                             |
 | Persisted webhook/cron-style automation, orchestration, or fanout               | Stay in this recipe and author a custom play with explicit inputs, idempotency, and run/export behavior |
 | Exact SDK or HTTP syntax is the only question                                   | Load the generated reference named in Exact Syntax Escrow below                                         |
@@ -195,11 +195,11 @@ export default definePlay(
 ### External HTTP And Secrets
 
 A play reaches a non-Deepline API with `ctx.fetch`, and authenticates it with
-`ctx.secrets`. `process.env.X` is rejected by `plays check`: an env read puts
-the raw value in a play variable, where it can reach a log line or a replay
-artifact. A secret handle cannot — it stringifies to `[secret:NAME]`, throws on
-`JSON.stringify`, and is resolved only by the runtime while it attaches the
-header.
+`ctx.secrets`. `await ctx.secrets.get("NAME")` resolves an allowed secret only
+inside the executing Play. Treat it like a Vercel environment variable: do not
+log or return it. Pass credentials through `ctx.secrets.bearer(...)` or
+`ctx.secrets.header(...)` so the request requires HTTPS and its credential is
+redacted from Deepline fetch receipts.
 
 ```ts
 import { definePlay } from 'deepline';
@@ -207,10 +207,11 @@ import { definePlay } from 'deepline';
 export default definePlay(
   'campaign-name-sync',
   async (ctx) => {
+    const apiKey = await ctx.secrets.get('INSTANTLY_API_KEY');
     const res = await ctx.fetch(
       'list-campaigns',
       'https://api.instantly.ai/api/v2/campaigns',
-      { auth: ctx.secrets.bearer(ctx.secrets.get('INSTANTLY_API_KEY')) },
+      { auth: ctx.secrets.bearer(apiKey) },
     );
     if (!res.ok) {
       throw new Error(`Instantly returned ${res.status}: ${res.bodyText}`);
@@ -218,7 +219,9 @@ export default definePlay(
     const body = res.json as { items?: Array<{ name: string }> } | null;
     return { names: (body?.items ?? []).map((item) => item.name) };
   },
-  { description: 'Read campaign names from Instantly with a workspace secret.' },
+  {
+    description: 'Read campaign names from Instantly with a workspace secret.',
+  },
 );
 ```
 
@@ -245,12 +248,11 @@ Three more things that cost people iterations:
   time so the call can be checkpointed and replayed, so `await res.json()` is a
   type error. It is `null` both when the body is empty and when it is not valid
   JSON, so check `res.ok` and fall back to `res.bodyText`.
-- Exactly **one** auth attaches per `ctx.fetch`. `init.auth` is a single value,
-  not a list. An API wanting two credentialed headers at once (Supabase with
-  both `apikey` and `Authorization`) cannot express both. Put the must-stay-secret
-  credential in `auth`; pass a genuinely non-secret second value in `headers`.
+- `init.auth` accepts one credentialed header or an array of headers. Each array
+  entry must target a distinct header, which supports APIs such as Supabase that
+  require both `apikey` and `Authorization`.
 - Manage stored values with `deepline secrets set` / `deepline secrets list`.
-  Names are uppercased. Declare them in `bindings.secrets` when the play needs
+  Names are uppercased. Declare them in the Play's top-level `secrets` option when the play needs
   them present at publish time.
 
 ### The `@mermaid` block is the play's UI
@@ -261,7 +263,7 @@ looks" = edit the block, `deepline plays check`, republish.
 Rules, using the example above:
 
 1. **One block per export.** Forked prebuilts carry two: `/** @mermaid scalar
-   */` and `/** @mermaid batch */`. Every line is a node, edge, `subgraph`, or
+*/` and `/** @mermaid batch */`. Every line is a node, edge, `subgraph`, or
    `class` — prose lines are errors. A `subgraph` wired to its dataset renders
    as the loop. ~12 boxes max, labels under 48 chars, no counts in labels.
 2. **Shapes are cosmetic except two.** `{…}` = decision; `[[…]]` claims a

@@ -234,6 +234,16 @@ To find out: run `plays check` on a play that has a block. Access shows up as `d
 
 A play's dashboard canvas can be authored, not just inferred. Add a `/** @mermaid */` flowchart block above the imports and the compiler renders it as the run canvas instead of the auto-generated graph; a `// @mermaid-node <id> ...` comment binds a diagram node to real code so it shows live status and run values.
 
+Diagrams are opt-in. Comments stay ordinary TypeScript prose unless they use the
+explicit Mermaid forms above, so write human-facing strings normally:
+
+```ts
+const readyMessage = `Put ${input.title} through to send-ready.`;
+// Put ${input.title} through to send-ready.
+```
+
+Neither ordinary prose nor a comment beginning with `put` is Docflow syntax.
+
 For a new or materially reworked Play in a beta account, start with a small authored diagram. Draw the business story, not every statement: input rows, the decisions or provider cascade that matter, durable datasets, child Plays, and the result. Omit the block when the inferred graph is already clearer. `.skills/deepline-plays/plays/research-kernel.example.play.ts` is the current worked example.
 
 Start from this shape and replace the nouns before adding detail:

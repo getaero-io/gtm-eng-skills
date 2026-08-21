@@ -237,7 +237,7 @@ export default definePlay(
 
 ## Play Authoring Contract
 
-New artifacts pin authoring contract edition 3. Check, publish, and run use the same admitted snapshot.
+New artifacts pin authoring contract edition 4. Check, publish, and run use the same admitted snapshot.
 
 | Field | Type | Required | Contract |
 |---|---|---:|---|
@@ -720,9 +720,9 @@ Signature: `fetch( key: string, url: string | URL, init?: SecretAwareRequestInit
 
 ### `ctx.secrets.get(name)`
 
-Reference a workspace secret by name without reading its value. This is the only supported way to authenticate an outbound request from a Play: `process.env.X` is rejected at check time because an env read puts the raw value in a play variable, where it can reach a log line or a replay artifact. A handle cannot — pass it to `bearer` or `header` and the runtime resolves it only while attaching the header. Names are uppercased; manage stored values with `deepline secrets set` / `deepline secrets list`.
+Read an allowed workspace secret inside the running Play; do not log or return it. Declare uppercase names in top-level `secrets`.
 
-Signature: `get(name: string): SecretHandle;`
+Signature: `get(name: string): PlaySecretPromise;`
 #### Parameters
 
 | Name | Type | Required | Description |
@@ -731,19 +731,21 @@ Signature: `get(name: string): SecretHandle;`
 
 #### Returns
 
-`SecretHandle` — see [`SecretHandle`](#secrethandle)
+`PlaySecretPromise`
 
 
 ### `ctx.secrets.bearer(secret)`
 
-Send the secret as `Authorization: Bearer <value>`.
+Send a credential as `Authorization: Bearer <value>`. Await `get` first;
+its direct promise remains accepted for source compatibility, while other
+promises are rejected.
 
-Signature: `bearer(secret: SecretHandle): SecretAuth;`
+Signature: `bearer( secret: string | PlaySecretPromise | SecretHandle, ): SecretAuth;`
 #### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-| `secret` | [`SecretHandle`](#secrethandle) | Yes |  |
+| `secret` | `string \| PlaySecretPromise \| SecretHandle` | Yes |  |
 
 #### Returns
 
@@ -752,15 +754,16 @@ Signature: `bearer(secret: SecretHandle): SecretAuth;`
 
 ### `ctx.secrets.header(header, secret)`
 
-Send the secret as a named header, for APIs that do not use bearer tokens — `x-api-key`, `apikey`, `private-token`, and similar.
+Send a credential as a named header, for APIs that do not use bearer
+tokens — `x-api-key`, `apikey`, `private-token`, and similar.
 
-Signature: `header(header: string, secret: SecretHandle): SecretAuth;`
+Signature: `header( header: string, secret: string | PlaySecretPromise | SecretHandle, ): SecretAuth;`
 #### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `header` | `string` | Yes |  |
-| `secret` | [`SecretHandle`](#secrethandle) | Yes |  |
+| `secret` | `string \| PlaySecretPromise \| SecretHandle` | Yes |  |
 
 #### Returns
 
@@ -775,8 +778,8 @@ The `init` accepted by `ctx.fetch`. Same shape as `RequestInit` plus `auth`.
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-| `headers` | `HeadersInit` | No | Ordinary request headers, recorded in the durable receipt. Never interpolate a secret value here — use `auth`. |
-| `auth` | `SecretAuthInput` | No | One or more secret-backed authentication headers for this request. Pass a single `ctx.secrets` auth for the common case, or an array when an API requires multiple credentialed headers — for example, Supabase with both `apikey` and `Authorization`. Every secret is resolved only while the request is attached, never stored in the durable receipt. Each auth entry must target a distinct header. |
+| `headers` | `HeadersInit` | No | Ordinary request headers, recorded in the durable receipt with any resolved Play secret value redacted. Prefer `auth` for credentials: it enforces HTTPS and keeps the auth header out of the receipt. |
+| `auth` | `SecretAuthInput` | No | One or more credentialed headers for this request. Pass a single `ctx.secrets` auth for the common case, or an array when an API requires multiple credentialed headers — for example, Supabase with both `apikey` and `Authorization`. Auth-helper requests require HTTPS and omit the credential from the durable receipt. Each auth entry must target a distinct header. |
 
 
 ### `PlayFetchResponse`
@@ -798,7 +801,8 @@ The value `ctx.fetch(...)` resolves to: a plain durable record, not a WHATWG `Re
 
 ### `SecretHandle`
 
-An opaque reference to a workspace secret, returned by `ctx.secrets.get`. The handle never carries the value into play code: it stringifies to `[secret:NAME]` and throws on `JSON.stringify`, so a secret cannot reach a play variable, a log line, a dataset cell, or a replay artifact even by accident. Only the runtime resolves it, at the moment it attaches the request header.
+An opaque reference to a workspace secret used by legacy authoring-contract
+editions. New Plays receive plaintext strings from `ctx.secrets.get`.
 
 #### Fields
 
@@ -816,7 +820,7 @@ One resolved authentication scheme, built by `ctx.secrets.bearer` or `ctx.secret
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `kind` | `'bearer' \| 'header'` | Yes | `bearer` sends `Authorization: Bearer <value>`; `header` sends a named header. |
-| `secret` | `SecretHandle` | Yes | The handle whose value the runtime attaches. |
+| `secret` | `string \| PlaySecretPromise \| PlaySecretValue` | Yes | The value whose bytes the runtime attaches. |
 | `header` | `string` | No | Header name, set only when `kind` is `header`. |
 
 
