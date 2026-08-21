@@ -132,7 +132,19 @@ only rows with the monitor's `_dl_monitor_id` and a later `_dl_received_at`.
 Use the live schema for all fields. A missing output table or monitor-to-row
 binding is an operational failure, not an empty sample.
 
-- At 30, 60, and 90 seconds, report waiting only when useful.
+### Customer communication
+
+Explain the small paid preview before starting: what will be watched, what a
+useful match looks like, where it will go, and that the filters will be tuned
+before a wider rollout. Keep it plain. For a person, a LinkedIn URL lets a
+Deepline Native monitor watch that person directly; a company domain watches the
+company.
+
+Use a bounded two-minute first check. Send a short update at about 45 seconds;
+show a small result table if there are matches. If not, say that no match has
+arrived yet and continue the check. Historical matching can continue afterward.
+
+- At 45 and 90 seconds, report waiting only when useful.
 - At 120 seconds with no row or provider error, return **no sample yet** and
   leave the monitor active. Do not call the filter wrong, replace the monitor,
   mutate `updates_since`, or run a generic same-signal probe.
@@ -213,8 +225,12 @@ broken from an empty pilot.
 
 For errors: retry a transient read or check once; correct validation failures;
 re-browse an unknown type; report a credit shortfall and stop; inspect state for
-settlement or cleanup failures. A billing-suspended monitor remains disabled
-until the user approves `monitors reactivate <key> --dry-run` and reactivation.
+settlement or cleanup failures. If a deploy says the monitor source is rate
+limited, show that result and let the customer decide whether to retry after the
+stated wait. Do not quietly retry a create: the source may have applied it even
+when Deepline could not confirm completion. A billing-suspended monitor remains
+disabled until the user approves `monitors reactivate <key> --dry-run` and
+reactivation.
 
 ## Mutations and updates
 
