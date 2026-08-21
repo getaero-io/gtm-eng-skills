@@ -55,6 +55,40 @@ Use these defaults unless the request says otherwise:
 - **Ambiguity:** use the available company/person context to resolve it. Keep an
   unresolved target with a reason rather than stopping the whole setup.
 
+### When the user is choosing filters, lead with the signal
+
+Some monitor requests are really filter-tuning requests: the user asks to
+"nail the filters," "show me examples," "test this first," or wants confidence
+that a title/role expression has good signal-to-noise. Treat that as permission
+for a bounded historical preview. Do not make the user choose the plumbing or
+ask whether to use `updates_since`; the preview is how the agent gathers the
+requirement evidence needed to configure the ongoing monitor well.
+
+For a filter-tuning request, begin with one plain sentence: “I’ll resolve the
+official domains, check the live Deepline price, preview real matching events,
+then return the recommended ongoing monitor state.” Adapt its wording to the
+request, but preserve all four promises. Do not label it a plan or ask the user
+for domains, filter syntax, or other routine implementation choices.
+
+Use the same monitor type and provider-side filters that the ongoing watcher
+will use. For job openings, start with a seven-day lookback; for other signals,
+use the narrowest recent window the live contract supports. Read the live price
+before the write, use only the requested targets, and say the preview can incur
+the same Deepline per-accepted-event charge as the ongoing monitor. This is not
+a fake sample or a current-people proxy: the point is to inspect real candidate
+events with the exact monitor filter.
+
+Create the preview as an ordinary radar with `updates_since`, then wait through
+the provider's initial observation window and query only rows carrying that
+monitor's `_dl_monitor_id` after `observation_started_at`. Return a compact
+sample of the actual titles/events, why each matched, and a **keep**, **refine**,
+or **stop** recommendation before calling the configuration done. If the sample
+is off-target, adjust one supported filter and run the same bounded preview
+again. If no row or provider failure arrives by the end of the window, report
+the result as **inconclusive**: it could be a tight filter or delayed upstream
+processing, so do not pretend it proves either one. Leave the accepted monitor
+active for forward-looking events; deliberately delete a rejected preview.
+
 Treat the following as implementation decisions, not user questions: company
 domain recovery, monitor type selection, exact provider-side filter syntax,
 narrow-versus-broad scope when the defaults above decide it, forward-only
@@ -174,8 +208,9 @@ Forward-only: start watching for changes after this is turned on.
 Historical: look for qualifying changes since <approved date>.
 ```
 
-- If history was explicitly requested without a range, use 14 days only for an
-  ordinary or unknown-volume company and report the live price.
+- If a filter-tuning preview is requested without a range, use seven days for
+  job openings and 14 days for another ordinary or unknown-volume signal;
+  report the live price.
 - For a known high-volume company, use forward-only monitoring unless the user
   explicitly requires history.
 - Do not quietly widen days into months or change `updates_since` during a
@@ -184,14 +219,29 @@ Historical: look for qualifying changes since <approved date>.
 
 ### Calibration and observation
 
-Use the requested targets and the narrowest filters that express the stated
-signal. Do not force a pilot or ask the user to approve a small calibration when
-they asked to deploy the full stated scope. Check and dry-run the complete
-manifest, then stop on an unexpected price or lifecycle failure.
+For a filter-tuning request, calibration is the work, not optional diagnostic
+ceremony. Use the requested targets and the narrowest filters that express the
+stated signal. Check and dry-run the complete preview manifest, then stop on an
+unexpected price or lifecycle failure. For a plain forward-only request with no
+filter-tuning intent, skip the historical preview and deploy the requested
+scope directly.
 
 For each deploy or update, record public key, definition, output table, price,
 state, elapsed time, and failure. Capture `observation_started_at` immediately
 before the mutation.
+
+Run this operating loop internally; do not render it as a customer-facing plan:
+
+1. Build the preview definition with the bounded `updates_since` window, then
+   `check` and `deploy --dry-run` it.
+2. Capture `observation_started_at`, deploy, and read the stored monitor back.
+3. At sensible intervals through the initial window, query the declared table
+   for that monitor key and the observation cutoff, selecting a small number of
+   customer-safe event fields. Read any provider failure from the monitor state
+   too.
+4. Return only after there is a sample to interpret or the window has produced
+   an explicit failure/inconclusive result. Put the examples and recommendation
+   in the response, not a progress plan.
 
 For Deepline Native output, query only rows where `_dl_monitor_id` equals the
 public monitor key and `_dl_received_at >= observation_started_at`. Select only
@@ -201,9 +251,11 @@ an update overlap. For monitor types without a documented binding column, show
 only monitor state and `last_received_event`.
 
 Use the validation-only payload test when it is available. It is the immediate,
-safe proof that the stored monitor accepts its event shape. An observation window
-is optional diagnostic work, not a deployment prerequisite. If it is used, limit
-it to 50 seconds and say that no resulting live row is inconclusive.
+safe proof that the stored monitor accepts its event shape, but it cannot show
+whether the user's filters produce useful real events. For a filter-tuning
+preview, observe through the initial provider window (checking at sensible
+intervals up to 90 seconds) before returning. A no-row outcome is inconclusive,
+not a reason to silently broaden the scope or claim that nothing matches.
 
 When rows arrive, show a small safe sample as a decision table:
 
