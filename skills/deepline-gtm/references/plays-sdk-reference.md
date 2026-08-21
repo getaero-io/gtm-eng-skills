@@ -298,7 +298,7 @@ New artifacts pin authoring contract edition 3. Check, publish, and run use the 
 | `ctx.runPlay.options.description` | `string` | Yes | Non-empty purpose for one inline child Play call. |
 | `ctx.runPlay.options.execution` | `'inline'` | No | Child composition strategy. Only inline is supported. |
 | `ctx.runPlay.options.timeoutMs` | `never` | No | Unsupported legacy child-workflow timeout. |
-| `runtime.timeout` | `string` | No | Sandbox deadline such as 90m or 2h. |
+| `runtime.timeout` | `string` | No | Play-level sandbox deadline. The default is 30m; use a static duration such as 90m or 2h, up to 4h. |
 | `runtime.size` | `'standard'` | No | Deepline-managed sandbox size. Only standard is supported. |
 | `ctx.customerDb.query.statement` | `SqlQuery` | Yes | One non-empty Customer DB SQL string; the deprecated SqlQuery object is accepted only without parameter values. |
 | `ctx.customerDb.query.options.maxRows` | `number` | No | Positive whole-number Customer DB response row limit. |
@@ -415,7 +415,7 @@ Signature: `export function definePlay<TInput, TOutput extends PlayReturnObject>
 |---|---|---:|---|
 | `name` | `string` | Yes | Play name. |
 | `fn` | `(ctx: DeeplinePlayRuntimeContext, input: TInput) => Promise<TOutput>` | Yes | Play function. |
-| `bindings` | [`PlayBindings`](#playbindings) | No | Trigger bindings. |
+| `bindings` | [`PlayBindings`](#playbindings) | No | Play configuration, including runtime limits and triggers. |
 
 #### Returns
 
@@ -436,7 +436,7 @@ Signature: `export type DefinePlayConfig< TInput, TOutput extends PlayReturnObje
 
 ### `PlayBindings`
 
-Optional trigger bindings for a play.
+Optional Play configuration, including triggers and runtime limits.
 
 A play can be triggered three ways, declared as the third argument to
 [definePlay](/sdk-v2/sdk-reference#defineplay):
@@ -449,6 +449,10 @@ A play can be triggered three ways, declared as the third argument to
   listener binds to a monitor tool id + one of its output stream keys (see
   `deepline monitors available <id>` for a tool's streams and row columns).
   The changed row is delivered to the handler as the listener event's `after`.
+
+The default Play runtime is 30 minutes. For bounded long-running batches, add
+`runtime: { timeout: '90m', size: 'standard' }`; duration values are whole minutes or hours, up to `4h`.
+It differs from `ctx.tools.execute({ timeoutMs })`, which limits one provider call.
 
 Signature: `export type PlayBindings = PlayAuthoringBindings;`
 

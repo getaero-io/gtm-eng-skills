@@ -1,4 +1,4 @@
-<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: ba3b917ad5ebd3a92d6bd93c5f5c4f1e04e1842e7165add78139afe2107483ef; run bun run docs:monitor-contract -->
+<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 90dec2d80c2d1ff720eba3567dd8ac57f140ab6c1468d11f0a3fb68188197057; run bun run docs:monitor-contract -->
 
 # Monitor Contract Reference
 
@@ -8,7 +8,7 @@ This factual reference is generated from the same monitor capability contracts u
 
 - monitors check validates a definition locally and does not deploy, spend credits, or prove a future event will arrive.
 - monitors deploy is a full desired definition. Use deploy --dry-run to inspect replacement and Deepline-credit effects; use monitors update for a patch.
-- monitors get returns the durable monitor state and bound Play delivery health. A newly published listener can truthfully have no deliveries yet.
+- monitors get returns the stored deployed definition plus monitor_spec, whose fields list the deployable payload paths, descriptions, constraints, and provider-specific semantics for that monitor type.
 
 ## Shared errors
 
@@ -457,7 +457,7 @@ Creates a Deepline Native company radar data pipe and writes Deepline Native com
 
 | Field | Semantics |
 | --- | --- |
-| `job_titles` | Provider title filter. It overrides departments and seniorities when present. |
+| `job_titles` | Provider-facing title expression. Deepline validates its grammar and forwards it unchanged; it overrides departments and seniorities when present. Stored readback does not prove upstream matching or billing semantics. |
 | ↳ applies | Only company_new_hires, company_job_openings, company_promotions, and company_social_posts_cxo. |
 | ↳ precedence | job_titles overrides departments and seniorities. |
 | ↳ grammar | Bare single-word terms and double-quoted multi-word phrases joined with uppercase AND, OR, and NOT. Parentheses group expressions. |

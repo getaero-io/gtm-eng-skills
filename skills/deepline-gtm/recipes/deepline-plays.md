@@ -135,6 +135,12 @@ Authoring rules:
 - Use `ctx.csv`, `ctx.dataset`, `ctx.tools.execute`, `ctx.runPlay`, `ctx.step`, `ctx.fetch`, and `ctx.secrets`.
 - Do not use local `fs`, raw `fetch`, shell commands, env reads, `Date.now`, or `Math.random` inside play bodies; replay can re-run the body and corrupt state. For credentials use `ctx.secrets`, never `process.env` — see External HTTP And Secrets below.
 - Use stable ids for paid work. Rename ids only to refresh wrong/stale provider data or changed semantics.
+- The default Play runtime is 30 minutes. For a bounded long batch, set the
+  Play-level option `runtime: { timeout: '90m', size: 'standard' }`; static
+  whole-minute/hour durations are supported up to `4h`. This is not the CLI
+  wait timeout or `ctx.tools.execute({ timeoutMs })`, which applies to one
+  provider-call transport. Preserve row-level state and split work when a
+  batch is unbounded.
 - Prefer one paid operation per dataset cell. Put shaping, projection, `status`, `miss_reason`, display fields, and transformations in separate pure columns after the paid column.
 - For recurring sourcing, use `.run({ key: 'domain', mode: 'net_new' })` on the candidate table. It atomically returns only previously unseen domains; ordinary `upsert` reruns return known rows too. This cannot suppress rows at a provider before that provider returns them.
 - Return datasets for CSV/exportable outputs.
