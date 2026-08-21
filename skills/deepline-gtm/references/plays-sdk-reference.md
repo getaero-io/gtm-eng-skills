@@ -772,7 +772,7 @@ The `init` accepted by `ctx.fetch`. Same shape as `RequestInit` plus `auth`.
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `headers` | `HeadersInit` | No | Ordinary request headers, recorded in the durable receipt. Never interpolate a secret value here — use `auth`. |
-| `auth` | `SecretAuth` | No | The single authenticated header for this request. One value, not a list: exactly one `ctx.secrets` auth attaches per `ctx.fetch`. An API wanting two credentialed headers at once — Supabase with both `apikey` and `Authorization` — cannot express both. Put the must-stay-secret credential in `auth`; pass a genuinely non-secret second value in `headers`. If both are secret, the request needs a server-side proxy holding one of them. |
+| `auth` | `SecretAuthInput` | No | One or more secret-backed authentication headers for this request. Pass a single `ctx.secrets` auth for the common case, or an array when an API requires multiple credentialed headers — for example, Supabase with both `apikey` and `Authorization`. Every secret is resolved only while the request is attached, never stored in the durable receipt. Each auth entry must target a distinct header. |
 
 
 ### `PlayFetchResponse`
