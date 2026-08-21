@@ -220,6 +220,24 @@ does not create coverage.
 
 ## Finding contacts
 
+### Named-company domain recovery
+
+Treat a company name as enough to begin a named-account task. When a downstream
+contact or enrichment route requires a domain, resolve and verify the canonical
+domain before calling it; do not ask the user to supply a comma-separated list
+of domains. Search the live capability map for a company/domain-resolution or
+web-search route, inspect its contract, and prefer a free or no-credit first
+pass when one is available.
+
+Accept a hostname only after its official page identifies the same company.
+Keep `company_name`, normalized `domain`, `domain_evidence_url`, and
+`domain_confidence` in the input dataset. A directory, LinkedIn, or a search
+result is evidence for a lead, not the company domain itself. If a common name
+has multiple plausible companies, use supplied location, product, person, or
+company-profile context to disambiguate. When that still cannot establish an
+identity, retain an unresolved row with attempted routes and a miss reason,
+then continue with the remaining companies instead of blocking the whole job.
+
 **Broad function + seniority across companies; exact titles are only one route
 at a known company.** People search across many companies ("VPs of Marketing at
 US fintechs") uses a broad functional category plus seniority —

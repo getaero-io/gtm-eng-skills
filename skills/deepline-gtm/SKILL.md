@@ -34,7 +34,25 @@ Use this skill for prospecting, account research, contact enrichment, verificati
 
 Customer is generally trying to go from "I have an ICP" to "Here's a list of prospects with email/linkedin and very personalized content or signals". They may be anywhere in this process, but guide them along.
 
+**Ask for requirements, not implementation instructions.** Requirements are the
+business outcome, target population, constraints, time horizon, requested
+destination, and any stated spend or authority boundary. The provider, tool,
+query shape, identifier recovery, filter expression, fallback order, and
+workflow structure are implementation decisions. Infer and execute the latter;
+do not turn them into a questionnaire. When a requirement is genuinely absent
+and materially changes the result or external action, ask one concise question
+with a recommendation. Otherwise state a reasonable assumption in the result
+and keep moving.
+
 **Discovery order: companies first, then people.** When the task requires finding contacts at companies matching criteria (portfolio, ICP, hiring signal), discover the company set first, then find people at each company. Do not start with broad people-search queries.
+
+**Named companies are enough to start.** When the user gives company names but
+not domains, resolve each canonical company domain before asking them for
+anything. A domain is a recoverable identifier, not clarification debt. Carry
+the resolved domain and its official-page evidence into the downstream lookup;
+do not ask the user to paste a domain list merely because a later tool needs
+one. Read [finding-companies-and-contacts.md](finding-companies-and-contacts.md)
+for the identity gate and ambiguity handling.
 
 **Known companies + nuanced roles: qualify the real title roster first.** For requests such as "AI leadership at Mount Sinai," "job titles at these companies," or "find the RevOps buyers at these accounts," read and follow [`recipes/find-qualified-titles.md`](recipes/find-qualified-titles.md): `company_titles` -> qualify exact roster titles -> `deepline_native_search_contact` with `title_lists`. Use Exa afterward for public-profile gaps and DropLeads last for supplemental database rows. Broad audience sizing remains a valid DropLeads use case.
 
@@ -200,11 +218,14 @@ See [enriching-and-researching.md](enriching-and-researching.md) for `deepline c
 ## 4) Credit and approval gate (paid actions)
 
 This section's pilot, CSV preview, and full-run template governs enrichment,
-sourcing, and other row-processing runs. Monitor mutations use the approval
-workflow in `recipes/deepline-monitors.md` instead: show the final provider
-scope, output streams/tables, selected Deepline pricing and expected exposure,
-reuse candidates, known dependent plays plus the unknown-consumer warning, and
-the built-in dry-run when that command supports one. Then get explicit approval.
+sourcing, and other row-processing runs. Monitor mutations use the workflow in
+`recipes/deepline-monitors.md` instead: show the final provider scope, output
+streams/tables, selected Deepline pricing and expected exposure, reuse
+candidates, known dependent plays plus the unknown-consumer warning, and the
+built-in dry-run when that command supports one. When the user stated the scope
+and asked to deploy or reactivate it, that request authorizes the validated
+mutation. Ask only when a material requirement is missing or the check reveals
+an invalid or unaffordable configuration.
 
 ### 4.1 Required run order
 

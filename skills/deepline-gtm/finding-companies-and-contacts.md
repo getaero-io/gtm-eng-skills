@@ -231,6 +231,33 @@ For LinkedIn URL recovery itself (not scraping after you have the URL), use `URL
 
 Use this section when the user already has target companies and needs candidate contacts.
 
+### Resolve missing domains; do not make the user do it
+
+Company names are sufficient input for a known-company task. Before a
+domain-scoped contact or enrichment call, resolve the canonical domain for each
+named company yourself. Do not interrupt the task with a request for an
+"exact," "definitive," or comma-separated domain list.
+
+1. Search the live catalog for a company/domain-resolution or web-search
+   capability, then inspect its contract. Use a free or no-credit route for the
+   first pass when one is available.
+2. Search the company name with any supplied context (location, product,
+   investor, LinkedIn URL, or person). Select a candidate only when its official
+   page identifies the same organization. Do not use a directory, social
+   profile, marketplace, or a search-result host as the company domain.
+3. Normalize the resulting hostname, retain the official-page URL as
+   `domain_evidence_url`, and carry `company_name`, `domain`, and
+   `domain_confidence` into the next stage.
+4. If the first route misses, try an independent company-search or web-search
+   route before leaving the domain unresolved. Record the attempted routes and
+   an explicit `domain_miss_reason`; never guess from the spelling of the name.
+
+For a common or ambiguous name, use the context already in the request and
+report the candidate and confidence in the normal output. Do not stop to ask
+the user to identify a domain unless choosing among live candidates would cause
+a material paid or external action. If no candidate can be verified, preserve
+that row as unresolved and continue with every other named company.
+
 Recommended course of action:
 
 1. For nuanced roles or real titles at named companies, follow [`recipes/find-qualified-titles.md`](recipes/find-qualified-titles.md): `company_titles` -> qualify exact roster titles -> `deepline_native_search_contact` with `title_lists`.

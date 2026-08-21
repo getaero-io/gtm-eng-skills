@@ -10,6 +10,75 @@ for the signal, writes a row to Customer DB, and a Play can send the useful hits
 to Slack, update a CRM, or create a task. Change the filters or destination as
 the team learns what a useful hit looks like.
 
+## Default-guided setup, not a questionnaire or plan
+
+Treat monitor setup as **infer → validate → deploy → report**, not a sequence
+of choice cards. A user who says "monitor job changes at these accounts" has
+already given enough to draft the event type, targets, and filters. Resolve
+company domains from names when necessary, carry the evidence, and use the
+request's titles, roles, geography, source list, and destination as filter
+inputs. Do not ask the user to supply domains or to choose routine filter
+values that the request already implies.
+
+**Do not create a plan artifact.** Never answer an explicit monitor request
+with a titled plan, a "Summary" card, a phase/step outline, a Mermaid diagram,
+or a pre-action configuration write-up. Those make the user approve work they
+already asked for. Do the read-only validation, price lookup, and requested
+mutation directly. If a progress update is useful, make it one plain sentence;
+afterward, report the monitor key, active scope, live Deepline credit terms, any
+unresolved targets, and provider-required `setup_guidance` (including a callback
+URL and setup steps) when the read-back returns it. Do not call a monitor active
+and ready to receive events until any returned provider setup is complete.
+
+**A dry-run is not a test.** It proves a definition can be deployed, not that a
+deployed monitor accepts its event shape. For every monitor the user explicitly
+asked to create or reactivate, read it back and run the safe validation-only
+test whenever `monitors get` returns a `sample_payload`. Do this automatically
+in an internal/test workspace. In a customer workspace, run it only after the
+user explicitly authorizes this diagnostic for that monitor. It writes no rows,
+dispatches no Plays, and does not spend event credits. Mark the monitor as
+tested only when the response confirms `accepted: true`,
+`test_mode: validation_only`, `persisted_rows: 0`, and
+`dispatched_bound_plays: 0`. If no sample payload exists, report that the
+provider offers no safe payload test and do not claim the monitor was tested.
+
+Use these defaults unless the request says otherwise:
+
+- **Scope:** use the narrowest provider-side filters that express the user's
+  stated signal and target set. Do not broaden for hypothetical future reuse.
+- **Time:** monitor forward from deployment. Do not request historical matching
+  or a backfill window unless the user explicitly asks for history, recent
+  findings, a lookback, or backfill.
+- **Action:** preserve the monitor's event feed. Add a downstream Play only
+  when the user asks for a notification or another side effect; otherwise leave
+  the event in its Customer DB stream for review.
+- **Ambiguity:** use the available company/person context to resolve it. Keep an
+  unresolved target with a reason rather than stopping the whole setup.
+
+Treat the following as implementation decisions, not user questions: company
+domain recovery, monitor type selection, exact provider-side filter syntax,
+narrow-versus-broad scope when the defaults above decide it, forward-only
+operation, validation-only testing, and the monitor key/name. A downstream
+destination is a requirement only when the user asks for an alert or other side
+effect; otherwise use the Customer DB stream. A spend cap is optional: when the
+user gives none, obtain the live price and proceed within the requested scope
+instead of asking them to invent one.
+
+Before presenting a recommendation, read the live monitor contract, build the
+definition, run `monitors check`, and run `monitors deploy --dry-run`. Report
+the actual deploy/reactivation charge, recurring charge, and/or Deepline credits
+per accepted event returned by those commands. Do not ask the user whether they
+want a more expensive option before looking up its price. When event volume is
+unknown, say that future total is unknown; do not invent an estimate.
+
+Ask only to complete a missing requirement: which signal matters, which targets
+belong in scope, or where an explicitly requested alert/action should go. Ask
+when a deployment check exposes an unaffordable or invalid configuration too.
+Put the recommended configuration and live Deepline credit impact in that one
+question. If the user stated the monitor scope and asked to create or deploy it,
+that request authorizes the validated mutation; the dry-run is the scope-and-
+price explanation, not a second approval gate.
+
 ## Access
 
 Before any monitor command:
@@ -25,10 +94,12 @@ other failures need diagnosis.
 
 1. Discover the live monitor type and its filters, output stream, and pricing.
 2. List all deployed monitors and reuse one that already covers the request.
-3. Run `check` and `deploy --dry-run`; show scope, stream impact, and live
-   Deepline pricing before a paid mutation.
+3. Run `check` and `deploy --dry-run`; use the resulting scope, stream impact,
+   and live Deepline pricing to validate the requested mutation.
 4. Deploy or update only the requested definition, then run `get` to verify the
-   stored filters and active state.
+   stored filters and active state. In an internal/test workspace, run the safe
+   validation-only test when the read-back provides a sample payload; in a
+   customer workspace, do so only with explicit diagnostic-test permission.
 5. If a Play consumes the stream, inspect its filter and state whether its
    behavior changes.
 
@@ -40,6 +111,7 @@ deepline monitors check '<definition>' --json
 deepline monitors deploy --dry-run '<definition>' --json
 deepline monitors deploy '<definition>' --json
 deepline monitors get <key> --json
+deepline monitors test <key> '<sample_payload from monitors get>' --json
 ```
 
 `check` validates a definition and selected pricing. It does not prove provider
@@ -48,9 +120,10 @@ what was stored. If the stored payload differs from the requested scope, report
 a failed write.
 
 If a live preflight helps, use a one-result or one-event read from the same
-signal type after the user approves its cost. A current-data lookup is not proof
-that a future monitor will fire. Do not use a people search as proof of job-post
-or job-change delivery.
+signal type within the requested scope only in an internal/test workspace, or
+after the user explicitly authorizes that diagnostic in a customer workspace.
+A current-data lookup is not proof that a future monitor will fire. Do not use a
+people search as proof of job-post or job-change delivery.
 
 ## Choose the right starting point
 
@@ -79,30 +152,16 @@ There is no separate search product or `tail` command. Read the existing monitor
 and its declared output table while waiting. Do not attribute a shared-stream
 row to one monitor without a documented monitor-to-row binding.
 
-### The customer story
+### Explain the monitor only when useful
 
-Start with a small, bounded paid calibration. The job is to prove that the right
-signals reach the right Slack channel or workflow before the team commits to a
-larger account or contact list. Get the live Deepline quote from `check` and
-`deploy --dry-run`; do not promise a fixed setup cost.
-
-Explain the flow in the customer's terms:
-
-```text
-We will watch <companies or people> for <signal>. When a useful match arrives,
-we will send it to <Slack channel or other destination>. We will first test a
-small set, tune the filters until the results look useful, then show the cost and
-ask before expanding to the rest of the list.
-```
+After validation or deployment, use a sentence when the user needs the model:
+the monitor keeps watch; a matching event enters the shared signal feed; a
+requested Play can then notify Slack, update a CRM, create a task, or enrich
+the company. Do not render a diagram or a setup summary before doing the work.
 
 To start in Slack, publish a Play that sends matching monitor rows to the chosen
 channel. The monitor gathers the signal; the Play handles delivery. The team can
 change filters, recipients, or destination later without replacing the monitor.
-
-State the calibration contract before deploying: approved pilot companies or
-people, historical boundary or forward-only start, success criteria, and the
-live Deepline pricing basis. Existing Plays are known consumers; other table
-consumers may exist.
 
 ### `updates_since`: history, not a temporary switch
 
@@ -115,20 +174,20 @@ Forward-only: start watching for changes after this is turned on.
 Historical: look for qualifying changes since <approved date>.
 ```
 
-- If history was requested without a range, use 14 days only for an ordinary or
-  unknown-volume company.
-- For a known high-volume company, recommend forward-only monitoring. Use a
-  short historical window only after the user chooses it after seeing live price.
+- If history was explicitly requested without a range, use 14 days only for an
+  ordinary or unknown-volume company and report the live price.
+- For a known high-volume company, use forward-only monitoring unless the user
+  explicitly requires history.
 - Do not quietly widen days into months or change `updates_since` during a
   calibration run. Changing it can replace the upstream radar and produce new
   billable findings.
 
 ### Calibration and observation
 
-Use three to five customer-approved, distinct companies or a similarly small
-set of people. Include an expected match, a sparse contrast, and a high-volume
-case only when relevant. Check and dry-run the complete manifest, then deploy at
-most two monitors concurrently. Stop on an unexpected price or lifecycle failure.
+Use the requested targets and the narrowest filters that express the stated
+signal. Do not force a pilot or ask the user to approve a small calibration when
+they asked to deploy the full stated scope. Check and dry-run the complete
+manifest, then stop on an unexpected price or lifecycle failure.
 
 For each deploy or update, record public key, definition, output table, price,
 state, elapsed time, and failure. Capture `observation_started_at` immediately
@@ -141,10 +200,10 @@ monitor, but it does not prove that a row came from a replacement radar during
 an update overlap. For monitor types without a documented binding column, show
 only monitor state and `last_received_event`.
 
-Use an interactive observation window of at most 50 seconds: read at 0, 25, and
-50 seconds. At 50 seconds with no row or failure, say the monitor is active but
-the result is inconclusive; historical findings may arrive later. Do not wait
-silently, widen the window, or relax filters automatically.
+Use the validation-only payload test when it is available. It is the immediate,
+safe proof that the stored monitor accepts its event shape. An observation window
+is optional diagnostic work, not a deployment prerequisite. If it is used, limit
+it to 50 seconds and say that no resulting live row is inconclusive.
 
 When rows arrive, show a small safe sample as a decision table:
 
@@ -152,21 +211,20 @@ When rows arrive, show a small safe sample as a decision table:
 | ---------------- | ------- | ----------------- | ------ | ------------------ |
 | <company/person> | <event> | <filter evidence> | <date> | <keep/refine/stop> |
 
-After the table, ask whether the filters match what the customer considers a
-useful signal. Recommend one supported filter adjustment: tighten title, role,
-seniority, or domain/person scope only when the live schema exposes it. Preserve
-a working filter when the sample is on-target.
+After the table, report whether the filters match the user's stated signal.
+Recommend one supported filter adjustment only when the sample is off-target:
+tighten title, role, seniority, or domain/person scope when the live schema
+exposes it. Preserve a working filter when the sample is on-target.
 
-When the customer approves the bounded calibration, own the iteration: change
-one filter at a time, re-check live price, verify the stored definition, and run
-another 50-second observation. Do not change `updates_since`, add new targets,
-or exceed the approved pilot scope or cost without asking again.
+When follow-up refinement is requested, change one filter at a time, re-check
+live price, verify the stored definition, and run another safe validation-only
+test when available and permitted by the workspace rule above. Do not change
+`updates_since` or add targets beyond the requested scope without asking.
 
-Scale only when the definition, delivery, and observed Deepline spend are sound
-and the signal held across calibration targets. Present the calibration table,
-recommended expanded scope, and live pricing, then get explicit customer approval
-before deploying the larger batch. For an update, use its read-back as proof of
-the definition; do not count overlap rows as proof of the replacement filter.
+For an expanded scope the user explicitly requests, validate its live price and
+deploy directly. For an update, use its read-back and safe validation-only test
+as proof of the definition; do not count overlap rows as proof of the
+replacement filter.
 
 Delete a rejected temporary scout deliberately:
 
@@ -204,8 +262,10 @@ Use `sqlListeners.where` only to decide which ingested rows wake a Play; it does
 not reduce ingestion or event charges. Reactivate a disabled matching monitor
 instead of creating another one.
 
-Choose the narrowest provider filter that meets the stated use case. A broad
-monitor is appropriate only for stated reuse and carries more event exposure.
+Choose the narrowest provider filter that meets one stated use case. A broad
+monitor is appropriate only when the user explicitly asks for multiple existing
+use cases and carries more event exposure. Ask only when those requirements
+conflict and the live contract cannot express both safely.
 For event-priced monitors, every accepted event can consume Deepline credits;
 filtering, enrichment, dedupe, or rejection after ingestion does not remove that
 charge. A scheduled Play is not automatically cheaper: compare frequency,
@@ -228,7 +288,9 @@ until the user approves `monitors reactivate <key> --dry-run` and reactivation.
 
 Read-only commands are `status`, `tools list/get`, `monitors list/get`, and
 `check`. Deploy, update, reactivate, and delete change state and may spend
-credits. When requested, show a short change summary before mutating:
+credits. Do not turn a requested deployment into a plan or second approval
+gate. Report the result after the mutation; when a concise progress update is
+needed, use one plain sentence:
 
 ```text
 Changes: <field>: <old> → <new>
@@ -238,7 +300,11 @@ Cost: <live pricing.display and charge_timing>; <known lifecycle charge>
 
 Use dry-run for deploy, reactivate, and delete. Update has no dry-run: read the
 current definition, merge the requested patch locally, run `check` on the full
-definition, then call `update` with only the intended patch.
+definition, then call `update` with only the intended patch. After every
+requested deploy or reactivation, read back the monitor. Run its safe
+validation-only test if a sample payload is available in an internal/test
+workspace, or in a customer workspace only after explicit diagnostic-test
+permission.
 
 An update keeps the public key and existing rows, but may replace the upstream
 resource. A disabled monitor update changes stored definition only; reactivate
