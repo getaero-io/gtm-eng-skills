@@ -45,6 +45,16 @@ request's titles, roles, geography, source list, and destination as filter
 inputs. Do not ask the user to supply domains or to choose routine filter
 values that the request already implies.
 
+`job_titles` accepts only the documented Deepline Native input syntax: double-quoted title
+terms joined with uppercase `AND`, `OR`, and `NOT`, such as `"VP" OR "Head of
+Sales"`. Parentheses and title-match boundaries are not documented. Do not
+claim exact, substring, word-boundary, or case-sensitivity behavior; validate
+real rows before widening a paid monitor. `job_titles` overrides `departments`
+and `seniorities`, so do not send both forms. `updates_since` is the historical
+boundary for a new radar, not a filter to revise during calibration. Do not
+invent a title, department, seniority, or geography filter when the selected
+row does not list it.
+
 **Do not create a plan artifact.** Never answer an explicit monitor request
 with a titled plan, a "Summary" card, a phase/step outline, a Mermaid diagram,
 or a pre-action configuration write-up. Those make the user approve work they
@@ -211,6 +221,94 @@ must accept the provider-shaped sample without persistence or dispatch. If any
 check fails, report a failed deployment. Do not wait for events to infer the
 filter.
 
+## Observe and refine
+
+`updates_since` is a permanent radar boundary, not pagination. Use one
+price-approved, contract-supported historical window. Do not change it during
+calibration: doing so replaces the upstream radar and can restart billable
+historical ingestion.
+
+Capture `observation_started_at` before deployment. For Deepline Native, read
+`data_plane_binding` from `monitors get <key> --json` and use both
+`_dl_monitor_id` and `_dl_monitor_binding_version` to inspect this monitor's
+current rows. Add `_dl_received_at` only to narrow the observation window.
+Without that binding, report monitor state and `last_received_event`; do not
+guess which shared-stream rows belong to the monitor. A missing output table or
+binding is an operational failure, not an empty sample.
+
+### Customer communication
+
+Explain the small paid preview before starting: what will be watched, what a
+useful match looks like, where it will go, and that the filters will be tuned
+before a wider rollout. Keep it plain. For person-specific monitoring, prefer
+a LinkedIn profile URL when available; Deepline Native can target that person
+directly rather than infer from the company alone.
+
+Use a bounded two-minute first check. Read monitor state and safely attributed
+rows about every 10 seconds; this is the live view, not a new `tail` command.
+Send one useful update at about 45 seconds and show a small result table if
+there are matches. If not, say that no match has arrived yet and continue the
+check. Historical matching can continue afterward.
+
+- At 45 and 90 seconds, report waiting only when useful.
+- At 120 seconds with no row or provider error, return **no sample yet** and
+  leave the monitor active. Do not call the filter wrong, replace the monitor,
+  mutate `updates_since`, or run a generic same-signal probe.
+- When rows arrive, keep matching patterns and remove only an observed
+  off-target pattern. Verify the stored update, then observe it forward. An
+  update does not request new historical matches.
+
+One useful waiting update is enough:
+
+> I turned on the first few monitors and am checking whether the recent window
+> produces useful matches. Nothing has arrived yet, so I’m leaving the filter
+> alone for now.
+
+When rows arrive, show a small safe sample as a decision table:
+
+| Target           | Signal  | Why it matched    | When   | Recommendation     |
+| ---------------- | ------- | ----------------- | ------ | ------------------ |
+| <company/person> | <event> | <filter evidence> | <date> | <keep/refine/stop> |
+
+After the table, state **keep**, **refine**, or **stop**. Change one supported
+filter at a time, based on real off-target rows. Do not add targets beyond the
+requested scope.
+
+## Return the decision
+
+Lead with the decision. The user needs evidence and the resulting watcher, not
+a log of monitor plumbing.
+
+| Outcome | Return |
+| --- | --- |
+| Needs a paid preview | One sentence: targets, broad filter, lookback, live Deepline price, and one approval question. |
+| Real matches fit | **Keep.** State the signal, active filter, 2–5 safe examples, and ongoing Deepline price. |
+| Real matches reveal noise | **Refine.** State the observed off-target pattern, the one filter change, 2–5 safe examples, and forward-observation caveat. |
+| No row by 120 seconds | **No sample yet.** State the filter, window, active status, and that this is not a filter conclusion. |
+| Provider or contract failure | **Blocked.** State the failed component and what must be fixed. Do not call it an empty result. |
+| User rejects the signal | **Stopped.** Confirm the deleted key, that future ingestion stopped, and that existing rows remain. |
+
+Use this shape when examples exist:
+
+```text
+Recommendation: <keep | refine | stop>
+Observed: <count> matching events in <window>; <one-line pattern>
+Change: <none | one supported filter change>
+Ongoing watcher: <signal + target + final filter>
+Cost: <live Deepline pricing>; <unknown volume when applicable>
+```
+
+After deployment, add the public key and destination table. Mention a Play only
+when it exists or the user asked for one. Never present a titled plan, raw
+definition, provider spend, or a list of routine implementation choices.
+
+For an expanded scope the user explicitly requests, validate its live price and
+deploy directly. For an update, use its read-back and safe validation-only test
+as proof of the definition; do not count overlap rows as proof of the
+replacement filter.
+
+Delete a rejected temporary scout deliberately:
+
 For a requested filter change, use the same tight loop:
 
 ```bash
@@ -248,7 +346,7 @@ The contract for a type gives you everything you need to deploy and to filter:
   (typed: required fields, allowed values).
 - **stream columns** — the row fields a play filters on with `sqlListeners.where`
   (the post-ingestion filter surface).
-- **pricing** — Deepline credits per accepted event.
+- **pricing** — live Deepline price, charge timing, and pricing basis.
 - **a deploy example** — `deepline monitors deploy '<def>'`.
 
 A monitor type is deployed, not executed: `deepline tools execute <monitor-type>`
@@ -271,257 +369,56 @@ All commands accept `--json` (also automatic when stdout is piped).
 | `deepline monitors delete <key>`                                    | Delete a deployed monitor. Deprovisions the upstream resource by default; `--local-only` removes just the Deepline record. Prompts y/N in a terminal; non-interactive runs must pass `--yes`. `--dry-run` previews the preflight.                                                                                                                                  |
 | `deepline monitors reactivate <key>`                                | Reactivate a previously disabled deployed monitor. May spend Deepline credits; `--dry-run` shows the cost first.                                                                                                                                                                                                                                                   |
 
-## Monitors as code (SDK)
+## Recover from errors by code
 
-The CLI and SDK use the same monitor model. Use the typed SDK in scripts, agent
-loops, or play repositories. Read
-[`../references/monitor-sdk.md`](../references/monitor-sdk.md); this recipe's
-access, cost visibility, read-back, shared-stream, and pricing rules still apply.
+Read the returned state before retrying. For validation errors, correct every
+reported field against the live contract and rerun `check`. For insufficient
+credits, report the required credits, balance, and shortfall, then stop. Retry a
+transient read or check once; do not blindly repeat a create, settlement, or
+cleanup failure.
 
-## Recover from errors
+## Operate safely
 
-Monitor errors return an actionable next step — follow it before retrying.
+Use `check` for every definition and `deploy --dry-run` before deployment,
+reactivation, or deletion. An update has no dry-run: read the full definition,
+validate the merged result with `check`, update only the requested patch, then
+read it back. An update keeps the public key and existing rows, but may replace
+the upstream resource. It does not promise a backfill.
 
-- **Transient / not ready yet**: wait briefly, then retry the same read or check
-  once.
-- **Unknown monitor type**: re-browse the catalog
-  (`deepline tools list --categories monitors`) and pick a valid tool id. A
-  missing _deployed_ monitor instead → `deepline monitors list --status all`.
-- **Validation errors**: fix every reported field and rerun `monitors check`.
-- **Not enough credits**: report the required credits, balance, and shortfall,
-  then stop and ask the user to add Deepline credits.
-- **Settlement / cleanup failure**: inspect the monitor state and report that
-  repair is needed; don't blindly repeat the mutation.
-- **Source rate limited during deploy**: show the provider's stated wait and
-  let the user decide whether to retry. Do not retry a create automatically:
-  the provider may have applied it even though Deepline could not confirm it.
+Before a paid deployment, list the whole registry with `--status all`. Follow
+`next_cursor` until `is_truncated` is false. Reuse a monitor with the same tool
+and scope; reactivate a disabled match instead of creating a duplicate. Monitors
+write to shared streams, so inspect the stream and known dependent Plays before
+changing scope. `sqlListeners.where` can narrow a Play's reaction, but cannot
+prevent a monitor from accepting a billable event.
 
-A monitor suspended for insufficient credits stays disabled until you explicitly
-reactivate it. Ask the user to add credits, run `monitors reactivate <key>
---dry-run`, show the impact summary, then reactivate when they ask. While
-suspended, connected plays do not run.
+For a fleet, prove one narrow monitor first, then use bounded concurrency and
+preserve each deploy/read-back result. A 409 means another writer changed the
+monitor: read it again before deciding whether a retry is needed. For a provider
+rate limit, return its wait to the user; never automatically retry a create.
 
-**Edit existing monitors; do not delete and recreate them manually.**
-`deepline monitors update <key> '<patch>'` and `client.monitors.update(key,
-patch)` are the supported filter-edit paths. A changed definition keeps the
-public monitor key and existing Customer DB rows, but the current provider
-lifecycle may replace the upstream resource by creating the new resource before
-deleting the previous one. Describe this as an update with upstream replacement,
-not as a requirement to delete every monitor and start over.
+If a pilot is empty, confirm the stored definition, active state, output stream,
+and Play filter. A zero-result sample is inconclusive. Keep the monitor active
+or run one approved, priced diagnostic; do not widen several filters or call the
+signal broken. `check` validates a definition, not provider coverage.
 
-**Reuse before you deploy.** `deepline monitors deploy` re-provisions an upstream
-provider feed and spends credits. Before deploying, run
-`deepline monitors list --status all` and check whether a monitor already
-**covers your need**: same `tool`, watching the same scope. If a matching monitor
-exists, do NOT deploy another — a play binds to the shared per-tool **stream**,
-and may react to rows from every monitor feeding it. Reuse the existing monitor
-and add a `sqlListeners.where` filter when the play needs narrower behavior. Do
-not deploy another monitor expecting it to create an isolated play channel. A
-disabled-but-matching monitor → `deepline monitors reactivate <key>`, not a
-fresh deploy.
+Only report live Deepline credit terms. The contract can price deployment,
+reactivation, accepted events, or recurring renewal. For event-priced monitors,
+future total is unknown without measured volume. Never expose provider cost.
 
-> **The reuse check must see the WHOLE registry, or it is worthless.** The list
-> response reports `total` (the true registry count for the status filter),
-> `returned`, and `is_truncated`. If `is_truncated` is `true`, you are looking at
-> a partial page — a "no matching monitor" conclusion off a truncated page is how
-> a duplicate paid monitor gets deployed onto an already-covered stream. Either
-> raise `--limit` above `total`, or page with the returned `next_cursor`
-> (`deepline monitors list --status all --cursor <next_cursor> --json`) until
-> `is_truncated` is `false` and `next_cursor` is `null`. Only then is "no match"
-> trustworthy.
+## Update and downstream automation
 
-## Shared streams and downstream blast radius
+When the user changes a monitor, report the requested change, the active scope,
+known downstream Plays, and live Deepline pricing. Do not claim an arbitrary
+title expression is broader or narrower. A disabled monitor stores updates but
+does not contact the provider until reactivated.
 
-A deployed monitor is not an isolated trigger channel. It writes provider events
-into a shared Customer DB stream/table. Public `sqlListeners` bindings subscribe
-to a `tool` and `stream`, not to one monitor key, so a play may react to rows from
-every monitor feeding that stream. Deploying another monitor on the same stream
-does not create an isolated channel for its events.
-
-Before creating, updating, disabling, reactivating, or deleting a monitor:
-
-1. Read its output streams with `deepline tools get <tool-id> --json` (type-level
-   `streams[]`) or `monitors get <key> --json` (a deployed instance).
-2. Run `monitors list --status all --json` and inspect other monitors using the
-   same tool and stream.
-3. Inspect the dependent published plays returned by `monitors get`.
-4. Explain whether the mutation will add rows, stop rows, or change which rows
-   enter the shared table.
-5. Explain the published pricing basis, state that total future spend is unknown
-   without measured event volume, and describe downstream behavior. When the
-   change can affect another consumer, name that impact before doing it.
-
-Use `sqlListeners.where` when a dependent play needs narrower behavior and the
-stream row schema exposes a suitable field such as domain, campaign, event type,
-or account id. This filter controls whether that play wakes; it does not prevent
-the monitor from ingesting the row. Example:
-`where: { after: { event_type: { eq: 'reply_received' } } }`.
-
-The dependent-play list is not a complete dependency graph. It identifies
-published Deepline plays, but arbitrary SQL queries, dashboards, exports, and
-external warehouse jobs may also consume the table. Describe reported plays as
-known dependents and state that other table consumers may exist.
-
-## Choose scope and ingestion strategy
-
-A monitor's provider payload filters events before Deepline receives them.
-`sqlListeners.where` and enrichment inside a play filter or qualify rows only
-after ingestion.
-
-> **Per-event pricing callout:** Every event accepted by an event-priced monitor
-> can consume Deepline credits. Filtering, enrichment, dedupe, or rejection
-> after ingestion changes downstream behavior, not the upstream event charge.
-
-| Strategy                             | Best fit                                                                                                                         | Price and data tradeoff                                                                                                                                                                               |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Narrow provider monitor              | One known use case, expensive events, or strict data minimization                                                                | Lower volume and higher precision, but may miss events needed by another play. The monitor may not expose every desired filter.                                                                       |
-| Broad monitor + play filtering       | Several stated use cases share the feed, or events are cheap enough to retain for later use                                      | Better recall and reuse with higher event exposure; apply the per-event pricing callout above.                                                                                                        |
-| Scheduled play over provider actions | The action catalog has materially better filters than the monitor, or the user wants periodic snapshots instead of an event feed | Can avoid broad continuous ingestion, but each scheduled search, page, and enrichment can cost credits and may repeat old results. Use incremental date/cursor filters when the action supports them. |
-
-A cron is not automatically cheaper. Compare measured monitor event volume,
-when available, with the scheduled action's frequency, pagination, duplicate
-work, and follow-up enrichment. When volume is unknown, state that instead of
-estimating spend. `net_new` output or a downstream dedupe protects the
-destination; it does not prove the provider call was free.
-
-When the request names one monitor use case, use the narrow provider monitor;
-do not invent future reuse or make the user choose it. When the user already
-named multiple use cases, or an existing monitor covers them, recommend the
-shared broader feed and state the live price consequence. Ask only when the
-request contains genuinely conflicting scope signals that neither default can
-resolve. In that case, first run the check and dry-run, then ask one question
-that leads with the recommended scope and its known Deepline-credit impact.
-
-## Empty pilots and monitor testing
-
-`deepline monitors check` validates the definition, selected pricing, and
-whether the monitor type is available. It does not test provider coverage, wait
-for a live event, or prove that a target segment will produce findings.
-
-A small sample with zero relevant events is **inconclusive**. It can mean the
-filters excluded the available events, the provider has weak coverage for that
-sample, no qualifying event occurred during the observation window, or the
-delivery path needs diagnosis. Do not call the signal "not working" from a
-zero-result pilot alone.
-
-When a pilot is empty:
-
-1. Run `monitors get <key>` and confirm the monitor is active and the stored
-   payload matches the intended filters.
-2. Confirm the play binding watches the monitor's actual output stream and that
-   its `sqlListeners.where` clause is not excluding received rows.
-3. State the observation window and sample size. Do not turn absence of events
-   into a coverage percentage.
-4. Propose one controlled diagnostic at a time: keep the monitor and wait for
-   future events, test a known recent ground-truth example, or relax one filter
-   on a small subset. State scope and live price before a paid diagnostic.
-5. Report the result as provider coverage evidence for that sample, not a
-   universal verdict on the signal.
-
-There is no customer-facing end-to-end monitor test command that proves live
-coverage. Do not describe `monitors check` as one.
-
-## Managing many monitors
-
-The public SDK and CLI expose lifecycle operations for one monitor at a time.
-A script may call `client.monitors.deploy(...)` or
-`client.monitors.update(...)` across many definitions with bounded concurrency.
-Do not issue an unbounded `Promise.all` across hundreds of paid mutations.
-Preserve each monitor's result, retry only explicit transient failures, and run
-the full-registry reuse check before creating new monitors.
-
-## Make mutations legible, not ceremonial
-
-`status`, `tools list`/`tools get` (type discovery), `monitors list`,
-`monitors get`, `check`, and dependency inspection are read-only. Creating,
-updating, reactivating, or deleting a monitor changes workspace or provider
-state and can spend credits. When the customer asks for that change, validate
-the live scope and cost, execute it, then report what changed. Do not turn the
-following compact result format into a pre-execution plan. If they asked only
-to design or review, stay read-only.
-
-```text
-Changes
-- <field>: <old value> → <new value>
-- <broader/narrower only when this is clear>
-
-Stays the same
-- Monitor: <key>
-- Table: <tool.stream → Customer DB table>
-- Existing rows stay in the table.
-- Known plays: <list and whether their behavior changes>
-
-Cost
-- <live deploy, reactivation, event, or recurring price in Deepline credits>
-- <known lifecycle charge; future volume is unknown unless measured>
-- <replacement note; mention backfill only when provider evidence proves one>
-- Check: <result; update has no dry-run>
-```
-
-For deploy, reactivate, and delete, include the built-in dry-run result. Update
-has no dry-run, so use the read-only validation sequence below. A request to create
-or change a monitor is the authorization to make that requested change; do not
-insert a second confirmation gate after the scope and price are known.
-
-## Update a monitor
-
-Use `monitors update`. Do not tell the user to delete and recreate monitors just
-to change a filter.
-
-An update keeps the public monitor key. Deepline may replace the upstream
-provider resource behind it. Existing Customer DB rows stay. If the tool and
-output stream are unchanged, future events keep going to the same table. If the
-output stream changes, name the old and new destinations.
-
-For a disabled monitor, update only changes the stored definition. It does not
-contact the provider, activate the monitor, or charge credits. Publish any
-dependent Play changes first, then use `monitors reactivate` to run the normal
-preflight and create the upstream monitor from the updated definition.
-
-Replacement does not guarantee a backfill. If the provider emits initial,
-replayed, or backfill events, each event Deepline accepts is billed at the live
-per-event price. A play filter or dedupe does not remove that ingestion charge.
-Read the current price from `monitors get` and the checked definition.
-
-Example:
-
-```text
-Changes
-- Job title: CEO → CEO OR CFO
-
-Stays the same
-- Monitor: goldman-sachs-new-hires
-- Signal and Customer DB table are unchanged.
-- Existing rows stay in that table.
-
-Cost
-- Ongoing price: <live credits per accepted event>
-- Deepline will update the upstream provider resource.
-- A backfill is not guaranteed. If the provider emits initial or replayed findings, accepted findings use the normal event price.
-```
-
-Before updating:
-
-1. Run `deepline monitors get <key> --json` to read the current definition,
-   selected price, billing state, outputs, and dependent published plays.
-2. Merge the requested patch into that full definition locally, then run
-   `deepline monitors check '<full-definition>' --json`. `check` validates the
-   definition and selected pricing; it does not simulate the provider-side
-   update.
-3. Show the `Changes / Stays the same / Cost` summary above. Do not call an
-   arbitrary Boolean expression broader or narrower unless that relationship is
-   clear.
-4. For each dependent play, say whether it should keep the old behavior, adopt
-   the new scope, or needs user direction. Do not silently make one choice for
-   every dependent.
-5. If a play must preserve the old restriction, prepare and publish its
-   equivalent `sqlListeners.where` change before broadening the monitor. This
-   preserves play behavior; apply the per-event pricing callout above when
-   explaining spend.
-6. Pass only the intended patch to `monitors update`. Read its `change_summary`
-   when present. Then verify with `monitors get` and the live play bindings.
-   Report what changed, what stayed the same, and which table receives future
-   events.
+A monitor writes event rows; a Play can react to each row with a `sqlListeners`
+trigger for the tool and stream shown by `tools get`. Use a `where` clause only
+when the stream schema documents the field. Validate and publish the Play before
+reactivating a monitor when that Play must be ready for new events. The SDK uses
+the same definition and lifecycle contract; see
+[`../references/monitor-sdk.md`](../references/monitor-sdk.md).
 
 ## When to reach for a monitor
 
@@ -580,49 +477,3 @@ but release its slot, patch `{"controls":{"execution_type":null}}`.
   "controls": { "execution_type": "priority" }
 }
 ```
-
-## Build a play on top of a monitor
-
-The monitor captures a provider's events into a Customer DB table; a play reacts
-to each new row. A play subscribes with a `sqlListeners` trigger:
-
-```ts
-sqlListeners: [
-  {
-    id: 'company-job-openings',
-    tool: 'deepline_native.company_radar',
-    stream: 'company_job_openings',
-    operations: ['INSERT'],
-    where: { after: { domain: { eq: 'stripe.com' } } },
-  },
-];
-```
-
-1. `deepline tools get <tool-id>` lists, per output **stream**, the `stream` key
-   you bind to, the Customer DB **table**, and the typed **row columns** you
-   filter on. Bind to a data stream (kind `event`/`signal`), not one marked
-   `[binding metadata]`.
-2. Reuse before you deploy (see above). Deploy only when nothing covers your scope.
-3. Author the play with the `sqlListeners` trigger (or start from
-   `deepline plays bootstrap monitor-triggered`). Validate with
-   `deepline plays check <file.play.ts>`, then `deepline plays publish`. The play
-   then runs inline whenever the monitor writes a matching row — no schedule, no
-   polling.
-
-If the play calls `query_customer_db`, send one SQL statement per tool call.
-Multiline SQL and one trailing semicolon are valid; multiple statements in one
-call are not. Prefer a single idempotent `INSERT ... ON CONFLICT` or
-`INSERT ... SELECT ... WHERE NOT EXISTS` over `DELETE` followed by `INSERT`, and
-include every required `NOT NULL` column. Query `information_schema.columns` in
-a separate call before writing when the table contract is unknown.
-
-## Spend
-
-Only report **Deepline** credit spend. Read the live `tools get <type>`,
-`check`, and `get` pricing fields instead of assuming every monitor bills the
-same way. A
-monitor can charge on deploy/reactivation, on each accepted provider event, or
-on a recurring renewal. Event volume therefore matters for event-priced
-monitors; apply the canonical per-event pricing callout in **Choose scope and
-ingestion strategy**. Provider cost basis, balances, and exchange rates are
-internal and must never be shown.

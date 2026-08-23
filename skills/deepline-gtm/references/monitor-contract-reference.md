@@ -1,4 +1,4 @@
-<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 90dec2d80c2d1ff720eba3567dd8ac57f140ab6c1468d11f0a3fb68188197057; run bun run docs:monitor-contract -->
+<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 255604025f5cdf05bff836d3f9e275992763eea82d5bdc00e8ac0fb8226b72e1; run bun run docs:monitor-contract -->
 
 # Monitor Contract Reference
 
@@ -460,9 +460,8 @@ Creates a Deepline Native company radar data pipe and writes Deepline Native com
 | `job_titles` | Provider-facing title expression. Deepline validates its grammar and forwards it unchanged; it overrides departments and seniorities when present. Stored readback does not prove upstream matching or billing semantics. |
 | ↳ applies | Only company_new_hires, company_job_openings, company_promotions, and company_social_posts_cxo. |
 | ↳ precedence | job_titles overrides departments and seniorities. |
-| ↳ grammar | Bare single-word terms and double-quoted multi-word phrases joined with uppercase AND, OR, and NOT. Parentheses group expressions. |
-| ↳ grammar precedence | NOT > AND > OR |
-| ↳ grammar example | `("VP Sales" OR "Head of Product") AND NOT (Coordinator OR Aide OR DSP)` |
+| ↳ grammar | Double-quoted title terms joined with uppercase AND, OR, and NOT. Parentheses are not part of the documented grammar. |
+| ↳ grammar example | `"VP" OR "Head of Sales"` |
 | `departments` | Persona department filter. |
 | ↳ applies | Only company_new_hires, company_job_openings, company_promotions, and company_social_posts_cxo; ignored when job_titles is present. |
 | `seniorities` | Persona seniority filter. |
@@ -479,7 +478,7 @@ Creates a Deepline Native company radar data pipe and writes Deepline Native com
 
 #### Troubleshooting
 
-- **job_titles is rejected:** Use ("VP Sales" OR "Head of Product") AND NOT (Coordinator OR Aide OR DSP); operators must be uppercase.
+- **job_titles is rejected:** Use "VP" OR "Head of Sales"; operators must be uppercase.
 
 ## `deepline_native.contact_radar`
 
