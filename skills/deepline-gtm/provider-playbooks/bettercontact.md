@@ -2,7 +2,7 @@
 
 ## Key patterns
 
-- **Enrichment is async.** `bettercontact_enrich` and `bettercontact_bulk_enrich` launch BetterContact jobs and return a request id immediately. Use `bettercontact_get_result` to fetch terminal results.
+- **Enrichment is upstream-async.** By default, `bettercontact_enrich` and `bettercontact_bulk_enrich` wait briefly for terminal results. If the job is still running, they return a pollable request id; set `wait_for_completion: false` for launch-only behavior. Use `bettercontact_get_result` to fetch terminal results.
 - **Email status hierarchy:** deliverable > catch_all_safe > catch_all_not_safe > undeliverable. Only trust deliverable and catch_all_safe for outreach.
 - **Batch up to 100 contacts** per enrichment request using `bettercontact_bulk_enrich`.
 - Use the launcher response `id` as the `request_id` for `bettercontact_get_result`.
