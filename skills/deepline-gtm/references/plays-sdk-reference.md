@@ -1251,7 +1251,7 @@ Signature: `class DeeplineClient`
 | `getNotificationSettings` | method | Read product-notification destinations, subscriptions, event catalog, and DLQ health. |  | `Promise<ProductNotificationSettings>` |
 | `connectNotificationSlack` | method | Start the Slack OAuth flow required by product notifications. | `options?: { successUrl?: string; failureUrl?: string; }` | `Promise<{ ok: boolean; redirect_url: string }>` |
 | `listNotificationSlackChannels` | method | List Slack channels visible to the connected Deepline Slack app. | `query?: string` | `Promise<{ identity: { teamId: string; teamName?: string }; channels: Array<{ id: string; name: string; isPrivate: boolean }>; }>` |
-| `setNotificationSlack` | method | Select the Slack channel used for product notifications. | `channel: string` | `Promise<unknown>` |
+| `setNotificationSlack` | method | Select a Slack channel or direct member used for product notifications. | `destination: string \| { memberId: string }` | `Promise<unknown>` |
 | `testNotificationSlack` | method | Send one synchronous test ping and return Slack's delivery result. |  | `Promise<{ ok: boolean; deliveryId: string; state: string; message: string; }>` |
 | `disableNotificationSlack` | method | Disable Slack product notifications without deleting the OAuth connection. |  | `Promise<unknown>` |
 | `setNotificationSubscriptions` | method | Enable or disable event IDs from the server-provided notification catalog. | `eventTypes: string[]`<br />`enabled: boolean` | `Promise<unknown>` |
@@ -1260,8 +1260,8 @@ Signature: `class DeeplineClient`
 | `updateNotificationDlqDelivery` | method | Explicitly retry or archive one dead-lettered notification delivery. | `deliveryId: string`<br />`action: 'retry' \| 'archive'` | `Promise<unknown>` |
 | `getNotifications` | method | List the workspace's named notification rules. |  | `Promise<ProductNotificationSettings>` |
 | `listNotificationChannels` | method | List Slack channels available to an already-connected Slack integration. | `query?: string` | `Promise<{ identity: { teamId: string; teamName?: string }; channels: Array<{ id: string; name: string; isPrivate: boolean }>; }>` |
-| `createNotification` | method | Create a named notification routed through an existing provider integration. | `input: { name: string; provider: 'slack'; channel: string; eventTypes: string[]; }` | `Promise<unknown>` |
-| `updateNotification` | method | Update a notification's target, event selection, or enabled state. | `notificationId: string`<br />`input: \| { enabled: boolean } \| { name: string; channel: string; eventTypes: string[] }` | `Promise<unknown>` |
+| `createNotification` | method | Create a named notification routed through an existing provider integration. | `input: CreateNotificationInput` | `Promise<unknown>` |
+| `updateNotification` | method | Update a notification's target, event selection, or enabled state. | `notificationId: string`<br />`input: UpdateNotificationInput` | `Promise<unknown>` |
 | `testNotification` | method | Send a validation ping to one notification. | `notificationId: string` | `Promise<{ ok: boolean; deliveryId: string; state: string; message: string; }>` |
 | `deleteNotification` | method | Archive one notification without touching its provider integration. | `notificationId: string` | `Promise<{ deleted: boolean; id: string }>` |
 | `searchPlays` | method | Search callable plays and return compact play descriptions.<br /><br />Prebuilt plays are preferred by default because they have maintained<br />contracts and stable run behavior. | `options: { query: string; compact?: boolean; scope?: 'prebuilt' \| 'owned' \| 'all'; }` | `Promise<PlayDescription[]>` |
