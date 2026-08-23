@@ -243,6 +243,7 @@ New artifacts pin authoring contract edition 4. Check, publish, and run use the 
 |---|---|---:|---|
 | `description` | `string` | No | Optional non-empty human-readable summary of the Play. |
 | `compatibility.toolErrorSchemaVersion` | `0 \| 1` | No | Artifact-pinned tool error behavior, either 0 or 1. |
+| `compatibility.toolResponseReceiptRevision` | `string` | No | Explicit durable-receipt revision for a response transformation; bump only when serialized tool output changes. |
 | `inline` | `boolean` | No | Compiler hint for an inline named Play handler. |
 | `billing.maxCreditsPerRun` | `number` | No | Maximum Deepline credits permitted for one Play Run. |
 | `bindings.webhook.hmac.secretEnv` | `string` | Yes | Environment variable containing the webhook HMAC secret. |
