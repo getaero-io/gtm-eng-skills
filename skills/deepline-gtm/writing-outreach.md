@@ -1,6 +1,6 @@
 # Writing Outreach Skill
 
-Use this skill when the task involves cold emails, personalization, lead scoring, qualification, sequence design, campaign copy, or playground inspection of enrichment results.
+Use this skill when the task involves cold emails, personalization, lead scoring, qualification, sequence design, campaign copy, or inspection of enrichment results.
 
 ## What This Skill Does
 
@@ -284,17 +284,17 @@ Use these as `prompt` values inside `deeplineagent` payloads. Pair each prompt w
 - Keep outputs strict JSON (no markdown wrappers).
 - Keep email copy concise, specific to role/company context, and grounded in qualification rationale.
 
-## Playground Inspection
+## CSV Inspection
 
 Use these commands to interact with `deepline csv` directly for inspecting and debugging enrichment results.
 
-### Open an existing CSV in Playground
+### Open an existing CSV
 
 ```bash
 deepline csv render --csv leads.csv --open
 ```
 
-- Use `--open` to launch the UI.
+- Use `--open` to launch the CSV viewer.
 
 ### Inspect rows (`deepline csv show`)
 
@@ -320,5 +320,5 @@ genuinely want everything recomputed.
 
 ### CLI-only debug posture
 
-- If you need to inspect or re-execute, use these playground commands directly.
+- If you need to inspect or re-execute, use these CSV commands directly.
 - If you need to add columns or add providers, switch back to [enriching-and-researching.md](enriching-and-researching.md) instead of extending this page.

@@ -73,9 +73,10 @@ for the identity gate and ambiguity handling.
 
 No-loss rule: moved guidance remains fully documented at its canonical level and is linked from here.
 
-### CLI family fallback
+### CLI recovery
 
-If Deepline CLI V2 or SDK mode seems broken while running a GTM task, check `deepline switch status`. Use `deepline switch sdk` to move an installer-managed CLI to SDK mode, or `deepline switch python` to roll back to the Python CLI. Auth is host-scoped and should carry across both families.
+The SDK CLI is the supported CLI. If it is unavailable, run `deepline update`
+or reinstall it with `npm install -g deepline@latest`; do not switch CLI families.
 
 ## 2) Read behavior — MANDATORY before any execution
 
@@ -215,7 +216,7 @@ The slug must describe the task (e.g. `deepline/data/yc-cmo-outbound`, `deepline
 
 See [enriching-and-researching.md](enriching-and-researching.md) for `deepline csv` commands, pre-flight/post-run script templates, and inspection details.
 
-### 3.4 Final file + playground check (light)
+### 3.4 Final file and run check (light)
 
 - Keep one intended final CSV path: `FINAL_CSV="${OUTPUT_DIR:-$WORKDIR}/<requested_filename>.csv"`
 - Before finishing: use the post-run inspection script pattern from [enriching-and-researching.md](enriching-and-researching.md). Run it once instead of separate checks.
