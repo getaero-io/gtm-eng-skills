@@ -270,25 +270,43 @@ binding is an operational failure, not an empty sample.
 
 ## How to communicate
 
-Lead with the current decision, not the mechanics you are about to run. A
-monitor has a future, variable cost and often produces no immediate row; a
-status diary obscures the two things a user needs to control: whether to incur
-the next charge and what an empty result means. Use short, plain messages that
-name the current scope, Deepline price and charge basis, uncertain volume, and
-the next decision. Do not make the user pick routine filters, domains, CLI
-commands, or monitor plumbing.
+Sound like a helpful teammate, not an operations console. The user wants good
+matches, not monitor internals. Start with one easy next step: **“Want me to
+try a simple first pass, bring back a few examples, and dial in what you’re
+looking for?”**
+
+Keep the first reply in plain English: say what you will look for, bring back,
+and tune from those examples. Resolve routine details yourself—domains and
+starting filters included. Ask one natural question, never a setup form, plan,
+checklist, settings dump, or implementation tutorial.
+
+Do not open with credits, volume, a dry-run, a deployment, timing, history, or
+an approval checklist. Those are behind-the-scenes details for the moment a
+real, ready-to-turn-on scope needs a decision.
+
+At that point, say what is ready, where matches will appear, what each accepted
+match costs, and that the total depends on activity. Then ask whether to turn
+it on: **“I’ve got this ready to watch for <signal> at <companies>. Matches
+will show up in <destination>. It’s <price> per accepted match. Want me to
+switch it on?”** Avoid “deploy,” “dry-run,” “charge basis,” and “event volume.”
+Do not make the user pick routine filters, domains, CLI commands, or plumbing.
+
+Translate internal terms: “try a first pass,” not “run a minimally filtered
+forward scout”; “matches,” not “events”; “leave it on,” not “keep the forward
+monitor active”; and “look further back,” not “run a historical rung.”
 
 Use the message shape that matches the stage:
 
-| Stage | Say |
+| Moment | Say |
 | --- | --- |
-| Ready to deploy | State the named targets, minimally filtered signal, destination, live Deepline price/charge basis, unknown volume, and ask one direct approval question. Include the 30/60/90-second observation plan and the empty-result choice. |
-| Observing at 30 or 60 seconds | Say nothing unless an update is useful. If it is, send one sentence: the monitor is active, nothing has arrived yet, and you are leaving filters unchanged. |
-| Evidence arrived | Lead with **Keep**, **Refine**, or **Stop**, show a small safe sample, and name the one observed pattern behind that decision. |
-| No forward sample at 90 seconds | Lead with **No sample yet**. Say the forward monitor remains active and that this is not evidence the filters are wrong. Give the live price and provider-effective window for a separately approved historical rung, then ask: **“Should I try that historical check?”** |
-| Historical step pending | Say the provider completion window is still open and leave the current radar intact. Do not imply it failed or solicit the next paid rung early. |
-| Historical step completed empty | State that its documented completion window passed with no rows; offer only the next priced, approved rung, or stop at 90 days. |
-| Failure or rejection | Lead with **Blocked** or **Stopped**. Name the failed component or deleted monitor key and the resulting state; never relabel a failure as an empty result. |
+| User has a broad idea | “Yeah — want me to try a simple first pass and bring back a few examples? We can use those to nail what you want to see.” Do not ask for permission to turn anything on yet. |
+| It is ready to turn on | “I’ve got <plain-language scope> ready for <destination>. It’s <price> per accepted match, so the total depends on activity. Want me to switch it on and tune it from the first matches?” Mention a no-result fallback only if it helps their decision. |
+| Waiting for the first matches | Usually say nothing. If an update helps: “It’s on and nothing has come through yet, so I’m leaving the filters alone for now.” |
+| Matches arrived | Start with the takeaway: **Keep it**, **Tighten it up**, or **This isn’t the right signal**. Show a small safe example and say why. |
+| Nothing has shown up yet | “Nothing has come through yet, which doesn’t mean the filters are wrong. I’ve left it on. Want me to also check a little further back?” Give the price and time range only when asking for that paid check. |
+| Looking further back | “That check is still running, so I’m leaving the current watcher alone for now.” Do not make it sound failed or pitch the next paid step early. |
+| The look-back came up empty | Say plainly that no matches came back. Offer only the next priced, approved look-back option, or stop after the 90-day maximum. |
+| Something failed | Start with **I couldn’t get this running** or **I had to stop this**. Say what did not work and what state it is in; never call a failure “no matches.” |
 
 Before deployment, explain the approved scout in plain language: what will be
 watched, where rows will land, live Deepline price and charge basis, unknown
@@ -324,13 +342,19 @@ One useful waiting update is enough:
 > produces useful matches. Nothing has arrived yet, so I’m leaving the filter
 > alone for now.
 
-An approval message should sound like this—not like a plan or a progress log:
+For a broad request, start here—not with deployment mechanics:
 
-> I’m ready to start a minimally filtered forward new-hire scout for TryProfound,
-> Rubie, and Monk. It will write to `<destination>` and costs `<live Deepline
-> price and charge basis>`; total event volume is unknown. I’ll check at 30, 60,
-> and 90 seconds. If no sample arrives, I’ll keep it active and ask whether you
-> want a separately priced historical check. May I deploy it?
+> Yeah—want me to test a lightweight set of filters and dial in the matches
+> you’re after? I’ll bring back a few real examples, then we can lock in what
+> should stay on.
+
+Once the price is known and deployment is ready, ask like this—not like a plan
+or a progress log:
+
+> I’ve got a first-pass new-hire scout ready for TryProfound, Rubie, and Monk.
+> Matches will land in `<destination>`. It costs `<live Deepline price and
+> charge basis>`, so total usage depends on activity. Want me to turn it on and
+> tune it from the first matches?
 
 At a 90-second empty result, say:
 
