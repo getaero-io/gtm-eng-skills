@@ -35,15 +35,42 @@ what this monitor currently uses; the spec tells you what each field means and
 which values are legal. `conditional_requirements`, when present, states fields
 required only for a particular payload selection.
 
-## Default-guided setup, not a questionnaire or plan
+## Default-guided setup with paid consent
 
-Treat monitor setup as **infer → validate → deploy → report**, not a sequence
-of choice cards. A user who says "monitor job changes at these accounts" has
-already given enough to draft the event type, targets, and filters. Resolve
-company domains from names when necessary, carry the evidence, and use the
-request's titles, roles, geography, source list, and destination as filter
-inputs. Do not ask the user to supply domains or to choose routine filter
-values that the request already implies.
+Treat monitor setup as **infer → validate → approve → deploy → observe**, not a
+sequence of choice cards. Resolve company domains from names when necessary,
+carry the evidence, and use the request's titles, roles, geography, source
+list, and destination as filter inputs. Do not ask the user to supply domains
+or choose routine filter values that the request already implies.
+
+Deployment, reactivation, and historical lookback can accept variable numbers
+of billable events. A user request is authorization to investigate and prepare
+the exact monitor definition, not consent to incur those charges. After the
+live contract, registry-reuse check, `monitors check`, and deploy dry-run,
+obtain explicit approval before every paid state change in every workspace.
+The approval must state the targets, event signal, destination, live Deepline
+price and charge basis, unknown total volume, and which current or historical
+calibration step it authorizes. A dry-run is read-only and does not replace this
+approval.
+
+For an initial forward scout, the approval must also set the expectation for an
+empty result: inspect safely attributed rows at 30, 60, and 90 seconds; if none
+arrive, leave the forward monitor active and offer a separately approved,
+priced 30-day historical step. Say that later empty historical steps can only
+advance to 60, then 90 days maximum. This gives the user a useful next choice
+instead of ending at "no sample yet."
+
+Use 30, 60, and 90 days as the calibration rungs, not an invented guarantee of
+an exact source cutoff. When a live contract evaluates source dates at
+calendar-month precision (including Deepline Native new-hire and promotion
+radars), show the provider-effective start date/window in the dry-run and
+approval request before it can be billed.
+
+"Similar companies" is a billable scope decision. Resolve and, when useful,
+recommend a small evidence-based candidate list, but do not deploy those
+candidates merely because they seem plausible. Include their exact names and
+domains in the same approval as the named targets, or begin with only the named
+targets.
 
 `job_titles` accepts only the documented Deepline Native input syntax: double-quoted title
 terms joined with uppercase `AND`, `OR`, and `NOT`, such as `"VP" OR "Head of
@@ -55,13 +82,11 @@ boundary for a new radar, not a filter to revise during calibration. Do not
 invent a title, department, seniority, or geography filter when the selected
 row does not list it.
 
-**Do not create a plan artifact.** Never answer an explicit monitor request
-with a titled plan, a "Summary" card, a phase/step outline, a Mermaid diagram,
-or a pre-action configuration write-up. Those make the user approve work they
-already asked for. Do the read-only validation, price lookup, and requested
-mutation directly. If a progress update is useful, make it one plain sentence;
-afterward, report only the monitor key, active scope, live Deepline credit
-terms, and any unresolved targets.
+**Keep approval decision-ready, not procedural.** Do not turn routine monitor
+setup into a titled plan, choice-card questionnaire, Mermaid diagram, or a raw
+definition dump. Do the read-only validation and price lookup directly, then
+send one short approval request for the exact paid scope. If a progress update
+is useful, make it one plain sentence.
 
 **A dry-run is not a test.** It proves a definition can be deployed, not that a
 deployed monitor accepts its event shape. For an internal/test workspace, read
@@ -76,11 +101,14 @@ provider offers no safe payload test and do not claim the monitor was tested.
 
 Use these defaults unless the request says otherwise:
 
-- **Scope:** use the narrowest provider-side filters that express the user's
-  stated signal and target set. Do not broaden for hypothetical future reuse.
-- **Time:** monitor forward from deployment. Do not request historical matching
-  or a backfill window unless the user explicitly asks for history, recent
-  findings, a lookback, or backfill.
+- **Scope:** for a calibration scout, use the named targets and the requested
+  event only. Leave title, seniority, department, and geography unset unless
+  the user explicitly supplied them. Do not broaden the target set for
+  hypothetical future reuse.
+- **Time:** start forward from deployment. If there are no safely attributed
+  rows at 90 seconds, offer a 30-day historical step; only after an explicit
+  approval may the next empty step widen to 60, then 90 days maximum. Do not
+  silently select history or widen it during calibration.
 - **Action:** preserve the monitor's event feed. Add a downstream Play only
   when the user asks for a notification or another side effect; otherwise leave
   the event in its Customer DB stream for review.
@@ -97,9 +125,9 @@ unknown, say that future total is unknown; do not invent an estimate.
 Ask only to complete a missing requirement: which signal matters, which targets
 belong in scope, or where an explicitly requested alert/action should go. Ask
 when a deployment check exposes an unaffordable or invalid configuration too.
-Put the recommended configuration and live Deepline credit impact in that one
-question. If the user asked to create or deploy the monitor, the validated
-dry-run is the scope-and-price explanation, not a second approval gate.
+Put the recommended configuration and live Deepline credit impact in one short
+approval question. The validated dry-run explains scope and price; explicit
+confirmation authorizes the paid mutation.
 
 ## Step 0 — access gate (do this first)
 
@@ -130,11 +158,12 @@ write to the same feed; each Play decides which new rows deserve action. That
 keeps one useful source of truth, but a Play filter controls downstream action
 only, not monitor ingestion cost.
 
-## First proof of value: one filtered monitor
+## First proof of value: a minimally filtered scout
 
-Do not make a customer wait days to discover whether the intended filter took
-effect. Start with one narrow monitor and prove the stored definition after the
-requested write. This is the fastest feedback loop and guards against false success.
+Do not make a customer wait days to discover whether the intended signal has
+coverage. After approval, start the approved small scout batch with only the
+target and requested event filters, then prove each stored definition after the
+write. This is the fastest feedback loop and guards against false success.
 
 **Example outcome:** “Tell me when Stripe posts a Chief Financial Officer job,
 then let a Play react.” Read the live tool contract before using this example.
@@ -207,7 +236,7 @@ MONITOR='{
 # These are safe. They validate the exact definition and show cost/reuse.
 deepline monitors check "$MONITOR" --json
 deepline monitors deploy --dry-run "$MONITOR" --json
-# After showing scope, shared-stream impact, and price:
+# After explicit approval of scope, shared-stream impact, and price:
 deepline monitors deploy "$MONITOR" --json
 deepline monitors get stripe-cfo-job-openings --json
 # In an internal/test workspace, or after explicit customer approval:
@@ -223,10 +252,13 @@ filter.
 
 ## Observe and refine
 
-`updates_since` is a permanent radar boundary, not pagination. Use one
-price-approved, contract-supported historical window. Do not change it during
-calibration: doing so replaces the upstream radar and can restart billable
-historical ingestion.
+`updates_since` is a permanent radar boundary, not pagination. A historical
+step can replace an upstream radar and restart billable ingestion, so do not
+patch it as a casual filter update. Use the live contract and dry-run to choose
+the safe create/replace path, obtain approval for that exact operation, and
+then read the resulting definition back. The only calibration ladder is 30,
+60, then 90 days; never use more than 90 days without a separate user request
+and a revised approval.
 
 Capture `observation_started_at` before deployment. For Deepline Native, read
 `data_plane_binding` from `monitors get <key> --json` and use both
@@ -236,24 +268,52 @@ Without that binding, report monitor state and `last_received_event`; do not
 guess which shared-stream rows belong to the monitor. A missing output table or
 binding is an operational failure, not an empty sample.
 
-### Customer communication
+## How to communicate
 
-Explain the small paid preview before starting: what will be watched, what a
-useful match looks like, where it will go, and that the filters will be tuned
-before a wider rollout. Keep it plain. For person-specific monitoring, prefer
-a LinkedIn profile URL when available; Deepline Native can target that person
-directly rather than infer from the company alone.
+Lead with the current decision, not the mechanics you are about to run. A
+monitor has a future, variable cost and often produces no immediate row; a
+status diary obscures the two things a user needs to control: whether to incur
+the next charge and what an empty result means. Use short, plain messages that
+name the current scope, Deepline price and charge basis, uncertain volume, and
+the next decision. Do not make the user pick routine filters, domains, CLI
+commands, or monitor plumbing.
 
-Use a bounded two-minute first check. Read monitor state and safely attributed
-rows about every 10 seconds; this is the live view, not a new `tail` command.
-Send one useful update at about 45 seconds and show a small result table if
-there are matches. If not, say that no match has arrived yet and continue the
-check. Historical matching can continue afterward.
+Use the message shape that matches the stage:
 
-- At 45 and 90 seconds, report waiting only when useful.
-- At 120 seconds with no row or provider error, return **no sample yet** and
-  leave the monitor active. Do not call the filter wrong, replace the monitor,
-  mutate `updates_since`, or run a generic same-signal probe.
+| Stage | Say |
+| --- | --- |
+| Ready to deploy | State the named targets, minimally filtered signal, destination, live Deepline price/charge basis, unknown volume, and ask one direct approval question. Include the 30/60/90-second observation plan and the empty-result choice. |
+| Observing at 30 or 60 seconds | Say nothing unless an update is useful. If it is, send one sentence: the monitor is active, nothing has arrived yet, and you are leaving filters unchanged. |
+| Evidence arrived | Lead with **Keep**, **Refine**, or **Stop**, show a small safe sample, and name the one observed pattern behind that decision. |
+| No forward sample at 90 seconds | Lead with **No sample yet**. Say the forward monitor remains active and that this is not evidence the filters are wrong. Give the live price and provider-effective window for a separately approved historical rung, then ask: **“Should I try that historical check?”** |
+| Historical step pending | Say the provider completion window is still open and leave the current radar intact. Do not imply it failed or solicit the next paid rung early. |
+| Historical step completed empty | State that its documented completion window passed with no rows; offer only the next priced, approved rung, or stop at 90 days. |
+| Failure or rejection | Lead with **Blocked** or **Stopped**. Name the failed component or deleted monitor key and the resulting state; never relabel a failure as an empty result. |
+
+Before deployment, explain the approved scout in plain language: what will be
+watched, where rows will land, live Deepline price and charge basis, unknown
+total volume, and the filters that will be tuned from real events. For
+person-specific monitoring, prefer a LinkedIn profile URL when available;
+Deepline Native can target that person directly rather than infer from the
+company alone.
+
+Read monitor state and safely attributed rows at about 30, 60, and 90 seconds;
+this is the live view, not a new `tail` command. Show a small result table as
+soon as matches arrive. The initial forward scout ends at 90 seconds.
+
+- At 30 and 60 seconds, report waiting only when useful.
+- At 90 seconds with no row or provider error, return **no sample yet** and
+  leave the forward monitor active. This is not a filter conclusion. Offer the
+  next 30-day historical step with its live price and one approval question;
+  do not create, replace, or widen anything before consent.
+- A historical step has its own provider completion window. Do not call a
+  30- or 60-day step empty, replace it, or offer the next rung until that
+  documented window has passed (Deepline Native can deliver matching findings
+  during its first 24 hours). Leave the current historical monitor intact
+  while it is pending.
+- Only after that completed 30- or 60-day historical step is empty may you
+  offer the next rung (60 or 90 days) with a new live price and approval. Stop
+  at 90 days.
 - When rows arrive, keep matching patterns and remove only an observed
   off-target pattern. Verify the stored update, then observe it forward. An
   update does not request new historical matches.
@@ -263,6 +323,20 @@ One useful waiting update is enough:
 > I turned on the first few monitors and am checking whether the recent window
 > produces useful matches. Nothing has arrived yet, so I’m leaving the filter
 > alone for now.
+
+An approval message should sound like this—not like a plan or a progress log:
+
+> I’m ready to start a minimally filtered forward new-hire scout for TryProfound,
+> Rubie, and Monk. It will write to `<destination>` and costs `<live Deepline
+> price and charge basis>`; total event volume is unknown. I’ll check at 30, 60,
+> and 90 seconds. If no sample arrives, I’ll keep it active and ask whether you
+> want a separately priced historical check. May I deploy it?
+
+At a 90-second empty result, say:
+
+> **No sample yet.** The forward scout is still active, and this does not show
+> the filters are wrong. I can try the separately approved historical window
+> `<provider-effective dates>` for `<live Deepline price>`—should I try that?
 
 When rows arrive, show a small safe sample as a decision table:
 
@@ -281,10 +355,10 @@ a log of monitor plumbing.
 
 | Outcome | Return |
 | --- | --- |
-| Needs a paid preview | One sentence: targets, broad filter, lookback, live Deepline price, and one approval question. |
+| Needs a paid scout | One sentence: targets, minimally filtered signal, forward or next historical window, destination, live Deepline price/charge basis, unknown volume, and one approval question. |
 | Real matches fit | **Keep.** State the signal, active filter, 2–5 safe examples, and ongoing Deepline price. |
 | Real matches reveal noise | **Refine.** State the observed off-target pattern, the one filter change, 2–5 safe examples, and forward-observation caveat. |
-| No row by 120 seconds | **No sample yet.** State the filter, window, active status, and that this is not a filter conclusion. |
+| No row by 90 seconds | **No sample yet.** State the filter, forward-window active status, that this is not a filter conclusion, and offer the next approved historical rung (30, 60, or 90 days only). |
 | Provider or contract failure | **Blocked.** State the failed component and what must be fixed. Do not call it an empty result. |
 | User rejects the signal | **Stopped.** Confirm the deleted key, that future ingestion stopped, and that existing rows remain. |
 
@@ -302,10 +376,10 @@ After deployment, add the public key and destination table. Mention a Play only
 when it exists or the user asked for one. Never present a titled plan, raw
 definition, provider spend, or a list of routine implementation choices.
 
-For an expanded scope the user explicitly requests, validate its live price and
-deploy directly. For an update, use its read-back and safe validation-only test
-as proof of the definition; do not count overlap rows as proof of the
-replacement filter.
+For an expanded scope the user explicitly requests, validate its live price,
+then obtain approval for the added targets before deployment. For an update,
+use its read-back and safe validation-only test as proof of the definition; do
+not count overlap rows as proof of the replacement filter.
 
 Delete a rejected temporary scout deliberately:
 
@@ -392,10 +466,11 @@ write to shared streams, so inspect the stream and known dependent Plays before
 changing scope. `sqlListeners.where` can narrow a Play's reaction, but cannot
 prevent a monitor from accepting a billable event.
 
-For a fleet, prove one narrow monitor first, then use bounded concurrency and
-preserve each deploy/read-back result. A 409 means another writer changed the
-monitor: read it again before deciding whether a retry is needed. For a provider
-rate limit, return its wait to the user; never automatically retry a create.
+For a fleet, prove the approved minimally filtered scout on a bounded subset
+first, then use bounded concurrency and preserve each deploy/read-back result.
+A 409 means another writer changed the monitor: read it again before deciding
+whether a retry is needed. For a provider rate limit, return its wait to the
+user; never automatically retry a create.
 
 If a pilot is empty, confirm the stored definition, active state, output stream,
 and Play filter. A zero-result sample is inconclusive. Keep the monitor active

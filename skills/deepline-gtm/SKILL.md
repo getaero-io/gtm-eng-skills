@@ -44,19 +44,13 @@ and materially changes the result or external action, ask one concise question
 with a recommendation. Otherwise state a reasonable assumption in the result
 and keep moving.
 
-**Calibrate monitor filters from real events.** When history is supported, use
-one broad, price-approved preview unless the user asks for forward-only. Run it
-after pricing in test workspaces; in customer workspaces, ask one approval after
-showing the price. A dry-run proves configuration, not signal quality. Refine
-only from observed matches. This applies to titles, department, seniority,
-geography, event category, and every other supported field. Read
-[`recipes/deepline-monitors.md`](recipes/deepline-monitors.md), then keep,
-refine, or stop the watcher. Do not substitute a plan, made-up examples, or a
-people search.
-
-Start with recoverable identifiers, the live contract, and Deepline price; then
-preview the signal when supported. Forward-only tuning needs forward
-observation. Do not ask implementation questions.
+**Calibrate monitor filters from real events.** A monitor's variable event
+charges need a live price, dry-run, and explicit approval. Start a broad forward
+scout, observe at 30/60/90 seconds, and offer separately approved 30→60→90-day
+history only after a real empty result. Do not add similar companies silently.
+Read [`recipes/deepline-monitors.md`](recipes/deepline-monitors.md) for the
+communication, pricing, and safe-replacement rules; keep, refine, or stop only
+from observed rows.
 
 **Discovery order: companies first, then people.** When the task requires finding contacts at companies matching criteria (portfolio, ICP, hiring signal), discover the company set first, then find people at each company. Do not start with broad people-search queries.
 
@@ -236,10 +230,13 @@ sourcing, and other row-processing runs. Monitor mutations use the workflow in
 `recipes/deepline-monitors.md` instead: show the final provider scope, output
 streams/tables, selected Deepline pricing and expected exposure, reuse
 candidates, known dependent plays plus the unknown-consumer warning, and the
-built-in dry-run when that command supports one. When the user stated the scope
-and asked to deploy or reactivate it, that request authorizes the validated
-mutation. Ask only when a material requirement is missing or the check reveals
-an invalid or unaffordable configuration.
+built-in dry-run when that command supports one. Because a monitor can incur
+variable future event charges, require explicit approval before every paid
+deploy, reactivate, or historical widening—even when the user stated the
+scope. A historical rung is empty only after its documented provider completion
+window; leave it intact while that window is pending. Ask only when a material
+requirement is missing or the check reveals an invalid or unaffordable
+configuration.
 
 ### 4.1 Required run order
 
@@ -247,7 +244,13 @@ an invalid or unaffordable configuration.
 2. If the scope is NOT already approved (see below), request explicit approval.
 3. Run full scope, report the pilot's cost and quality findings alongside the deliverable.
 
-**User-stated scope = already approved.** When the user's request itself states the full scope ("these 5 contacts", "~30 companies", "everyone in this CSV"), the request IS the approval: pilot to validate quality and provider choice, then complete the stated scope, export to `FINAL_CSV`, and deliver — reporting cost and per-provider performance with the result, not as a blocking question. Do not stop to ask permission for work the user already sized — stopping delivers nothing.
+**User-stated scope = already approved for bounded row-processing only.** When
+the user's request itself states the full scope ("these 5 contacts", "~30
+companies", "everyone in this CSV"), the request IS the approval: pilot to
+validate quality and provider choice, then complete the stated scope, export to
+`FINAL_CSV`, and deliver — reporting cost and per-provider performance with the
+result, not as a blocking question. This exception never applies to monitors;
+follow the monitor-specific consent gate above.
 
 **Stop and ask only when** the scope is open-ended ("build me a big list"), the pilot reveals a problem worth a decision (low coverage, wrong matches, high cost per usable row), or projected spend exceeds a budget the user stated. Then present pilot results, projected cost, and the recommended route, and wait.
 
