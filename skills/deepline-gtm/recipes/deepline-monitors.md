@@ -74,13 +74,13 @@ targets.
 
 `job_titles` accepts only the documented Deepline Native input syntax: double-quoted title
 terms joined with uppercase `AND`, `OR`, and `NOT`, such as `"VP" OR "Head of
-Sales"`. Parentheses and title-match boundaries are not documented. Do not
-claim exact, substring, word-boundary, or case-sensitivity behavior; validate
-real rows before widening a paid monitor. `job_titles` overrides `departments`
-and `seniorities`, so do not send both forms. `updates_since` is the historical
-boundary for a new radar, not a filter to revise during calibration. Do not
-invent a title, department, seniority, or geography filter when the selected
-row does not list it.
+Sales"`. Deepline Native applies the expression upstream. Parentheses and exact
+title-match boundaries are not documented, so do not invent substring,
+word-boundary, or case-sensitivity semantics. `job_titles` overrides
+`departments` and `seniorities`, so do not send both forms. `updates_since` is
+the historical boundary for a new radar, not a filter to revise during
+calibration. Do not invent a title, department, seniority, or geography filter
+when the selected row does not list it.
 
 **Keep approval decision-ready, not procedural.** Do not turn routine monitor
 setup into a titled plan, choice-card questionnaire, Mermaid diagram, or a raw
