@@ -249,6 +249,8 @@ while True:
 | `POST` | `/api/v2/auth/cli/register` | `auth register` | SDK-facing route. | `src/app/api/v2/auth/cli/register/route.ts` |
 | `POST` | `/api/v2/auth/cli/status` | `auth status` | SDK-facing route. | `src/app/api/v2/auth/cli/status/route.ts` |
 | `POST` | `/api/v2/auth/cli/switch` | `org set`<br />`org switch` | SDK-facing route. | `src/app/api/v2/auth/cli/switch/route.ts` |
+| `GET` | `/api/v2/billing/auto-recharge` | `billing.autoRecharge.get`<br />`getTargetAutoRecharge`<br />`billing auto-recharge status` | SDK-facing route. | `src/app/api/v2/billing/auto-recharge/route.ts` |
+| `PUT` | `/api/v2/billing/auto-recharge` | `billing.autoRecharge.update`<br />`updateTargetAutoRecharge`<br />`billing auto-recharge set|off` | SDK-facing route. | `src/app/api/v2/billing/auto-recharge/route.ts` |
 | `GET` | `/api/v2/billing/balance` | `billing balance` | SDK-facing route. | `src/app/api/v2/billing/balance/route.ts` |
 | `GET` | `/api/v2/billing/catalog/current` | `billing.plans`<br />`getBillingPlans`<br />`billing plans` | SDK-facing route. | `src/app/api/v2/billing/catalog/current/route.ts` |
 | `POST` | `/api/v2/billing/checkout` | `billing checkout` | SDK-facing route. | `src/app/api/v2/billing/checkout/route.ts` |
