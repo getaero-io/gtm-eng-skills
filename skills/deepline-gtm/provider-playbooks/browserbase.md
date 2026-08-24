@@ -7,9 +7,9 @@ client to a managed browser. Public session creation disables Browserbase logs
 and recordings and does not accept contexts, extensions, certificate IDs,
 external proxy credentials, project IDs, or arbitrary metadata.
 
-Do not plan workflows around `browserbase_update_context`; live Browserbase API
-validation returned a deprecation 404 for API context uploads, so Deepline keeps
-that operation covered but disabled.
+Do not plan workflows around updating a context. Browserbase deprecated API
+context uploads and has removed the update endpoint from its API, so contexts
+can only be created, read, and deleted.
 
 Do not use Browserbase Agents for customer workflows. Agent runs accept
 shared-project resources and sensitive free-form data without a tenant-scoped
