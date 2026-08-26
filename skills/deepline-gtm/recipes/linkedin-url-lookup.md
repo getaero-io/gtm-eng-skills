@@ -21,19 +21,32 @@ Find LinkedIn profile URLs when you have a name, with or without company context
 
 ## Prebuilt first
 
-`prebuilt/person-to-linkedin` runs this whole sequence with validation built in:
+`prebuilt/person-to-linkedin` remains the compatibility play for the existing
+Serper candidate and Serper validation route. Inspect its live contract before
+running it:
 
 ```bash
+deepline plays describe prebuilt/person-to-linkedin
 deepline plays run prebuilt/person-to-linkedin --input '{"first_name":"Jane","last_name":"Smith","company_name":"Acme"}'
 # CSV:
 deepline plays run prebuilt/person-to-linkedin-batch --input '{"csv":"contacts.csv"}'
 deepline runs export <run-id> --out contacts_with_linkedin.csv
 ```
 
-Use the manual sequence below only when forking the prebuilt for a custom
-provider order (`deepline plays get prebuilt/person-to-linkedin --source --out ./fork.play.ts`).
+The maintained compatibility play currently tries company-anchored Serper,
+name-only Serper, and Crustdata when an email is available. Use the expanded
+sequence below when you need native HarvestAPI identity validation.
 
-## Provider sequence (inside the play / for a fork)
+Use the expanded manual sequence below only when you need a custom provider
+order. Pull the maintained play as a starting point, then inspect and check the
+fork before running it:
+
+```bash
+deepline plays get prebuilt/person-to-linkedin --source --out ./fork.play.ts
+deepline plays check ./fork.play.ts
+```
+
+## Expanded provider sequence for a custom fork
 
 Follow this order. Stop when you get a validated match.
 
@@ -49,7 +62,7 @@ For batch:
 
 _In a fork/custom play, this step is one `withColumn` calling the same tool per row._
 
-### Step 2: Serper Google search + Apify validation
+### Step 2: Serper Google search + HarvestAPI validation
 
 If Dropleads misses, search Google scoped to LinkedIn then validate the profile.
 
@@ -68,13 +81,14 @@ deepline tools execute serper_google_search --payload '{"query":"\"Jane Smith\" 
 
 Parse the LinkedIn URL from `organic[0].link`. Skip results that aren't `linkedin.com/in/` URLs.
 
-**2b. Scrape and name-validate:**
+**2b. Retrieve and name-validate:**
 
 ```bash
-deepline tools execute apify_run_actor_sync --payload '{"actorId":"harvestapi/linkedin-profile-scraper","input":{"urls":["https://linkedin.com/in/janesmith"]},"timeoutMs":90000}'
+deepline tools describe harvestapi_get_profile --schema-only
+deepline tools execute harvestapi_get_profile --payload '{"url":"https://linkedin.com/in/janesmith"}' --json
 ```
 
-**Name-validate** the scraped `full_name` against source name (see Post-lookup name validation). Company/title are supporting signals only.
+**Name-validate** the returned `element.firstName` and `element.lastName` against the source name (see Post-lookup name validation). Company/title are supporting signals only.
 
 If validation fails, try the next Serper result. If all Serper results fail validation, move to Step 3.
 
@@ -82,7 +96,7 @@ For batch:
 
 ```bash
 deepline tools execute serper_google_search --input '{"query":"\"Jane Smith\" \"Acme\" site:linkedin.com/in","num":3}'
-deepline tools execute apify_run_actor_sync --input '{"actorId":"harvestapi/linkedin-profile-scraper","input":{"urls":["<top-hit-url>"]},"timeoutMs":90000}'
+deepline tools execute harvestapi_get_profile --input '{"url":"<top-hit-url>"}' --json
 ```
 
 _In a fork/custom play these are two `withColumn` steps: search, then scrape + name-validate the top hit._
@@ -118,7 +132,7 @@ Prospeo returns LinkedIn URLs alongside email when available.
 ### Name only
 
 1. Dropleads with whatever filters you have
-2. Serper: `"Jane Smith" site:linkedin.com/in` → validate with Apify
+2. Serper: `"Jane Smith" site:linkedin.com/in` → validate with HarvestAPI
 3. Too many results? Add geography: `"Jane Smith" "New York" site:linkedin.com/in`
 4. Exa neural search for the person
 5. Still ambiguous? Ask the user for more info before spending credits
@@ -126,7 +140,7 @@ Prospeo returns LinkedIn URLs alongside email when available.
 ### Name + company
 
 1. Dropleads with name + company
-2. If miss, Serper: `"Jane Smith" "Acme Corp" site:linkedin.com/in` → validate with Apify
+2. If miss, Serper: `"Jane Smith" "Acme Corp" site:linkedin.com/in` → validate with HarvestAPI
 3. Exa: `"Jane Smith VP Sales Acme Corp LinkedIn"`
 4. Crustdata people search with company domain
 
@@ -165,22 +179,22 @@ python3 scripts/validate-linkedin-names.py --fixtures scripts/fixtures_name_vali
 # 52 test cases, thresholds: precision >= 0.95, recall >= 0.85
 ```
 
-## Tested actors
+## Native HarvestAPI operations
 
-| Actor                                 | Use            | Input field                            | Cost                                                |
-| ------------------------------------- | -------------- | -------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `harvestapi/linkedin-profile-scraper` | Profile scrape | `urls` (array)                         | 0.004 USD/profile (4 USD/1k), 0.01 USD with email   | 6.3M runs, 100% 30d, 4.8 rating. Returns `firstName`, `lastName`, `headline`, `experience`, `education`, parsed `location`. |
-| `harvestapi/linkedin-profile-posts`   | Posts scrape   | `targetUrls` (array), `maxPosts` (int) | 0.002 USD/post (so 0.04 USD/profile at maxPosts=20) | 6.2M runs, 100% 30d. Rejects `profileUrls` and `postedLimit`.                                                               |
+| Operation                      | Use                          | Starting input                                       |
+| ------------------------------ | ---------------------------- | ---------------------------------------------------- |
+| `harvestapi_get_profile`       | Profile lookup/validation    | `url`, `publicIdentifier`, or `profileId`            |
+| `harvestapi_get_profile_posts` | Posts published by a profile | `profile`, `profileId`, or `profilePublicIdentifier` |
 
-`dev_fusion/Linkedin-Profile-Scraper` has higher weighted reviews (596 vs 114) but returned empty data in testing. `data-slayer/linkedin-profile-scraper` has no reviews. Stick with `harvestapi`.
+Confirm the live input and Deepline pricing with `deepline tools describe <operation>` before building a batch. Use Apify only when the native HarvestAPI provider does not expose the required result shape.
 
 ## Key rules
 
-- Dropleads first - free, structured, returns LinkedIn URLs directly.
-- Serper second - fractions of a cent, then scrape with `harvestapi/linkedin-profile-scraper`.
-- Exa third - weak fallback (23% validated rate), but recovers some serper misses.
-- Crustdata fourth - ~1 credit, reliable with company domain context.
-- Prospeo fifth - paid, returns LinkedIn + email together.
+- Prefer the maintained prebuilt unless you need a custom provider order.
+- In an expanded fork, Dropleads is free and structured; validate every URL it returns.
+- Serper candidates must be validated with `harvestapi_get_profile`.
+- Exa is a weak fallback (23% validated rate), but recovers some Serper misses.
+- Crustdata and Prospeo are paid fallbacks for a custom route.
 - **Name-validate every looked-up URL.** Company/title matching alone is not enough.
 - Pilot on `--rows 0` before the full batch. Row ranges are inclusive.
 - Extract the `/in/username` slug - strip query params and trailing slashes.

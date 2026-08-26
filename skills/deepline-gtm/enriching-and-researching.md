@@ -35,7 +35,7 @@ hardcode a provider list a play already encodes.
 Use something else only when:
 
 - a prebuilt is close but not exact → fork it (`deepline plays get
-  prebuilt/<name> --source --out ./<name>.play.ts`, then `plays check`) or
+prebuilt/<name> --source --out ./<name>.play.ts`, then `plays check`) or
   wrap it (`plays bootstrap ... --using play:prebuilt/<name>`)
 - no play exists → author one per
   [recipes/deepline-plays.md](recipes/deepline-plays.md)
@@ -294,21 +294,26 @@ deepline plays run prebuilt/company-to-contact-batch --input '{"csv":"accounts.c
 deepline runs export <run-id> --out accounts_with_contacts.csv
 ```
 
-Apify example:
+HarvestAPI example:
 
 ```bash
-deepline tools execute apify_run_actor_sync --input '{"actorId":"apimaestro/linkedin-company-employees-scraper-no-cookies","input":{"identifier":"https://www.linkedin.com/company/openai/","max_employees":100},"timeoutMs":180000}'
+deepline tools describe harvestapi_get_company --schema-only
+deepline tools execute harvestapi_get_company --input '{"url":"https://www.linkedin.com/company/openai/"}' --json
+deepline tools describe harvestapi_search_leads --schema-only
+deepline tools execute harvestapi_search_leads --input '{"currentCompanies":"https://www.linkedin.com/company/openai/","sessionId":"STABLE_RANDOM_SESSION_ID","page":1}' --out openai-employees.csv
 ```
+
+Generate the stable random `sessionId` before page 1 and reuse it on every page. Because HarvestAPI matches `currentCompanies` by company name, keep only results whose `currentPositions[].companyId` matches the target `element.id` returned by `harvestapi_get_company`.
 
 ### LinkedIn post URL -> list of engagers
 
-Play tool: `linkedin_post_to_engagers`
-
-Scrapes reactors/commenters from a LinkedIn post. No actor discovery or pagination needed. Call via `deepline tools execute` for a single post; wrap in a custom play for a batch of posts.
-Do NOT use if you need comments only (use `unseenuser/linkedin-post-comment-reaction-extractor-no-cookies`) or full profiles (add a separate scraping step after).
+Use the native HarvestAPI provider. An engager set includes both reactors and commenters, so fetch both operations and union their `elements` by `actor.id` (falling back to `actor.linkedinUrl`). Call the operations directly for one post and wrap them in a custom play for a batch. Paginate each operation according to its described contract before deduplicating.
 
 ```bash
-deepline tools execute linkedin_post_to_engagers --input '{"post_url":"https://www.linkedin.com/posts/...","max_items":1000}'
+deepline tools describe harvestapi_get_post_reactions
+deepline tools describe harvestapi_get_post_comments
+deepline tools execute harvestapi_get_post_reactions --input '{"post":"https://www.linkedin.com/posts/...","page":1}' --out post-reactions.csv
+deepline tools execute harvestapi_get_post_comments --input '{"post":"https://www.linkedin.com/posts/...","page":1}' --out post-comments.csv
 ```
 
 ### List of people with name + position -> ICP qualification

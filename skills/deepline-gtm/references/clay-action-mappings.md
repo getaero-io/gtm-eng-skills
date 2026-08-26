@@ -59,7 +59,7 @@ deepline tools describe <candidate_tool_id> # verify it exists + see payload sch
 | `octave-qualify-person`                                     | `deeplineagent`, ICP scoring prompt, `jsonSchema`                                                                                                                                                                                                                                                                                                 | See Octave section                                                                            |
 | `octave-enrich-person`                                      | `exa_search` + `deeplineagent`                                                                                                                                                                                                                                                                                                                    |                                                                                               |
 | `octave-run-sequence-runner`                                | Pass 1: `deeplineagent` (signals) → Pass 2: `deeplineagent` (email)                                                                                                                                                                                                                                                                               | Always 2 passes                                                                               |
-| `social-posts-get-post-activity-posts-and-shares`           | `apify_run_actor_sync` with `apimaestro/linkedin-profile-scraper`                                                                                                                                                                                                                                                                                 | Run-as-button in Clay — omit unless user needs posts                                          |
+| `social-posts-get-post-activity-posts-and-shares`           | `harvestapi_get_profile_posts`                                                                                                                                                                                                                                                                                                                    | Run-as-button in Clay — omit unless user needs posts                                          |
 | `score-your-data` (unconfigured)                            | `run_javascript` keyword scoring                                                                                                                                                                                                                                                                                                                  | See Scoring section                                                                           |
 | `add-lead-to-campaign` (Smartlead)                          | `smartlead_add_leads_to_campaign`                                                                                                                                                                                                                                                                                                                 |                                                                                               |
 | `add-lead-to-campaign` (Instantly)                          | `instantly_add_contacts_to_campaign`                                                                                                                                                                                                                                                                                                              |                                                                                               |
@@ -87,10 +87,11 @@ Key output paths: `.output.body.full_name`, `.output.body.work_experience[0].com
 
 Key output paths: `.output.body[0].name`, `.output.body[0].email`, `.output.body[0].current_employers[0].employer_company_website_domain[0]`
 
-**Work history / posts** — Apify (structured, free):
+**Work history / posts** — native HarvestAPI:
 
 ```bash
-deepline tools execute apify_run_actor_sync --payload '{"actorId":"apimaestro/linkedin-profile-scraper","input":{"profileUrls":["<linkedin_url>"]},"timeoutMs":60000}'
+deepline tools execute harvestapi_get_profile --payload '{"url":"<linkedin_url>"}' --json
+deepline tools execute harvestapi_get_profile_posts --payload '{"profile":"<linkedin_url>","page":1}' --out linkedin-posts.csv
 ```
 
 ---
@@ -445,18 +446,15 @@ Good for finding posts about a company or topic. Filters by `MEMBER` or `COMPANY
 
 ```
 
-**Option 2 — Apify actor (profile-URL-specific):**
-Use when you need posts for a specific person's profile URL. Run-as-button in Clay → batch all URLs in one call:
+**Option 2 — HarvestAPI (profile-URL-specific):**
+Use when you need posts for a specific person's profile URL. Run it per profile inside the owned Play:
 
 ```bash
-deepline tools execute apify_run_actor_sync --payload '{
-  "actorId": "apimaestro/linkedin-profile-scraper",
-  "input": {"profileUrls": ["<linkedin_url>"], "scrapePostsInfo": true},
-  "timeoutMs": 60000
-}'
+deepline tools describe harvestapi_get_profile_posts --schema-only
+deepline tools execute harvestapi_get_profile_posts --payload '{"profile":"<linkedin_url>","page":1}' --out linkedin-posts.csv
 ```
 
-Note: `crustdata_linkedin_posts` is keyword/filter search — it doesn't take a profile URL directly. Use Apify when you need "posts by this specific person".
+Note: `crustdata_linkedin_posts` is keyword/filter search — it doesn't take a profile URL directly. Use `harvestapi_get_profile_posts` when you need posts by one specific person.
 
 ---
 

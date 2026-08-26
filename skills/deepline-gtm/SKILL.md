@@ -356,7 +356,7 @@ pricing, or tool output when quoting credit costs.
 - **Enrich / waterfall / coalesce** → You MUST have [enriching-and-researching.md](enriching-and-researching.md) open. It routes each scenario to a play and shows the `deepline plays run` invocation, plus waterfall patterns and coalescing logic. Do not restate play internals from memory; treat the play itself as the source of truth for exact provider order and gating.
 - **Custom signals / messaging** → Read [enriching-and-researching.md](enriching-and-researching.md) (custom signals section). Use `run_javascript` for deterministic transforms/template logic and `deeplineagent` for AI work. Start from `prompts.json`.
 - **Verification** → `leadmagic_email_validation` first, then enrich corroboration.
-- **LinkedIn scraping** -> Apify actors, by far the best. Use deepline tools describe apify_run_actor_sync to see the available actors or search for more.
+- **LinkedIn profiles, company employees, posts, comments, and reactions** -> Prefer Deepline's native HarvestAPI provider. Use the documented `harvestapi_*` names as starting hints, then run `deepline tools describe <operation> --schema-only` before execution; broad tool search can be noisy. Use Apify only when HarvestAPI does not expose the required LinkedIn surface.
 - For phone recovery, read [enriching-and-researching.md](enriching-and-researching.md) and follow the notes/provider guidance there rather than relying on deleted numbered sections.
 
 Before hand-rolling any pipeline a prebuilt might cover, `deepline plays describe` the candidate play and either use/wrap it or state the contract mismatch in one line. Silently bypassing a fitting prebuilt is a routing failure.
@@ -388,13 +388,13 @@ deepline skills
 2. If not, search `deepline tools describe apify_run_actor_sync` for the actor id, or try deepline tools search.
 3. If not present, run discovery search.
 4. Avoid rental-priced actors.
-5. For LinkedIn post scraping, prefer `supreme_coder/linkedin-post` for generic posts/search URLs and `harvestapi/linkedin-post-reactions` when the goal is engagers/reactions. Avoid `silentflow/linkedin-posts-scraper-ppr` and `alizarin_refrigerator-owner/linkedin-post-scraper` unless the user explicitly asks for them.
+5. For LinkedIn posts and engagers, use the native HarvestAPI operations first: inspect `harvestapi_search_posts`, `harvestapi_get_post`, `harvestapi_get_post_reactions`, and `harvestapi_get_post_comments`. Use `supreme_coder/linkedin-post` only when the native provider does not cover the requested shape. Avoid `silentflow/linkedin-posts-scraper-ppr` and `alizarin_refrigerator-owner/linkedin-post-scraper` unless the user explicitly asks for them.
 6. Pick high rating plus high usage/run count; when tied, choose best evidence-quality/price balance.
 7. Honor `operatorNotes` over public ratings when conflicting.
 
 ```bash
-deepline tools execute apify_list_store_actors --input '{"search":"linkedin company employees scraper","sortBy":"relevance","limit":20}'
-deepline tools execute apify_get_actor_input_schema --input '{"actorId":"bebity/linkedin-jobs-scraper"}'
+deepline tools execute apify_list_store_actors --input '{"search":"similarweb traffic scraper","sortBy":"relevance","limit":20}'
+deepline tools execute apify_get_actor_input_schema --input '{"actorId":"radeance/similarweb-scraper"}'
 ```
 
 ## 7) Feedback & session sharing

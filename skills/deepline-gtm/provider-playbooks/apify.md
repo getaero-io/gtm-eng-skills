@@ -3,7 +3,7 @@ Use Apify when you need controlled web automation/scraping workflows.
 - Use `apify_list_store_actors` first when you do not know the actor id yet.
 - **Results are ranked by quality score by default.** The top result is the most reliable actor based on rating, review count, total runs, and 30-day success rate. Pick the #1 result unless you have a specific reason not to.
 - Each actor in the response includes `_qualityScore` (higher is better), `_baseQualityScore`, and `_successRate30d` (percentage). Prefer actors with `_deeplineVetted: true`, high usage/rating, and `_successRate30d >= 95%`.
-- For generic LinkedIn post scraping, prefer `supreme_coder/linkedin-post`. For LinkedIn post engagers/reactions, prefer `harvestapi/linkedin-post-reactions`. Avoid actors returned with `_deeplineDownranked: true` unless the user explicitly asked for that actor.
+- Do not route HarvestAPI-owned LinkedIn workflows through Apify. Prefer the native `harvestapi_*` provider operations for profiles, company employees, posts, comments, and reactions. For a LinkedIn shape the native provider does not expose, prefer `supreme_coder/linkedin-post` for generic post scraping. Avoid actors returned with `_deeplineDownranked: true` unless the user explicitly asked for that actor.
 - Build `actorId` as `username/name` from store results.
 - Use `apify_get_actor_input_schema` to inspect required/optional fields before running.
 - Wrapper-level fields (`actorId`, `input`, `params`, `timeoutMs`) and runtime validation behavior can differ from actor-page docs.

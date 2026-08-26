@@ -69,8 +69,8 @@ Dropleads geo filters (`personalCountries` / `personalStates` / `personalCities`
 1. Count segment (`dropleads_get_lead_count`).
 2. Sample segment (`dropleads_search_people`).
 3. Pre-score titles with `run_javascript` if looking for a specific profile (e.g. founders, GTM engineers).
-4. Scrape LinkedIn profiles with `apify_run_actor_sync` for work history/signals (preferred over `call_ai` — structured data, faster, cheaper).
-5. Extract signals with `run_javascript` from Apify output (e.g. founder detection, hiring signals).
+4. Retrieve LinkedIn profiles with `harvestapi_get_profile` for structured work history and signals. Use Apify only when native HarvestAPI does not expose the required LinkedIn shape.
+5. Extract signals with `run_javascript` from the structured HarvestAPI output (e.g. founder detection, hiring signals).
 6. Enrich emails via waterfall (`dropleads_email_finder` first, then other providers).
 7. Verify candidate emails (`dropleads_email_verifier` or `leadmagic_email_validation`).
 8. Expand only after pilot quality is confirmed.

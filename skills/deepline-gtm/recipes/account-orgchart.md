@@ -53,7 +53,7 @@ The waterfall below defaults to **company-wide mapping** (domain to every employ
 
 ### The hard truth about reporting chains
 
-No data source Deepline can reach, including PDL, Dropleads, Apify, the `linkedin_scraper` family, or Sales Navigator, exposes a real "reports to" / manager field. LinkedIn does not publish reporting chains, and neither does Sales Nav. It improves _who you can find_, not _who reports to whom_. So **every reporting edge in any org chart this recipe produces is inferred, not retrieved.**
+No data source Deepline can reach, including PDL, Dropleads, HarvestAPI, Apify, the `linkedin_scraper` family, or Sales Navigator, exposes a real "reports to" / manager field. LinkedIn does not publish reporting chains, and neither does Sales Nav. It improves _who you can find_, not _who reports to whom_. So **every reporting edge in any org chart this recipe produces is inferred, not retrieved.**
 
 That means:
 
@@ -63,16 +63,16 @@ That means:
 
 ## Quick reference
 
-| Step | What                    | Source                                                              | Spend posture                  |
-| ---- | ----------------------- | ------------------------------------------------------------------- | ------------------------------ |
-| 1    | Resolve target          | `leadmagic_profile_search` or `prebuilt/person-linkedin-to-email`   | Metered Deepline action        |
-| 2a   | Deepline Native search  | `deepline_native_search_contact` (4 title tiers)                    | Metered Deepline action        |
-| 2b   | Dropleads search        | `dropleads_search_people`                                           | Free or bundled when available |
-| 2c   | Apify LinkedIn scrape   | `apify_run_actor_sync` with `harvestapi/linkedin-company-employees` | Metered Deepline action        |
-| 2d   | Icypeas people search   | `icypeas_find_people`                                               | Metered Deepline action        |
-| 2e   | PDL gap-fill (optional) | `peopledatalabs_person_search` CXO+VP only                          | Metered Deepline action        |
-| 3    | Classify + infer        | Title-based seniority + tenure + recency signals + Claude reasoning | No provider action             |
-| 4    | Generate output         | HTML org chart file                                                 | No provider action             |
+| Step | What                       | Source                                                              | Spend posture                  |
+| ---- | -------------------------- | ------------------------------------------------------------------- | ------------------------------ |
+| 1    | Resolve target             | `leadmagic_profile_search` or `prebuilt/person-linkedin-to-email`   | Metered Deepline action        |
+| 2a   | Deepline Native search     | `deepline_native_search_contact` (4 title tiers)                    | Metered Deepline action        |
+| 2b   | Dropleads search           | `dropleads_search_people`                                           | Free or bundled when available |
+| 2c   | HarvestAPI employee search | `harvestapi_search_leads` filtered by current company               | Metered Deepline action        |
+| 2d   | Icypeas people search      | `icypeas_find_people`                                               | Metered Deepline action        |
+| 2e   | PDL gap-fill (optional)    | `peopledatalabs_person_search` CXO+VP only                          | Metered Deepline action        |
+| 3    | Classify + infer           | Title-based seniority + tenure + recency signals + Claude reasoning | No provider action             |
+| 4    | Generate output            | HTML org chart file                                                 | No provider action             |
 
 Typical run: 150-250 people found, 3-8 minutes. When the user asks about spend, show only Deepline-facing credits or estimates from the tool catalog. Do not discuss supplier-side cost structure.
 
@@ -128,7 +128,7 @@ company-wide waterfall with the domain.
 
 Use this instead of the company-wide waterfall when the request centers on one individual. The goal is a tight neighborhood, not a roster.
 
-1. **Resolve and verify the anchor.** Confirm the person currently works where the request claims by scraping their live profile with `apify_run_actor_sync` + `apimaestro/linkedin-profile-detail` (`{"username":"<handle>"}`) and reading the `experience[]` entry with `is_current: true`. This is the same live-verification pattern that catches stale data. Capture their exact team/sub-function, title, location, and tenure. These are your matching signals for the rest of the flow.
+1. **Resolve and verify the anchor.** Confirm the person currently works where the request claims with `harvestapi_get_profile` and read the returned `element.currentPosition` array (the key is singular). This live-verification step catches stale data. Capture their exact team/sub-function, title, location, and tenure; these are the matching signals for the rest of the flow.
 
 2. **Find ±1 / ±2 candidates by constrained search, not full-company scrape.** Search for people at the same company filtered to the anchor's function + location + the adjacent title tiers:
    - **+1 (manager):** one tier up, same team, same metro. e.g. anchor is "Principal Engineer, Austin" then search "Engineering Manager" / "Senior Manager Engineering" at that company in Austin.
@@ -137,7 +137,7 @@ Use this instead of the company-wide waterfall when the request centers on one i
 
    Use `dropleads_search_people` (free when available) and `deepline_native_search_contact` with title filters first; fall back to `exa_search` / Google-style queries for enterprises that index poorly. Keep each search scoped. You want ~3-8 candidates per tier, not hundreds.
 
-   **Resolving a candidate's LinkedIn URL from a name:** don't reach for `leadmagic_profile_search` because it is for the reverse direction, hydrating a profile when you already have the URL. For name to LinkedIn URL, use the **Serper to Apify validate** pattern from the sibling [`linkedin-url-lookup`](linkedin-url-lookup.md) recipe: `serper_google_search` with a `site:linkedin.com/in` query, then validate the top hit with an Apify profile scrape and a mandatory name-match gate. Or call the canonical play `prebuilt/person-to-linkedin`, which wraps this waterfall.
+   **Resolving a candidate's LinkedIn URL from a name:** don't reach for `leadmagic_profile_search` because it is for the reverse direction, hydrating a profile when you already have the URL. For name to LinkedIn URL, use the **Serper to HarvestAPI validate** pattern from the sibling [`linkedin-url-lookup`](linkedin-url-lookup.md) recipe: `serper_google_search` with a `site:linkedin.com/in` query, then validate the top hit with `harvestapi_get_profile` and a mandatory name-match gate. The existing `prebuilt/person-to-linkedin` ID remains on its Serper-validation compatibility implementation.
 
 3. **Rank the inferred edges, don't assert them.** For each candidate, score the likelihood they're the actual manager/report using the Manager prediction scoring table below (seniority gap + team match + geo + experience delta + tenure overlap). Surface the top 1-2 per tier _with their score shown as a confidence badge_. When several same-title managers tie (common at big enterprises), show them as parallel candidates rather than picking one. The rep can disambiguate.
 
@@ -190,16 +190,16 @@ Expected: +60-80 net new.
 
 **Source 3: LinkedIn employee scrape**
 
-Prefer a custom play for repeatable roster enrichment and use a direct actor call only as a probe. Resolve the company's LinkedIn page from the domain first, then run the current company-employees actor after confirming the contract:
+Prefer a custom play for repeatable roster enrichment. Resolve the company's LinkedIn page from the domain first, then search the native HarvestAPI provider after confirming the live contract:
 
 ```bash
-deepline tools describe apify_run_actor_sync
-deepline tools execute apify_run_actor_sync --payload '{"actorId":"harvestapi/linkedin-company-employees","input":{"companyLinkedinUrls":["LINKEDIN_COMPANY_URL"],"maxItems":25},"timeoutMs":300000}'
+deepline tools describe harvestapi_get_company
+deepline tools execute harvestapi_get_company --payload '{"url":"LINKEDIN_COMPANY_URL"}'
+deepline tools describe harvestapi_search_leads
+deepline tools execute harvestapi_search_leads --payload '{"currentCompanies":"LINKEDIN_COMPANY_URL","sessionId":"STABLE_RANDOM_SESSION_ID","page":1}'
 ```
 
-Pilot with a small `maxItems` first, then write the final roster into `"$WORK_DIR/li-employees.csv"` or add it as an enrichment pass. Expected: +15-25 net new.
-
-> If you genuinely need a raw actor call (e.g. a different roster actor), the current company-roster actor is `harvestapi/linkedin-company-employees` (input: `companyLinkedinUrls` string[] required, optional `maxItems`/`profileDepth`), and the per-profile actor is `apimaestro/linkedin-profile-detail` (input `{"username":"<handle>"}`, returns an `experience[]` array where the live role has `is_current: true`, the cleanest "where do they work today" signal). Actor ids and input keys drift; confirm with `deepline tools describe apify_run_actor_sync` (its `apifyKnownActors` list) before relying on any of them.
+Generate one random `sessionId` before page 1 and pass that same value on every later page so the result set stays pinned to one upstream resource. HarvestAPI matches `currentCompanies` by company name even when given a URL or ID, so retain only rows whose `currentPositions[].companyId` equals the target `element.id` returned by `harvestapi_get_company`. Then deduplicate and write the final roster into `"$WORK_DIR/li-employees.csv"` or add it as an enrichment pass. Use Apify only if the native HarvestAPI search contract cannot express the requested roster.
 
 **Source 4: Icypeas people search**
 
@@ -262,16 +262,17 @@ Tenure = months since `start_date` at current company. If `start_date` is unavai
 - **ic**: senior, ic -> color #525252
 
 **Team consolidation (if >8 teams):**
-| Original | Simplified |
-|----------|------------|
-| Executive Leadership, Office of CEO | Leadership |
-| Sales, GTM, Business Development | Sales |
-| Revenue Operations, Sales Operations | Revenue Ops |
-| Sales Enablement | Enablement |
-| Marketing, Demand Gen | Marketing |
-| Customer Success, Support | Customer Success |
-| AI, Product, Engineering, Data | Product & Eng |
-| HR, People, Finance, Legal | Other |
+
+| Original                             | Simplified       |
+| ------------------------------------ | ---------------- |
+| Executive Leadership, Office of CEO  | Leadership       |
+| Sales, GTM, Business Development     | Sales            |
+| Revenue Operations, Sales Operations | Revenue Ops      |
+| Sales Enablement                     | Enablement       |
+| Marketing, Demand Gen                | Marketing        |
+| Customer Success, Support            | Customer Success |
+| AI, Product, Engineering, Data       | Product & Eng    |
+| HR, People, Finance, Legal           | Other            |
 
 Infer teams from title patterns (text after comma).
 

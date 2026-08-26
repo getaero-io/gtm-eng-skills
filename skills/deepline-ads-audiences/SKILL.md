@@ -38,22 +38,22 @@ This skill is not for cold outbound, sequencing, or copywriting. Personal emails
 
 ## Decision Matrix
 
-| User says                                                             | Do this                                                          | Read                                                      |
-| --------------------------------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------- |
-| "max coverage", "highest match rate", "keep increasing coverage"      | Run the explicit max-coverage ladder with budget gates.          | `recipes/max-coverage-audience.md`                        |
-| `/deepline-ads-audience`, "enrich and upload to FB/Google"            | Run the full paid ads audience recipe.                           | `recipes/enrich-and-upload-facebook-google.md`            |
-| "sample ABM segment", "do the example workflow"                       | Follow the reusable high-priority ABM segment recipe.            | `recipes/sample-abm-segment-example.md`                   |
-| "use ContactOut hashes", "hashed identifiers", "LinkedIn URLs to hashes" | Plan a bulk pass beside the ladder, not a waterfall step.       | `shared/contactout-hash-pool.md`                          |
-| "what is a hash", "why is my match rate low", first-time user          | Explain the mechanic before quoting a plan.                      | `shared/audience-basics.md`                               |
-| "Make sure hashes are not double hashed"                              | Run the no-double-hash audit play before upload.                 | `plays/audit-no-double-hash.play.ts`                      |
-| "enrich this list", "buy personal emails/hashes", "run the ladder"     | Run the waterfall. Each layer only sees rows still missing a hash. | `plays/enrich-audience-waterfall.play.ts`                 |
-| "Compare enriched versus unenriched"                                  | Build both hash-only datasets and report lift.                   | `plays/enrich-audience-waterfall.play.ts`                 |
-| "include phone numbers", "add phones"                                 | Hash existing phones digits-only with country code.              | `shared/upload-failure-modes.md`                          |
-| "what was the match rate", "did it match"                             | Read `contactIdInfo.matchRatePercentage`, not the range enum.     | `shared/upload-failure-modes.md`                          |
-| "put it in a sheet", "customer will upload"                           | Publish the validated file to Sheets; verify by row count.       | `shared/upload-failure-modes.md`                          |
-| "upload keeps failing", "422", "audience is locked"                   | Meta locks on write. Send the audience in one call.              | `shared/upload-failure-modes.md`                          |
-| "Upload to Google"                                                    | Validate hash-only rows, create Google audience, sync, readback. | `plays/upload-google-hash-only-audience.play.ts`          |
-| "Upload to Facebook and Google", "upload to FB/Google", "Meta + GAds" | Validate once, then upload to Google and Meta.                   | `plays/upload-facebook-google-hash-only-audience.play.ts` |
+| User says                                                                | Do this                                                            | Read                                                      |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------ | --------------------------------------------------------- |
+| "max coverage", "highest match rate", "keep increasing coverage"         | Run the explicit max-coverage ladder with budget gates.            | `recipes/max-coverage-audience.md`                        |
+| `/deepline-ads-audience`, "enrich and upload to FB/Google"               | Run the full paid ads audience recipe.                             | `recipes/enrich-and-upload-facebook-google.md`            |
+| "sample ABM segment", "do the example workflow"                          | Follow the reusable high-priority ABM segment recipe.              | `recipes/sample-abm-segment-example.md`                   |
+| "use ContactOut hashes", "hashed identifiers", "LinkedIn URLs to hashes" | Plan a bulk pass beside the ladder, not a waterfall step.          | `shared/contactout-hash-pool.md`                          |
+| "what is a hash", "why is my match rate low", first-time user            | Explain the mechanic before quoting a plan.                        | `shared/audience-basics.md`                               |
+| "Make sure hashes are not double hashed"                                 | Run the no-double-hash audit play before upload.                   | `plays/audit-no-double-hash.play.ts`                      |
+| "enrich this list", "buy personal emails/hashes", "run the ladder"       | Run the waterfall. Each layer only sees rows still missing a hash. | `plays/enrich-audience-waterfall.play.ts`                 |
+| "Compare enriched versus unenriched"                                     | Build both hash-only datasets and report lift.                     | `plays/enrich-audience-waterfall.play.ts`                 |
+| "include phone numbers", "add phones"                                    | Hash existing phones digits-only with country code.                | `shared/upload-failure-modes.md`                          |
+| "what was the match rate", "did it match"                                | Read `contactIdInfo.matchRatePercentage`, not the range enum.      | `shared/upload-failure-modes.md`                          |
+| "put it in a sheet", "customer will upload"                              | Publish the validated file to Sheets; verify by row count.         | `shared/upload-failure-modes.md`                          |
+| "upload keeps failing", "422", "audience is locked"                      | Meta locks on write. Send the audience in one call.                | `shared/upload-failure-modes.md`                          |
+| "Upload to Google"                                                       | Validate hash-only rows, create Google audience, sync, readback.   | `plays/upload-google-hash-only-audience.play.ts`          |
+| "Upload to Facebook and Google", "upload to FB/Google", "Meta + GAds"    | Validate once, then upload to Google and Meta.                     | `plays/upload-facebook-google-hash-only-audience.play.ts` |
 
 ## Default Workflow
 
@@ -95,10 +95,10 @@ Say what each layer costs in Deepline credits and what it is expected to add, th
 
 Choose the coverage mode before spending credits. Record it in the run notes.
 
-| Mode             | Use when                                                                        | Waterfall                                                                                                                                                                                                 | Stop condition                                                                                                                                |
-| ---------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mode             | Use when                                                                        | Waterfall                                                                                                                                                                                                                                                                                | Stop condition                                                                                                                                |
+| ---------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | `cost_effective` | User asks for the default, low-cost, or first-pass enrichment.                  | Work-email baseline → Aviato personal hashes on all eligible rows → LimaData personal hashes on remaining personal-hash misses. Optionally a ContactOut bulk pass over rows that still lack a personal hash and have a LinkedIn URL, which runs beside the ladder rather than inside it. | Stop after the hash providers, report contacts still missing personal hashes, then ask before expanded fallback.                              |
-| `max_coverage`   | User asks for highest match rate, max coverage, or to keep increasing coverage. | Work-email baseline → phone hashes already present → LinkedIn repair → Aviato personal hashes for all eligible rows → LimaData personal hashes → ContactOut bulk pass beside the ladder → raw personal-email waterfall → platform upload variants. | Stop when no approved provider remains, budget cap is hit, marginal lift is below threshold, or rights/geo constraints block more enrichment. |
+| `max_coverage`   | User asks for highest match rate, max coverage, or to keep increasing coverage. | Work-email baseline → phone hashes already present → LinkedIn repair → Aviato personal hashes for all eligible rows → LimaData personal hashes → ContactOut bulk pass beside the ladder → raw personal-email waterfall → platform upload variants.                                       | Stop when no approved provider remains, budget cap is hit, marginal lift is below threshold, or rights/geo constraints block more enrichment. |
 
 Never silently downgrade a `max_coverage` request to `cost_effective`. If a provider or credential is unavailable, report the gap and continue with the next approved provider rather than stopping early.
 
@@ -203,7 +203,7 @@ Default personal-email waterfall for B2B paid ads:
 1. Baseline first-party identifiers: valid work emails, names, company, country, postal code, LinkedIn URLs, and stable external IDs.
 2. Aviato `aviato_pull_email_hash`: run on all eligible rows with enough identity context, including rows that already have work emails. Use it when the goal is ad upload and the provider returns paid-ads-ready personal email hashes. If the output cell is a JSON object, extract the scalar hash from `matched_result`, `result.data.hashedEmails[0]`, `result.data.hashed_email`, or equivalent hash fields. Do not treat the JSON object string as the upload value.
 3. LimaData `limadata_find_audience_identifiers`: run on rows still missing a personal hash after Aviato, or run it first when the user asks for the most cost-effective expansion pass. Extract only normalized 64-character SHA-256 hashes from `matched_result`, `result.data.hashed_emails[].normalized_hash`, `hash`, or `sha256` fields.
-ContactOut hashed identifiers do not belong in this numbered list, because they cannot waterfall. Run them as a separate bulk pass. See the section below.
+   ContactOut hashed identifiers do not belong in this numbered list, because they cannot waterfall. Run them as a separate bulk pass. See the section below.
 
 ### ContactOut hashed identifiers (quick reference)
 
@@ -232,19 +232,19 @@ USD. Check the domain, not the column name.
 Two providers at similar prices are not equivalent, because they bill differently
 on a miss:
 
-| Billing | Providers | Consequence |
-| --- | --- | --- |
-| Per call, hit or miss | LimaData, Aviato | Every attempted row costs the same |
-| Per result or match | LeadMagic, ContactOut | Misses are free, so they suit a thin remainder |
+| Billing               | Providers             | Consequence                                    |
+| --------------------- | --------------------- | ---------------------------------------------- |
+| Per call, hit or miss | LimaData, Aviato      | Every attempted row costs the same             |
+| Per result or match   | LeadMagic, ContactOut | Misses are free, so they suit a thin remainder |
 
 Measured on one 5,549-row list, cheapest first:
 
-| Layer | Attempted | Hit rate | Spend |
-| --- | --- | --- | --- |
-| LimaData | 1,775 | 27.5% | 49.70 USD |
-| LimaData, corporate-personal redo | 151 | 64.9% | 4.23 USD |
-| ContactOut bulk | 1,772 | 53.0% | 52.64 USD |
-| LeadMagic | 1,285 | 5.4% | 4.76 USD |
+| Layer                             | Attempted | Hit rate | Spend     |
+| --------------------------------- | --------- | -------- | --------- |
+| LimaData                          | 1,775     | 27.5%    | 49.70 USD |
+| LimaData, corporate-personal redo | 151       | 64.9%    | 4.23 USD  |
+| ContactOut bulk                   | 1,772     | 53.0%    | 52.64 USD |
+| LeadMagic                         | 1,285     | 5.4%     | 4.76 USD  |
 
 Run the cheapest per-call provider first so it absorbs the easy hits. A low hit
 rate on the remainder means the pool is exhausted: LeadMagic cost 4.76 USD to
@@ -296,7 +296,7 @@ Then validate candidates before using them:
 1. Keep only `linkedin.com/in/` URLs and strip query params/trailing slashes.
 2. Reject search results where the profile title does not contain a first-name match and a last-name match. Allow common nicknames and meaningful first-name prefixes; do not accept single-letter last-name initials as validated.
 3. Use company/title evidence as supporting evidence, not as identity proof.
-4. For ambiguous candidates, scrape the profile with Apify or another LinkedIn profile-detail provider and validate scraped `first_name`, `last_name`, current company, and headline before merging. This catches snippet false positives such as a search result mentioning the target name in another person's experience section.
+4. For ambiguous candidates, retrieve the profile with `harvestapi_get_profile` and validate `element.firstName`, `element.lastName`, current company, and headline before merging. This catches snippet false positives such as a search result mentioning the target name in another person's experience section.
 
 Use follow-up queries only after the first pass misses:
 
@@ -454,10 +454,10 @@ Do not expose provider-side unit costs in customer-facing messages. Report Deepl
 
 ## Reading guide
 
-| If you're about to…                                                   | Read                                      |
-| --------------------------------------------------------------------- | ----------------------------------------- |
-| Explain hashing, match rate, or platform rules to a first-time user   | `shared/audience-basics.md`               |
-| Plan or run a ContactOut hashed-identifier pass                       | `shared/contactout-hash-pool.md`          |
-| Enrich and upload to Meta and Google end to end                       | `recipes/enrich-and-upload-facebook-google.md` |
-| Push a list as far as the budget allows                               | `recipes/max-coverage-audience.md`        |
-| Follow the worked ABM example                                         | `recipes/sample-abm-segment-example.md`   |
+| If you're about to…                                                 | Read                                           |
+| ------------------------------------------------------------------- | ---------------------------------------------- |
+| Explain hashing, match rate, or platform rules to a first-time user | `shared/audience-basics.md`                    |
+| Plan or run a ContactOut hashed-identifier pass                     | `shared/contactout-hash-pool.md`               |
+| Enrich and upload to Meta and Google end to end                     | `recipes/enrich-and-upload-facebook-google.md` |
+| Push a list as far as the budget allows                             | `recipes/max-coverage-audience.md`             |
+| Follow the worked ABM example                                       | `recipes/sample-abm-segment-example.md`        |
