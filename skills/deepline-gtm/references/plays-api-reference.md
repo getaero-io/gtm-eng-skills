@@ -8,9 +8,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 |---|---|
 | SDK version | `0.3.0` |
 | SDK HTTP API | `v2` |
-| Checked-in SDK fallback | `0.3.0` |
+| Checked-in SDK fallback | `0.3.1` |
 | Minimum supported SDK | `0.1.53` |
-| Deprecated below | `0.1.219` |
+| Deprecated below | `0.3.1` |
 | Generated sources | `src/lib/sdk/api-routes.ts`<br />`sdk/src/types.ts`<br />`sdk/src/client.ts`<br />`sdk/src/release.ts` |
 | Coverage | HTTP and SDK client surface for runtime calls: health, tool/provider discovery and execution, customer data queries, play runs, play definitions, play artifacts, files, and run inspection. |
 | Not covered | Provider-specific schemas, dashboard-only UI routes, billing/auth setup guides, and tutorial prose. Provider-specific schemas are returned by the generated tool describe routes. |
