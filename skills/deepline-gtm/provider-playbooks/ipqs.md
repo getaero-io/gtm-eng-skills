@@ -16,7 +16,7 @@ Trestle returns `activity_score` (0–100) which tells you whether a line is act
 
 **Do not use `ipqs_email_verify` or `ipqs_batch_email_verify` for outbound email validation.**
 
-IPQS email validation returns a boolean `valid` field with no `catch_all` distinction. The Deepline waterfall stack depends on `catch_all` status to decide whether to fall through to the next provider. Use `leadmagic_email_validation` instead — it returns structured `email_status` (`valid` / `catch_all` / `invalid`) at $0.006/call.
+IPQS email validation returns a boolean `valid` field with no `catch_all` distinction. The Deepline waterfall stack depends on `catch_all` status to decide whether to fall through to the next provider. Use `leadmagic_email_validation` instead — it returns structured `email_status` (`valid` / `catch_all` / `invalid`) and is inexpensive per call.
 
 Priority for email validation: `leadmagic_email_validation` → `zerobounce_validate` → IPQS (last resort).
 

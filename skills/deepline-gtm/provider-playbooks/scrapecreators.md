@@ -21,4 +21,4 @@ deepline tools search scrapecreators --json
 
 When using social profile data for SMB contact email recovery, require identity evidence before accepting the result: match at least two of business name, address, phone, website/menu/booking link, or Google Maps profile. Return the source platform, profile URL, extracted email/contact field, timestamp, and identity evidence columns so the result can be audited.
 
-Pricing note: ScrapeCreators documents these endpoints as 1 credit per request. Deepline billing converts provider credits using the public Business pack rate: $497 / 500,000 credits = $0.000994 per provider credit.
+Pricing note: Deepline credit pricing for these endpoints is generated from the provider pricing metadata and rendered on the public provider pages.

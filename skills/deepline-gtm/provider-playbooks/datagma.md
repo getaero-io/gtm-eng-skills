@@ -33,18 +33,17 @@ most reliable. Prefer those over plain company-name searches.
 
 ## Billing behavior to remember
 
-- Public pricing currently states `1 credit = 1 verified email`.
-- Public pricing currently states `30 credits = 1 mobile phone number`.
-- `datagma_find_people` is explicitly documented as 10 credits on success and
-  1 credit on a no-result response.
+- Mobile phone lookups are substantially more expensive than verified email
+  lookups. Prefer `datagma_find_email` when a work email is all you need.
 - `datagma_full_enrichment`, `datagma_job_change_detection`, and
-  `datagma_search_phone_numbers` expose `creditBurn` in the response. Deepline
+  `datagma_search_phone_numbers` report vendor usage in the response. Deepline
   uses that vendor-reported value rather than guessing.
-- Datagma does not document a per-call charge response header for these flows.
-  Where `creditBurn` is absent, Deepline falls back to endpoint-specific,
+- Where vendor-reported usage is absent, Deepline falls back to endpoint-specific,
   documented success fields rather than treating every non-empty profile as a
   personal-email hit.
-- Catch-all email results are free on the public pricing page.
+- Catch-all email results are free.
+- Deepline credit pricing for these actions is generated from the provider
+  pricing metadata and rendered on the public provider pages.
 
 ## Endpoint guidance
 

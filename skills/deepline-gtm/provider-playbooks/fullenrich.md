@@ -3,7 +3,7 @@
 ## Key patterns
 
 - **Async submit + async fetch.** `fullenrich_bulk_enrich` and `fullenrich_reverse_email` start background jobs and return an `enrichment_id`. Poll with `fullenrich_get_result` or `fullenrich_get_reverse_result` for terminal data.
-- **Use `enrich_fields`** to control what's enriched: `contact.emails` (1 credit), `contact.phones` (10 credits), `contact.personal_emails` (3 credits).
+- **Use `enrich_fields`** to control what's enriched: `contact.emails` is the cheapest, `contact.personal_emails` costs more, and `contact.phones` is by far the most expensive.
 - **LinkedIn URL** improves accuracy significantly (5-20% for emails, 10-60% for phones).
 - **Email status hierarchy:** DELIVERABLE > HIGH_PROBABILITY > CATCH_ALL > INVALID. Use `most_probable_work_email` field for the best result.
 - **Phone costs 10x email** -- use judiciously and only when explicitly needed.
@@ -20,5 +20,5 @@
 ## When NOT to use
 
 - Don't use for email validation only -- use a dedicated validator (ZeroBounce, LeadMagic validation).
-- Don't use phone enrichment unless explicitly needed -- expensive (10 credits).
+- Don't use phone enrichment unless explicitly needed -- it is the most expensive field.
 - For quick single-provider email lookups, LeadMagic or Prospeo are faster/cheaper.

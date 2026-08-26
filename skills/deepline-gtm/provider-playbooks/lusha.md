@@ -2,7 +2,7 @@
 
 ## When to use
 
-Lusha for B2B email + direct dial enrichment. Strong North American and European coverage with intent signal data. Good for sales prospecting workflows where direct dials matter. Cost-competitive at $0.05/credit.
+Lusha for B2B email + direct dial enrichment. Strong North American and European coverage with intent signal data. Good for sales prospecting workflows where direct dials matter. Cost-competitive per enriched contact.
 
 **Key strength**: Direct dials (not just HQ numbers). Lusha often surfaces mobile and desk direct numbers that other providers miss.
 
@@ -10,7 +10,7 @@ Lusha for B2B email + direct dial enrichment. Strong North American and European
 
 - **Input required**: LinkedIn URL (best), email, or first_name+last_name+(company_name or company_domain)
 - **Geographic coverage**: Global, strongest in North America + Europe
-- **Credit cost**: ~$0.05 per credit (person enrich, company enrich, or contact from search)
+- **Cost profile**: billed per person enrich, company enrich, or contact returned from search
 - **LinkedIn URL requirement**: Must contain "linkedin.com/in/". Sales Navigator URLs not supported.
 
 ## Key operations

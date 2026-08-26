@@ -43,10 +43,13 @@
 
 ## Cost Awareness
 
-- Company search: 3 credits per company returned. Use `limit: 10` for exploration.
-- Job search: 1 credit per job. Safe to use with `limit: 25`.
-- Technographics: 3 credits per company lookup (regardless of result count).
+- Company search is billed per company returned and is the most expensive of these
+  operations. Use `limit: 10` for exploration.
+- Job search is billed per job returned and is cheaper per row. Safe to use with `limit: 25`.
+- Technographics is billed per company lookup, regardless of result count.
 - Catalog keywords and credit balance: free.
+- Deepline credit pricing for these actions is generated from the provider pricing
+  metadata and rendered on the public provider pages.
 
 ## Common Mistakes
 

@@ -10,7 +10,6 @@ ContactOut for LinkedIn → email/phone enrichment when you have a LinkedIn URL.
 
 - **Input required**: LinkedIn URL (best), email, or name+company
 - **Geographic coverage**: Global, strongest in US + Europe
-- **Provider credit cost**: ~$0.10 per ContactOut email credit; separate phone + search credits
 - **LinkedIn URL requirement**: Must contain "linkedin.com/in/" or "linkedin.com/pub/". Sales Navigator URLs not supported.
 
 ## Key operations
@@ -47,8 +46,8 @@ rates without handling raw personal emails.
 
 ContactOut returns a flat `matches.emails` hash list plus a request-scoped
 `matches_found` count. One matched profile can return several hashes, so the
-hash count is NOT the matched-profile count. Deepline bills one email credit
-per `matches_found`, never per returned hash.
+hash count is NOT the matched-profile count. Deepline bills per
+`matches_found`, never per returned hash.
 
 A batch where nothing matches returns HTTP 404 `No hashed emails found`, which
 Deepline maps to an unbilled empty result. Requests with fewer than 5 unique

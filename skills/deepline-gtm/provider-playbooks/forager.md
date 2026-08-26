@@ -5,7 +5,7 @@ Forager has 850M+ B2B person records and is especially strong for verified mobil
 ## Search & Discovery
 
 - Always start with totals operations (`forager_person_role_search_totals`, `forager_organization_search_totals`, `forager_job_search_totals`) to estimate result volume at zero credit cost before running paid searches.
-- Use `forager_person_role_search` for prospecting by role, skills, and company criteria. Each page costs 1 credit.
+- Use `forager_person_role_search` for prospecting by role, skills, and company criteria. Search is billed per page, so keep pages bounded while exploring.
 - Use `forager_organization_search` for company prospecting by industry, size, technology stack, and revenue filters.
 - Use `forager_job_search` for intent-signal analysis: companies hiring for specific roles indicate growth and budget in those areas.
 

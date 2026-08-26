@@ -10,9 +10,8 @@
 
 ## Pricing
 
-- 1 successful email = 1 provider credit, 1 successful mobile phone = +10 provider credits
-- `bettercontact_get_result` returns `credits_consumed`; Deepline bills from that terminal provider usage
-- **Phone enrichment is expensive** — only enable `enrich_phone_number: true` when explicitly needed
+- Deepline bills from the terminal enrichment result, and charges only for successful lookups.
+- **Phone enrichment costs significantly more than email** — only enable `enrich_phone_number: true` when explicitly needed
 
 ## When to use
 

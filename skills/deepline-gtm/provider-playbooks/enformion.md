@@ -133,7 +133,7 @@ Extract the best personal email: `persons[0].emailAddresses[0].emailAddress` (pr
 
 ### Billing
 
-Billed per match (`post_deduct`, $0.35) only when the top match has a personal email or a connected phone. No charge on empty / no-match.
+Billed per match (`post_deduct`) only when the top match has a personal email or a connected phone. No charge on empty / no-match.
 
 API endpoint: `https://devapi.enformion.com/PersonSearch` (`galaxy-search-type: Person`).
 Business Search endpoint: `https://api.galaxysearchapi.com/BusinessV2Search` (`galaxy-search-type: BusinessV2`, body uses camelCase `businessName` + `addressLine2`). Note the different host from the other endpoints — Business Search is served from `api.galaxysearchapi.com`, not `devapi.enformion.com`.
@@ -189,4 +189,4 @@ No result: `workplaceRecords` will be an empty array `[]`.
 
 ### Billing
 
-Billed per match (`post_deduct`, $0.50) only when a workplace record with a phone or email is returned. No charge on empty / no-match.
+Billed per match (`post_deduct`) only when a workplace record with a phone or email is returned. No charge on empty / no-match.

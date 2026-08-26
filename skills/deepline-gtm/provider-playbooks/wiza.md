@@ -12,8 +12,8 @@ the provider request.
 
 - **Input required**: LinkedIn URL (including Sales Nav), email, or name+company
 - **Geographic coverage**: Global
-- **Credit cost**: 1 credit for profile-only, 2 credits for email, 5 credits for phone
-- **Enrichment levels**: partial (email, 2 credits), phone (5 credits), full (email+phone, 7 credits), none (profile only, 1 credit)
+- **Cost profile**: profile-only is cheapest, email costs more, and phone is the most expensive; `full` combines email and phone and costs the most
+- **Enrichment levels**: `none` (profile only), `partial` (email), `phone` (phone numbers), `full` (email + phone)
 - **Async**: reveals are queued and processed — the handler polls until finished
 
 ## Key operations
@@ -96,10 +96,10 @@ Typical flow: search → get LinkedIn URLs → feed into `wiza_reveal_person` to
 
 | Level     | Returns                        |
 | --------- | ------------------------------ |
-| `none`    | Profile data only (1 credit)   |
-| `partial` | Emails only (2 credits)        |
-| `phone`   | Phone numbers only (5 credits) |
-| `full`    | Emails + phones (7 credits)    |
+| `none`    | Profile data only              |
+| `partial` | Emails only                    |
+| `phone`   | Phone numbers only             |
+| `full`    | Emails + phones                |
 
 ## Anti-patterns
 

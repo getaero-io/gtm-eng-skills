@@ -29,8 +29,11 @@ Paginated endpoints take a `cursor` (omit or "" for the first page) and return
 
 ## Cost
 
-100,000 credits = $1.00, with a $0.00015 minimum per request (charged even on
-zero results). Follower/following/ID pulls are billed per returned item and can
-get large fast — prefer `twitterapi_user_followers_ids` for big audiences, and
-bound pages/time windows before fanning out. `article`, `check_follow_relationship`,
-and `community/info` are fixed higher-cost calls (100/100/20 credits).
+Every request carries a minimum charge, applied even when it returns zero
+results. Follower/following/ID pulls are billed per returned item and can get
+large fast — prefer `twitterapi_user_followers_ids` for big audiences, and
+bound pages/time windows before fanning out. `article`,
+`check_follow_relationship`, and `community/info` are fixed higher-cost calls.
+
+Deepline credit pricing for these actions is generated from the provider pricing
+metadata and rendered on the public provider pages.

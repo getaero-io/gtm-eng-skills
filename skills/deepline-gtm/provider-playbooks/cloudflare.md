@@ -34,8 +34,9 @@
 
 ## Cost awareness
 
-- Priced at **$0.20 per 1,000 browser-seconds** (render=true). Billed post-deduct based on `browserSecondsUsed` in the response.
+- `render: true` crawls are billed on browser time, post-deduct, based on `browserSecondsUsed` in the response.
 - `render: false` crawls use 0 browser-seconds (free during beta).
+- Deepline credit pricing for these actions is generated from the provider pricing metadata and rendered on the public provider pages.
 - Keep `limit` reasonable — large crawls consume significant browser time.
 - Crawl jobs expire after 7 days; results available 14 days post-completion.
 

@@ -35,10 +35,11 @@ search across every transcript.
 
 ## Auth & billing
 
-Deepline supplies the Podscan credential (`PODSCAN_API_KEY`). Deepline bills one
-Podscan credit ($0.01) per successful search — a well-formed response with at
-least one result. Zero-match searches are free; a malformed provider response is
-rejected rather than billed as an empty result.
+Deepline supplies the Podscan credential (`PODSCAN_API_KEY`). Billing applies per
+successful search — a well-formed response with at least one result. Zero-match
+searches are free; a malformed provider response is rejected rather than billed
+as an empty result. Deepline credit pricing for these actions is generated from
+the provider pricing metadata and rendered on the public provider pages.
 
 ## Rate limits
 
