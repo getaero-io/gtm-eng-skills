@@ -107,9 +107,25 @@ Enriches a person by LinkedIn URL (preferred), email, or name+company. Returns e
 }
 ```
 
+### contactout_count_people
+
+Free audience sizing. Takes the same filters as `contactout_search_people` and returns only `total_results`. Consumes no credits, so run it before any paid search.
+
+```json
+{
+  "job_title": "(VP OR Head) Sales",
+  "company_size": "201-500",
+  "location": "United States"
+}
+```
+
 ### contactout_search_people
 
-Search people by title, company, location, seniority. Use `reveal_info: false` (default) for count/discovery. Set `reveal_info: true` to retrieve emails (costs search + email credits).
+Search people by title, company, location, seniority. Set `reveal_info: true` to also retrieve emails (costs search + email credits).
+
+**This is never a free call.** Search bills 1 credit per returned profile, and `reveal_info: false` does not change that. It only gates the extra email/phone credits, so a `reveal_info: false` search is a full-price search, not a count or discovery mode. Use `contactout_count_people` when you want a count.
+
+ContactOut controls the page size and exposes no page-size parameter, so you cannot ask for fewer results. One call bills for every profile on the page even if you only need a handful. Narrow the filters to change *who* comes back; you cannot change *how many*. The number actually billed comes back as `metadata.page_size`.
 
 ```json
 {
@@ -145,4 +161,5 @@ Enriches company data (size, industry, funding, HQ) from a domain name.
 - Don't use Sales Navigator or Recruiter URLs — they'll return 400
 - Don't use an empty free checker result to suppress a paid reveal — only the paid reveal determines whether ContactOut returns usable contact data
 - Don't include "http://" or "www." in domain values for `enrich_domain`
-- Don't set `reveal_info: true` on search without knowing the count first — use `reveal_info: false` to size the audience
+- Don't treat `reveal_info: false` as a free or count mode — it still bills 1 search credit per returned profile. Size the audience with `contactout_count_people`, which is free
+- Don't call `contactout_search_people` when you only need a handful of profiles and the audience is unsized — there is no page-size parameter, so the call bills for the whole page regardless of how many you wanted
