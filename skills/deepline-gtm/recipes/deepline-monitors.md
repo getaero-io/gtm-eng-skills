@@ -18,6 +18,14 @@ small piece of evidence now, prove the stored definition says what was asked,
 then let live events validate delivery over time. Each step answers a different
 question; do not pretend one proves all four.
 
+## Non-negotiable result rule
+
+For a calibration response with one or more attributed rows, show the actual
+rows in a Markdown table before any summary, recommendation, or question. This
+is mandatory even when the recommended change is none. A response that says how
+many rows arrived, groups roles, or recommends a filter without that table is
+incomplete.
+
 ## Read the deployed monitor spec first
 
 Every `deepline monitors get <key> --json` response includes `monitor_spec`.
@@ -270,46 +278,35 @@ binding is an operational failure, not an empty sample.
 
 ## How to communicate
 
-Sound like a helpful teammate, not an operations console. The user wants good
-matches, not monitor internals. Start with one easy next step: **“Want me to
-try a simple first pass, bring back a few examples, and dial in what you’re
-looking for?”**
+The [product interaction contract](../references/product-interaction-contract.md)
+controls user-facing monitor output. This section adds monitor-specific stages;
+it does not override the requirement to show the real rows, then make a
+recommendation and seek approval only for a proposed change.
 
-Keep the first reply in plain English: say what you will look for, bring back,
-and tune from those examples. Resolve routine details yourself—domains and
-starting filters included. Ask one natural question, never a setup form, plan,
-checklist, settings dump, or implementation tutorial.
+Sound like a helpful teammate, not an operations console. Explain the business
+question the watcher will answer, resolve routine details yourself, and ask one
+natural question. Do not expose a raw definition, monitor key, stream name,
+provider contract, validation, or duplicate check unless it failed or the user
+asks for it.
 
 Do not open with credits, volume, a dry-run, a deployment, timing, history, or
 an approval checklist. Those are behind-the-scenes details for the moment a
 real, ready-to-turn-on scope needs a decision.
 
-At that point, say what is ready, where matches will appear, what each accepted
-match costs, and that the total depends on activity. Then ask whether to turn
-it on: **“I’ve got this ready to watch for <signal> at <companies>. Matches
-will show up in <destination>. It’s <price> per accepted match. Want me to
-switch it on?”** Avoid “deploy,” “dry-run,” “charge basis,” and “event volume.”
-Do not make the user pick routine filters, domains, CLI commands, or plumbing.
+At the paid decision, recommend the scope in plain language, say where the
+matches will appear, and state the live Deepline price with its actual charge
+timing. For `per_accepted_event`, say the price per match and that total use
+depends on activity. For a subscription, state the deploy/reactivation and
+recurring charge and never imply a per-match cost. Then ask whether to turn it
+on. Do not make the user pick routine filters, domains, CLI commands, or
+plumbing.
 
 Translate internal terms: “try a first pass,” not “run a minimally filtered
 forward scout”; “matches,” not “events”; “leave it on,” not “keep the forward
 monitor active”; and “look further back,” not “run a historical rung.”
 
-Use the message shape that matches the stage:
-
-| Moment | Say |
-| --- | --- |
-| User has a broad idea | “Yeah — want me to try a simple first pass and bring back a few examples? We can use those to nail what you want to see.” Do not ask for permission to turn anything on yet. |
-| It is ready to turn on | “I’ve got <plain-language scope> ready for <destination>. It’s <price> per accepted match, so the total depends on activity. Want me to switch it on and tune it from the first matches?” Mention a no-result fallback only if it helps their decision. |
-| Waiting for the first matches | Usually say nothing. If an update helps: “It’s on and nothing has come through yet, so I’m leaving the filters alone for now.” |
-| Matches arrived | Start with the takeaway: **Keep it**, **Tighten it up**, or **This isn’t the right signal**. Show a small safe example and say why. |
-| Nothing has shown up yet | “Nothing has come through yet, which doesn’t mean the filters are wrong. I’ve left it on. Want me to also check a little further back?” Give the price and time range only when asking for that paid check. |
-| Looking further back | “That check is still running, so I’m leaving the current watcher alone for now.” Do not make it sound failed or pitch the next paid step early. |
-| The look-back came up empty | Say plainly that no matches came back. Offer only the next priced, approved look-back option, or stop after the 90-day maximum. |
-| Something failed | Start with **I couldn’t get this running** or **I had to stop this**. Say what did not work and what state it is in; never call a failure “no matches.” |
-
-Before deployment, explain the approved scout in plain language: what will be
-watched, where rows will land, live Deepline price and charge basis, unknown
+Before deployment, explain the approved first pass in plain language: what will
+be watched, where rows will land, live Deepline price and charge basis, unknown
 total volume, and the filters that will be tuned from real events. For
 person-specific monitoring, prefer a LinkedIn profile URL when available;
 Deepline Native can target that person directly rather than infer from the
@@ -342,63 +339,57 @@ One useful waiting update is enough:
 > produces useful matches. Nothing has arrived yet, so I’m leaving the filter
 > alone for now.
 
-For a broad request, start here—not with deployment mechanics:
-
-> Yeah—want me to test a lightweight set of filters and dial in the matches
-> you’re after? I’ll bring back a few real examples, then we can lock in what
-> should stay on.
-
-Once the price is known and deployment is ready, ask like this—not like a plan
-or a progress log:
-
-> I’ve got a first-pass new-hire scout ready for TryProfound, Rubie, and Monk.
-> Matches will land in `<destination>`. It costs `<live Deepline price and
-> charge basis>`, so total usage depends on activity. Want me to turn it on and
-> tune it from the first matches?
-
 At a 90-second empty result, say:
 
-> **No sample yet.** The forward scout is still active, and this does not show
-> the filters are wrong. I can try the separately approved historical window
+> **No sample yet.** I have left the watcher on because nothing arriving is not
+> a reason to change it. I can also look further back over
 > `<provider-effective dates>` for `<live Deepline price>`—should I try that?
 
-When rows arrive, show a small safe sample as a decision table:
+When rows arrive, show the actual decision table before the recommendation. Do
+not summarize it as "relevant hires" or substitute category counts for rows.
+For person results, the default table is:
 
-| Target           | Signal  | Why it matched    | When   | Recommendation     |
-| ---------------- | ------- | ----------------- | ------ | ------------------ |
-| <company/person> | <event> | <filter evidence> | <date> | <keep/refine/stop> |
+| Company | Person | Joined as | When |
+| ------- | ------ | --------- | ---- |
+| <company> | [<person>](<verified-linkedin-url>) | <title> | <returned date> |
 
-After the table, state **keep**, **refine**, or **stop**. Change one supported
-filter at a time, based on real off-target rows. Do not add targets beyond the
-requested scope.
+Use only returned fields; omit `When` when the monitor does not return a date.
+After the table, start with `Recommendation:` and state one supported filter
+change (or none) based on the observed pattern, explain why, and name the exact included and excluded role or
+signal patterns. Ask whether to apply a proposed change; when the recommendation
+is no change, say so and move on. If the change can affect billable ingestion,
+restate the live Deepline price and unknown future volume before asking. Do not
+add targets beyond the requested scope.
 
 ## Return the decision
 
-Lead with the decision. The user needs evidence and the resulting watcher, not
-a log of monitor plumbing.
+The user needs the evidence, a recommendation, and the resulting watcher—not a
+log of monitor plumbing. Evidence precedes the recommendation whenever rows
+exist.
 
 | Outcome | Return |
 | --- | --- |
-| Needs a paid scout | One sentence: targets, minimally filtered signal, forward or next historical window, destination, live Deepline price/charge basis, unknown volume, and one approval question. |
-| Real matches fit | **Keep.** State the signal, active filter, 2–5 safe examples, and ongoing Deepline price. |
-| Real matches reveal noise | **Refine.** State the observed off-target pattern, the one filter change, 2–5 safe examples, and forward-observation caveat. |
-| No row by 90 seconds | **No sample yet.** State the filter, forward-window active status, that this is not a filter conclusion, and offer the next approved historical rung (30, 60, or 90 days only). |
+| Needs a paid first pass | Recommend the targets and signal in plain language, name the destination and live Deepline price, then ask one approval question. |
+| Real matches fit | Show the returned rows, then state why the active scope remains unchanged. End with `Change: none — I’m leaving it as is.` This ends the response: do not add a question, approval, or adjustment prompt. |
+| Real matches reveal noise | Show the returned rows, then recommend one supported filter change and say why. Ask whether to apply it. |
+| No row by 90 seconds | **No sample yet.** State that the starting criteria remain unchanged and the watcher is still on; this is not a filter conclusion. Offer only the next approved historical rung (30, 60, or 90 days). |
 | Provider or contract failure | **Blocked.** State the failed component and what must be fixed. Do not call it an empty result. |
-| User rejects the signal | **Stopped.** Confirm the deleted key, that future ingestion stopped, and that existing rows remain. |
+| User rejects the signal | **Stopped.** Confirm that future matches stopped and existing rows remain. |
 
-Use this shape when examples exist:
+After any table, state the recommendation, why, and plain-language change. Add
+an approval prompt only for a proposed change; a no-change report ends after
+`Change: none — I’m leaving it as is.`:
 
 ```text
-Recommendation: <keep | refine | stop>
-Observed: <count> matching events in <window>; <one-line pattern>
-Change: <none | one supported filter change>
-Ongoing watcher: <signal + target + final filter>
-Cost: <live Deepline pricing>; <unknown volume when applicable>
+Recommendation: <one recommended state>
+Why: <pattern visible in the table>
+Change: <plain-language inclusion/exclusion boundary>
 ```
 
-After deployment, add the public key and destination table. Mention a Play only
-when it exists or the user asked for one. Never present a titled plan, raw
-definition, provider spend, or a list of routine implementation choices.
+Read back the stored definition internally after deployment. In the user-facing
+result, mention the destination or a downstream Play only when it helps the
+user act. Never present a raw definition, provider spend, public key, or a list
+of routine implementation choices.
 
 For an expanded scope the user explicitly requests, validate its live price,
 then obtain approval for the added targets before deployment. For an update,

@@ -44,13 +44,14 @@ and materially changes the result or external action, ask one concise question
 with a recommendation. Otherwise state a reasonable assumption in the result
 and keep moving.
 
-**Calibrate monitor filters from real events.** A monitor's variable event
-charges need a live price, dry-run, and explicit approval. Start a broad forward
-scout, observe at 30/60/90 seconds, and offer separately approved 30→60→90-day
-history only after a real empty result. Do not add similar companies silently.
-Read [`recipes/deepline-monitors.md`](recipes/deepline-monitors.md) for the
-communication, pricing, and safe-replacement rules; keep, refine, or stop only
-from observed rows.
+**Calibrate monitor filters from real events.** Get live price, dry-run, and
+approval. Start with named targets and the requested signal; do not invent
+filters before evidence. Observe at 30/60/90 seconds; offer separately approved
+30→60→90-day history only after a real empty result. Do not add similar
+companies silently. Read [`recipes/deepline-monitors.md`](recipes/deepline-monitors.md).
+
+**Decision-first presentation.** Before a user-facing GTM result, read and
+follow [the product interaction contract](references/product-interaction-contract.md).
 
 **Discovery order: companies first, then people.** When the task requires finding contacts at companies matching criteria (portfolio, ICP, hiring signal), discover the company set first, then find people at each company. Do not start with broad people-search queries.
 
@@ -210,7 +211,7 @@ The slug must describe the task (e.g. `deepline/data/yc-cmo-outbound`, `deepline
 - Even for company → ICP person flows, plays work: search and filter as part of the process, with providers like Apify to guide.
 - Even when you don't have a CSV, create one and run the batch play against it.
 - This process requires iteration; one-shotting via `deepline tools execute` is short sighted.
-- In chat, send the file path and run/play URL when available, not pasted CSV rows, unless explicitly requested.
+- In chat, send file/run links and render a decision table when rows inform a decision.
 - Preserve lineage columns (especially `_metadata`) end-to-end. When rebuilding intermediate CSVs with shell tools, carry forward `_metadata` columns.
 - Never overwrite a user-provided source CSV; write outputs to your working directory. Reruns of a play reuse completed cells by default.
 
@@ -221,8 +222,8 @@ See [enriching-and-researching.md](enriching-and-researching.md) for `deepline c
 - Keep one intended final CSV path: `FINAL_CSV="${OUTPUT_DIR:-$WORKDIR}/<requested_filename>.csv"`
 - Before finishing: use the post-run inspection script pattern from [enriching-and-researching.md](enriching-and-researching.md). Run it once instead of separate checks.
 - **Checkpoint the deliverable.** On multi-phase pipelines (companies → contacts → emails), write `FINAL_CSV` as soon as the first complete rows exist and overwrite it as later phases improve it. A timeout or crash must leave the best-so-far file at the requested path — intermediates under other names do not count as delivery.
-- **End every task with a link to the play.** The CLI prints the play page URL when a run starts (`play page: https://code.deepline.com/dashboard/plays/...`). The final message must contain the exact `FINAL_CSV` path AND that play page link, so the user can open the live sheet, inspect rows, and rerun. A results message without the play link is incomplete.
-- Before closing the session, follow the Section 7 consent step for session sharing.
+- **For a task that ran a Play, include its result.** Give the exact `FINAL_CSV`
+  path and play page link; do not invent one for monitor-only, research, or advisory work.
 
 ## 4) Credit and approval gate (paid actions)
 
@@ -423,7 +424,11 @@ deepline feedback send "Goal: <goal>. Tool/provider/model: <details>. Failure: <
 
 ### 7.2 End-of-session consent gate (mandatory)
 
-At the end of every completed run/session, ask exactly one Yes/No question:
+After the substantive result is resolved, ask exactly one Yes/No question in a
+separate message—never beside a table, recommendation, approval request, or
+unresolved user decision. Do not ask it after a terminal no-change outcome:
+`Change: none — I’m leaving it as is.` must remain the final line of that
+response.
 
 `Would you like me to send this session activity to the Deepline team so they can improve the experience? (Yes/No)`
 
