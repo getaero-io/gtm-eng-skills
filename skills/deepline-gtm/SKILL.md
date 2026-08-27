@@ -22,18 +22,6 @@ Run `deepline` commands bare — no pipes, redirection, `2>&1`, command chaining
 
 Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/INSTALL.md` to set up Deepline.
 
-Use this skill for prospecting, account research, contact enrichment, verification, lead scoring, personalization, and campaign activation.
-
-## 1) What this skill governs
-
-- Route GTM decisions, safety gates, and provider/quality defaults before execution.
-- Keep long command chains and tooling nuance in sub-docs; provider-specific implementation detail in `provider-playbooks/*.md`.
-- Provide clear entry points for both paid and non-paid workflows, including small pilot runs.
-
-## Process/goal
-
-Customer is generally trying to go from "I have an ICP" to "Here's a list of prospects with email/linkedin and very personalized content or signals". They may be anywhere in this process, but guide them along.
-
 **Ask for requirements, not implementation instructions.** Requirements are the
 business outcome, target population, constraints, time horizon, requested
 destination, and any stated spend or authority boundary. The provider, tool,
@@ -44,14 +32,41 @@ and materially changes the result or external action, ask one concise question
 with a recommendation. Otherwise state a reasonable assumption in the result
 and keep moving.
 
-**Calibrate monitor filters from real events.** Get live price, dry-run, and
-approval. Start with named targets and the requested signal; do not invent
-filters before evidence. Observe at 30/60/90 seconds; offer separately approved
-30→60→90-day history only after a real empty result. Do not add similar
-companies silently. Read [`recipes/deepline-monitors.md`](recipes/deepline-monitors.md).
+**Decision-ready communication.** The user should never have to infer the
+answer from a status update. When work produces people, companies, events, or
+rows that determine the next move, show those real records in a readable
+Markdown table first. Link a person's name to their verified LinkedIn profile
+when one was returned; do not hide the decision behind counts, summaries, or a
+generic `Profile` column. For choices, show the comparison; for copy, show the
+draft; for research, show the evidence that supports the conclusion.
 
-**Decision-first presentation.** Before a user-facing GTM result, read and
-follow [the product interaction contract](references/product-interaction-contract.md).
+Then make one plain-language recommendation based on what is visible. State the
+concrete boundary—who is in, out, or what changes—not a label such as “keep” or
+“refine.” Do not ask the user to design routine filters or choose plumbing.
+Keep validation, raw ids, feeds, and tool mechanics internal unless they change
+scope, cost, risk, confidence, or action.
+
+When the user is calibrating, choosing a scope, prioritizing a list, or
+authorizing a change, use this complete envelope:
+
+```markdown
+<the table, comparison, draft, or evidence>
+
+Recommendation: <one concrete next state and why>.
+Want me to use that, or adjust it?
+```
+
+End with `Want me to use that, or adjust it?` exactly. The user can say “yes”
+or name the adjustment. A calibration, scope, or prioritization response is
+incomplete without that final line, even when it starts no external action. Do
+not add a second question, a menu, or an implementation checklist. If no user
+decision is needed, state the outcome and stop.
+
+**Paid monitors.** Before deployment show the recommended scope, live
+Deepline price, and delivery in the smallest useful shape. Check Slack first;
+recommend a real connected channel when one is available, otherwise offer Slack
+or the configured CRM. The monitor recipe covers consent, history, and
+similar-company scope.
 
 **Discovery order: companies first, then people.** When the task requires finding contacts at companies matching criteria (portfolio, ICP, hiring signal), discover the company set first, then find people at each company. Do not start with broad people-search queries.
 
@@ -65,27 +80,16 @@ for the identity gate and ambiguity handling.
 
 **Known companies + nuanced roles: qualify the real title roster first.** For requests such as "AI leadership at Mount Sinai," "job titles at these companies," or "find the RevOps buyers at these accounts," read and follow [`recipes/find-qualified-titles.md`](recipes/find-qualified-titles.md): `company_titles` -> qualify exact roster titles -> `deepline_native_search_contact` with `title_lists`. Use Exa afterward for public-profile gaps and DropLeads last for supplemental database rows. Broad audience sizing remains a valid DropLeads use case.
 
-### Documentation hierarchy
-
-- Level 1 (`SKILL.md`): decision model, guardrails, approval gates, links to sub-docs.
-- Level 2 (phase docs): [finding-companies-and-contacts.md](finding-companies-and-contacts.md), [enriching-and-researching.md](enriching-and-researching.md), [writing-outreach.md](writing-outreach.md), `prompts.json`.
-- Level 2.5 (`recipes/*.md`): step-by-step playbooks for specific tasks (email lookup, LinkedIn resolution, waterfall patterns, contact finding, actor contracts). Search like code with Grep.
-- Level 3 (`provider-playbooks/*.md`): provider-specific quirks, cost/quality notes, and fallback behavior.
-
-No-loss rule: moved guidance remains fully documented at its canonical level and is linked from here.
-
 ### CLI recovery
 
 The SDK CLI is the supported CLI. If it is unavailable, run `deepline update`
 or reinstall it with `npm install -g deepline@latest`; do not switch CLI families.
 
-## 2) Read behavior — MANDATORY before any execution
+## 2) Read the matching workflow before execution
 
-**STOP. Do not call any provider, run any `deepline tools execute`, or write any search command until you have opened the correct sub-doc for your task.**
-
-These sub-docs are distilled from hundreds of real runs: validated parameter schemas, correct filter syntax, parallel execution patterns, and known pitfalls. Reading a doc for 5 seconds saves 10 failed tool calls, wasted credits, and garbage output. SKILL.md is the routing layer — WHERE, not HOW. Agents that skip the doc and "just try one provider real quick" re-discover the same documented failure modes every time. This has happened repeatedly.
-
-!important READING MULTIPLE DOCS IS A GREAT IDEA AND OFTEN SUPER ESSENTIAL. JUST READ MORE.
+SKILL.md routes; the matching doc supplies the execution contract. Read it before
+using a provider so its schema, sequencing, and known failure modes govern the
+run.
 
 **Routing rules — match your task to a doc and READ IT:**
 
@@ -101,9 +105,8 @@ If you are hand-authoring enrich columns instead of using a native play, jump st
 
 ### Recipes: step-by-step playbooks for specific tasks (check before executing)
 
-The `recipes/` directory contains battle-tested playbooks. **Before you start executing, scan this list and read any recipe that matches your task.**
-
-When a recipe matches: **follow it step-by-step as your execution plan.** Recipes encode hard-won sequencing and provider choices — trust them over generic guidance or your own intuition. If the user's request doesn't perfectly fit, adapt the recipe using the phase docs above, but keep the recipe's structure and ordering as your baseline.
+Read the matching recipe before executing. Follow its sequence; adapt it only
+when the request requires it.
 
 | Recipe                          | Use when...                                                                                                                                |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -142,14 +145,6 @@ deepline tools search "crustdata investor"
 deepline tools search --categories company_search --search_terms "structured filters,icp"
 deepline tools search --categories people_search --search_terms "title filters,linkedin"
 ```
-
-### Tool search categories and tags
-
-Filter `deepline tools search` with `--categories` when tool type matters more than provider breadth: `company_search`, `people_search`, `company_enrich`, `people_enrich`, `email_finder`, `email_verify`, `phone_finder`, `phone_verify`, `smb`, `research`, `automation`, `outbound_tools`, `autocomplete`, `admin`. Add `--search_terms` ranking hints like `structured filters`, `title filters`, `api native`, `bulk`.
-
-Tags are the signal-oriented filter (`GET /api/v2/tools?tags=...`, comma = AND): `firmographics`, `funding`, `hiring`, `technographics`, `web`, `ads`, `intent`, `people`, `contact`, `competitive`, `social`, `research`, plus capability tags (`email_finder`, `phone_verify`, `identity_resolution`, ...). `billed_on_match` means per-result pricing — a charge only on a returned match; never assume a finder has it, filter or read the pricing unit.
-
-Good: `deepline tools search --categories company_search --search_terms "investors,funding"`. Avoid unanchored queries like `deepline tools search stuff`. Keep evidence, source, date, and confidence with the underlying signal.
 
 ## 2.5) Plays are the surface
 
@@ -229,16 +224,15 @@ See [enriching-and-researching.md](enriching-and-researching.md) for `deepline c
 
 This section's pilot, CSV preview, and full-run template governs enrichment,
 sourcing, and other row-processing runs. Monitor mutations use the workflow in
-`recipes/deepline-monitors.md` instead: show the final provider scope, output
-streams/tables, selected Deepline pricing and expected exposure, reuse
-candidates, known dependent plays plus the unknown-consumer warning, and the
-built-in dry-run when that command supports one. Because a monitor can incur
-variable future event charges, require explicit approval before every paid
-deploy, reactivate, or historical widening—even when the user stated the
-scope. A historical rung is empty only after its documented provider completion
-window; leave it intact while that window is pending. Ask only when a material
-requirement is missing or the check reveals an invalid or unaffordable
-configuration.
+`recipes/deepline-monitors.md` instead: inspect scope, reuse candidates,
+downstream actions/unknown consumers, and price before asking. Keep that
+approval decision-first: scope table, recommendation, live Deepline price, and
+one question. Because a monitor can incur variable future event charges, require
+explicit approval before every paid deploy, reactivate, or historical
+widening—even when the user stated the scope. A historical rung is empty only
+after its documented provider completion window; leave it intact while that
+window is pending. Ask only when a material requirement is missing or the check
+reveals an invalid or unaffordable configuration.
 
 ### 4.1 Required run order
 

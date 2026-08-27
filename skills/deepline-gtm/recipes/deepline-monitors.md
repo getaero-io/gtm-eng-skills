@@ -18,13 +18,26 @@ small piece of evidence now, prove the stored definition says what was asked,
 then let live events validate delivery over time. Each step answers a different
 question; do not pretend one proves all four.
 
-## Non-negotiable result rule
+## User-facing communication
 
-For a calibration response with one or more attributed rows, show the actual
-rows in a Markdown table before any summary, recommendation, or question. This
-is mandatory even when the recommended change is none. A response that says how
-many rows arrived, groups roles, or recommends a filter without that table is
-incomplete.
+The lifecycle below is internal. The user needs the next decision, not a
+monitoring log.
+
+- **Ready to turn on:** for several targets, show a short scope table; for one,
+  use a sentence. Recommend the first filter, name the live Deepline price and
+  delivery, then ask one yes-or-adjust question. Do not lead with domains,
+  validation, a dry-run, monitor keys, or timing.
+- **Calibrating from matches:** show the actual attributed rows in a Markdown
+  table before any roll-up or recommendation. The table is the thing the user
+  is calibrating against—counts and labels such as “relevant” are not enough.
+  For new hires, use `Company / Person / Joined as / When` and put a verified
+  LinkedIn link on the person's name, not in a separate `Profile` column.
+
+After the artifact, give one concrete recommendation and one question: `Want me
+to use that, or adjust it?` This applies even when the first calibration call is
+to leave the filter broad: the user explicitly asked to calibrate. For no
+access, no sample, failure, or stop, state that outcome directly; do not invent
+a scope or results table.
 
 ## Read the deployed monitor spec first
 
@@ -56,17 +69,17 @@ of billable events. A user request is authorization to investigate and prepare
 the exact monitor definition, not consent to incur those charges. After the
 live contract, registry-reuse check, `monitors check`, and deploy dry-run,
 obtain explicit approval before every paid state change in every workspace.
-The approval must state the targets, event signal, destination, live Deepline
-price and charge basis, unknown total volume, and which current or historical
-calibration step it authorizes. A dry-run is read-only and does not replace this
-approval.
+The approval must cover the targets, event signal, live Deepline price and
+charge basis, unknown total volume, and which current or historical calibration
+step it authorizes. Before consent, disclose any known downstream action and
+the unknown-consumer risk in one short `Delivery:` line; those can change what
+approval means. Keep raw monitor keys and implementation detail internal. A
+dry-run is read-only and does not replace this approval.
 
-For an initial forward scout, the approval must also set the expectation for an
-empty result: inspect safely attributed rows at 30, 60, and 90 seconds; if none
-arrive, leave the forward monitor active and offer a separately approved,
-priced 30-day historical step. Say that later empty historical steps can only
-advance to 60, then 90 days maximum. This gives the user a useful next choice
-instead of ending at "no sample yet."
+For an initial forward scout, inspect safely attributed rows at 30, 60, and 90
+seconds. If none arrive, leave the forward monitor active and offer a separately
+approved, priced 30-day historical step. Later empty historical steps can only
+advance to 60, then 90 days maximum.
 
 Use 30, 60, and 90 days as the calibration rungs, not an invented guarantee of
 an exact source cutoff. When a live contract evaluates source dates at
@@ -76,9 +89,18 @@ approval request before it can be billed.
 
 "Similar companies" is a billable scope decision. Resolve and, when useful,
 recommend a small evidence-based candidate list, but do not deploy those
-candidates merely because they seem plausible. Include their exact names and
-domains in the same approval as the named targets, or begin with only the named
-targets.
+candidates merely because they seem plausible. Show their names and inclusion
+decision in the scope table; keep resolved domains with the definition unless
+the user needs them.
+
+Before asking where to send matches, check Slack with
+`deepline notifications slack channels --json`. A successful response supplies
+real channels: recommend the best obvious channel, not an invented one. If Slack
+is unavailable or has no usable channel, say that plainly. When a CRM destination
+is configured, name it and ask: `Want me to turn this on and connect Slack, or
+send matches to <CRM>?` Otherwise ask: `Want me to connect Slack and turn this
+on?` Routing matches to Slack or a CRM is a downstream action; include it in
+the same approval as the monitor.
 
 `job_titles` accepts only the documented Deepline Native input syntax: double-quoted title
 terms joined with uppercase `AND`, `OR`, and `NOT`, such as `"VP" OR "Head of
@@ -278,39 +300,59 @@ binding is an operational failure, not an empty sample.
 
 ## How to communicate
 
-The [product interaction contract](../references/product-interaction-contract.md)
-controls user-facing monitor output. This section adds monitor-specific stages;
-it does not override the requirement to show the real rows, then make a
-recommendation and seek approval only for a proposed change.
+Use one decision-shaped response, not a recap. Do not open with deployment,
+credits, timing, history, or a checklist; those matter only once a real decision
+is ready. Translate internal language: say “first pass,” “matches,” and “look
+further back,” not “forward scout,” “accepted events,” or “historical rung.”
 
-Sound like a helpful teammate, not an operations console. Explain the business
-question the watcher will answer, resolve routine details yourself, and ask one
-natural question. Do not expose a raw definition, monitor key, stream name,
-provider contract, validation, or duplicate check unless it failed or the user
-asks for it.
+### First-pass approval
 
-Do not open with credits, volume, a dry-run, a deployment, timing, history, or
-an approval checklist. Those are behind-the-scenes details for the moment a
-real, ready-to-turn-on scope needs a decision.
+For a multi-company monitor, use this shape after live validation. Keep only
+decision-bearing columns; resolved domains, duplicate checks, and monitor
+plumbing are internal.
 
-At the paid decision, recommend the scope in plain language, say where the
-matches will appear, and state the live Deepline price with its actual charge
-timing. For `per_accepted_event`, say the price per match and that total use
-depends on activity. For a subscription, state the deploy/reactivation and
-recurring charge and never imply a per-match cost. Then ask whether to turn it
-on. Do not make the user pick routine filters, domains, CLI commands, or
-plumbing.
+```markdown
+Recommendation: Start broad—no title, department, seniority, or location
+filter—so the first real matches tell us what belongs.
 
-Translate internal terms: “try a first pass,” not “run a minimally filtered
-forward scout”; “matches,” not “events”; “leave it on,” not “keep the forward
-monitor active”; and “look further back,” not “run a historical rung.”
+| Watch | Company     | Why                                |
+| ----- | ----------- | ---------------------------------- |
+| Yes   | <company>   | <named target or approved peer>    |
+| No    | <candidate> | <why it is not in this first pass> |
 
-Before deployment, explain the approved first pass in plain language: what will
-be watched, where rows will land, live Deepline price and charge basis, unknown
-total volume, and the filters that will be tuned from real events. For
-person-specific monitoring, prefer a LinkedIn profile URL when available;
-Deepline Native can target that person directly rather than infer from the
-company alone.
+Cost: <live Deepline price and charge basis>.
+Delivery: <recommended connected Slack channel, or Slack/CRM choice>.
+Want me to turn this on, or adjust it?
+```
+
+For one company, replace the table with a sentence. Similar companies are a
+scope recommendation, not a silent expansion: show each candidate and whether
+it is in this pass. Ask the delivery question only inside this one approval
+question; recommend a real Slack channel when one is connected, otherwise offer
+Slack or the configured CRM.
+
+### Calibration decision
+
+Show every decision-bearing returned row when there are 25 or fewer. Above that,
+show the rows that support the boundary, state the total, and link or export the
+complete user-usable result set. Use only returned values. For a new-hire
+monitor:
+
+```markdown
+| Company   | Person                            | Joined as        | When            |
+| --------- | --------------------------------- | ---------------- | --------------- |
+| <company> | [<person>](verified-linkedin-url) | <returned title> | <returned date> |
+
+Recommendation: <keep broad, or name the exact title/signal patterns to include and exclude>.
+Why: <the pattern visible in the rows>.
+Cost: <live price>, if applying this change affects future billed matches.
+Want me to use that, or adjust it?
+```
+
+For other signals use `Target / Signal / Detail / When`, limited to returned
+fields. Never replace the table with a count or a role roll-up. When the user
+asked to calibrate, a recommendation to leave the filter broad still ends with
+the same yes-or-adjust prompt; it gives them the smallest useful control.
 
 Read monitor state and safely attributed rows at about 30, 60, and 90 seconds;
 this is the live view, not a new `tail` command. Show a small result table as
@@ -333,70 +375,14 @@ soon as matches arrive. The initial forward scout ends at 90 seconds.
   off-target pattern. Verify the stored update, then observe it forward. An
   update does not request new historical matches.
 
-One useful waiting update is enough:
+At 90 seconds with no row, say only that no sample has arrived, the watcher is
+still on, and offer the next priced historical step. A provider/contract failure
+is **Blocked**, not an empty result. A rejected signal is **Stopped**: confirm
+future matches stopped and existing rows remain.
 
-> I turned on the first few monitors and am checking whether the recent window
-> produces useful matches. Nothing has arrived yet, so I’m leaving the filter
-> alone for now.
-
-At a 90-second empty result, say:
-
-> **No sample yet.** I have left the watcher on because nothing arriving is not
-> a reason to change it. I can also look further back over
-> `<provider-effective dates>` for `<live Deepline price>`—should I try that?
-
-When rows arrive, show the actual decision table before the recommendation. Do
-not summarize it as "relevant hires" or substitute category counts for rows.
-For person results, the default table is:
-
-| Company | Person | Joined as | When |
-| ------- | ------ | --------- | ---- |
-| <company> | [<person>](<verified-linkedin-url>) | <title> | <returned date> |
-
-Use only returned fields; omit `When` when the monitor does not return a date.
-After the table, start with `Recommendation:` and state one supported filter
-change (or none) based on the observed pattern, explain why, and name the exact included and excluded role or
-signal patterns. Ask whether to apply a proposed change; when the recommendation
-is no change, say so and move on. If the change can affect billable ingestion,
-restate the live Deepline price and unknown future volume before asking. Do not
-add targets beyond the requested scope.
-
-## Return the decision
-
-The user needs the evidence, a recommendation, and the resulting watcher—not a
-log of monitor plumbing. Evidence precedes the recommendation whenever rows
-exist.
-
-| Outcome | Return |
-| --- | --- |
-| Needs a paid first pass | Recommend the targets and signal in plain language, name the destination and live Deepline price, then ask one approval question. |
-| Real matches fit | Show the returned rows, then state why the active scope remains unchanged. End with `Change: none — I’m leaving it as is.` This ends the response: do not add a question, approval, or adjustment prompt. |
-| Real matches reveal noise | Show the returned rows, then recommend one supported filter change and say why. Ask whether to apply it. |
-| No row by 90 seconds | **No sample yet.** State that the starting criteria remain unchanged and the watcher is still on; this is not a filter conclusion. Offer only the next approved historical rung (30, 60, or 90 days). |
-| Provider or contract failure | **Blocked.** State the failed component and what must be fixed. Do not call it an empty result. |
-| User rejects the signal | **Stopped.** Confirm that future matches stopped and existing rows remain. |
-
-After any table, state the recommendation, why, and plain-language change. Add
-an approval prompt only for a proposed change; a no-change report ends after
-`Change: none — I’m leaving it as is.`:
-
-```text
-Recommendation: <one recommended state>
-Why: <pattern visible in the table>
-Change: <plain-language inclusion/exclusion boundary>
-```
-
-Read back the stored definition internally after deployment. In the user-facing
-result, mention the destination or a downstream Play only when it helps the
-user act. Never present a raw definition, provider spend, public key, or a list
-of routine implementation choices.
-
-For an expanded scope the user explicitly requests, validate its live price,
-then obtain approval for the added targets before deployment. For an update,
-use its read-back and safe validation-only test as proof of the definition; do
-not count overlap rows as proof of the replacement filter.
-
-Delete a rejected temporary scout deliberately:
+Read back the stored definition internally after deployment. In post-deployment
+updates, mention a destination or downstream Play only when it helps the user
+act; before approval, always disclose it.
 
 For a requested filter change, use the same tight loop:
 

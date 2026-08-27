@@ -84,12 +84,6 @@
       "title": "Monitor Contract Reference",
       "tags": ["reference", "monitors"],
       "providers": []
-    },
-    "references/product-interaction-contract.md": {
-      "kind": "reference",
-      "title": "Decision-First Product Interaction",
-      "tags": ["reference", "presentation", "ux"],
-      "providers": []
     }
   },
   "prefixes": {
