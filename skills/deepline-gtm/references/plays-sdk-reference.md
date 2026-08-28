@@ -345,7 +345,7 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 | Checked-in SDK fallback | `0.3.1` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.3.1` |
-| Generated sources | `sdk/src/client.ts`<br />`sdk/src/errors.ts`<br />`sdk/src/play.ts`<br />`shared_libs/play-runtime/cell-staleness.ts`<br />`shared_libs/play-runtime/tool-result-types.ts`<br />`shared_libs/plays/authoring-contract.ts`<br />`shared_libs/plays/dataset.ts`<br />`shared_libs/tool-execution-error.ts` |
+| Generated sources | `packages/plays/authoring-contract.ts`<br />`packages/plays/cell-staleness.ts`<br />`packages/plays/dataset.ts`<br />`packages/plays/tool-execution-error.ts`<br />`packages/plays/tool-result-types.ts`<br />`packages/sdk/src/client.ts`<br />`packages/sdk/src/errors.ts`<br />`packages/sdk/src/play.ts` |
 | Coverage | Runtime SDK surface: `Deepline.connect`, `DeeplineContext`, `DeeplineClient`, play authoring, in-play `ctx.*` primitives, provider/tool calls, named play handles, run handles, datasets, and tool result accessors. |
 | Not covered | Full CLI command help, provider-specific input/output schemas, dashboard-only routes, and marketing/tutorial guides. Use `references/plays-api-reference.md` for generated HTTP route contracts. |
 

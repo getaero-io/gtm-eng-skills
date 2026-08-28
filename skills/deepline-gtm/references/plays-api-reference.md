@@ -11,7 +11,7 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 | Checked-in SDK fallback | `0.3.1` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.3.1` |
-| Generated sources | `src/lib/sdk/api-routes.ts`<br />`sdk/src/types.ts`<br />`sdk/src/client.ts`<br />`sdk/src/release.ts` |
+| Generated sources | `src/lib/sdk/api-routes.ts`<br />`packages/sdk/src/types.ts`<br />`packages/sdk/src/client.ts`<br />`packages/sdk/src/release.ts` |
 | Coverage | HTTP and SDK client surface for runtime calls: health, tool/provider discovery and execution, customer data queries, play runs, play definitions, play artifacts, files, and run inspection. |
 | Not covered | Provider-specific schemas, dashboard-only UI routes, billing/auth setup guides, and tutorial prose. Provider-specific schemas are returned by the generated tool describe routes. |
 
@@ -473,7 +473,7 @@ Either `name` (for live plays) or `artifactStorageKey` (for packaged ad hoc runs
 | `waitForCompletionMs` | `number` | No | Optionally let the start request wait briefly and return a terminal result. |
 | `profile` | `string` | No | Per-run execution profile override. The server defaults to absurd. The<br />Only `absurd` is accepted; most callers should leave this unset. |
 | `integrationMode` | `'live' \| 'eval_stub' \| 'fixture'` | No | Optional per-run provider execution mode for eval/smoke runs. |
-| `fixtureBehavior` | `import('../../shared_libs/play-runtime/fixture-behavior').FixtureBehavior` | No | Fixture-only provider response timing and outcome simulation. |
+| `fixtureBehavior` | `FixtureBehavior` | No | Fixture-only provider response timing and outcome simulation. |
 | `runtime` | `PlayRuntimeSelection` | No | Internal runtime estate selection. The app host remains unchanged. |
 | `testPolicyOverrides` | `Record<string, unknown>` | No | Internal/dev-only runtime policy overrides for black-box durability tests. |
 
