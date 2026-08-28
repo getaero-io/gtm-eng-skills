@@ -39,11 +39,13 @@ Send feedback or a bug report to the Deepline team.
 
    Options: "Send it" / "Cancel".
 
-3. **If confirmed**, send the feedback text first:
+3. **If confirmed**, send the feedback text first. Because the user asked for this report, pass `--requested` so Deepline can distinguish it from an autonomous agent report:
 
    ```bash
-   deepline feedback send "{feedback text}" --json
+   deepline feedback send "{feedback text}" --requested --json
    ```
+
+   For reports the agent initiates autonomously, omit `--requested`.
 
 4. **Send the session transcript.** Try the normal Claude transcript location first:
 
