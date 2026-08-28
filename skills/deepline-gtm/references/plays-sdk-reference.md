@@ -964,6 +964,15 @@ provider.
 Signature: `export type ProviderTransientErrorCategory = | 'rate_limit' | 'network' | 'upstream';`
 
 
+### `ToolExecutionPublicDetails`
+
+Bounded, primitive-only diagnostics explicitly approved for customers.
+Raw provider bodies, credentials, prompts, stacks, and causes never belong
+in this shared API/SDK/Play contract.
+
+Signature: `export type ToolExecutionPublicDetails = Readonly< Record<string, string | number | boolean | null> >;`
+
+
 ### `ToolExecutionFailureV1`
 
 Portable version-1 `tool_error` payload.
@@ -989,6 +998,7 @@ field.
 | `retryAfterMs` | `number \| null` | Yes | Suggested same-call retry delay in milliseconds, or `null`. |
 | `networkKind` | `ToolExecutionNetworkKind \| null` | Yes | Network failure kind, or `null`. |
 | `networkScope` | `ToolExecutionNetworkScope \| null` | Yes | Network boundary that failed, or `null`. |
+| `publicDetails` | `ToolExecutionPublicDetails \| null` | No | Explicitly allowlisted customer diagnostics, when present. |
 
 
 ### `ToolExecutionErrorOptions`
@@ -1034,6 +1044,7 @@ Signature: `class ToolExecutionError extends DeeplineError`
 | `retryAfterMs` | property | Suggested same-call retry delay in milliseconds, or `null`. |  | `number \| null` |
 | `networkKind` | property | Network failure kind, or `null` for non-network failures. |  | `ToolExecutionNetworkKind \| null` |
 | `networkScope` | property | Network boundary that failed, or `null` for non-network failures. |  | `ToolExecutionNetworkScope \| null` |
+| `publicDetails` | property | Explicitly allowlisted diagnostics safe for SDK and Play callers. |  | `ToolExecutionPublicDetails \| null` |
 
 ### `ProviderTransientError`
 
@@ -1119,6 +1130,7 @@ Signature: `class ToolRateLimitError extends RateLimitError`
 | `requestId` | property | Provider or Deepline request id, or `null`. |  | `string \| null` |
 | `networkKind` | property | Network failure kind, or `null` for non-network failures. |  | `ToolExecutionError['networkKind']` |
 | `networkScope` | property | Network boundary that failed, or `null` for non-network failures. |  | `ToolExecutionError['networkScope']` |
+| `publicDetails` | property | Explicitly allowlisted diagnostics safe for SDK callers. |  | `ToolExecutionError['publicDetails']` |
 
 ### `ConfigError`
 
