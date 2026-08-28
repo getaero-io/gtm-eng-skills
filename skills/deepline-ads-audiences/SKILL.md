@@ -45,6 +45,7 @@ This skill is not for cold outbound, sequencing, or copywriting. Personal emails
 | "sample ABM segment", "do the example workflow"                          | Follow the reusable high-priority ABM segment recipe.              | `recipes/sample-abm-segment-example.md`                   |
 | "use ContactOut hashes", "hashed identifiers", "LinkedIn URLs to hashes" | Plan a bulk pass beside the ladder, not a waterfall step.          | `shared/contactout-hash-pool.md`                          |
 | "what is a hash", "why is my match rate low", first-time user            | Explain the mechanic before quoting a plan.                        | `shared/audience-basics.md`                               |
+| encoded/internal-identifier LinkedIn URLs (`/in/ACwAA…`), "API rejected my LinkedIn URLs", "convert LinkedIn URLs" | Normalize `person_linkedin_url` before upload: drop encoded, recover vanity. | Step 4 → "Normalize LinkedIn URLs" (this file)            |
 | "Make sure hashes are not double hashed"                                 | Run the no-double-hash audit play before upload.                   | `plays/audit-no-double-hash.play.ts`                      |
 | "enrich this list", "buy personal emails/hashes", "run the ladder"       | Run the waterfall. Each layer only sees rows still missing a hash. | `plays/enrich-audience-waterfall.play.ts`                 |
 | "Compare enriched versus unenriched"                                     | Build both hash-only datasets and report lift.                     | `plays/enrich-audience-waterfall.play.ts`                 |
@@ -360,6 +361,38 @@ When a provider returns raw personal email:
 4. Hash the normalized email with SHA-256 exactly once.
 5. Upload only `email_sha256` unless the user explicitly asked to upload raw email fields.
 
+### Normalize LinkedIn URLs (drop encoded internal-identifier URLs)
+
+The Ad Audiences APIs (batch and live) accept only **vanity** LinkedIn URLs —
+`linkedin.com/in/<username>` (e.g. `linkedin.com/in/scott`). They do **not**
+accept **encoded internal-identifier** URLs, where the slug is an opaque
+member-identity token — e.g.
+`https://www.linkedin.com/in/ACwAAA3jFR0B90FE7rqSIhnof5R9h57ZrfgYR7w`. These come
+from Sales Navigator exports and some enrichment providers. The endpoint tolerates
+them today but **will return `400` for that input soon**, so treat an encoded URL
+as invalid `person_linkedin_url` before upload.
+
+Detect and handle every `person_linkedin_url` cell:
+
+1. **Detect encoded** — the slug after `/in/` starts with `ACwAA` / `ACoAA` (or is
+   a long single-token Base64URL-ish string, ~30+ chars of `[A-Za-z0-9_-]` with no
+   hyphenated name and no digits-as-suffix). That is an internal identifier, not a
+   username.
+2. **Do not upload it as-is.** Drop the encoded value from `person_linkedin_url`
+   for that row so the platform validator does not reject the whole payload.
+3. **Recover the vanity URL when the row still needs LinkedIn coverage** — run the
+   LinkedIn URL Backfill ladder from Step 3 (native `person-to-linkedin`, then the
+   Serper name + company query) to resolve the real `linkedin.com/in/<username>`.
+   This is the same helper that produces upload-ready vanity URLs elsewhere in this
+   skill.
+4. **Keep vanity URLs as-is** — `linkedin.com/in/<username>`: strip query params and
+   trailing slashes, lowercase the host, and upload.
+
+Report, in the Step 4 audit, how many `person_linkedin_url` rows were encoded
+(dropped), how many were recovered to a vanity URL, and how many were already
+valid — an all-encoded input silently uploading zero LinkedIn identifiers is the
+failure this step exists to prevent.
+
 Before live upload, write a small audit with:
 
 - source row count
@@ -369,6 +402,7 @@ Before live upload, write a small audit with:
 - unique hashes added by provider
 - invalid hash rows
 - whether any raw `email` field remains in the upload payload
+- LinkedIn URLs: encoded (dropped), recovered to vanity, already valid
 
 ## Step 5: Create and Upload
 

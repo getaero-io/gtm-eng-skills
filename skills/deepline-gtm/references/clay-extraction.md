@@ -74,6 +74,58 @@ Output goes to `tmp/clay_extract_<table_name>.json`. Never overwrites existing f
 }
 ```
 
+## Clay Functions (subroutine tables)
+
+A **Clay Function** is a reusable subroutine packaged as its own table. Other
+tables call it with a row of inputs; the function runs its column pipeline and
+writes the results back to the caller's cell. Recognize this pattern and migrate
+it as a self-contained play with a typed input contract — not as a batch lead
+list.
+
+**Signature — how to recognize a function table:**
+
+| Signal | Field | What it means |
+| --- | --- | --- |
+| **Input source** | a `type: "source"` field named "Function inputs", id `f_subroutine_source`, `typeSettings.sourceIds` (and sometimes `taggedSourceType`) | The function's parameter row. Every other column reads `{{f_subroutine_source}}?.["<Input Name>"]`. |
+| **Work action(s)** | one or more `type: "action"` fields (`use-ai`, `hubspot-lookup-object`, an email finder, etc.) | The actual computation. Full config is in `typeSettings` — see below. |
+| **Write-back** | a `type: "action"` field with `actionKey: "write-to-cell"` | Returns the function's outputs to the calling cell. Its `inputsBinding` `data` **`formulaMap`** lists every output the function exposes, keyed by output name. **This map is the function's output schema.** |
+| **Table type** | `table.tableSettings.BLOCK_TYPE == "SUBROUTINE"` + `SUBROUTINE_INPUTS` | When present, this is conclusive. `SUBROUTINE_INPUTS` is the **typed input schema** — an array of `{inputName, optional, semanticTypeEnum, description}` (e.g. `{"inputName":"Domain","optional":false,"semanticTypeEnum":"company-domain"}`). Use it verbatim as the play's input contract. |
+
+**Fallback when `tableSettings` is absent.** Some extracts (older script runs,
+trimmed table objects) drop `tableSettings`, so `BLOCK_TYPE` may be missing even
+for a real function. In that case, detect the function by the **field signature**
+alone: a `f_subroutine_source` "Function inputs" source field **plus** a
+`write-to-cell` action is sufficient. Derive the input schema from the distinct
+`{{f_subroutine_source}}?.["…"]` keys referenced across columns, and the output
+schema from the `write-to-cell` `data.formulaMap`. Do not require `BLOCK_TYPE` to
+proceed.
+
+**Where the function's contract lives in the extract:**
+
+- **Input schema** → `table.tableSettings.SUBROUTINE_INPUTS` when present; otherwise the distinct `{{f_subroutine_source}}?.["First Name"]` / `?.["Domain"]` keys across the columns.
+- **Output schema** → the `write-to-cell` action's `inputsBinding` entry `name: "data"` → `formulaMap` (each key is an output name; each value is the `{{f_xxx}}` column that fills it).
+- **Body** → every non-source, non-`write-to-cell` field, in dependency order. Actions carry `actionKey`, `actionVersion`, `actionPackageId`, `authAccountId`, `conditionalRunFormulaText`, `inputsBinding` (verbatim prompts, models, JSON schemas), and — when present — `optionalPathsInInputs` and `customRateLimitRules`. Extracted `formula` fields carry `extractedField.{fieldIdExtractedFrom,extractedKeyPath}` and `mappedResultPath`; waterfall fields carry `typeSettings.formulaWaterfall` (an ordered fallback array).
+
+**Migration mental model:** a function table → **one Deepline play** whose input
+is the subroutine's declared parameter row (not a scraped lead CSV), whose body
+is one `.withColumn(...)` per non-source field in dependency order, and whose
+output projection is exactly the `write-to-cell` `data` map. **Drop the
+`write-to-cell` action itself** — it is Clay-internal plumbing to return values to
+the caller; a Deepline play persists to its own Customer DB table and returns its
+columns directly. Callers of the Clay function become callers of the play.
+
+**The bookmarklet is the recommended path for function tables.** It passes the
+whole table object through, so `tableSettings` (hence `BLOCK_TYPE` and
+`SUBROUTINE_INPUTS`) is captured. The `clay-extract.py` script keeps
+`tableSettings` too, but if you inherit a trimmed extract, use the field-signature
+fallback above. Function **config** never needs the HAR — `GET /v3/tables/{id}`
+carries the full definition. The HAR / `bulk-fetch-records` only add rendered
+output cell values for parity validation, and are subject to record truncation
+(`_meta.truncated`), which never drops a field or action config. When an extract
+has **no sample cell values**, mark any architecture or parity claim
+`config-inferred, unvalidated` and defer conclusions that require 3+ real
+records.
+
 ## Key Clay API endpoints (undocumented, reverse-engineered)
 
 | Endpoint                                                | Method | Returns                                                           |

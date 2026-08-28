@@ -18,6 +18,7 @@ Every migration targets a Deepline play. The shape differs by table:
 | Signal in Clay table                                                    | Target play shape                                                      |
 | ----------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | Batch rows, no triggers, one-time or manual re-runs                     | CSV-input play: one `.withColumn(...)` per Clay action (this recipe)   |
+| **Function (subroutine) table**: a `f_subroutine_source` "Function inputs" field + a `write-to-cell` action | **Reusable play with a typed input contract:** input = the subroutine's declared parameter row (not a lead CSV), one `.withColumn(...)` per non-source field, output = the `write-to-cell` `data` map. Drop `write-to-cell`. See the Clay Functions section in [clay-extraction.md](../references/clay-extraction.md). |
 | Webhook trigger, row routing (`route-row`), CRM writes, campaign pushes | Custom play with triggers/orchestration → [deepline-plays.md](deepline-plays.md) |
 | Hybrid: batch enrichment + downstream push to CRM/campaign              | CSV-input play first, then a second play for the push                  |
 
@@ -25,6 +26,17 @@ Most Clay tables are batch tables. This recipe covers that path end-to-end;
 for trigger/routing tables, **Extraction and Documentation still apply** — then
 follow [deepline-plays.md](deepline-plays.md) with the extracted config as the
 source artifact.
+
+**Recognize a Clay Function before you plan the migration.** If the extract has a
+`type: "source"` field named "Function inputs" (`f_subroutine_source`) and a
+`write-to-cell` action, the table is a reusable subroutine, not a batch lead
+list. Its input is the caller's parameter row — every column reads
+`{{f_subroutine_source}}?.["<Input Name>"]`, and the `write-to-cell` `data`
+`formulaMap` is the output schema. Migrate it as one self-contained play with
+that input contract and drop the Clay-internal `write-to-cell` write-back; a
+Deepline play returns its columns directly. The extraction reference's **Clay
+Functions (subroutine tables)** section has the full signature and the
+input/output/body capture map — read it whenever these signals appear.
 
 ---
 
@@ -75,6 +87,24 @@ Use `classDef` colors: blue = local (`run_javascript`), orange = remote API, gre
 | N    | <clay_col_snake> | <see clay-action-mappings.md> | <prior passes> | Alias = snake_case(Clay column name)       |
 ```
 
+**Function (subroutine) tables use a different pass-1.** There is no lead CSV to
+fetch — the input IS the caller's parameter row. Skip the `clay_record`/`fields`
+fetch-and-flatten passes and make pass 1 the input contract: one alias per
+declared parameter (from `SUBROUTINE_INPUTS`, or the distinct
+`{{f_subroutine_source}}?.["…"]` references when `tableSettings` is absent),
+sourced from the play input rather than a Clay fetch. Then one pass per
+non-source, non-`write-to-cell` field in dependency order. The final "pass" is the
+output projection = the `write-to-cell` `data` map; do not build a
+`write-to-cell` pass.
+
+```markdown
+| Pass | Column alias     | Deepline tool                 | Depends on     | Notes                                          |
+| ---- | ---------------- | ----------------------------- | -------------- | ---------------------------------------------- |
+| 1    | <param_snake>    | play input                    | —              | One per SUBROUTINE_INPUTS parameter            |
+| N    | <clay_col_snake> | <see clay-action-mappings.md> | <prior passes> | Non-source, non-write-to-cell fields, in order |
+| out  | (projection)     | —                             | prior passes   | = write-to-cell `data` formulaMap; not a pass  |
+```
+
 ### 2.4 — Assumptions Log
 
 State every unverifiable assumption. Get confirmation before Phase 2.
@@ -115,6 +145,14 @@ Check actual cell values across 3+ records before counting AI passes:
 | `"Status Code: 200"` / `{"status":200}` | HTTP/webhook action — NOT AI | `generic_http_request` or shell fetch |
 | `""` (empty string)                     | Disabled or unfired          | Treat as NO_CELL                      |
 | Varied generation-shaped text           | Actual AI output             | `deeplineagent`                       |
+
+**No cell data in the extract?** Some extracts carry config only (no
+`exampleRecords` / `bulkFetchRecords`). You cannot run the 3-record check, so do
+not fake it: infer architecture from `typeSettings` (`actionKey`,
+`conditionalRunFormulaText`, `formulaWaterfall`) and label every architecture or
+parity claim **`config-inferred, unvalidated`**. Defer any conclusion that
+genuinely needs real cell values until you fetch records (§ `bulk-fetch-records`)
+or the user confirms.
 
 ---
 
