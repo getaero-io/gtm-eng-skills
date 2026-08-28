@@ -22,6 +22,16 @@ Run `deepline` commands bare — no pipes, redirection, `2>&1`, command chaining
 
 Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/INSTALL.md` to set up Deepline.
 
+Before the first Deepline fanout in a task, run `deepline preflight --json` as
+one standalone command and wait for it to finish. Never submit preflight beside
+another Deepline command. It combines health, authentication, and balance in
+one process and gives any automatic CLI update a serial boundary.
+
+After preflight succeeds, prefix every Deepline command that may run
+concurrently with `DEEPLINE_SKIP_SELF_UPDATE=1`. This environment prefix is the
+only exception to the bare-command rule above. Serial commands may stay bare;
+the opt-out is required for every member of a parallel batch.
+
 **Ask for requirements, not implementation instructions.** Requirements are the
 business outcome, target population, constraints, time horizon, requested
 destination, and any stated spend or authority boundary. The provider, tool,
@@ -137,13 +147,13 @@ If none match, grep for more specific keywords: `Grep pattern="<keyword>" path="
 
 For signal-driven discovery (investor, funding, hiring, headcount, industry, geo, tech stack, compliance), start with `deepline tools search`. Do not guess fields. Its syntax is `deepline tools search [query] [--categories <categories>] [--search_terms <terms>] [--json]`: provide a query, or at least one of `--categories` and `--search_terms`. The query is optional only for structured filtering. Use commas for multiple categories or search terms. There is no `--prefix` flag; include a provider name in the query when needed.
 
-Search 2-4 synonyms, execute in parallel:
+Search 2-4 synonyms, execute in parallel only after the standalone preflight:
 
 ```bash
-deepline tools search investor
-deepline tools search "crustdata investor"
-deepline tools search --categories company_search --search_terms "structured filters,icp"
-deepline tools search --categories people_search --search_terms "title filters,linkedin"
+DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search investor
+DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "crustdata investor"
+DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search --categories company_search --search_terms "structured filters,icp"
+DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search --categories people_search --search_terms "title filters,linkedin"
 ```
 
 ## 2.5) Plays are the surface

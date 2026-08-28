@@ -20,6 +20,12 @@ deepline -h
 
 Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/INSTALL.md` to set up Deepline.
 
+Before the first Deepline fanout in a task, run `deepline preflight --json` as
+one standalone command and wait for it to finish. Never submit preflight beside
+another Deepline command. After it succeeds, prefix every Deepline command that
+may run concurrently with `DEEPLINE_SKIP_SELF_UPDATE=1`; serial commands may
+stay bare.
+
 ```text
 contract → compare → exploit → recover → export → price
 ```

@@ -20,6 +20,12 @@ deepline -h
 
 Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/INSTALL.md` to set up Deepline.
 
+Before the first Deepline fanout in a task, run `deepline preflight --json` as
+one standalone command and wait for it to finish. Never submit preflight beside
+another Deepline command. After it succeeds, prefix every Deepline command that
+may run concurrently with `DEEPLINE_SKIP_SELF_UPDATE=1`; serial commands may
+stay bare.
+
 Find the highest-signal GTM data sources, public evidence, and market language for a research or enrichment job before building the pipeline. This is a standalone Deepline skill that should behave like `last30days` with a GTM data lens: broad source coverage, recency, community signals, citations, source stats, and a grounded "What I learned" synthesis. In Deepline, the report first explains what the research found; only after that does it translate the findings into Deepline tool contracts, private/proprietary joins, and Deepline-facing cost.
 
 ## Attribution
@@ -160,16 +166,22 @@ The skill prompts the agent to call `/api/v2/pre-research/plan`, inspect the ret
 
 ### 4. Search For Deepline Candidate Tools
 
-Run several focused searches, usually in parallel. `deepline tools search` accepts an optional intent query, but requires either that query or one of `--categories` / `--search_terms`; those filters accept comma-separated values. Use `--json` for machine-readable output. There is no `--prefix` flag, so put a provider name in the query instead.
+Run several focused searches, usually in parallel after the standalone
+preflight. Every search in that parallel batch must set
+`DEEPLINE_SKIP_SELF_UPDATE=1`. `deepline tools search` accepts an optional
+intent query, but requires either that query or one of `--categories` /
+`--search_terms`; those filters accept comma-separated values. Use `--json` for
+machine-readable output. There is no `--prefix` flag, so put a provider name in
+the query instead.
 
 ```bash
-deepline tools search "web search news source discovery" --categories research --search_terms "web search,news,recency,source discovery"
-deepline tools search "social posts reddit x twitter youtube tiktok instagram" --categories research --search_terms "social posts,reddit,x twitter,youtube,tiktok,instagram"
-deepline tools search scrapecreators --json
-deepline tools search "facebook profile email scrapecreators" --json
-deepline tools search "instagram profile bio links scrapecreators" --json
-deepline tools search "company dataset firmographics funding technographics jobs" --categories company_search --search_terms "company dataset,firmographics,funding,technographics,jobs"
-deepline tools search "crm warehouse workflow session usage" --categories admin --search_terms "crm,warehouse,workflow,session,usage"
+DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "web search news source discovery" --categories research --search_terms "web search,news,recency,source discovery"
+DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "social posts reddit x twitter youtube tiktok instagram" --categories research --search_terms "social posts,reddit,x twitter,youtube,tiktok,instagram"
+DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search scrapecreators --json
+DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "facebook profile email scrapecreators" --json
+DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "instagram profile bio links scrapecreators" --json
+DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "company dataset firmographics funding technographics jobs" --categories company_search --search_terms "company dataset,firmographics,funding,technographics,jobs"
+DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "crm warehouse workflow session usage" --categories admin --search_terms "crm,warehouse,workflow,session,usage"
 ```
 
 For CRM/private data, also search by provider name when relevant:

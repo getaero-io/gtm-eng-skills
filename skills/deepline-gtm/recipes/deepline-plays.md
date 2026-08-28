@@ -21,7 +21,7 @@ Read budget: normal tasks should use this recipe plus at most one plays referenc
 
 ## Core Loop
 
-1. **Preflight:** check auth/health/balance when spend or cloud execution is likely.
+1. **Preflight:** when spend or cloud execution is likely, run `deepline preflight --json` as one standalone command and wait for it before launching any parallel Deepline commands.
 2. **Describe before spend:** for plays, `plays search` -> `plays describe`; for tools, `tools search` -> `tools describe`.
 3. **Choose direct vs compose:** direct-run only when the described contract exactly matches input, output, export, freshness, and pricing. Otherwise bootstrap, wrap, or author a custom play.
 4. **Check before run:** `plays describe` gates prebuilts; `plays check <file>` is mandatory for local, bootstrapped, or forked plays.
