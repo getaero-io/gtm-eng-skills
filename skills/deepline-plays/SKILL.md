@@ -69,6 +69,10 @@ Two lookups, consulted on a trigger rather than read up front:
 `shared/authoring.md` for Play syntax outside the scaffold, and
 `references/debugging.md` for a failed, empty, or misshapen run.
 
+For every public `definePlay`/`ctx.*` type, binding, durable-cache rule, and
+runtime error, read `references/sdk-reference.md`. It is generated from the
+authoring contract and SDK source; do not duplicate that surface in this skill.
+
 **If your configuration forbids subagents, say so before starting serial work.**
 Resolving that conflict silently cost one run ~30 minutes.
 

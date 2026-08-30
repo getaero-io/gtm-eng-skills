@@ -16,7 +16,7 @@ Use `Deepline.connect()` and `DeeplineClient` from regular Node/TypeScript servi
 | Play authoring | `definePlay(...)` / `ctx.*` | Code should run durably inside Deepline with persisted steps, datasets, tools, and child plays. |
 | Tool/provider calls | `ctx.tools.execute(...)`, `deepline.tools.execute(...)`, `client.executeTool(...)` | You need provider-backed enrichment/search with Deepline auth, billing, extraction metadata, and retries. |
 | Remote plays/runs | `ctx.play(name)`, `ctx.runPlay(...)`, `PlayJob`, `client.runs` | You need to run, poll, stream, stop, export, publish, or inspect plays. |
-| Raw HTTP | `references/plays-api-reference.md` | A backend, notebook, scheduler, or non-TypeScript caller invokes Deepline over REST. |
+| Raw HTTP | `references/api-reference.md` | A backend, notebook, scheduler, or non-TypeScript caller invokes Deepline over REST. |
 
 ## Detail Policy
 
@@ -26,7 +26,7 @@ Use `Deepline.connect()` and `DeeplineClient` from regular Node/TypeScript servi
 | Classes | One member table with purpose, parameters, and returns. |
 | Interfaces and object types | Field tables; no duplicate declaration dump. |
 | Fieldless aliases or overloads | Compact signature line plus parameter/return tables. |
-| Full HTTP routes | Generated in `references/plays-api-reference.md`. |
+| Full HTTP routes | Generated in `references/api-reference.md`. |
 
 ## Tested Examples
 
@@ -357,7 +357,7 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 | Deprecated below | `0.3.1` |
 | Generated sources | `packages/plays/authoring-contract.ts`<br />`packages/plays/cell-staleness.ts`<br />`packages/plays/dataset.ts`<br />`packages/plays/tool-execution-error.ts`<br />`packages/plays/tool-result-types.ts`<br />`packages/sdk/src/client.ts`<br />`packages/sdk/src/errors.ts`<br />`packages/sdk/src/play.ts` |
 | Coverage | Runtime SDK surface: `Deepline.connect`, `DeeplineContext`, `DeeplineClient`, play authoring, in-play `ctx.*` primitives, provider/tool calls, named play handles, run handles, datasets, and tool result accessors. |
-| Not covered | Full CLI command help, provider-specific input/output schemas, dashboard-only routes, and marketing/tutorial guides. Use `references/plays-api-reference.md` for generated HTTP route contracts. |
+| Not covered | Full CLI command help, provider-specific input/output schemas, dashboard-only routes, and marketing/tutorial guides. Use `references/api-reference.md` for generated HTTP route contracts. |
 
 ## Runtime Entrypoints
 
