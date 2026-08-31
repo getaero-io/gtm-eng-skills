@@ -376,8 +376,7 @@ Signature: `class Deepline`
 
 High-level SDK context with tool shortcuts and play handles.
 
-Created by `Deepline.connect`. Wraps a `DeeplineClient` with
-a friendlier API for common operations.
+Created by `Deepline.connect`. Wraps a `DeeplineClient` with a friendlier API for common operations.
 
 Signature: `class DeeplineContext`
 #### Members
@@ -397,12 +396,7 @@ Signature: `class DeeplineContext`
 
 Define a play — a composable TypeScript workflow for the Deepline platform.
 
-The returned value is both:
-1. **A callable function** — invoked by the Temporal worker with a runtime context
-2. **A named play handle** — with `.run()`, `.versions()`, `.get()`, `.publish()`, etc. for remote lifecycle management
-
-Plays are the primary abstraction for building repeatable data pipelines.
-They run on Temporal for durable execution with automatic retries and timeouts.
+The returned value is both a callable function, invoked by the Deepline runtime with a runtime context, and a named play handle carrying `.run()`, `.versions()`, `.get()` and `.publish()` for remote lifecycle management. Plays are the primary abstraction for repeatable data pipelines and execute durably, with automatic retries and timeouts.
 
 Signature: `export function definePlay<TInput, TOutput extends PlayReturnObject>( config: DefinePlayConfig<TInput, TOutput>, ): DefinedPlay<TInput, TOutput>; export function definePlay<TInput, TOutput extends PlayReturnObject>( name: string, fn: (ctx: DeeplinePlayRuntimeContext, input: TInput) => Promise<TOutput>, bindings?: PlayBindings, ): DefinedPlay<TInput, TOutput>;`
 #### Overload 1
@@ -1405,3 +1399,4 @@ delete/reactivate through this namespace.
 | `update` | `( key: string, patch: Record<string, unknown>, ) => Promise<MonitorUpdateResult>` | Yes | Update a deployed monitor by public key. |
 | `delete` | `( key: string, options?: { dryRun?: boolean }, ) => Promise<MonitorDeleteResult>` | Yes | Delete a deployed monitor and its upstream provider resource. `dryRun` returns the delete plan. |
 | `reactivate` | `( key: string, options?: { dryRun?: boolean }, ) => Promise<MonitorReactivateResult>` | Yes | Reactivate a disabled monitor. `dryRun` returns the reactivation cost. |
+| `fleets` | `MonitorFleetsNamespace` | Yes | Define, reconcile, and control table-backed monitor fleets. |

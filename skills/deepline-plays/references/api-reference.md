@@ -286,6 +286,11 @@ while True:
 | `POST` | `/api/v2/monitors/deployed/:key/reactivate` | `monitors reactivate` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/reactivate/route.ts` |
 | `POST` | `/api/v2/monitors/deployed/:key/test` | `monitors test` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/test/route.ts` |
 | `POST` | `/api/v2/monitors/deployed/:key/validate` | `monitors validate` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/validate/route.ts` |
+| `GET` | `/api/v2/monitors/fleets` | `monitors fleets get (no id)` | SDK-facing route. | `src/app/api/v2/monitors/fleets/route.ts` |
+| `DELETE` | `/api/v2/monitors/fleets/:fleetId` | `monitors fleets deactivate` | SDK-facing route. | `src/app/api/v2/monitors/fleets/[fleetId]/route.ts` |
+| `GET` | `/api/v2/monitors/fleets/:fleetId` | `monitors fleets get` | SDK-facing route. | `src/app/api/v2/monitors/fleets/[fleetId]/route.ts` |
+| `PUT` | `/api/v2/monitors/fleets/:fleetId` | `monitors fleets sync` | SDK-facing route. | `src/app/api/v2/monitors/fleets/[fleetId]/route.ts` |
+| `POST` | `/api/v2/monitors/fleets/check` | `retained fleet definition check for installed clients (no CLI command)` | SDK-facing route. | `src/app/api/v2/monitors/fleets/check/route.ts` |
 | `POST` | `/api/v2/monitors/setup` | `monitors deploy (provider-specific post-deploy readback)` | SDK-facing route. | `src/app/api/v2/monitors/setup/[tool]/route.ts` |
 | `GET` | `/api/v2/monitors/tools` | `monitors available` | SDK-facing route. | `src/app/api/v2/monitors/tools/route.ts` |
 | `GET` | `/api/v2/notifications` | `getNotifications` | SDK-facing route. | `src/app/api/v2/notifications/route.ts` |
@@ -324,6 +329,7 @@ These entries come from the compatible SDK/API change ledger and explain additiv
 
 | Change | Reason |
 |---|---|
+| `2026-08-monitor-fleets-beta` | Adds the Monitor Fleets beta as an additive SDK/API/CLI namespace: canonical tagged-JSON fleet authoring helpers, client.monitors.fleets methods, the `deepline monitors fleets` CLI surface, and authenticated /api/v2/monitors/fleets route... |
 | `2026-08-play-catalog-metadata` | Adds POST /api/v2/plays/:name/pin plus the setPlayPinned SDK method and plays pin\|unpin CLI commands, and exposes derived canonical tool categories on Play catalog reads with an optional categories filter. These are additive catalog capa... |
 | `2026-08-play-run-input-replay` | Adds authenticated GET /api/v2/runs/:runId/input and POST /api/v2/runs/:runId/rerun routes, plus runs.input/getRunInput/runs.rerun/rerun SDK methods and deepline runs get --input / deepline runs rerun commands. These are additive capabil... |
 | `2026-07-sdk-enrich-compiler-source-imports` | Resolves shared enrich-plan compiler imports through TypeScript source paths so server-side MCP callers can reuse the same compiler without relying on built JavaScript artifacts. This is an internal build-resolution change: installed CLI... |
@@ -331,7 +337,6 @@ These entries come from the compatible SDK/API change ledger and explain additiv
 | `2026-07-agent-led-cli-onboarding` | Adds setup, skills, and doctor CLI commands, folder-scoped browser-auth persistence, npm-based installation guidance, and scoped update and verification behavior while retiring the separate mutable SDK shell-installer route. This is comp... |
 | `2026-07-play-cost-estimates` | Adds an opt-in include_cost_estimates query parameter and optional costEstimate response field to GET /api/v2/plays, and adds the same optional field to GET /api/v2/plays/:name/live. This is additive and backward compatible: route paths,... |
 | `2026-07-sdk-enrich-direct-tool-runtime-context` | Makes newly published deepline enrich generated plays type their legacy direct-tool helper against the existing DeeplinePlayRuntimeContext tools capability instead of an incompatible hand-written execute signature. This is a compatible l... |
-| `2026-07-sdk-enrich-no-ambient-pick` | Makes newly published deepline enrich generated plays pass the existing DeeplinePlayRuntimeContext directly to their direct-tool helper instead of relying on TypeScript's ambient Pick utility type. This is a compatible local generated-so... |
 
 ## Public Types
 
