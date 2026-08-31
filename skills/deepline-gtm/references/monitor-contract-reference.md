@@ -1,4 +1,4 @@
-<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 255604025f5cdf05bff836d3f9e275992763eea82d5bdc00e8ac0fb8226b72e1; run bun run docs:monitor-contract -->
+<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 43ff933fae7fb4592d326a196de742afe357b84454977166a0ee5cc9c073b24e; run bun run docs:monitor-contract -->
 
 # Monitor Contract Reference
 
@@ -7,7 +7,7 @@ This factual reference is generated from the same monitor capability contracts u
 ## Shared lifecycle
 
 - monitors check validates a definition locally and does not deploy, spend credits, or prove a future event will arrive.
-- monitors deploy is a full desired definition. Use deploy --dry-run to inspect replacement and Deepline-credit effects; use monitors update for a patch.
+- monitors deploy is a full desired definition. Use deploy --dry-run to inspect provider and Deepline-credit effects; use monitors update for a patch.
 - monitors get returns the stored deployed definition plus monitor_spec, whose fields list the deployable payload paths, descriptions, constraints, and provider-specific semantics for that monitor type.
 
 ## Shared errors
