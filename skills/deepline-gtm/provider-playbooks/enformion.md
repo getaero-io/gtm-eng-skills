@@ -3,6 +3,9 @@
 Consumer skip-trace API (Galaxy) for finding an individual's **personal contact info** — personal emails and mobile phones — from name + city/state.
 
 Tool quick-pick:
+- **Reverse phone lookup** → `enformion_reverse_phone_search` (ReversePhone; returns everyone associated with a number, including historical associations). Treat results as candidates, not proof of current ownership.
+- **LinkedIn profile lookup** → `enformion_linkedin_id` (LinkedinID; resolves a LinkedIn profile URL to a person record).
+- **Property/address lookup** → `enformion_property_v2_search` (PropertyV2; supports free-form, TahoeId, and structured address searches).
 - **Personal email** → `enformion_person_search` (Person database; returns `emailAddresses[]` flagged `nonBusiness:1`). Do NOT use `enformion_workplace_search` for personal email — it returns other-employer work emails.
 - **Personal mobile (phone-first)** → `enformion_contact_enrich` (skip-trace, ~53% mobile hit rate).
 - **Officers of a business** → `enformion_business_search` → officer `tahoeId` → `enformion_person_search` by tahoeId.
@@ -82,6 +85,17 @@ Requires two custom headers set from stored credentials:
 Set via Deepline dashboard → Integrations → EnformionGO, or via `ENFORMION_KEY_NAME` + `ENFORMION_KEY_PASSWORD` environment variables.
 
 API endpoint: `https://devapi.enformion.com/Contact/Enrich`
+
+## enformion_reverse_phone_search
+
+API endpoint: `https://devapi.enformion.com/ReversePhoneSearch` (`galaxy-search-type: ReversePhone`).
+Pass `phone`; optional pagination is supported. Reverse Phone returns all people associated with
+the number, which can include old owners, employees, or prior residents.
+
+## enformion_property_v2_search
+
+API endpoint: `https://devapi.enformion.com/PropertyV2Search` (`galaxy-search-type: PropertyV2`).
+Use `free_form_search`, `tahoe_id`, or structured address fields.
 
 ---
 
