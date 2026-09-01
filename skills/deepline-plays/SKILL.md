@@ -20,6 +20,8 @@ deepline -h
 
 Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/INSTALL.md` to set up Deepline.
 
+**Debug every Play run:** use `deepline plays run <file.play.ts> --input '<json>' --debug` while iterating, or `deepline runs logs <run-id> --debug` for an existing run. `completed` means the runtime finished, not that an external destination accepted the result; the debug logs retain caught non-2xx `ctx.fetch` responses with their key, method, destination origin, and HTTP status.
+
 Before the first Deepline fanout in a task, run `deepline preflight --json` as
 one standalone command and wait for it to finish. Never submit preflight beside
 another Deepline command. After it succeeds, prefix every Deepline command that
