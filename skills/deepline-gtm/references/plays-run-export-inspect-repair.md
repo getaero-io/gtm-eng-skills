@@ -10,7 +10,7 @@ Do not rerun to answer a billing/debug question until the existing run is inspec
 deepline plays run prebuilt/<name> --input '{...}' --watch
 deepline plays run workflow.play.ts --input '{...}' --watch
 deepline runs get <run-id> --full --json
-deepline runs logs <run-id>
+deepline runs logs <run-id> --out run.log --json
 deepline runs export <run-id> --dataset result.rows --out rows.csv
 deepline billing usage --limit 10
 ```
@@ -23,7 +23,7 @@ Pilot before scale:
 - 5-10 rows for hard company/contact routes.
 - Confirm required export columns are present.
 - Confirm representative non-null values or explicit `miss_reason`.
-- Estimate paid calls: source rows * people/account * fallback legs.
+- Estimate paid calls: `source rows * people/account * fallback legs`.
 - Prefer billing modes that charge on hits/results over attempts where coverage is uncertain.
 
 Scale only when row progress, coverage, errors, and fanout are understood. If cost is unknown or beyond pilot, explain and ask before scaling.

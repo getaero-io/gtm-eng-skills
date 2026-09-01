@@ -32,6 +32,16 @@ concurrently with `DEEPLINE_SKIP_SELF_UPDATE=1`. This environment prefix is the
 only exception to the bare-command rule above. Serial commands may stay bare;
 the opt-out is required for every member of a parallel batch.
 
+**Debug every Play run first.** Start a new run with
+`deepline plays run <play> --input '<json>' --debug`; for an existing run save
+the complete retained stream with `deepline runs logs <run-id> --out run.log --json`, then use
+`deepline runs get <run-id> --full --json`. This preserves the durable trail
+instead of spending on a duplicate run. A caught non-2xx `ctx.fetch` records a
+customer-safe diagnostic with its call key, method, destination origin, and
+HTTP status. Generic HTTP is a separate provider surface: inspect the full run
+package before treating its provider-level error status as the upstream HTTP
+status or its error body as a safe customer-facing explanation.
+
 **Ask for requirements, not implementation instructions.** Requirements are the
 business outcome, target population, constraints, time horizon, requested
 destination, and any stated spend or authority boundary. The provider, tool,
