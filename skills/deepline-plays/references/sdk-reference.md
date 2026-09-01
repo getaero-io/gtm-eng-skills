@@ -8,6 +8,7 @@ Use `Deepline.connect()` and `DeeplineClient` from regular Node/TypeScript servi
 
 ## Reference Map
 
+<!-- prettier-ignore -->
 | Area | Primary surface | Use when |
 |---|---|---|
 | Runtime entrypoint | `Deepline.connect()` / `DeeplineContext` | A script or service needs to call tools, run plays, or inspect runs. |
@@ -18,6 +19,7 @@ Use `Deepline.connect()` and `DeeplineClient` from regular Node/TypeScript servi
 
 ## Detail Policy
 
+<!-- prettier-ignore -->
 | Material | Rendered as |
 |---|---|
 | Tested examples | Full runnable code blocks. |
@@ -155,18 +157,16 @@ export default definePlay(
   async (ctx, input: { accounts: Account[]; refreshExisting?: boolean }) => {
     const rows = await ctx
       .dataset('account_refresh', input.accounts)
-      .withColumn(
-        'company_signal',
-        (account, rowCtx) =>
-          rowCtx.tools.execute({
-            id: 'company_signal',
-            tool: 'test_rate_limit',
-            input: {
-              key: account.domain,
-            },
-            description: 'Refresh one account signal for the owner.',
-            staleAfterSeconds: 86_400,
-          }),
+      .withColumn('company_signal', (account, rowCtx) =>
+        rowCtx.tools.execute({
+          id: 'company_signal',
+          tool: 'test_rate_limit',
+          input: {
+            key: account.domain,
+          },
+          description: 'Refresh one account signal for the owner.',
+          staleAfterSeconds: 86_400,
+        }),
       )
       .run({
         key: 'domain',
@@ -234,11 +234,11 @@ export default definePlay(
 );
 ```
 
-
 ## Play Authoring Contract
 
 New artifacts pin authoring contract edition 6. Check, publish, and run use the same admitted snapshot.
 
+<!-- prettier-ignore -->
 | Field | Type | Required | Contract |
 |---|---|---:|---|
 | `description` | `string` | No | Optional non-empty human-readable summary of the Play. |
@@ -337,6 +337,7 @@ Use it when deriving an external idempotency key for a sequence of batches.
 
 ### Runtime capabilities
 
+<!-- prettier-ignore -->
 | Capability | Surface | Contract |
 |---|---|---|
 | Durable external I/O | `ctx.fetch`, `ctx.tools.execute`, `ctx.step`, `ctx.runPlay` | Use a `ctx.*` primitive for external work. Each primitive owns durable receipt identity and replay; raw I/O in an authored handler does not. |
@@ -348,6 +349,7 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 ## Version And Coverage
 
+<!-- prettier-ignore -->
 | Field | Value |
 |---|---|
 | SDK version | `0.3.0` |
@@ -366,8 +368,10 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 Static entry point for the Deepline SDK.
 
 Signature: `class Deepline`
+
 #### Members
 
+<!-- prettier-ignore -->
 | Member | Kind | Purpose | Parameters | Returns / type |
 |---|---|---|---|---|
 | `connect` | method | Create a connected SDK context.<br /><br />Resolves configuration from options, environment variables, and CLI config<br />files. See `resolveConfig` for the resolution order. | `options?: DeeplineClientOptions` - Optional overrides for API key, base URL, etc. | `Promise<DeeplineContext>` |
@@ -379,8 +383,10 @@ High-level SDK context with tool shortcuts and play handles.
 Created by `Deepline.connect`. Wraps a `DeeplineClient` with a friendlier API for common operations.
 
 Signature: `class DeeplineContext`
+
 #### Members
 
+<!-- prettier-ignore -->
 | Member | Kind | Purpose | Parameters | Returns / type |
 |---|---|---|---|---|
 | `constructor` | constructor | Create a high-level SDK context.<br /><br />Most callers should use `Deepline.connect`; direct construction is<br />equivalent when you already have explicit client options. | `options?: DeeplineClientOptions` - Optional SDK client configuration. |  |
@@ -399,10 +405,12 @@ Define a play — a composable TypeScript workflow for the Deepline platform.
 The returned value is both a callable function, invoked by the Deepline runtime with a runtime context, and a named play handle carrying `.run()`, `.versions()`, `.get()` and `.publish()` for remote lifecycle management. Plays are the primary abstraction for repeatable data pipelines and execute durably, with automatic retries and timeouts.
 
 Signature: `export function definePlay<TInput, TOutput extends PlayReturnObject>( config: DefinePlayConfig<TInput, TOutput>, ): DefinedPlay<TInput, TOutput>; export function definePlay< THandler extends ( context: DeeplinePlayRuntimeContext, input: any, ) => Promise<PlayReturnObject>, >( name: string, fn: THandler, bindings?: PlayBindings<NoInfer<PlayHandlerInput<THandler>>>, ): DefinedPlay<PlayHandlerInput<THandler>, PlayHandlerOutput<THandler>>;`
+
 #### Overload 1
 
 #### Parameters
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `config` | `DefinePlayConfig<TInput, TOutput>` | Yes | Object-form play config. |
@@ -411,11 +419,11 @@ Signature: `export function definePlay<TInput, TOutput extends PlayReturnObject>
 
 `DefinedPlay<TInput, TOutput>`
 
-
 #### Overload 2
 
 #### Parameters
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `name` | `string` | Yes | Play name. |
@@ -425,7 +433,6 @@ Signature: `export function definePlay<TInput, TOutput extends PlayReturnObject>
 #### Returns
 
 `DefinedPlay<PlayHandlerInput<THandler>, PlayHandlerOutput<THandler>>`
-
 
 ### `DefinePlayConfig`
 
@@ -438,13 +445,13 @@ simple file-backed plays.
 
 Signature: `export type DefinePlayConfig< TInput, TOutput extends PlayReturnObject, > = PlayAuthoringDefineConfig<TInput, TOutput, DeeplinePlayRuntimeContext>;`
 
-
 ### `PlayBindings`
 
 Optional Play configuration, including triggers and runtime limits.
 
 A play can be triggered three ways, declared as the third argument to
 [definePlay](/sdk-v2/sdk-reference#defineplay):
+
 - `webhook` — an inbound HTTP call (with optional legacy HMAC or Standard
   Webhooks signature verification);
 - `cron` — a schedule; or
@@ -461,14 +468,15 @@ It differs from `ctx.tools.execute({ timeoutMs })`, which limits one provider ca
 
 Signature: `export type PlayBindings<TInput = Record<string, unknown>> = PlayAuthoringBindings<TInput>;`
 
-
 ### `ctx.csv(path, options)`
 
 Load a staged CSV file as a durable dataset handle.
 
 Signature: `csv<T = Record<string, unknown>>( path: string | CsvInput<T & object>, options?: CsvOptions, ): Promise<PlayDataset<T>>;`
+
 #### Parameters
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `path` | `string \| CsvInput<T & object>` | Yes |  |
@@ -478,21 +486,21 @@ Signature: `csv<T = Record<string, unknown>>( path: string | CsvInput<T & object
 
 `Promise<PlayDataset<T>>` — see [`PlayDataset`](#playdataset)
 
-
 ### `CsvOptions`
 
 Options for loading a staged CSV with `ctx.csv(...)`.
 
 Signature: `export type CsvOptions = CsvOptions;`
 
-
 ### `ctx.dataset(key, items)`
 
 Create a persisted row dataset and define durable output columns.
 
 Signature: `dataset<TSource extends PlayDatasetInput<object>>( key: string, items: TSource, ): DatasetBuilder< PlayDatasetRow<TSource> & object, PlayDatasetRow<TSource> & object, PlayAuthoringRuntimeContext >;`
+
 #### Parameters
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `key` | `string` | Yes |  |
@@ -501,7 +509,6 @@ Signature: `dataset<TSource extends PlayDatasetInput<object>>( key: string, item
 #### Returns
 
 `DatasetBuilder< PlayDatasetRow<TSource> & object, PlayDatasetRow<TSource> & object, PlayAuthoringRuntimeContext >`
-
 
 ### `.dataset(...).withColumn(name, resolver).run(options)`
 
@@ -521,6 +528,7 @@ run( options?: DatasetRunOptions<InputRow>, ): Promise<PlayDataset<OutputRow>>;
 
 #### Column Overload 1 Parameters
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `name` | `Name` | Yes |  |
@@ -532,6 +540,7 @@ run( options?: DatasetRunOptions<InputRow>, ): Promise<PlayDataset<OutputRow>>;
 
 #### Column Overload 2 Parameters
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `name` | `Name` | Yes |  |
@@ -543,6 +552,7 @@ run( options?: DatasetRunOptions<InputRow>, ): Promise<PlayDataset<OutputRow>>;
 
 #### Column Overload 3 Parameters
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `name` | `Name` | Yes |  |
@@ -554,6 +564,7 @@ run( options?: DatasetRunOptions<InputRow>, ): Promise<PlayDataset<OutputRow>>;
 
 #### Column Overload 4 Parameters
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `name` | `Name` | Yes |  |
@@ -566,6 +577,7 @@ run( options?: DatasetRunOptions<InputRow>, ): Promise<PlayDataset<OutputRow>>;
 
 #### Run Parameters
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `options` | `DatasetRunOptions<InputRow>` | No |  |
@@ -585,13 +597,13 @@ Input object passed to an object-column `run` resolver.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `row` | `Row` | Yes | Current row, including previously computed columns. |
 | `ctx` | `DeeplinePlayRuntimeContext` | Yes | Runtime context for tool, Play, fetch, and log calls. |
 | `index` | `number` | Yes | Zero-based row index for this dataset run. |
 | `previousCell` | `PreviousCell<Value>` | No | Prior stored cell value and freshness metadata when this cell reruns. |
-
 
 ### `DatasetColumnDefinition`
 
@@ -601,11 +613,11 @@ Use this when a column needs `runIf` or typed `previousCell`.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `run` | `( input: DatasetColumnRunInput<Row, Value>, ) => Value \| Promise<Value>` | Yes | Compute one cell value. Receives the previous stored value when rerunning. |
 | `runIf` | `(row: Row, index: number) => boolean \| Promise<boolean>` | No | Optional row-level gate. Skipped rows produce `null` for this column. |
-
 
 ### `StepOptions`
 
@@ -613,13 +625,13 @@ Options for row-level `.withColumn(...)` and `steps().step(...)` entries.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `runIf` | `(row: Row, index: number) => boolean \| Promise<boolean>` | No | Optional row-level gate. Skipped rows produce `null` for this column. |
 | `recompute` | `boolean` | No | Legacy dataset-column flag. Prefer freshness on the reusable call. |
 | `recomputeOnError` | `boolean` | No | Legacy error-recompute flag accepted for older authored Plays. |
 | `staleAfterSeconds` | `number` | No | Legacy cell staleness metadata accepted for older authored Plays. |
-
 
 ### `PreviousCell`
 
@@ -631,6 +643,7 @@ freshness metadata lives beside it.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `value` | `Value` | Yes | Previous completed value for this row+column. |
@@ -638,14 +651,15 @@ freshness metadata lives beside it.
 | `staleAt` | `number \| null` | No | Millisecond timestamp when the previous value becomes stale; `null` means no expiry. |
 | `staleAfterSeconds` | `number` | No | Resolved numeric TTL in seconds for the previous value, when present. |
 
-
 ### `ctx.step(id, fn)`
 
 Create one scalar durable checkpoint.
 
 Signature: `step<T>( id: string, run: () => T | Promise<T>, options?: RuntimeStepOptions, ): Promise<T>;`
+
 #### Parameters
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `id` | `string` | Yes |  |
@@ -656,14 +670,15 @@ Signature: `step<T>( id: string, run: () => T | Promise<T>, options?: RuntimeSte
 
 `Promise<T>`
 
-
 ### `ctx.runPlay(key, playRef, input, options)`
 
 Compose another Play inline under a stable call key.
 
 Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayReferenceLike, input: Record<string, unknown>, options: PlayCallOptions, ): Promise<TOutput>;`
+
 #### Parameters
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `key` | `string` | Yes |  |
@@ -675,14 +690,15 @@ Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayRefer
 
 `Promise<TOutput>`
 
-
 ### `ctx.tools.execute(request)`
 
 Execute a provider tool through the durable receipt contract.
 
 Signature: `execute<TOutput = PlayLooseObject>( request: PlayToolExecutionRequest, ): Promise<ToolExecuteResult<TOutput>>;`
+
 #### Parameters
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `request` | `PlayToolExecutionRequest` | Yes |  |
@@ -690,7 +706,6 @@ Signature: `execute<TOutput = PlayLooseObject>( request: PlayToolExecutionReques
 #### Returns
 
 `Promise<ToolExecuteResult<TOutput>>` — see [`ToolExecuteResult`](#toolexecuteresult)
-
 
 ### `ToolExecutionRequest`
 
@@ -703,14 +718,15 @@ version, and cache policy.
 
 Signature: `export type ToolExecutionRequest = PlayToolExecutionRequest;`
 
-
 ### `ctx.fetch(key, url, init)`
 
 Execute a guarded HTTP request. By default it is durable and replay-safe; `staleAfterSeconds` governs only that completed call receipt, never dataset/request identity. Pass `{ transient: true }` for short-lived credential exchanges or other response data that must not be retained in a receipt or checkpoint. Edition 5+ throws `CtxFetchHttpError` for non-2xx; catch it only when the Play intentionally recovers, otherwise let it fail the Play. Editions 1–4 retain their previous response projections.
 
 Signature: `fetch( key: string, url: string | URL, init?: SecretAwareRequestInit, options?: FetchOptions, ): Promise<PlayFetchResponse>;`
+
 #### Parameters
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `key` | `string` | Yes |  |
@@ -722,14 +738,15 @@ Signature: `fetch( key: string, url: string | URL, init?: SecretAwareRequestInit
 
 `Promise<PlayFetchResponse>` — see [`PlayFetchResponse`](#playfetchresponse)
 
-
 ### `ctx.secrets.get(name)`
 
 Read an allowed workspace secret inside the running Play; do not log or return it. Declare uppercase names in top-level `secrets`.
 
 Signature: `get(name: string): PlaySecretPromise;`
+
 #### Parameters
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `name` | `string` | Yes |  |
@@ -738,7 +755,6 @@ Signature: `get(name: string): PlaySecretPromise;`
 
 `PlaySecretPromise`
 
-
 ### `ctx.secrets.bearer(secret)`
 
 Send a credential as `Authorization: Bearer <value>`. Await `get` first;
@@ -746,8 +762,10 @@ its direct promise remains accepted for source compatibility, while other
 promises are rejected.
 
 Signature: `bearer( secret: string | PlaySecretPromise | SecretHandle, ): SecretAuth;`
+
 #### Parameters
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `secret` | `string \| PlaySecretPromise \| SecretHandle` | Yes |  |
@@ -756,15 +774,16 @@ Signature: `bearer( secret: string | PlaySecretPromise | SecretHandle, ): Secret
 
 `SecretAuth` — see [`SecretAuth`](#secretauth)
 
-
 ### `ctx.secrets.header(header, secret)`
 
 Send a credential as a named header, for APIs that do not use bearer
 tokens — `x-api-key`, `apikey`, `private-token`, and similar.
 
 Signature: `header( header: string, secret: string | PlaySecretPromise | SecretHandle, ): SecretAuth;`
+
 #### Parameters
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `header` | `string` | Yes |  |
@@ -774,18 +793,17 @@ Signature: `header( header: string, secret: string | PlaySecretPromise | SecretH
 
 `SecretAuth` — see [`SecretAuth`](#secretauth)
 
-
 ### `SecretAwareRequestInit`
 
 The `init` accepted by `ctx.fetch`. Same shape as `RequestInit` plus `auth`.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `headers` | `HeadersInit` | No | Ordinary request headers, recorded in the durable receipt with any resolved Play secret value redacted. Prefer `auth` for credentials: it enforces HTTPS and keeps the auth header out of the receipt. |
 | `auth` | `SecretAuthInput` | No | One or more credentialed headers for this request. Pass a single `ctx.secrets` auth for the common case, or an array when an API requires multiple credentialed headers. Auth-helper requests require HTTPS and omit the credential from the durable receipt. Each auth entry must target a distinct header. |
-
 
 ### `PlayFetchResponse`
 
@@ -793,6 +811,7 @@ A durable response record, not a WHATWG `Response`: read the already-materialize
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `ok` | `boolean` | Yes | True when the response status is in the 2xx range. |
@@ -803,7 +822,6 @@ A durable response record, not a WHATWG `Response`: read the already-materialize
 | `bodyText` | `string` | Yes | Full response body as text, with any known secret values redacted. |
 | `json` | `unknown \| null` | Yes | The parsed body, eagerly decoded at request time. Read it as a property — `const body = res.json`, never `await res.json()`. Null when the body is empty AND when it is not valid JSON: a malformed payload is reported as null rather than thrown, so check `res.ok` and fall back to `res.bodyText` before treating null as an empty result. |
 
-
 ### `SecretHandle`
 
 An opaque reference to a workspace secret used by legacy authoring-contract
@@ -811,10 +829,10 @@ editions. New Plays receive plaintext strings from `ctx.secrets.get`.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `name` | `string` | Yes | Name of the workspace secret, uppercased. Never its value. |
-
 
 ### `SecretAuth`
 
@@ -822,20 +840,22 @@ One resolved authentication scheme, built by `ctx.secrets.bearer` or `ctx.secret
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `kind` | `'bearer' \| 'header'` | Yes | `bearer` sends `Authorization: Bearer <value>`; `header` sends a named header. |
 | `secret` | `string \| PlaySecretPromise \| PlaySecretValue` | Yes | The value whose bytes the runtime attaches. |
 | `header` | `string` | No | Header name, set only when `kind` is `header`. |
 
-
 ### `CtxFetchHttpError`
 
 Edition 5+ `ctx.fetch` error for a non-2xx response. Its full readable body is secret-redacted; editions 1–4 retain `PlayFetchResponse { ok: false }`.
 
 Signature: `class CtxFetchHttpError extends Error`
+
 #### Members
 
+<!-- prettier-ignore -->
 | Member | Kind | Purpose | Parameters | Returns / type |
 |---|---|---|---|---|
 | `constructor` | constructor | Build the error from the durable response record. | `response: PlayAuthoringFetchResponse` |  |
@@ -852,8 +872,10 @@ Signature: `class CtxFetchHttpError extends Error`
 Execute one reusable step program against a scalar input.
 
 Signature: `runSteps<TInput extends Record<string, unknown>, TOutput>( program: PlayAuthoringRunnableStepProgram< TOutput, PlayAuthoringRuntimeContext > & { readonly __inputType?: (input: TInput) => void }, input: TInput, options?: PlayAuthoringRunStepsOptions, ): Promise<TOutput>;`
+
 #### Parameters
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `program` | `PlayAuthoringRunnableStepProgram< TOutput, PlayAuthoringRuntimeContext > & { readonly __inputType?: (input: TInput) => void }` | Yes |  |
@@ -863,7 +885,6 @@ Signature: `runSteps<TInput extends Record<string, unknown>, TOutput>( program: 
 #### Returns
 
 `Promise<TOutput>`
-
 
 ### `PlayDataset`
 
@@ -884,6 +905,7 @@ behavior depend on whether rows happen to be resident.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `datasetKind` | `PlayDatasetKind` | Yes | Dataset kind. |
@@ -891,7 +913,6 @@ behavior depend on whether rows happen to be resident.
 | `backing` | `PlayDatasetBacking` | No | Backing store info. |
 | `sourceLabel` | `string \| null` | No | Display label. |
 | `tableNamespace` | `string \| null` | No | Runtime table name. |
-
 
 ### `ToolExecuteResult`
 
@@ -911,7 +932,6 @@ previews.
 
 Signature: `export type ToolExecuteResult< TResult = unknown, TMeta = Record<string, unknown>, TExtracted extends Record<string, unknown> = Partial<DeeplineGetterValueMap>, TLists extends Record<string, Record<string, unknown>> = Record< string, Record<string, unknown> >, > = ToolExecuteResultBase<TResult, TMeta> & ToolExecuteResultAccessors<TExtracted, TLists>;`
 
-
 ## Errors And Provider Fallthrough
 
 New Plays receive typed tool errors. Existing published artifacts keep the error contract stored with their revision.
@@ -928,8 +948,10 @@ The global brand preserves `instanceof DeeplineError` when a bundled play
 and the runtime load separate physical copies of this module.
 
 Signature: `class DeeplineError extends Error`
+
 #### Members
 
+<!-- prettier-ignore -->
 | Member | Kind | Purpose | Parameters | Returns / type |
 |---|---|---|---|---|
 | `constructor` | constructor | Construct a Deepline error.<br /><br />SDK and runtime code construct these errors. Application and Play code<br />normally catches the public subclasses instead. | `message: string` - Human-readable failure summary.<br />`statusCode?: number` - HTTP status when one exists.<br />`code?: string` - Stable machine-readable code when one exists.<br />`details?: Record<string, unknown>` - Local diagnostic context; never a portable error contract. |  |
@@ -947,7 +969,6 @@ waterfall fallback.
 
 Signature: `export type ToolExecutionErrorOrigin = | 'caller' | 'provider' | 'deepline' | 'unknown';`
 
-
 ### `ToolExecutionErrorCategory`
 
 The stable reason family for a failed tool call.
@@ -958,7 +979,6 @@ provider”; it is the safer and shorter waterfall contract.
 
 Signature: `export type ToolExecutionErrorCategory = | 'validation' | 'authentication' | 'authorization' | 'rate_limit' | 'network' | 'upstream' | 'billing' | 'conflict' | 'internal' | 'unknown';`
 
-
 ### `ToolExecutionNetworkKind`
 
 The transport failure observed when `category` is `network`.
@@ -966,7 +986,6 @@ The transport failure observed when `category` is `network`.
 This is `null` for failures that are not network failures.
 
 Signature: `export type ToolExecutionNetworkKind = | 'timeout' | 'dns' | 'connect' | 'reset' | 'unavailable' | 'unknown';`
-
 
 ### `ToolExecutionNetworkScope`
 
@@ -977,14 +996,12 @@ Deepline transport failures and never qualify as provider fallthrough.
 
 Signature: `export type ToolExecutionNetworkScope = | 'client_to_deepline' | 'runtime_to_deepline' | 'deepline_to_provider';`
 
-
 ### `ProviderTransientErrorCategory`
 
 Provider-owned failure categories that may fall through to another read
 provider.
 
 Signature: `export type ProviderTransientErrorCategory = | 'rate_limit' | 'network' | 'upstream';`
-
 
 ### `ToolExecutionPublicDetails`
 
@@ -993,7 +1010,6 @@ Raw provider bodies, credentials, prompts, stacks, and causes never belong
 in this shared API/SDK/Play contract.
 
 Signature: `export type ToolExecutionPublicDetails = Readonly< Record<string, string | number | boolean | null> >;`
-
 
 ### `ToolExecutionFailureV1`
 
@@ -1005,6 +1021,7 @@ field.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `schemaVersion` | `typeof TOOL_EXECUTION_ERROR_SCHEMA_VERSION` | Yes | Payload version. |
@@ -1022,7 +1039,6 @@ field.
 | `networkScope` | `ToolExecutionNetworkScope \| null` | Yes | Network boundary that failed, or `null`. |
 | `publicDetails` | `ToolExecutionPublicDetails \| null` | No | Explicitly allowlisted customer diagnostics, when present. |
 
-
 ### `ToolExecutionErrorOptions`
 
 Constructor input for a structured tool failure.
@@ -1033,10 +1049,10 @@ constructing an error.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `details` | `Record<string, unknown>` | No | Local diagnostic context inherited from DeeplineError. This is not part of<br />the portable failure payload and is intentionally omitted by serialization. |
-
 
 ### `ToolExecutionError`
 
@@ -1051,8 +1067,10 @@ let every other `ToolExecutionError` remain loud. In an SDK client, catch
 this base class when you need structured diagnostics for every tool failure.
 
 Signature: `class ToolExecutionError extends DeeplineError`
+
 #### Members
 
+<!-- prettier-ignore -->
 | Member | Kind | Purpose | Parameters | Returns / type |
 |---|---|---|---|---|
 | `constructor` | constructor | Construct a structured tool error.<br /><br />Deepline constructs this from the versioned `tool_error` payload.<br />Application and Play code should catch it rather than create it. | `message: string`<br />`options: ToolExecutionErrorOptions` |  |
@@ -1079,8 +1097,10 @@ be repeated safely. Falling through to a different read provider depends on
 this class, not on `retryable`.
 
 Signature: `class ProviderTransientError extends ToolExecutionError`
+
 #### Members
 
+<!-- prettier-ignore -->
 | Member | Kind | Purpose | Parameters | Returns / type |
 |---|---|---|---|---|
 | `constructor` | constructor | Constructed by Deepline when a provider-owned transient failure arrives. | `message: string`<br />`options: Omit<ToolExecutionErrorOptions, 'origin' \| 'category'> & { category: ProviderTransientErrorCategory; }` |  |
@@ -1100,8 +1120,10 @@ Fix: run `deepline auth register` to obtain a valid key, or pass one via
 the `apiKey` option or `DEEPLINE_API_KEY` environment variable.
 
 Signature: `class AuthError extends DeeplineError`
+
 #### Members
 
+<!-- prettier-ignore -->
 | Member | Kind | Purpose | Parameters | Returns / type |
 |---|---|---|---|---|
 | `constructor` | constructor | Constructed by the SDK when Deepline rejects the caller's credentials. | `message?: string` |  |
@@ -1116,8 +1138,10 @@ with exponential backoff. This error is only thrown when all retries are exhaust
 Use `RateLimitError.retryAfterMs` to implement your own backoff if needed.
 
 Signature: `class RateLimitError extends DeeplineError`
+
 #### Members
 
+<!-- prettier-ignore -->
 | Member | Kind | Purpose | Parameters | Returns / type |
 |---|---|---|---|---|
 | `constructor` | constructor | Constructed by the SDK after exhausting HTTP-level rate-limit retries. | `retryAfterMs?: number`<br />`message?: string` |  |
@@ -1137,8 +1161,10 @@ Plays should use `ProviderTransientError`; they do not need this
 compatibility class.
 
 Signature: `class ToolRateLimitError extends RateLimitError`
+
 #### Members
 
+<!-- prettier-ignore -->
 | Member | Kind | Purpose | Parameters | Returns / type |
 |---|---|---|---|---|
 | `constructor` | constructor | Constructed by the SDK after a structured tool HTTP 429. | `message: string`<br />`options: ToolExecutionErrorOptions` |  |
@@ -1162,8 +1188,10 @@ Most commonly: no API key found in any of the resolution sources
 (explicit option, environment variable, CLI env files).
 
 Signature: `class ConfigError extends DeeplineError`
+
 #### Members
 
+<!-- prettier-ignore -->
 | Member | Kind | Purpose | Parameters | Returns / type |
 |---|---|---|---|---|
 | `constructor` | constructor | Construct a local SDK configuration failure. | `message: string` |  |
@@ -1180,7 +1208,6 @@ so provider calls become durable runtime checkpoints.
 
 Signature: `export type DeeplineToolsNamespace = { list(): Promise<ToolDefinition[]>; get(toolId: string): Promise<ToolMetadata>; execute( toolId: string, input: Record<string, unknown>, ): Promise<ToolExecuteResult>; };`
 
-
 ## Remote Plays And Runs
 
 ### `DeeplineContext.plays`
@@ -1188,7 +1215,6 @@ Signature: `export type DeeplineToolsNamespace = { list(): Promise<ToolDefinitio
 Named-play discovery and handle operations from a connected `DeeplineContext`.
 
 Signature: `export type DeeplinePlaysNamespace = { list(): Promise<PlayListItem[]>; get<TInput = Record<string, unknown>, TOutput = unknown>( name: string, ): DeeplineNamedPlay<TInput, TOutput>; };`
-
 
 ### `DeeplineNamedPlay`
 
@@ -1199,10 +1225,10 @@ Provides methods to run, inspect, list runs, and publish a play by name.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `name` | `string` | Yes | The play's name. |
-
 
 ### `PlayJob`
 
@@ -1219,10 +1245,10 @@ are intentionally separate from the returned output object.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `id` | `string` | Yes | Temporal workflow ID for this execution. |
-
 
 ## Low-Level Client
 
@@ -1234,8 +1260,10 @@ Provides typed methods for every API endpoint: tools, plays, auth, and health.
 Handles authentication, retries, and localhost failover automatically.
 
 Signature: `class DeeplineClient`
+
 #### Members
 
+<!-- prettier-ignore -->
 | Member | Kind | Purpose | Parameters | Returns / type |
 |---|---|---|---|---|
 | `constructor` | constructor | Create a low-level SDK client.<br /><br />Most callers can omit options and let the SDK resolve auth/config from<br />environment variables and CLI-managed credentials. | `options?: DeeplineClientOptions` - Optional overrides for API key, base URL, timeout, and retries. |  |
@@ -1337,6 +1365,7 @@ logs, and exporting durable dataset rows.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `get` | `(runId: string, options?: RunsGetOptions) => Promise<PlayStatus>` | Yes | Get current run status by public run id. |
@@ -1349,7 +1378,6 @@ logs, and exporting durable dataset rows.
 | `stop` | `( runId: string, options?: { reason?: string }, ) => Promise<StopPlayRunResult>` | Yes | Stop a running/waiting run. |
 | `stopAll` | `(options?: { reason?: string }) => Promise<StopAllPlayRunsResult>` | Yes | Stop active runs across the current workspace. |
 
-
 ### `client.billing`
 
 Public billing namespace exposed as `client.billing`.
@@ -1359,6 +1387,7 @@ so CLI commands and programmatic callers share one surface.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `topUp` | `(options: { credits: number; idempotencyKey?: string; }) => Promise<BillingTopUpResult>` | Yes | Charge the saved payment method and add Deepline credits to the active workspace. |
@@ -1372,7 +1401,6 @@ so CLI commands and programmatic callers share one surface.
 | `transitionPlan` | `( options: TargetBillingPlanTransitionOptions, ) => Promise<TargetBillingMutationResult>` | Yes | Start, change, cancel, or undo a target plan transition. |
 | `portalSession` | `() => Promise<{ url: string }>` | Yes | Create a Stripe-hosted billing Portal session. |
 
-
 ### `client.monitors`
 
 Public monitors namespace exposed as `client.monitors`.
@@ -1385,6 +1413,7 @@ delete/reactivate through this namespace.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `status` | `() => Promise<MonitorsAccessStatus>` | Yes | Whether the current workspace can use monitors (`{ has_access, reason }`). |

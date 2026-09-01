@@ -4,6 +4,7 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 
 ## Version And Coverage
 
+<!-- prettier-ignore -->
 | Field | Value |
 |---|---|
 | SDK version | `0.3.0` |
@@ -181,12 +182,14 @@ while True:
 
 ### Runtime Health
 
+<!-- prettier-ignore -->
 | Method | Path | SDK/client surface | Purpose | Source |
 |---|---|---|---|---|
 | `GET` | `/api/v2/health` | `health` | Check API availability and SDK target health. | `src/app/api/v2/health/route.ts` |
 
 ### Tool And Provider Calls
 
+<!-- prettier-ignore -->
 | Method | Path | SDK/client surface | Purpose | Source |
 |---|---|---|---|---|
 | `GET` | `/api/v2/integrations/:toolId` | `getTool` | Describe one provider-backed tool by integration id. | `src/app/api/v2/integrations/[toolId]/route.ts` |
@@ -201,12 +204,14 @@ while True:
 
 ### Customer Data
 
+<!-- prettier-ignore -->
 | Method | Path | SDK/client surface | Purpose | Source |
 |---|---|---|---|---|
 | `POST` | `/api/v2/db/query` | `db.query`<br />`queryCustomerDb` | Run a bounded query against the customer data plane. | `src/app/api/v2/db/query/route.ts` |
 
 ### Play Runs
 
+<!-- prettier-ignore -->
 | Method | Path | SDK/client surface | Purpose | Source |
 |---|---|---|---|---|
 | `GET` | `/api/v2/plays/:name/runs` | `listPlayRuns` | List recent runs for one play. | `src/app/api/v2/plays/[name]/runs/route.ts` |
@@ -223,6 +228,7 @@ while True:
 
 ### Play Definitions
 
+<!-- prettier-ignore -->
 | Method | Path | SDK/client surface | Purpose | Source |
 |---|---|---|---|---|
 | `GET` | `/api/v2/plays` | `listPlays`<br />`searchPlays` | List or search callable plays. | `src/app/api/v2/plays/route.ts` |
@@ -234,6 +240,7 @@ while True:
 
 ### Play Artifacts
 
+<!-- prettier-ignore -->
 | Method | Path | SDK/client surface | Purpose | Source |
 |---|---|---|---|---|
 | `POST` | `/api/v2/plays/artifacts` | `registerPlayArtifact` | Register a bundled play artifact for ad hoc runs. | `src/app/api/v2/plays/artifacts/route.ts` |
@@ -242,6 +249,7 @@ while True:
 
 ### Management And CLI
 
+<!-- prettier-ignore -->
 | Method | Path | SDK/client surface | Purpose | Source |
 |---|---|---|---|---|
 | `POST` | `/api/v2/auth/cli/org-create` | `org create` | SDK-facing route. | `src/app/api/v2/auth/cli/org-create/route.ts` |
@@ -322,11 +330,11 @@ while True:
 | `PATCH` | `/api/v2/settings/notifications/subscriptions` | `setNotificationSubscriptions` | SDK-facing route. | `src/app/api/v2/settings/notifications/subscriptions/route.ts` |
 | `POST` | `/api/v2/settings/notifications/test` | `testNotificationSlack` | SDK-facing route. | `src/app/api/v2/settings/notifications/test/route.ts` |
 
-
 ## Recent Compatible API Changes
 
 These entries come from the compatible SDK/API change ledger and explain additive changes that did not require an SDK API-contract bump. Each change lives in `src/lib/sdk/compatible-changes/` so concurrent PRs do not edit a shared ledger file.
 
+<!-- prettier-ignore -->
 | Change | Reason |
 |---|---|
 | `2026-08-monitor-fleets-beta` | Adds the Monitor Fleets beta as an additive SDK/API/CLI namespace: canonical tagged-JSON fleet authoring helpers, client.monitors.fleets methods, the `deepline monitors fleets` CLI surface, and authenticated /api/v2/monitors/fleets route... |
@@ -350,6 +358,7 @@ schema, examples, pricing, and extraction guidance before executing.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `toolId` | `string` | Yes | Unique tool identifier used in API calls (e.g. `"dropleads_search_people"`). |
@@ -378,13 +387,13 @@ schema, examples, pricing, and extraction guidance before executing.
 | `requiresOwnCredential` | `boolean` | No | True when the tool requires a customer-provided credential to run. |
 | `connectionMessage` | `string` | No | Actionable message shown when a connection is required. |
 
-
 ### `ToolSearchOptions`
 
 Query options for ranked tool/provider discovery.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `query` | `string` | No | Free-text search query. |
@@ -392,7 +401,6 @@ Query options for ranked tool/provider discovery.
 | `searchTerms` | `string` | No | Optional explicit search terms used by agent/CLI callers. |
 | `searchMode` | `'v1' \| 'v2'` | No | Search algorithm/version. Defaults to the current ranked mode. |
 | `includeSearchDebug` | `boolean` | No | Include backend debug metadata in the search response. |
-
 
 ### `ToolSearchResult`
 
@@ -402,6 +410,7 @@ Includes matching tools plus render/action hints used by the CLI and agents.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `tools` | `ToolDefinition[]` | Yes | Ranked matching tools. |
@@ -418,7 +427,6 @@ Includes matching tools plus render/action hints used by the CLI and agents.
 | `commandTemplates` | `{ describe?: string; execute?: string; }` | No | Copyable CLI command templates for follow-up discovery/execution. |
 | `render` | `{ sections?: Array<{ title: string; lines: string[]; }>; actions?: Array<{ label: string; command: string; }>; }` | No | Pre-rendered sections and actions for CLI/agent display. |
 
-
 ### `ToolExecution`
 
 Standard provider/tool execution envelope returned by low-level SDK calls.
@@ -430,6 +438,7 @@ them. Billing fields are Deepline-facing and must not expose provider spend.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `status` | `string` | Yes |  |
@@ -439,7 +448,6 @@ them. Billing fields are Deepline-facing and must not expose provider spend.
 | `extractedLists` | `Record<string, unknown>` | No |  |
 | `extractedValues` | `Record<string, unknown>` | No |  |
 | `billing` | `Record<string, unknown>` | No |  |
-
 
 ### `StartPlayRunRequest`
 
@@ -453,6 +461,7 @@ Either `name` (for live plays) or `artifactStorageKey` (for packaged ad hoc runs
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `name` | `string` | No | Play name for registered revisions. |
@@ -482,7 +491,6 @@ Either `name` (for live plays) or `artifactStorageKey` (for packaged ad hoc runs
 | `runtime` | `PlayRuntimeSelection` | No | Internal runtime estate selection. The app host remains unchanged. |
 | `testPolicyOverrides` | `Record<string, unknown>` | No | Internal/dev-only runtime policy overrides for black-box durability tests. |
 
-
 ### `PlayRunStart`
 
 Response from starting a play run.
@@ -493,6 +501,7 @@ or `PlayJob.get`.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `workflowId` | `string` | Yes | Public Deepline play-run id for tracking this execution. |
@@ -505,7 +514,6 @@ or `PlayJob.get`.
 | `finalStatus` | `unknown` | No | Terminal status returned when the start request used a short completion wait. |
 | `package` | `PlayRunPackage` | No | Canonical compact run package returned by current SDK/API responses. |
 
-
 ### `PlayStatus`
 
 Current status of a play execution, returned by `DeeplineClient.getPlayStatus`.
@@ -515,6 +523,7 @@ Poll this until `status` reaches a terminal state:
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `runId` | `string` | Yes | Public play-run identifier. |
@@ -541,7 +550,6 @@ Poll this until `status` reaches a terminal state:
 | `billingRollupIncomplete` | `boolean` | No | True when the child-run billing rollup could not be fully resolved. |
 | `childRuns` | `ChildRunSummary[]` | No | Durable summaries of ctx.runPlay children, returned by `runs.get --full`. |
 
-
 ### `PlayRunPackage`
 
 Compact canonical package for an inspected play run.
@@ -552,6 +560,7 @@ internals.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `schemaVersion` | `1` | Yes | Package schema version. |
@@ -564,13 +573,13 @@ internals.
 | `logs` | `{ tail: string[]; totalCount: number; returnedCount: number; truncated?: boolean; }` | No | Small retained tail of customer and runtime logs; fetch the full stream through `runs.logs`. |
 | `next` | `{ inspect?: PlayRunActionPackage; full?: PlayRunActionPackage; billing?: PlayRunActionPackage; export?: PlayRunActionPackage; query?: PlayRunActionPackage; logs?: PlayRunActionPackage; }` | No | Follow-up actions a caller can perform against the run. |
 
-
 ### `PlayRunListItem`
 
 Summary of a single play run, returned by `DeeplineClient.listPlayRuns`.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `workflowId` | `string` | Yes | Public Deepline play-run id. |
@@ -582,6 +591,7 @@ Summary of a single play run, returned by `DeeplineClient.listPlayRuns`.
 | `status` | `string` | Yes | Human-readable status (e.g. `'Completed'`, `'Failed'`). |
 | `startTime` | `string \| null` | No | ISO 8601 timestamp when the run started. |
 | `startedAt` | `number \| string \| null` | No | Unix epoch milliseconds when the run started, returned by normalized V2 run summaries. |
+| `createdAt` | `number \| string \| null` | No | Unix epoch milliseconds when the run was created. |
 | `closeTime` | `string \| null` | No | ISO 8601 timestamp when the run finished. |
 | `finishedAt` | `number \| string \| null` | No | Unix epoch milliseconds when the run finished, returned by normalized V2 run summaries. |
 | `executionTime` | `string \| null` | Yes | Duration string (e.g. `'2.5s'`). |
@@ -589,13 +599,13 @@ Summary of a single play run, returned by `DeeplineClient.listPlayRuns`.
 | `billingMaxCreditsPerRun` | `number \| null` | No | Configured per-run Deepline credit cap, when available. |
 | `memo` | `{ orgId: string; playName: string; userId: string \| null; }` | Yes | Metadata attached to the workflow. |
 
-
 ### `StopPlayRunResult`
 
 Result returned by `DeeplineClient.stopPlay`.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `runId` | `string` | Yes | Public play-run identifier the stop request targeted. |
@@ -603,7 +613,6 @@ Result returned by `DeeplineClient.stopPlay`.
 | `hitlCancelledCount` | `number` | Yes | Number of open HITL interactions marked cancelled. |
 | `staleSchedulerState` | `boolean` | No | True when the scheduler state for the run was stale and the stop could<br />not be confirmed. Absent on older servers (treated as confirmed). |
 | `error` | `string` | No | Server-side error detail when the stop was not confirmed. |
-
 
 ### `RunsNamespace`
 
@@ -615,6 +624,7 @@ logs, and exporting durable dataset rows.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `get` | `(runId: string, options?: RunsGetOptions) => Promise<PlayStatus>` | Yes | Get current run status by public run id. |
@@ -627,7 +637,6 @@ logs, and exporting durable dataset rows.
 | `stop` | `( runId: string, options?: { reason?: string }, ) => Promise<StopPlayRunResult>` | Yes | Stop a running/waiting run. |
 | `stopAll` | `(options?: { reason?: string }) => Promise<StopAllPlayRunsResult>` | Yes | Stop active runs across the current workspace. |
 
-
 ### `CustomerDbQueryResult`
 
 Result returned by `DeeplineClient.db.query`.
@@ -637,6 +646,7 @@ query and selected customer tables.
 
 #### Fields
 
+<!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `scope` | `{ kind: 'database'; mutability: 'current' }` | No | This query reads the current mutable customer database, not one run snapshot. |
