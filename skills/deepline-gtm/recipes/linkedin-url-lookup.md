@@ -21,28 +21,31 @@ Find LinkedIn profile URLs when you have a name, with or without company context
 
 ## Prebuilt first
 
-`prebuilt/person-to-linkedin` remains the compatibility play for the existing
-Serper candidate and Serper validation route. Inspect its live contract before
-running it:
+`prebuilt/person-to-linkedin-harvestapi` runs the maintained Serper candidate
+route with native HarvestAPI profile validation. Inspect the live contract
+before running it:
 
 ```bash
-deepline plays describe prebuilt/person-to-linkedin
-deepline plays run prebuilt/person-to-linkedin --input '{"first_name":"Jane","last_name":"Smith","company_name":"Acme"}'
+deepline plays describe prebuilt/person-to-linkedin-harvestapi
+deepline plays run prebuilt/person-to-linkedin-harvestapi --input '{"first_name":"Jane","last_name":"Smith","company_name":"Acme"}'
 # CSV:
-deepline plays run prebuilt/person-to-linkedin-batch --input '{"csv":"contacts.csv"}'
+deepline plays run prebuilt/person-to-linkedin-harvestapi-batch --input '{"csv":"contacts.csv"}'
 deepline runs export <run-id> --out contacts_with_linkedin.csv
 ```
 
-The maintained compatibility play currently tries company-anchored Serper,
-name-only Serper, and Crustdata when an email is available. Use the expanded
-sequence below when you need native HarvestAPI identity validation.
+The HarvestAPI play tries company-anchored Serper, name-only Serper, and
+Crustdata when an email is available. It validates the chosen candidate with
+`harvestapi_get_profile`, then scans later Serper results only when the first
+candidate fails validation. The older `prebuilt/person-to-linkedin` and
+`prebuilt/person-to-linkedin-batch` IDs keep their original Serper-validation
+behavior for existing workflows.
 
 Use the expanded manual sequence below only when you need a custom provider
 order. Pull the maintained play as a starting point, then inspect and check the
 fork before running it:
 
 ```bash
-deepline plays get prebuilt/person-to-linkedin --source --out ./fork.play.ts
+deepline plays get prebuilt/person-to-linkedin-harvestapi --source --out ./fork.play.ts
 deepline plays check ./fork.play.ts
 ```
 

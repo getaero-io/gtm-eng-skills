@@ -294,7 +294,15 @@ deepline plays run prebuilt/company-to-contact-batch --input '{"csv":"accounts.c
 deepline runs export <run-id> --out accounts_with_contacts.csv
 ```
 
-HarvestAPI example:
+Use the native prebuilt for repeatable domain-to-roster work:
+
+```bash
+deepline plays describe prebuilt/company-domain-to-linkedin-employees-harvestapi
+deepline plays run prebuilt/company-domain-to-linkedin-employees-harvestapi \
+  --input '{"domain":"openai.com","max_items":25}'
+```
+
+Use the direct operations below only when you need a custom result shape:
 
 ```bash
 deepline tools describe harvestapi_get_company --schema-only
@@ -307,7 +315,17 @@ Generate the stable random `sessionId` before page 1 and reuse it on every page.
 
 ### LinkedIn post URL -> list of engagers
 
-Use the native HarvestAPI provider. An engager set includes both reactors and commenters, so fetch both operations and union their `elements` by `actor.id` (falling back to `actor.linkedinUrl`). Call the operations directly for one post and wrap them in a custom play for a batch. Paginate each operation according to its described contract before deduplicating.
+Use the native HarvestAPI prebuilt. It fetches both reactors and commenters,
+paginates each operation, unions their `elements` by actor identity, and returns
+the established engager-row schema:
+
+```bash
+deepline plays describe prebuilt/linkedin-post-to-engagers-harvestapi
+deepline plays run prebuilt/linkedin-post-to-engagers-harvestapi \
+  --input '{"post_url":"https://www.linkedin.com/posts/...","max_items":1000}'
+```
+
+Call the native operations directly only when you need a custom result shape:
 
 ```bash
 deepline tools describe harvestapi_get_post_reactions

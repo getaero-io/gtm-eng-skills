@@ -277,7 +277,7 @@ This lets the user evaluate whether enrichment improved upload coverage without 
 
 When LinkedIn URLs are needed before personal-email/hash enrichment, use a measured query ladder instead of one exact-company query. In a high-priority ABM eval sample, exact account-name search recovered the known URL in the top five for `51.7%` of rows, while the account-or-LinkedIn-company query recovered `65.8%`. Quoted domain search was much worse (`5.8%`) and should not be a first-pass default.
 
-Start with the native `person-to-linkedin` play when available. It cleans company anchors with the same helper used by the API:
+Start with `prebuilt/person-to-linkedin-harvestapi` when available. It searches with the supplied company name and domain, then validates candidates with native HarvestAPI. Normalize noisy company names before calling it, for example:
 
 - `RTX Corporation` → `RTX`
 - `Lockheed Martin Corporation` → `Lockheed Martin`
@@ -286,7 +286,7 @@ Start with the native `person-to-linkedin` play when available. It cleans compan
 - `Siemens Energy Global GmbH & Co. KG` → `Siemens Energy`
 - `Airbus EMEA` → `Airbus`
 
-The first Serper query should use the cleaned account/LinkedIn company aliases:
+The first Serper query should use those cleaned account/LinkedIn company aliases:
 
 ```text
 "{{full_name}}" ("{{account_name}}" OR "{{linkedin_company_name}}") site:linkedin.com/in -inurl:dir -inurl:pub

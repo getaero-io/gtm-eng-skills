@@ -121,8 +121,8 @@ Take the registrable domain from the top result's URL — and prefer the domain
 a later enrichment result reports over one you inferred.
 
 **If name + company given:** resolve the LinkedIn URL first with
-`prebuilt/person-to-linkedin` (see §2-person step 2), or go straight to the
-company-wide waterfall with the domain.
+`prebuilt/person-to-linkedin-harvestapi` (see §2-person step 2), or go straight
+to the company-wide waterfall with the domain.
 
 ### §2-person. Person-centric flow (2-up / 2-down around one person)
 
@@ -137,7 +137,7 @@ Use this instead of the company-wide waterfall when the request centers on one i
 
    Use `dropleads_search_people` (free when available) and `deepline_native_search_contact` with title filters first; fall back to `exa_search` / Google-style queries for enterprises that index poorly. Keep each search scoped. You want ~3-8 candidates per tier, not hundreds.
 
-   **Resolving a candidate's LinkedIn URL from a name:** don't reach for `leadmagic_profile_search` because it is for the reverse direction, hydrating a profile when you already have the URL. For name to LinkedIn URL, use the **Serper to HarvestAPI validate** pattern from the sibling [`linkedin-url-lookup`](linkedin-url-lookup.md) recipe: `serper_google_search` with a `site:linkedin.com/in` query, then validate the top hit with `harvestapi_get_profile` and a mandatory name-match gate. The existing `prebuilt/person-to-linkedin` ID remains on its Serper-validation compatibility implementation.
+   **Resolving a candidate's LinkedIn URL from a name:** don't reach for `leadmagic_profile_search` because it is for the reverse direction, hydrating a profile when you already have the URL. For name to LinkedIn URL, use the **Serper to HarvestAPI validate** pattern from the sibling [`linkedin-url-lookup`](linkedin-url-lookup.md) recipe: `serper_google_search` with a `site:linkedin.com/in` query, then validate the top hit with `harvestapi_get_profile` and a mandatory name-match gate. Or call `prebuilt/person-to-linkedin-harvestapi`, which wraps this maintained route without changing the older `prebuilt/person-to-linkedin` compatibility play.
 
 3. **Rank the inferred edges, don't assert them.** For each candidate, score the likelihood they're the actual manager/report using the Manager prediction scoring table below (seniority gap + team match + geo + experience delta + tenure overlap). Surface the top 1-2 per tier _with their score shown as a confidence badge_. When several same-title managers tie (common at big enterprises), show them as parallel candidates rather than picking one. The rep can disambiguate.
 
@@ -190,7 +190,18 @@ Expected: +60-80 net new.
 
 **Source 3: LinkedIn employee scrape**
 
-Prefer a custom play for repeatable roster enrichment. Resolve the company's LinkedIn page from the domain first, then search the native HarvestAPI provider after confirming the live contract:
+Prefer the maintained native prebuilt for repeatable roster enrichment:
+
+```bash
+deepline plays describe prebuilt/company-domain-to-linkedin-employees-harvestapi
+deepline plays run prebuilt/company-domain-to-linkedin-employees-harvestapi \
+  --input '{"domain":"acme.com","max_items":250}'
+```
+
+Use the underlying tools directly only when the prebuilt's stable employee-row
+shape does not fit the workflow. Resolve the company's LinkedIn page from the
+domain first, then search the native HarvestAPI provider after confirming the
+live contract:
 
 ```bash
 deepline tools describe harvestapi_get_company

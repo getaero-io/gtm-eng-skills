@@ -111,7 +111,7 @@ If a migration needs to know "what population did this table source", `/v3/sourc
 | `*-find-work-email`, `find-email-v2`, `icypeas-find-email-v2` (15 keys) | work email | `prebuilt/name-and-domain-to-email-waterfall`, or `prebuilt/person-linkedin-to-email` when you have a LinkedIn URL |
 | `*-find-personal-email`, `*-personal-email-from-linkedin` (14 keys) | personal email | `prebuilt/personal-email` |
 | `validate-email`, `*-verify-email`, `*-validate-email` (14 keys) | email validation | `leadmagic_email_validation` or `zerobounce_validate`. Accept `valid`, `valid_catch_all`, `catch_all`; reject `unknown` |
-| `*-find-linkedin-profile`, `contactout-social-url-from-email` (10 keys) | resolve LinkedIn URL | `prebuilt/person-to-linkedin`, or `prebuilt/personal-email-to-linkedin` from an email |
+| `*-find-linkedin-profile`, `contactout-social-url-from-email` (10 keys) | resolve LinkedIn URL | `prebuilt/person-to-linkedin-harvestapi`, or `prebuilt/personal-email-to-linkedin` from an email |
 | `enrich-person`, `enrich-person-with-mixrank-v2`, `*-enrich-person` (10 keys) | person enrichment | `leadmagic_profile_search` then `crustdata_person_enrichment` |
 | `enrich-company`, `*-enrich-company`, `crunchbase-enrich-*` (22 keys) | company enrichment | `prospeo_enrich_company` or `crustdata_companydb_search` |
 | `use-ai`, claygent variants | AI generation | `deeplineagent` with a `jsonSchema` |
