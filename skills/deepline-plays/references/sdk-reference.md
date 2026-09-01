@@ -3,9 +3,7 @@
 ## Runtime Model
 
 The Deepline SDK is a runtime SDK. Your TypeScript defines durable play code and typed run contracts; Deepline executes that code in the cloud runtime, records provider/tool calls, persists dataset rows, and exposes run state through SDK handles and HTTP APIs.
-
 Use `definePlay(...)` for code that runs inside a Deepline play. Inside that function, `ctx.*` is the runtime boundary: `ctx.tools.execute` calls managed providers, `ctx.dataset` records row-level work, `ctx.step` checkpoints scalar work, `ctx.fetch` records external HTTP, and `ctx.runPlay` composes registered or prebuilt plays.
-
 Use `Deepline.connect()` and `DeeplineClient` from regular Node/TypeScript services, scripts, schedulers, or tests. Those APIs discover tools and plays, start runs, stream/poll status, stop runs, and inspect durable output without requiring a local play file.
 
 ## Reference Map
@@ -154,7 +152,7 @@ type Account = {
 
 export default definePlay(
   'docs-nightly-account-refresh',
-  async (ctx, input: { accounts: Account[] }) => {
+  async (ctx, input: { accounts: Account[]; refreshExisting?: boolean }) => {
     const rows = await ctx
       .dataset('account_refresh', input.accounts)
       .withColumn(
@@ -181,6 +179,7 @@ export default definePlay(
     cron: {
       schedule: '0 9 * * *',
       timezone: 'America/New_York',
+      input: { accounts: [], refreshExisting: true },
     },
     billing: {
       maxCreditsPerRun: 25,
@@ -238,7 +237,7 @@ export default definePlay(
 
 ## Play Authoring Contract
 
-New artifacts pin authoring contract edition 5. Check, publish, and run use the same admitted snapshot.
+New artifacts pin authoring contract edition 6. Check, publish, and run use the same admitted snapshot.
 
 | Field | Type | Required | Contract |
 |---|---|---:|---|
@@ -256,6 +255,7 @@ New artifacts pin authoring contract edition 5. Check, publish, and run use the 
 | `bindings.webhook.auth.toleranceSeconds` | `number` | No | Accepted delivery timestamp skew in seconds, from 1 through 3600. |
 | `bindings.cron.schedule` | `string` | Yes | Five-field cron expression. |
 | `bindings.cron.timezone` | `string` | No | IANA timezone. Omitted means UTC. |
+| `bindings.cron.input` | `Record<string, unknown>` | No | Static JSON object passed to every run created by this cron binding. |
 | `bindings.sqlListeners` | `SqlListener[]` | No | Static provider-monitor listener declarations. |
 | `bindings.sqlListeners[].id` | `string` | Yes | Unique static listener identifier within one Play. |
 | `bindings.sqlListeners[].tool` | `string` | Yes | Modeled provider monitor tool id in provider.tool form. |
@@ -398,7 +398,7 @@ Define a play — a composable TypeScript workflow for the Deepline platform.
 
 The returned value is both a callable function, invoked by the Deepline runtime with a runtime context, and a named play handle carrying `.run()`, `.versions()`, `.get()` and `.publish()` for remote lifecycle management. Plays are the primary abstraction for repeatable data pipelines and execute durably, with automatic retries and timeouts.
 
-Signature: `export function definePlay<TInput, TOutput extends PlayReturnObject>( config: DefinePlayConfig<TInput, TOutput>, ): DefinedPlay<TInput, TOutput>; export function definePlay<TInput, TOutput extends PlayReturnObject>( name: string, fn: (ctx: DeeplinePlayRuntimeContext, input: TInput) => Promise<TOutput>, bindings?: PlayBindings, ): DefinedPlay<TInput, TOutput>;`
+Signature: `export function definePlay<TInput, TOutput extends PlayReturnObject>( config: DefinePlayConfig<TInput, TOutput>, ): DefinedPlay<TInput, TOutput>; export function definePlay< THandler extends ( context: DeeplinePlayRuntimeContext, input: any, ) => Promise<PlayReturnObject>, >( name: string, fn: THandler, bindings?: PlayBindings<NoInfer<PlayHandlerInput<THandler>>>, ): DefinedPlay<PlayHandlerInput<THandler>, PlayHandlerOutput<THandler>>;`
 #### Overload 1
 
 #### Parameters
@@ -419,12 +419,12 @@ Signature: `export function definePlay<TInput, TOutput extends PlayReturnObject>
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `name` | `string` | Yes | Play name. |
-| `fn` | `(ctx: DeeplinePlayRuntimeContext, input: TInput) => Promise<TOutput>` | Yes | Play function. |
-| `bindings` | [`PlayBindings`](#playbindings) | No | Play configuration, including runtime limits and triggers. |
+| `fn` | `THandler` | Yes | Play function. |
+| `bindings` | `PlayBindings<NoInfer<PlayHandlerInput<THandler>>>` | No | Play configuration, including runtime limits and triggers. |
 
 #### Returns
 
-`DefinedPlay<TInput, TOutput>`
+`DefinedPlay<PlayHandlerInput<THandler>, PlayHandlerOutput<THandler>>`
 
 
 ### `DefinePlayConfig`
@@ -459,7 +459,7 @@ The default Play runtime is 30 minutes. For bounded long-running batches, add
 `runtime: { timeout: '90m', size: 'standard' }`; duration values are whole minutes or hours, up to `4h`.
 It differs from `ctx.tools.execute({ timeoutMs })`, which limits one provider call.
 
-Signature: `export type PlayBindings = PlayAuthoringBindings;`
+Signature: `export type PlayBindings<TInput = Record<string, unknown>> = PlayAuthoringBindings<TInput>;`
 
 
 ### `ctx.csv(path, options)`
@@ -784,7 +784,7 @@ The `init` accepted by `ctx.fetch`. Same shape as `RequestInit` plus `auth`.
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `headers` | `HeadersInit` | No | Ordinary request headers, recorded in the durable receipt with any resolved Play secret value redacted. Prefer `auth` for credentials: it enforces HTTPS and keeps the auth header out of the receipt. |
-| `auth` | `SecretAuthInput` | No | One or more credentialed headers for this request. Pass a single `ctx.secrets` auth for the common case, or an array when an API requires multiple credentialed headers — for example, Supabase with both `apikey` and `Authorization`. Auth-helper requests require HTTPS and omit the credential from the durable receipt. Each auth entry must target a distinct header. |
+| `auth` | `SecretAuthInput` | No | One or more credentialed headers for this request. Pass a single `ctx.secrets` auth for the common case, or an array when an API requires multiple credentialed headers. Auth-helper requests require HTTPS and omit the credential from the durable receipt. Each auth entry must target a distinct header. |
 
 
 ### `PlayFetchResponse`

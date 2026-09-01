@@ -149,6 +149,26 @@ Authoring rules:
 - Dataset Handles are async-only, regardless of whether rows are already in memory. Use `await rows.count()`, `await rows.first()`, `await rows.at(index)`, `await rows.peek(limit)`, `await rows.materialize(limit)`, or `for await...of`. Do not use `.length`, numeric indexing, spread, or synchronous `for...of`.
 - Project to flat user-facing columns with `status`, `miss_reason`, evidence/source, and requested output fields.
 
+### Cron input is explicit and revision-pinned
+
+A cron trigger receives `{}` unless its binding declares `input`. Put every
+scheduled argument in the static JSON object below; do not rely on a handler
+default for a side effect such as `apply`. The object is pinned with the
+published revision, so retries retain the event revision's arguments after a
+later republish.
+
+```json
+{
+  "cron": {
+    "schedule": "0 8 * * 1-5",
+    "timezone": "America/New_York",
+    "input": { "apply": true, "batchSize": 100 }
+  }
+}
+```
+
+`input` must be an inline JSON object—no variables, spreads, or functions.
+
 The most common cell: a tool call. Column resolvers are positional
 `(row, rowCtx)`; call `rowCtx.tools.execute({ id, tool, input, description })`
 (all four required; `id` is the durable receipt key) and read the envelope —
@@ -249,8 +269,7 @@ Three more things that cost people iterations:
   type error. It is `null` both when the body is empty and when it is not valid
   JSON, so check `res.ok` and fall back to `res.bodyText`.
 - `init.auth` accepts one credentialed header or an array of headers. Each array
-  entry must target a distinct header, which supports APIs such as Supabase that
-  require both `apikey` and `Authorization`.
+  entry must target a distinct header.
 - Manage stored values with `deepline secrets set` / `deepline secrets list`.
   Names are uppercased. Declare them in the Play's top-level `secrets` option when the play needs
   them present at publish time.
