@@ -10,6 +10,15 @@ Use Apify when you need controlled web automation/scraping workflows.
 - Prefer `apify_run_actor_sync` as the default execution path when you want results in one call.
 - Use `apify_run_actor` only when you need non-blocking execution, then poll run status before fetching outputs.
 - Validate payload shape with a tiny run before scaling row counts.
+- Deepline limits an organization to four unresolved Apify actor jobs by
+  default. Additional calls receive a retryable Deepline capacity response
+  before another billable actor run is launched; an explicit organization
+  execution limit may override this guardrail.
+- A successful HTTP 200 with an empty dataset is reported as
+  `meta.resultOutcome.classification = "ambiguous_empty"`, not proof of a
+  genuine no-result. Apify currently does not identify whether the input was
+  attempted. Do not automatically retry that result: the first run remains
+  billable and a retry may create a second charge.
 
 ## Quality ranking
 
