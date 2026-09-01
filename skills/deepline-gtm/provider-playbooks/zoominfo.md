@@ -21,7 +21,6 @@ Deepline result envelope. Read rows from `result.data.data`, pagination metadata
 from `result.data.meta`, and pagination links from `result.data.links`. Do not
 unwrap or discard pagination metadata.
 
-Do not attempt paid enrichment actions. They are not published until ZoomInfo
-pricing and runtime usage settlement are approved. Do not use customer
-credentials for testing; only an explicit Deepline internal/test Partner App is
-allowed.
+Deepline charges no credits for ZoomInfo enrichment actions. Do not use customer
+credentials for testing; rely on the provider-owned OpenAPI examples unless an
+explicit Deepline internal/test Partner App is available.
