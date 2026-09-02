@@ -329,6 +329,7 @@ while True:
 | `POST` | `/api/v2/settings/notifications/dlq/:deliveryId` | `updateNotificationDlqDelivery` | SDK-facing route. | `src/app/api/v2/settings/notifications/dlq/[deliveryId]/route.ts` |
 | `PATCH` | `/api/v2/settings/notifications/subscriptions` | `setNotificationSubscriptions` | SDK-facing route. | `src/app/api/v2/settings/notifications/subscriptions/route.ts` |
 | `POST` | `/api/v2/settings/notifications/test` | `testNotificationSlack` | SDK-facing route. | `src/app/api/v2/settings/notifications/test/route.ts` |
+| `POST` | `/api/v2/workspaces` | `workspaces.create`<br />`org create` | SDK-facing route. | `src/app/api/v2/workspaces/route.ts`<br />`src/lib/workspaces/create-additional-workspace.ts` |
 
 ## Recent Compatible API Changes
 

@@ -1254,10 +1254,7 @@ are intentionally separate from the returned output object.
 
 ### `DeeplineClient`
 
-Low-level client for the Deepline REST API.
-
-Provides typed methods for every API endpoint: tools, plays, auth, and health.
-Handles authentication, retries, and localhost failover automatically.
+Low-level typed REST client with authentication, retries, and localhost failover.
 
 Signature: `class DeeplineClient`
 
@@ -1270,6 +1267,7 @@ Signature: `class DeeplineClient`
 | `runs` | property | Canonical run lifecycle namespace backed by `/api/v2/runs`. |  | `RunsNamespace` |
 | `db` | property | Current mutable customer database namespace backed by `/api/v2/db/query`. |  | `DbNamespace` |
 | `billing` | property | Billing namespace: subscription status/cancel and invoice history. |  | `BillingNamespace` |
+| `workspaces` | property | Workspace lifecycle namespace. |  | `WorkspacesNamespace` |
 | `baseUrl` | getter | The resolved base URL this client is targeting (e.g. `"http://localhost:3000"`). |  | `string` |
 | `listSecrets` | method | List secret metadata visible to the current workspace. |  | `Promise<PlaySecretMetadata[]>` |
 | `checkSecret` | method | Check whether a named secret exists, is active, and has a stored value. | `name: string` - Secret name. It is normalized to uppercase before lookup. | `Promise<PlaySecretMetadata \| null>` |
@@ -1353,6 +1351,7 @@ Signature: `class DeeplineClient`
 | `purchaseTargetBillingCredits` | method | Purchase target-billing credits through the durable commercial operation<br />flow. The caller supplies an idempotency key for safe retries. | `options: { credits: number; idempotencyKey: string; }` | `Promise<TargetBillingMutationResult>` |
 | `transitionTargetBillingPlan` | method | Start, change, cancel, or restore a target plan through one idempotent<br />commercial operation. | `options: TargetBillingPlanTransitionOptions` | `Promise<TargetBillingMutationResult>` |
 | `createTargetBillingPortalSession` | method | Create a Stripe-hosted portal session for payment recovery and invoices. |  | `Promise<{ url: string }>` |
+| `createWorkspace` | method | Create an additional workspace through the durable PAYG workflow. | `options: { name: string; idempotencyKey: string; }` | `Promise<WorkspaceCreateResult>` |
 | `health` | method | Check API connectivity and server health. |  | `Promise<{ status: string; version?: string; status_banner?: { message: string; updatedAt: number; }; }>` |
 
 ### `client.runs`
