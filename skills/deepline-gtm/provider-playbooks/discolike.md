@@ -17,7 +17,7 @@ Use DiscoLike for website-first company discovery and domain intelligence.
 
 `discolike_segment` is public and synchronous from the agent perspective: it submits DiscoLike's async segment job, polls the provider status endpoint, and returns the completed segment rows when available.
 
-If the sync wait times out, call `discolike_get_segment_status` with the returned `task_id` to retrieve the provider result later. This status call is a free read-only recovery step for tasks created by the same organization; final customer billing is reconciled by Deepline's async provider cron against the original `discolike_segment` billing row.
+If the sync wait times out, call `discolike_get_segment_status` with the returned `task_id` to retrieve the provider result later. This is a free read-only job-ID action for tasks created by the same organization. Billing separately tracks accepted provider work until terminal usage is known; no result cache resumes the task.
 
 ## Contact generation behavior
 

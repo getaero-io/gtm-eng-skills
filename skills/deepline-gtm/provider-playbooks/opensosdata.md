@@ -39,16 +39,16 @@ until complete (up to 90s). No special handling needed by the caller.
 ### Native bulk jobs
 
 `opensosdata_bulk_lookup` submits up to 1,000 entities in one provider request.
-It waits at most 30 seconds, then returns a durable `job_id` for
+It waits at most 30 seconds, then returns the provider-issued `job_id` for
 `opensosdata_get_bulk_result`. Calls to `opensosdata_business_lookup` inside a
 dataset map compile into native jobs of up to 256 entities. Keep using the
 scalar tool for row-wise play code; call the bulk operation directly only when
 you already have an entity array.
 
 After OpenSOSData accepts a bulk job, Deepline never retries the POST. Polling
-timeouts and transport failures return the persisted `job_id`; the async
-billing reconciler retries the idempotent status read until terminal truth is
-available.
+timeouts and transport failures return that `job_id`. The result cache never
+stores or resumes the job; callers can make the explicit status/result call.
+Billing separately tracks accepted provider work until terminal usage is known.
 
 ### 3. Skip registered agent services
 

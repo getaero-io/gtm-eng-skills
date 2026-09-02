@@ -692,7 +692,7 @@ Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayRefer
 
 ### `ctx.tools.execute(request)`
 
-Execute a provider tool through the durable receipt contract.
+Execute a provider tool through the terminal-result cache contract.
 
 Signature: `execute<TOutput = PlayLooseObject>( request: PlayToolExecutionRequest, ): Promise<ToolExecuteResult<TOutput>>;`
 
@@ -712,8 +712,8 @@ Signature: `execute<TOutput = PlayLooseObject>( request: PlayToolExecutionReques
 Keyword-style request object for `ctx.tools.execute(...)`.
 
 The `tool` value comes from live tool discovery. The `id` is the stable
-logical call name used for logs, metadata, and receipt attachment. Provider
-call reuse is keyed by play, tool, semantic input, auth scope, provider action
+logical call name used for logs, metadata, and result-cache identity. Provider
+result reuse is keyed by play, tool, semantic input, auth scope, provider action
 version, and cache policy.
 
 Signature: `export type ToolExecutionRequest = PlayToolExecutionRequest;`
