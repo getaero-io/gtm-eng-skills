@@ -1427,4 +1427,7 @@ delete/reactivate through this namespace.
 | `update` | `( key: string, patch: Record<string, unknown>, ) => Promise<MonitorUpdateResult>` | Yes | Update a deployed monitor by public key. |
 | `delete` | `( key: string, options?: { dryRun?: boolean }, ) => Promise<MonitorDeleteResult>` | Yes | Delete a deployed monitor and its upstream provider resource. `dryRun` returns the delete plan. |
 | `reactivate` | `( key: string, options?: { dryRun?: boolean }, ) => Promise<MonitorReactivateResult>` | Yes | Reactivate a disabled monitor. `dryRun` returns the reactivation cost. |
+| `audit` | `(options?: { fleetId?: string; cursor?: string \| null; }) => Promise<MonitorsAuditResult>` | Yes | Re-read what the provider holds onto the monitors that claim it. Bounded<br />and idempotent: pass `cursor` back while `audit.cursor` is non-null. |
+| `repair` | `(options?: { fleetId?: string; dryRun?: boolean; }) => Promise<MonitorsRepairResult>` | Yes | Converge the monitors whose desired and observed states disagree.<br />`dryRun` returns the same plan without queueing anything. |
+| `health` | `(options?: { fleetId?: string }) => Promise<MonitorsHealth>` | Yes | Delivery and convergence health for the workspace or one fleet. |
 | `fleets` | `MonitorFleetsNamespace` | Yes | Define, reconcile, and control table-backed monitor fleets. |

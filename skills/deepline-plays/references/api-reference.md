@@ -285,6 +285,7 @@ while True:
 | `POST` | `/api/v2/ingestion/repair` | `repairIngestionStorage` | SDK-facing route. | `src/app/api/v2/ingestion/repair/route.ts` |
 | `GET` | `/api/v2/models/describe` | `describeModel` | SDK-facing route. | `src/app/api/v2/models/describe/route.ts`<br />`src/lib/deeplineagent/model-options.ts`<br />`src/lib/deeplineagent/generated/provider-options.ts` |
 | `GET` | `/api/v2/monitors/access` | `monitors status` | SDK-facing route. | `src/app/api/v2/monitors/access/route.ts` |
+| `POST` | `/api/v2/monitors/audit` | `monitors audit` | SDK-facing route. | `src/app/api/v2/monitors/audit/route.ts` |
 | `POST` | `/api/v2/monitors/check` | `monitors check` | SDK-facing route. | `src/app/api/v2/monitors/check/route.ts` |
 | `POST` | `/api/v2/monitors/deploy` | `monitors deploy` | SDK-facing route. | `src/app/api/v2/monitors/deploy/route.ts` |
 | `GET` | `/api/v2/monitors/deployed` | `monitors list` | SDK-facing route. | `src/app/api/v2/monitors/deployed/route.ts` |
@@ -298,7 +299,10 @@ while True:
 | `DELETE` | `/api/v2/monitors/fleets/:fleetId` | `monitors fleets deactivate` | SDK-facing route. | `src/app/api/v2/monitors/fleets/[fleetId]/route.ts` |
 | `GET` | `/api/v2/monitors/fleets/:fleetId` | `monitors fleets get` | SDK-facing route. | `src/app/api/v2/monitors/fleets/[fleetId]/route.ts` |
 | `PUT` | `/api/v2/monitors/fleets/:fleetId` | `monitors fleets sync` | SDK-facing route. | `src/app/api/v2/monitors/fleets/[fleetId]/route.ts` |
+| `POST` | `/api/v2/monitors/fleets/:fleetId/reactivate` | `monitors fleets reactivate` | SDK-facing route. | `src/app/api/v2/monitors/fleets/[fleetId]/reactivate/route.ts` |
 | `POST` | `/api/v2/monitors/fleets/check` | `retained fleet definition check for installed clients (no CLI command)` | SDK-facing route. | `src/app/api/v2/monitors/fleets/check/route.ts` |
+| `GET` | `/api/v2/monitors/health` | `monitors health`<br />`monitors audit --watch` | SDK-facing route. | `src/app/api/v2/monitors/health/route.ts` |
+| `POST` | `/api/v2/monitors/repair` | `monitors repair` | SDK-facing route. | `src/app/api/v2/monitors/repair/route.ts` |
 | `POST` | `/api/v2/monitors/setup` | `monitors deploy (provider-specific post-deploy readback)` | SDK-facing route. | `src/app/api/v2/monitors/setup/[tool]/route.ts` |
 | `GET` | `/api/v2/monitors/tools` | `monitors available` | SDK-facing route. | `src/app/api/v2/monitors/tools/route.ts` |
 | `GET` | `/api/v2/notifications` | `getNotifications` | SDK-facing route. | `src/app/api/v2/notifications/route.ts` |
