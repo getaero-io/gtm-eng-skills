@@ -10,6 +10,63 @@ Use indexed search for discovery:
 
 Keep `limit` strict. Search is billed per returned result, not by matched `total_count`.
 
+Filter to people with verified work emails before paying for enrichment. Person
+search accepts `experience.employment_details.current.business_email_verified`
+as a filter field (`type: "="`, `value: true`) — it selects only people whose
+current employment carries a verified business email, so every returned result
+is enrichable to a valid work email. The flag is a boolean, not the address:
+the emails themselves come back from person enrich under
+`contact.business_emails[*].email`, each with a `status` field (`verified` /
+`unverified`). Never read the profile-level email field or
+`contact.personal_emails` when the goal is work emails.
+
+## Filter syntax and operators
+
+Person/company/job search all take a `filters` condition group:
+`{"op": "and", "conditions": [{"field": "...", "type": "=", "value": ...}]}` -
+groups nest, and `op` accepts `and` / `or`. Condition `type` supports `=`,
+`!=`, `in`, `not_in`, `contains`, `has_all`, `all_of`, `>`, `<`, `=>`, `=<`.
+Sorting is `sorts: [{"field": "...", "order": "asc" | "desc"}]`. Company and
+job search have their own filter/sort field vocabularies - read the field
+lists in each tool's input schema (`deepline tools describe`) rather than
+reusing person fields.
+
+## Size and qualify for free before paying
+
+- `limit: 1` returns `total_count` and `total_count_relation` - TAM sizing for
+  the price of one result.
+- `preview: true` (person search and person enrich) returns basic fields at
+  preview billing - confirm identity/shape before buying full records.
+- Person search results include `contact.has_business_email`,
+  `has_personal_email`, and `has_phone_number` booleans - you can see contact
+  availability per person before spending on enrichment.
+- `fields: [...]` on search and enrich limits the returned field paths;
+  on enrich, requested field groups drive the price - request only what the
+  workflow uses.
+
+## High-leverage person filters most workflows miss
+
+- **Job changes**: `recently_changed_jobs` filters to people who recently
+  switched roles; pair with `metadata.updated_at` (range operators) to bound
+  data freshness.
+- **Alumni prospecting**: the `experience.employment_details.past.*` family
+  (`past.company_name`, `past.company_id`, `past.company_linkedin_profile_url`,
+  `past.company_headcount_range`, `past.company_industries`) finds everyone
+  who USED to work somewhere - "ex-Stripe, now at a 11-200 person company" is
+  two conditions.
+- **Open to work**: `professional_network.open_to_cards` (values like
+  `CAREER_INTEREST`, `HIRING_MANAGER`) surfaces people signalling openness.
+- **Normalized titles**: prefer `basic_profile.normalized_title.matched_title`,
+  `.department`, and `.sub_department` over raw title string matching - it is
+  CrustData's normalized taxonomy and beats regex title lists.
+- **Employer size without a company join**:
+  `experience.employment_details.current.company_headcount_range` /
+  `company_headcount_latest` filter people by their employer's size directly.
+- **Seniority and function**: `experience.employment_details.current.seniority_level`
+  and `.function_category` are the org-chart building blocks.
+- **Influence and tenure**: `professional_network.connections`, `.followers`,
+  and `years_of_experience` support scoring and champion selection.
+
 Use enrich after narrowing candidates:
 
 - `crustdata_v3_person_enrich` for full cached person profiles.
