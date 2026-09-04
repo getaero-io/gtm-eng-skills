@@ -1,11 +1,11 @@
 ---
 name: deepline-plays
-description: 'Create custom Deepline plays/scripts that combine multiple tools and/or other plays, with durable datasets, fallback logic, joins, projections, and custom run/export behavior.'
+description: 'Create, audit, and modernize Deepline Plays that combine tools or other Plays, with durable datasets, fallback logic, joins, projections, and custom run/export behavior.'
 ---
 
 # Deepline Plays Recipe
 
-Use this recipe when the user needs a custom Deepline play: durable TypeScript that combines multiple tools, calls other plays, maps over CSV rows, adds fallback logic, joins or projects output, persists datasets, or needs custom run/export behavior.
+Use this recipe when the user needs a custom Deepline Play or asks to audit an existing local or saved Play for deprecated APIs, tool IDs, Play references, or command patterns.
 
 Read budget: normal tasks should use this recipe plus at most one plays reference. If you need more than one reference, name why before loading it.
 
@@ -29,6 +29,20 @@ Read budget: normal tasks should use this recipe plus at most one plays referenc
 6. **Report reality:** run id, export path, charged Deepline credits or why not visible, executed/reused/failed counts when available, and repair class.
 
 Safe planning-only commands: auth/health/balance, `plays search`, `plays describe`, `tools search`, `tools describe`, `plays check`, `plays bootstrap --help`, and local scaffolding. Do not call `plays run` or provider execution in planning-only mode.
+
+## Audit Existing Plays
+
+Treat “audit my Plays,” “check whether these Plays are outdated,” and “find deprecated Deepline usage” as a read-only check unless the user also asks for repairs. `deepline plays check` owns the authoring and deprecation policy; do not recreate a second checklist from memory.
+
+1. Establish whether the scope is local `*.play.ts` files, saved non-archived workspace Plays, or both. Inventory local Plays with hidden and gitignored files included while excluding dependency/build directories. Inventory saved Plays with `deepline plays list --json`; do not claim completeness if the owned result page is capped or the user requested archived Plays that the CLI cannot enumerate.
+2. For saved Plays, check every applicable live and dirty working revision. Fetch each revision's complete source bundle into a unique temporary directory outside the repository, preserve its entry file, and remove the exact temporary directory after the audit.
+3. Run `deepline plays check <entry-file> --json` for every in-scope local or materialized saved revision. Checking is read-only and spends no provider credits. A named check is not a substitute for checking the revision's source bundle.
+4. Read `issues` as the remediation queue. Fix every `error` first because it is Blocking; then fix every `warning` because it is non-blocking migration debt. Use each issue's `path`, `hint`, `validOptions`, and `docsHint`; do not guess replacements. Rerun `plays check` after each Play until both arrays are empty.
+5. If a warning says validation is partial—for example, a dynamic tool id could not be resolved—make the identity static or report that the Play could not be certified clean. A successful check with unresolved warning issues is not a clean deprecation audit.
+
+Report one row per emitted issue with the Play/revision, severity, path, message, and prescribed fix. Finish with error and warning counts and name every checked Play/revision. Do not edit during an audit-only request, and do not publish or run repaired Plays without separate authorization.
+
+`plays check` audits Play source, not neighboring shell scripts or runbooks. If the user explicitly includes companion automation in scope, audit those separately for retired CLI commands and label that result separately from the Play linter.
 
 ### Trigger notification handoff
 
@@ -54,6 +68,7 @@ Slack OAuth belongs in Dashboard → Integrations. This CLI only configures name
 | Webhook/cron-style automation or cloud workflow replacement         | author a custom play with explicit inputs, idempotency, and run/export behavior                     | `plays check`, small pilot, and clear trigger handoff       |
 | Company -> contacts -> email/phone fanout                           | use GTM sourcing docs first, then compose plays/tools only after the account/contact grain is clear | pilot proves account grain and contact identity             |
 | Billing, rerun, export, cached rows, failed rows, suspicious output | `runs get`, `runs export`, `runs logs`                                                              | no paid rerun until run metadata is understood              |
+| Existing Play may use deprecated APIs, tool IDs, or aliases         | inventory, `plays check`, then describe every referenced tool/Play                                  | report line-level findings before any edit, publish, or run |
 
 Names in docs are hints. Live `search` and `describe` are the source of truth:
 
@@ -133,7 +148,7 @@ Authoring rules:
 
 - Prefer typed inline input. Import validators only if generated refs or bootstrap output prove they exist.
 - Use `ctx.csv`, `ctx.dataset`, `ctx.tools.execute`, `ctx.runPlay`, `ctx.step`, `ctx.fetch`, and `ctx.secrets`.
-- Do not use local `fs`, raw `fetch`, shell commands, env reads, `Date.now`, or `Math.random` inside play bodies; replay can re-run the body and corrupt state. For credentials use `ctx.secrets`, never `process.env` — see External HTTP And Secrets below.
+- Do not use local `fs`, raw `fetch`, or shell commands anywhere in a Play, including inside `ctx.step`; route external I/O through the matching `ctx.*` API so retries remain safe. Put local nondeterministic computation such as `Date.now` or `Math.random` in a durable `ctx.step` callback. Always use `ctx.secrets` for credentials, never `process.env`, including inside a step — see External HTTP And Secrets below.
 - Use stable ids for paid work. Rename ids only to refresh wrong/stale provider data or changed semantics.
 - The default Play runtime is 30 minutes. For a bounded long batch, set the
   Play-level option `runtime: { timeout: '90m', size: 'standard' }`; static
@@ -145,7 +160,7 @@ Authoring rules:
 - For recurring sourcing, use `.run({ key: 'domain', mode: 'net_new' })` on the candidate table. It atomically returns only previously unseen domains; ordinary `upsert` reruns return known rows too. This cannot suppress rows at a provider before that provider returns them.
 - Return datasets for CSV/exportable outputs.
 - Use declared getters. Do not parse raw payload paths when `extractedValues.*.get()` or `extractedLists.*.get()` exists.
-- For query tools such as `query_customer_db` and `snowflake_run_query`, treat `toolResponse.raw.rows` as an inline preview/debug field. Use `result.extractedLists.rows.get()` and return that Dataset Handle for full-row export.
+- For query tools such as `query_customer_db` and `snowflake_run_query`, use `result.extractedLists.rows.get()` and return that Dataset Handle for full-row export. Do not build exports from a raw response preview in newly authored Plays.
 - Dataset Handles are async-only, regardless of whether rows are already in memory. Use `await rows.count()`, `await rows.first()`, `await rows.at(index)`, `await rows.peek(limit)`, `await rows.materialize(limit)`, or `for await...of`. Do not use `.length`, numeric indexing, spread, or synchronous `for...of`.
 - Project to flat user-facing columns with `status`, `miss_reason`, evidence/source, and requested output fields.
 
@@ -172,7 +187,11 @@ later republish.
 The most common cell: a tool call. Column resolvers are positional
 `(row, rowCtx)`; call `rowCtx.tools.execute({ id, tool, input, description })`
 (all four required; `id` is the durable receipt key) and read the envelope —
-`result.status`, declared getters, or `result.toolResponse.raw`:
+`result.status` or declared getters. For a newly admitted raw-v2 Play, read
+`result.toolResponse.rawV2` only when the full scrubbed provider response is
+genuinely required and no declared getter represents the needed field. A stored
+legacy artifact can expose only `toolResponse.raw`; keep that access until its
+response contract is deliberately migrated:
 
 ```ts
 /** @mermaid probe-accounts
@@ -245,11 +264,17 @@ export default definePlay(
 );
 ```
 
-**Durable call keys must be static string literals.** The `ctx.fetch` key, the
-`ctx.dataset` key, and the `ctx.step` id all name a durable receipt, so check,
+**Durable call-site keys must be static string literals.** The `ctx.fetch` key,
+the `ctx.dataset` key, and the `ctx.step` id name durable call sites, so check,
 publish, and replay have to agree on them before the body runs. A computed key
 fails check with `ctx.fetch key must be a non-empty static string. The value
-could not be resolved statically.`
+could not be resolved statically.` When a top-level `ctx.step` result depends on
+input or query values, retain a static step id and pass the stable semantic
+identity separately, for example
+`ctx.step('generated-at', async () => Date.now(), { semanticKey: input.id })`.
+The callback must remain an inline arrow or function expression. Row-scoped
+steps already include dataset row identity; add a semantic key only when it
+further identifies the work.
 
 Plan around it before you write the play, because it decides the shape:
 
