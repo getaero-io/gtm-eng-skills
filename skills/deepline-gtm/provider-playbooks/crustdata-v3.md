@@ -31,6 +31,17 @@ job search have their own filter/sort field vocabularies - read the field
 lists in each tool's input schema (`deepline tools describe`) rather than
 reusing person fields.
 
+## Company-search response projections
+
+For `crustdata_v3_company_search`, `filters` and `fields` are different
+vocabularies. A field path that can filter companies is not necessarily a
+response selector. Request response groups such as `basic_info`, `headcount`,
+`funding`, `locations`, and `taxonomy`, then read nested values from the
+returned group. Do not request `basic_info.industries` or period leaves such
+as `headcount.growth_percent.6m`; use `basic_info` and
+`headcount.growth_percent` respectively. `roles`, `skills`, `seo`, and
+`competitors` are filter-only for this endpoint.
+
 ## Size and qualify for free before paying
 
 - `limit: 1` returns `total_count` and `total_count_relation` - TAM sizing for
