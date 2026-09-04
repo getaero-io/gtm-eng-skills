@@ -1,17 +1,19 @@
 Use Parallel for managed research/extraction runs without custom orchestration.
 
-- Prefer `parallel_run_task`, `parallel_search`, and `parallel_extract` for agent-friendly workflows.
-- Prefer `parallel_search_mcp` and `parallel_fetch_mcp` when you want the free hosted Search MCP instead of the paid REST APIs.
+- Use `parallel_run_task`, `parallel_search`, and `parallel_extract` for agent-friendly workflows.
+- Use the paid REST actions `parallel_search` and `parallel_extract` for every Play, enrich, map, dataset, batch, repeated, unattended, or production workload.
+- The free anonymous `parallel_search_mcp` and `parallel_fetch_mcp` actions are exact-name tools for small, direct, one-off exploration only. They are intentionally omitted from general tool discovery.
+- Never put a free MCP action in a Play or scale loop. Use `parallel_search` or `parallel_extract` instead.
 - Prefer `parallel_search` first for attendee/discovery workflows, then `parallel_extract` for targeted pages.
-- `parallel_search_mcp` is best for lightweight current-events or broad-source web lookups where zero provider spend matters more than advanced REST-side controls.
-- `parallel_fetch_mcp` is best after `parallel_search_mcp` narrows candidates, or when you already have a small list of URLs to read.
+- `parallel_search_mcp` is only for an explicitly requested lightweight lookup where zero provider spend matters more than reliability or REST-side controls.
+- `parallel_fetch_mcp` is only for directly reading a small set of URLs during that same exploratory session.
 - Use `parallel_run_task` when you need synthesized, schema-shaped outputs from multiple sources.
 - Call `parallel_run_task` first. If it finishes quickly, use that result.
 - If `parallel_run_task` returns pending or times out, keep the `run_id` and use `parallel_get_task_run_result` later to fetch the final output.
 - Ignore `parallel_get_task_run` unless you specifically need run metadata like status timestamps or processor info.
 - Keep monitor/stream endpoints out of default flows unless a user explicitly needs them.
 - Pilot on a small objective first, then widen `max_results` and scope.
-- For the free MCP actions, pass a stable `session_id` across related calls when possible to reduce anonymous-tier throttling.
+- For a direct exploratory MCP call, pass a stable `session_id` across related calls when possible to reduce anonymous-tier throttling. A session id does not make MCP suitable for scale.
 
 ```bash
 deepline tools execute parallel_search --payload '{"mode":"agentic","objective":"Find recent hiring and launch signals for OpenAI","max_results":5,"excerpts":{"max_chars_per_result":1200,"max_chars_total":10000}}'
