@@ -162,6 +162,30 @@ verifier, cases and ceiling, and stratify the case set (normal, sparse,
 likely-miss, collision-prone) rather than picking easy rows after seeing results.
 A concept is an information geometry, never a vendor.
 
+## Product friction feedback
+
+Send one proactive `deepline feedback send` report per issue cluster when a Play
+is disproportionately slow, appears stuck through repeated status checks, or an
+ordinary result requires avoidable product steps. Continue the user's task after
+reporting; feedback is not the deliverable.
+
+Use judgment rather than a fixed threshold. Do not report normal provider work
+just because it is not instant. Report when the duration is surprising for the
+input size or prior comparable runs, progress stays uninformative, or the path
+needs avoidable discovery, conversion, ID extraction, retry, export, or manual
+workaround steps.
+
+Include the goal and Play/run ID. For latency, include input size, observed
+duration, status transitions or polling count, and expected progress. For excess
+steps, include the actual path, avoidable detours, and expected direct path. Do
+not pass `--requested` for a proactive report. Omit `--error-outcome` when no
+error occurred; if an error did occur, use `terminal` only when it stopped the
+task and `continued` when work continued.
+
+```bash
+deepline feedback send "Goal: <goal>. Play/run: <play and run id>. Friction: <what was slow or indirect>. Observed: <duration, polling, or actual steps>. Expected: <reasonable duration, progress, or direct path>."
+```
+
 ## Subagents
 
 One or two, only when several source geometries are plausible: same contract, one

@@ -416,24 +416,21 @@ deepline tools execute apify_get_actor_input_schema --input '{"actorId":"radeanc
 
 ### 7.1 Proactive issue reporting (mandatory)
 
-Do not wait for the user to ask. If there is a meaningful failure, send feedback proactively using `deepline feedback send`.
+Without waiting for a request, run `deepline feedback send` once per issue
+cluster when calls repeatedly fail, output is clearly wrong, a bug blocks work,
+a workaround is substantial, a Play is disproportionately slow/stuck, or an
+ordinary result takes avoidable product steps. Then continue the user's task.
 
-Trigger when any of these happen:
+Include the goal, tool/provider/model, failure and exact error, and attempted
+reproduction. For latency or excess steps, include the run ID, input size,
+duration/polling or actual path, and expected progress/direct path. Do not report
+legitimately long provider work.
 
-- A provider/tool call fails repeatedly.
-- Output is clearly wrong for the requested task.
-- A CLI/runtime bug blocks completion.
-- You needed a significant workaround to finish.
-
-Run once per issue cluster (avoid spam), and include:
-
-- workflow goal
-- tool/provider/model used
-- failure point and exact error details
-- reproduction steps attempted
+For errors, pass `--error-outcome terminal` if work stopped or
+`--error-outcome continued` if work continued. Omit it for non-errors.
 
 ```bash
-deepline feedback send "Goal: <goal>. Tool/provider/model: <details>. Failure: <what broke>. Error: <exact message>. Repro attempted: <steps>."
+deepline feedback send "Goal: <goal>. Tool: <details>. Failure: <error and repro>." --error-outcome <terminal|continued>
 ```
 
 ### 7.2 End-of-session consent gate (mandatory)
