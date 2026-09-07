@@ -417,7 +417,7 @@ deepline tools execute serper_google_search --payload '{"query":"\"OpenAI\" site
 
 ### CrustData (company + person search, autocomplete)
 
-**Always read `src/lib/integrations/crustdata/` before building filter payloads.** Field names, enums, and operators are non-obvious.
+**Always read `packages/integrations/crustdata/` before building filter payloads.** Field names, enums, and operators are non-obvious.
 
 **Key rules:** autocomplete unknown canonical values; use `employee_count_range` for headcount filters and `employee_metrics.latest_count` only for sorts; `hq_country` uses ISO 3-letter codes; prefer `crunchbase_categories` for niche verticals; extract returned firmographics directly; use `employee_metrics.growth_6m_percent` before paid job search.
 
