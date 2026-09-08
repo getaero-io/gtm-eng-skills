@@ -1320,6 +1320,9 @@ Signature: `class DeeplineClient`
 | `getNotificationDlqDelivery` | method | Inspect one exhausted notification delivery. | `deliveryId: string` | `Promise<unknown>` |
 | `updateNotificationDlqDelivery` | method | Explicitly retry or archive one dead-lettered notification delivery. | `deliveryId: string`<br />`action: 'retry' \| 'archive'` | `Promise<unknown>` |
 | `getNotifications` | method | List the workspace's named notification rules. |  | `Promise<ProductNotificationSettings>` |
+| `getNotificationConfiguration` | method | Read the group-based product-notification configuration and rule catalog. |  | `Promise<ProductNotificationConfigurationResponse>` |
+| `changeNotificationConfiguration` | method | Atomically apply one retry-safe desired configuration change. | `expectedWorkspaceVersion: number`<br />`change: ProductNotificationConfigurationChange` | `Promise<Pick<ProductNotificationConfigurationResponse, 'configuration'>>` |
+| `createNotificationGroup` | method | Create one notification group and its destinations as a retry-safe unit. | `input: CreateNotificationGroupInput` | `Promise<CreateNotificationGroupResult>` |
 | `listNotificationChannels` | method | List Slack channels available to an already-connected Slack integration. | `query?: string` | `Promise<{ identity: { teamId: string; teamName?: string }; channels: Array<{ id: string; name: string; isPrivate: boolean }>; }>` |
 | `createNotification` | method | Create a named notification routed through an existing provider integration. | `input: CreateNotificationInput` | `Promise<unknown>` |
 | `updateNotification` | method | Update a notification's target, event selection, or enabled state. | `notificationId: string`<br />`input: UpdateNotificationInput` | `Promise<unknown>` |
