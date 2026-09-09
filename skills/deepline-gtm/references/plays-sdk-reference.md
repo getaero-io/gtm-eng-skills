@@ -236,7 +236,7 @@ export default definePlay(
 
 ## Play Authoring Contract
 
-New artifacts pin authoring contract edition 6. Check, publish, and run use the same admitted snapshot.
+New artifacts pin authoring contract edition 7. Check, publish, and run use the same admitted snapshot.
 
 <!-- prettier-ignore -->
 | Field | Type | Required | Contract |
