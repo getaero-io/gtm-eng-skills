@@ -246,9 +246,10 @@ proposal or a substitute for a future provider event:
    unavailable. A current-signal probe may still help assess coverage, but it
    is not a monitor test and may consume credits, so keep it opt-in.
 
-Do not fabricate a provider webhook body just to fill the gap. `monitors test
---dispatch` writes rows and can wake Plays, so use it only when the customer has
-explicitly approved a real end-to-end test.
+Do not fabricate a provider webhook body just to fill the gap. `monitors test`
+is the validation-only diagnostic; it does not expose a dispatch mode. A real
+end-to-end event test needs its own explicit customer approval and a separately
+designed delivery path.
 
 ```bash
 # Learn the live job-opening payload fields, output stream, and event price.
@@ -431,18 +432,51 @@ is rejected and points you at `deepline monitors deploy`.
 
 All commands accept `--json` (also automatic when stdout is piped).
 
-| Command                                                             | What it does                                                                                                                                                                                                                                                                                                                                                       |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `deepline monitors status`                                          | Report whether you have monitor access (`has_access`). **Run first.**                                                                                                                                                                                                                                                                                              |
-| `deepline tools list --categories monitors` / `tools get <tool-id>` | **Preferred** discovery. Browse the monitor types you can deploy, and read one type's payload schema + stream columns + pricing. See "Find monitor types and read their filters".                                                                                                                                                                                  |
-| `deepline monitors available [tool-id]`                             | Legacy alias of the `tools` discovery above (still works). Read-only; `--full` or a tool id for one type's full contract.                                                                                                                                                                                                                                          |
-| `deepline monitors check '<definition>'`                            | Validate a monitor definition without deploying. Read-only; spends nothing. Also accepts `--file <path>` or `--file -` (stdin).                                                                                                                                                                                                                                    |
-| `deepline monitors deploy '<definition>'`                           | Deploy a monitor (positional JSON, `--file <path>`, or `--file -`). Mutates workspace state and may spend Deepline credits. `--dry-run` shows the preflight (validity, deploy cost in Deepline credits, existing monitors that may already cover the scope) without deploying.                                                                                     |
-| `deepline monitors list`                                            | List the monitors you HAVE deployed. `--status active\|disabled\|all` (default `active`), `--limit`, `--cursor`, `--compact`. Response carries `total` (true registry count, not the page size), `returned`, `is_truncated`, and `next_cursor`. When `is_truncated` is true, page with `--cursor <next_cursor>` until it is false — see "Reuse before you deploy." |
-| `deepline monitors get <key>`                                       | Show one deployed monitor by its public key. Read-only. When `monitor_spec.available` is true, `monitor_spec.fields` lists every deployable payload field with its description and constraints; legacy records may report it unavailable.                                                                                                                          |
-| `deepline monitors update <key> '<patch>'`                          | Update a deployed monitor (`<patch>` is a JSON object of fields; also `--file`).                                                                                                                                                                                                                                                                                   |
-| `deepline monitors delete <key>`                                    | Delete a deployed monitor and its upstream resource. Prompts y/N in a terminal; non-interactive runs must pass `--yes`. `--dry-run` previews the preflight.                                                                                                                                                                                                        |
-| `deepline monitors reactivate <key>`                                | Reactivate a previously disabled deployed monitor. May spend Deepline credits; `--dry-run` shows the cost first.                                                                                                                                                                                                                                                   |
+| Command                                                             | What it does                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deepline monitors status`                                          | Report whether you have monitor access (`has_access`). **Run first.**                                                                                                                                                                                                                                                                                                                                     |
+| `deepline monitors health [--fleet <id>]`                           | Read the whole-scope delivery and convergence snapshot: desired versus provider-observed state, deactivation reasons, and monitors silent inside the window. A first result may have `refresh.state: "running"`; poll the same read until it is `"completed"` before treating its counts as whole-fleet facts. It currently reports the billing cause but does not yet offer an org-wide recovery action. |
+| `deepline monitors audit [--fleet <id>]`                            | Re-read the upstream resources already bound to Deepline and record the observations. Read-only and idempotent. Use this to establish provider evidence, not to resume billing-paused ingestion. `--watch` waits for the scope to settle.                                                                                                                                                                 |
+| `deepline monitors repair [--fleet <id>]`                           | Queue only provider-observed versus desired-state disagreements onto the ordinary convergence loop. It does not create a missing billing-recovery decision; run `audit` first and use `--dry-run` before asking it to change anything.                                                                                                                                                                    |
+| `deepline tools list --categories monitors` / `tools get <tool-id>` | **Preferred** discovery. Browse the monitor types you can deploy, and read one type's payload schema + stream columns + pricing. See "Find monitor types and read their filters".                                                                                                                                                                                                                         |
+| `deepline monitors available [tool-id]`                             | Legacy alias of the `tools` discovery above (still works). Read-only; `--full` or a tool id for one type's full contract.                                                                                                                                                                                                                                                                                 |
+| `deepline monitors check '<definition>'`                            | Validate a monitor definition without deploying. Read-only; spends nothing. Also accepts `--file <path>` or `--file -` (stdin).                                                                                                                                                                                                                                                                           |
+| `deepline monitors deploy '<definition>'`                           | Deploy a monitor (positional JSON, `--file <path>`, or `--file -`). Mutates workspace state and may spend Deepline credits. `--dry-run` shows the preflight (validity, deploy cost in Deepline credits, existing monitors that may already cover the scope) without deploying.                                                                                                                            |
+| `deepline monitors list`                                            | List the monitors you have deployed. `--status active\|inactive\|all` (default `active`), `--limit`, and `--cursor` page a bounded result. Read `total`, `returned`, `has_more`, and `next_cursor`; keep paging while `has_more` is true. `--include-consumers` adds downstream consumer health but is intentionally limited to 20 rows.                                                                  |
+| `deepline monitors get <key>`                                       | Show one deployed monitor by its public key. Read-only. When `monitor_spec.available` is true, `monitor_spec.fields` lists every deployable payload field with its description and constraints; legacy records may report it unavailable.                                                                                                                                                                 |
+| `deepline monitors test <key> '<payload>'`                          | Validate an explicit provider-shaped callback against the deployed binding without persistence or dispatch. It is the safe event-shape diagnostic; it does not prove the upstream provider will emit a future event.                                                                                                                                                                                      |
+| `deepline monitors validate <key>`                                  | Ask the deployed monitor's provider configuration to validate. This is a configuration check, not delivery evidence.                                                                                                                                                                                                                                                                                      |
+| `deepline monitors update <key> '<patch>'`                          | Patch a deployed monitor (`<patch>` is a JSON object; `--file` also works). Read the definition and run `check` on the merged shape first; an update can replace an upstream resource.                                                                                                                                                                                                                    |
+| `deepline monitors delete <key>`                                    | Delete a deployed monitor and its upstream resource. Prompts y/N in a terminal; non-interactive runs must pass `--yes`. `--dry-run` previews the preflight.                                                                                                                                                                                                                                               |
+| `deepline monitors reactivate <key>`                                | Reactivate a previously disabled deployed monitor. May spend Deepline credits; `--dry-run` shows the cost first.                                                                                                                                                                                                                                                                                          |
+| `deepline monitors fleets init` / `sync` / `get`                    | Create a Fleet definition, converge it, or inspect its computed status and drift. `sync --dry-run` plans; `sync --wait` follows the durable Fleet operation.                                                                                                                                                                                                                                              |
+| `deepline monitors fleets deactivate <fleet-id>`                    | Stop every monitor owned by one Fleet. It is destructive, supports `--dry-run`, requires `--yes` non-interactively, and can `--wait`.                                                                                                                                                                                                                                                                     |
+| `deepline monitors fleets reactivate <fleet-id>`                    | Explicitly recreate a Fleet after credit-triggered suspension. It may restart lifecycle billing; use `--yes --wait` after a dry-run. A credit top-up alone does not currently recreate deleted upstream radars.                                                                                                                                                                                           |
+
+## Billing pause: current safe operator path
+
+`status: active` is control-plane intent, not delivery proof; start with
+`health` when a feed is quiet. `audit` records provider evidence and `repair`
+converges existing intent. Neither resumes a zero-credit pause.
+
+There is no org-wide direct-monitor resume. After credits or a cap are fixed:
+
+1. Read `deepline monitors health --json` until `refresh.state` is `"completed"`.
+2. Reactivate a credit-suspended Fleet through its retained owner:
+
+   ```bash
+   deepline monitors fleets reactivate <fleet-id> --yes --wait --json
+   ```
+
+3. For a fully disabled direct monitor, read its cost before recovery:
+
+   ```bash
+   deepline monitors reactivate <key> --dry-run --json
+   deepline monitors reactivate <key> --json
+   ```
+
+Do not fan out direct recovery while suspension is still stopping resources: it
+can race delete/create. Report that gap rather than inventing bulk recovery.
 
 ## Recover from errors by code
 
@@ -461,8 +495,8 @@ read it back. An update keeps the public key and existing rows, but may replace
 the upstream resource. It does not promise a backfill.
 
 Before a paid deployment, list the whole registry with `--status all`. Follow
-`next_cursor` until `is_truncated` is false. Reuse a monitor with the same tool
-and scope; reactivate a disabled match instead of creating a duplicate. Monitors
+`next_cursor` while `has_more` is true. Reuse a monitor with the same tool and
+scope; reactivate a disabled match instead of creating a duplicate. Monitors
 write to shared streams, so inspect the stream and known dependent Plays before
 changing scope. `sqlListeners.where` can narrow a Play's reaction, but cannot
 prevent a monitor from accepting a billable event.

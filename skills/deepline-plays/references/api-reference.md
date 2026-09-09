@@ -286,6 +286,8 @@ while True:
 | `GET` | `/api/v2/models/describe` | `describeModel` | SDK-facing route. | `src/app/api/v2/models/describe/route.ts`<br />`src/lib/deeplineagent/model-options.ts`<br />`src/lib/deeplineagent/generated/provider-options.ts` |
 | `GET` | `/api/v2/monitors/access` | `monitors status` | SDK-facing route. | `src/app/api/v2/monitors/access/route.ts` |
 | `POST` | `/api/v2/monitors/audit` | `monitors audit` | SDK-facing route. | `src/app/api/v2/monitors/audit/route.ts` |
+| `POST` | `/api/v2/monitors/batch` | `monitors batch submit` | SDK-facing route. | `src/app/api/v2/monitors/batch/route.ts` |
+| `GET` | `/api/v2/monitors/batch/:runId` | `monitors batch get` | SDK-facing route. | `src/app/api/v2/monitors/batch/[runId]/route.ts` |
 | `POST` | `/api/v2/monitors/check` | `monitors check` | SDK-facing route. | `src/app/api/v2/monitors/check/route.ts` |
 | `POST` | `/api/v2/monitors/deploy` | `monitors deploy` | SDK-facing route. | `src/app/api/v2/monitors/deploy/route.ts` |
 | `GET` | `/api/v2/monitors/deployed` | `monitors list` | SDK-facing route. | `src/app/api/v2/monitors/deployed/route.ts` |
