@@ -95,6 +95,16 @@ Contact company filters use AI Ark company IDs, not company names. Get IDs from 
 }
 ```
 
+### Large company exclusions
+
+For a customer-company blacklist, keep the provider IDs private. Run Company
+Search with your own AI Ark credential, collect the returned
+`company_ref_id` values, then call `ai_ark_create_company_list` once with up
+to 10,000 `company_ref_ids` and a stable `idempotency_key`. It returns one
+`company_list_ref_id`, which can be supplied to Company Search as
+`company_exclusion_list_ref_ids` (up to 10 lists). The list expires after 24
+hours. Do not pass AI Ark company or list IDs to the list action.
+
 ### Complete People Search example
 
 ```json
@@ -165,7 +175,8 @@ Contact company filters use AI Ark company IDs, not company names. Get IDs from 
 ### Prospecting
 
 1. **Company Search** (`ai_ark_company_search`) to build account lists. Use `account` filters for firmographics, funding, technology, geography, and optional `lookalikeDomains`.
-2. **People Search** (`ai_ark_people_search`) to find contacts. Use nested `account` and `contact` filters exactly as shown in the examples above.
+2. For a large existing-customer exclusion, make one `ai_ark_create_company_list` from the Company Search `company_ref_id` values, then use its `company_list_ref_id` in a second Company Search through `company_exclusion_list_ref_ids`.
+3. **People Search** (`ai_ark_people_search`) to find contacts from the eligible companies. Use nested `account` and `contact` filters exactly as shown in the examples above.
 
 ### Email Finding (two paths)
 
