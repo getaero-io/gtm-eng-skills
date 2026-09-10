@@ -218,7 +218,7 @@ while True:
 | `GET` | `/api/v2/plays/:name/sheet` | `runs.exportDatasetRows`<br />`getPlaySheetRows` | Read/export runtime sheet rows for a run dataset. | `src/app/api/v2/plays/[name]/sheet/route.ts` |
 | `POST` | `/api/v2/plays/run` | `startPlayRun`<br />`startPlayRunFromBundle`<br />`runPlay` | Start a saved, prebuilt, or artifact-backed play run. | `src/app/api/v2/plays/run/route.ts` |
 | `GET` | `/api/v2/runs` | `runs.list`<br />`listRuns` | List runs with filters such as play name and status. | `src/app/api/v2/runs/route.ts` |
-| `GET` | `/api/v2/runs/:runId` | `runs.get`<br />`getRunStatus`<br />`getPlayStatus` | Read canonical status, result, outputs, and run package. | `src/app/api/v2/runs/[runId]/route.ts` |
+| `GET` | `/api/v2/runs/:runId` | `runs.get`<br />`getRunStatus`<br />`getPlayStatus` | Read canonical status, result, outputs, and run package, including Runs identified by ctx.runPlayAsync. | `src/app/api/v2/runs/[runId]/route.ts` |
 | `GET` | `/api/v2/runs/:runId/input` | `runs.input`<br />`getRunInput` | SDK-facing route. | `src/app/api/v2/runs/[runId]/input/route.ts` |
 | `GET` | `/api/v2/runs/:runId/logs` | `runs.logs`<br />`getRunLogs` | SDK-facing route. | `src/app/api/v2/runs/[runId]/logs/route.ts` |
 | `POST` | `/api/v2/runs/:runId/observe-grant` | `runs.tail`<br />`tailRun`<br />`runPlay` | SDK-facing route. | `src/app/api/v2/runs/[runId]/observe-grant/route.ts` |
@@ -551,11 +551,12 @@ Poll this until `status` reaches a terminal state:
 | `next` | `PlayRunPackage['next'] \| Record<string, unknown>` | No | Structured follow-up actions for inspect/query/export. |
 | `failedLogs` | `{ runId: string; totalCount: number; returnedCount: number; firstSequence: number \| null; lastSequence: number \| null; truncated: boolean; hasMore: boolean; entries: string[]; view?: 'failed'; association?: 'terminal_failure_window' \| 'retained_before_truncation'; warning?: string; next?: { logs: string }; logsTruncated?: boolean; }` | No | Bounded terminal-failure log window requested by `runs.get`. |
 | `rerunCommand` | `string` | No | Exact ordinary `plays run` command that can rerun a failed execution. |
-| `billing` | `RunBillingSummary` | No | Projected settled-charge billing for the run. Returned by `runs.get`.<br />`totalCredits`/`providerEvents` describe THIS run only; `rollup` (present<br />with `--full`) carries the true subtree cost including ctx.runPlay children.<br />Deepline credits only — provider spend is never exposed. |
+| `billing` | `RunBillingSummary` | No | Projected settled-charge billing for the run. Returned by `runs.get`.<br />`totalCredits`/`providerEvents` describe THIS run only; `rollup` (present<br />with `--full`) carries the true subtree cost including independently<br />executing ctx.runPlayAsync descendants. Deepline credits only — provider<br />spend is never exposed. |
 | `billingTotalCreditsRollup` | `number` | No | True subtree cost in Deepline credits (this run + every descendant run),<br />mirrored to the top level for convenience. Present only with `--full`. |
 | `billingChildCredits` | `number` | No | Deepline credits attributable to descendant runs only. Present with `--full`. |
 | `billingRollupIncomplete` | `boolean` | No | True when the child-run billing rollup could not be fully resolved. |
-| `childRuns` | `ChildRunSummary[]` | No | Durable summaries of ctx.runPlay children, returned by `runs.get --full`. |
+| `childRuns` | `ChildRunSummary[]` | No | Durable summaries of ctx.runPlayAsync children, returned by `runs.get --full`. |
+| `childRunProjection` | `AsyncChildRunProjection` | No | Child Runs grouped by the authored ctx.runPlayAsync launch key. `complete`<br />is false when the bounded response is a lower bound rather than the full<br />direct-child set; use each opaque `runId` to retrieve a child Run. |
 
 ### `PlayRunPackage`
 

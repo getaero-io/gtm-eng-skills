@@ -300,6 +300,10 @@ New artifacts pin authoring contract edition 7. Check, publish, and run use the 
 | `ctx.runPlay.options.description` | `string` | Yes | Non-empty purpose for one inline child Play call. |
 | `ctx.runPlay.options.execution` | `'inline'` | No | Child composition strategy. Only inline is supported. |
 | `ctx.runPlay.options.timeoutMs` | `never` | No | Unsupported legacy child-workflow timeout. |
+| `ctx.runPlayAsync.key` | `string` | Yes | Stable identity for one independent child Play Run. |
+| `ctx.runPlayAsync.playRef` | `string \| PlayReferenceLike` | Yes | Independently published scalar child Play name or strongly typed definition handle. |
+| `ctx.runPlayAsync.input` | `Record<string, unknown>` | Yes | Scalar input object submitted to the independent child Run. |
+| `ctx.runPlayAsync.options.description` | `string` | Yes | Non-empty purpose for one independent child Play Run. |
 | `runtime.timeout` | `string` | No | Play-level sandbox deadline. The default is 30m; use a static duration such as 90m or 2h, up to 4h. |
 | `runtime.size` | `'standard'` | No | Deepline-managed sandbox size. Only standard is supported. |
 | `ctx.customerDb.query.statement` | `SqlQuery` | Yes | One non-empty Customer DB SQL string; the deprecated SqlQuery object is accepted only without parameter values. |
@@ -441,8 +445,7 @@ Object-form play definition accepted by `definePlay(config)`.
 Use this form when the input contract should be explicit at definition time
 through `defineInput<T>(schema)`, or when configuration reads clearer as one
 object. The shorthand `definePlay(name, fn, bindings?)` is equivalent for
-simple file-backed plays.
-
+simple file-backed plays.<br />
 Signature: `export type DefinePlayConfig< TInput, TOutput extends PlayReturnObject, > = PlayAuthoringDefineConfig<TInput, TOutput, DeeplinePlayRuntimeContext>;`
 
 ### `PlayBindings`
@@ -464,8 +467,7 @@ A play can be triggered three ways, declared as the third argument to
 
 The default Play runtime is 30 minutes. For bounded long-running batches, add
 `runtime: { timeout: '90m', size: 'standard' }`; duration values are whole minutes or hours, up to `4h`.
-It differs from `ctx.tools.execute({ timeoutMs })`, which limits one provider call.
-
+It differs from `ctx.tools.execute({ timeoutMs })`, which limits one provider call.<br />
 Signature: `export type PlayBindings<TInput = Record<string, unknown>> = PlayAuthoringBindings<TInput>;`
 
 ### `ctx.csv(path, options)`
@@ -488,8 +490,7 @@ Signature: `csv<T = Record<string, unknown>>( path: string | CsvInput<T & object
 
 ### `CsvOptions`
 
-Options for loading a staged CSV with `ctx.csv(...)`.
-
+Options for loading a staged CSV with `ctx.csv(...)`.<br />
 Signature: `export type CsvOptions = CsvOptions;`
 
 ### `ctx.dataset(key, items)`
@@ -690,6 +691,31 @@ Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayRefer
 
 `Promise<TOutput>`
 
+### `ctx.runPlayAsync(key, playRef, input, options)`
+
+Admit an independent scalar Play Run and return its durable identity after scheduler admission, before child completion.
+
+Signature: `runPlayAsync<TInput extends Record<string, unknown>>( key: string, playRef: PlayReferenceLike<TInput>, input: NoInfer<TInput>, options: PlayAuthoringAsyncCallOptions, ): Promise<AsyncPlayRunRef>;`
+
+#### Parameters
+
+<!-- prettier-ignore -->
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `key` | `string` | Yes |  |
+| `playRef` | `PlayReferenceLike<TInput>` | Yes |  |
+| `input` | `NoInfer<TInput>` | Yes |  |
+| `options` | `PlayAuthoringAsyncCallOptions` | Yes |  |
+
+#### Returns
+
+`Promise<AsyncPlayRunRef>` — see [`AsyncPlayRunRef`](#asyncplayrunref)
+
+### `AsyncPlayRunRef`
+
+Serializable reference returned after an async child Run is durable.<br />
+Signature: `export type AsyncPlayRunRef = Readonly<{ runId: PlayRunId; }>;`
+
 ### `ctx.tools.execute(request)`
 
 Execute a provider tool through the terminal-result cache contract.
@@ -714,8 +740,7 @@ Keyword-style request object for `ctx.tools.execute(...)`.
 The `tool` value comes from live tool discovery. The `id` is the stable
 logical call name used for logs, metadata, and result-cache identity. Provider
 result reuse is keyed by play, tool, semantic input, auth scope, provider action
-version, and cache policy.
-
+version, and cache policy.<br />
 Signature: `export type ToolExecutionRequest = PlayToolExecutionRequest;`
 
 ### `ctx.fetch(key, url, init)`
@@ -928,8 +953,7 @@ under `extractedLists.<name>.get()`.
 Use extractors first when a tool contract exposes them. Use list getters for
 row-shaped data. Drop to `toolResponse.raw` only for provider-specific scalar
 fields or bounded debugging context; persisted rows may clip declared lists to
-previews.
-
+previews.<br />
 Signature: `export type ToolExecuteResult< TResult = unknown, TMeta = Record<string, unknown>, TExtracted extends Record<string, unknown> = Partial<DeeplineGetterValueMap>, TLists extends Record<string, Record<string, unknown>> = Record< string, Record<string, unknown> >, > = ToolExecuteResultBase<TResult, TMeta> & ToolExecuteResultAccessors<TExtracted, TLists>;`
 
 ## Errors And Provider Fallthrough
@@ -965,8 +989,7 @@ The boundary responsible for a failed tool call.
 
 Use `provider` to distinguish a provider answer from caller input and
 Deepline infrastructure. `unknown` fails closed and must not trigger a
-waterfall fallback.
-
+waterfall fallback.<br />
 Signature: `export type ToolExecutionErrorOrigin = | 'caller' | 'provider' | 'deepline' | 'unknown';`
 
 ### `ToolExecutionErrorCategory`
@@ -975,16 +998,14 @@ The stable reason family for a failed tool call.
 
 Branch on this field only after narrowing to `ToolExecutionError`. Catch
 `ProviderTransientError` when the policy is simply “try the next read
-provider”; it is the safer and shorter waterfall contract.
-
+provider”; it is the safer and shorter waterfall contract.<br />
 Signature: `export type ToolExecutionErrorCategory = | 'validation' | 'authentication' | 'authorization' | 'rate_limit' | 'network' | 'upstream' | 'billing' | 'conflict' | 'internal' | 'unknown';`
 
 ### `ToolExecutionNetworkKind`
 
 The transport failure observed when `category` is `network`.
 
-This is `null` for failures that are not network failures.
-
+This is `null` for failures that are not network failures.<br />
 Signature: `export type ToolExecutionNetworkKind = | 'timeout' | 'dns' | 'connect' | 'reset' | 'unavailable' | 'unknown';`
 
 ### `ToolExecutionNetworkScope`
@@ -992,23 +1013,20 @@ Signature: `export type ToolExecutionNetworkKind = | 'timeout' | 'dns' | 'connec
 The request boundary on which a network failure occurred.
 
 `deepline_to_provider` is provider-side. Client and runtime scopes are
-Deepline transport failures and never qualify as provider fallthrough.
-
+Deepline transport failures and never qualify as provider fallthrough.<br />
 Signature: `export type ToolExecutionNetworkScope = | 'client_to_deepline' | 'runtime_to_deepline' | 'deepline_to_provider';`
 
 ### `ProviderTransientErrorCategory`
 
 Provider-owned failure categories that may fall through to another read
-provider.
-
+provider.<br />
 Signature: `export type ProviderTransientErrorCategory = | 'rate_limit' | 'network' | 'upstream';`
 
 ### `ToolExecutionPublicDetails`
 
 Bounded, primitive-only diagnostics explicitly approved for customers.
 Raw provider bodies, credentials, prompts, stacks, and causes never belong
-in this shared API/SDK/Play contract.
-
+in this shared API/SDK/Play contract.<br />
 Signature: `export type ToolExecutionPublicDetails = Readonly< Record<string, string | number | boolean | null> >;`
 
 ### `ToolExecutionFailureV1`
@@ -1204,16 +1222,14 @@ Tool/provider operations available from a connected `DeeplineContext`.
 
 This namespace is for regular SDK callers outside a play runtime. Inside a
 `definePlay(...)` body, use `ctx.tools.execute({ id, tool, input, ... })`
-so provider calls become durable runtime checkpoints.
-
+so provider calls become durable runtime checkpoints.<br />
 Signature: `export type DeeplineToolsNamespace = { list(): Promise<ToolDefinition[]>; get(toolId: string): Promise<ToolMetadata>; execute( toolId: string, input: Record<string, unknown>, ): Promise<ToolExecuteResult>; };`
 
 ## Remote Plays And Runs
 
 ### `DeeplineContext.plays`
 
-Named-play discovery and handle operations from a connected `DeeplineContext`.
-
+Named-play discovery and handle operations from a connected `DeeplineContext`.<br />
 Signature: `export type DeeplinePlaysNamespace = { list(): Promise<PlayListItem[]>; get<TInput = Record<string, unknown>, TOutput = unknown>( name: string, ): DeeplineNamedPlay<TInput, TOutput>; };`
 
 ### `DeeplineNamedPlay`
