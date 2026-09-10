@@ -97,13 +97,21 @@ Contact company filters use AI Ark company IDs, not company names. Get IDs from 
 
 ### Large company exclusions
 
-For a customer-company blacklist, keep the provider IDs private. Run Company
-Search with your own AI Ark credential, collect the returned
-`company_ref_id` values, then call `ai_ark_create_company_list` once with up
-to 10,000 `company_ref_ids` and a stable `idempotency_key`. It returns one
+For a customer-company blacklist, run Company Search and collect the returned
+`company_ref_id` values. Call `ai_ark_create_company_list` once with up to
+10,000 `company_ref_ids` and a stable `idempotency_key`; it returns one
 `company_list_ref_id`, which can be supplied to Company Search as
 `company_exclusion_list_ref_ids` (up to 10 lists). The list expires after 24
-hours. Do not pass AI Ark company or list IDs to the list action.
+hours. Deepline keeps the Ark list ID private: managed executions are isolated
+to the Deepline workspace, while an active customer Ark key uses that
+customer's native Ark account. Do not pass Ark company or list IDs to the list
+action.
+
+This is a **Company Search-only** feature. Ark's published People Search and
+Export People APIs accept `lists.people_id.exclude`, but not
+`lists.company_id.exclude`. Do not send `company_exclusion_list_ref_ids` to
+People Search or Export People; direct Ark API calls have the same endpoint
+limitation.
 
 ### Complete People Search example
 
@@ -176,7 +184,7 @@ hours. Do not pass AI Ark company or list IDs to the list action.
 
 1. **Company Search** (`ai_ark_company_search`) to build account lists. Use `account` filters for firmographics, funding, technology, geography, and optional `lookalikeDomains`.
 2. For a large existing-customer exclusion, make one `ai_ark_create_company_list` from the Company Search `company_ref_id` values, then use its `company_list_ref_id` in a second Company Search through `company_exclusion_list_ref_ids`.
-3. **People Search** (`ai_ark_people_search`) to find contacts from the eligible companies. Use nested `account` and `contact` filters exactly as shown in the examples above.
+3. **People Search** (`ai_ark_people_search`) uses its documented nested `account`, `contact`, and optional `lists.people_id` filters. It cannot accept the Company Search exclusion list; do not claim that an account blacklist carries into People Search.
 
 ### Email Finding (two paths)
 
