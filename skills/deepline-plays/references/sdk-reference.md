@@ -1316,6 +1316,7 @@ Signature: `class DeeplineClient`
 | `listPlayRuns` | method | List recent runs for a named play.<br /><br />Returns runs sorted by start time (newest first), including workflow IDs,<br />status, timestamps, and metadata. | `playName: string` - The play name to query | `Promise<PlayRunListItem[]>` |
 | `getRunStatus` | method | Get a run by id using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs get <run-id> --json<br />``` | `runId: string`<br />`options?: RunsGetOptions` | `Promise<PlayStatus>` |
 | `listRuns` | method | List play runs using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs list --play <play-name> --status failed --json<br />``` | `options: RunsListOptions` | `Promise<PlayRunListItem[]>` |
+| `listRunsPage` | method | Read one run page without discarding server pagination metadata. | `options: RunsListOptions` | `Promise<RunsListPage>` |
 | `observeRunEvents` | method | Observe one run's live events. Uses the Convex Run Snapshot subscription<br />transport first (ADR-0008), then falls back to the canonical SSE stream<br />when the subscription transport or its optional client modules are not<br />available. Pass `fallback: 'none'` to receive<br />`RunObserveTransportUnavailableError` instead. | `runId: string`<br />`options?: { signal?: AbortSignal; onNotice?: (message: string) => void; fallback?: 'sse' \| 'none'; }` | `AsyncGenerator<PlayLiveEvent>` |
 | `tailRun` | method | Read the canonical run stream until a terminal run status is observed.<br /><br />Tries the Convex Run Snapshot subscription transport first (ADR-0008);<br />when the server cannot serve it (grant endpoint missing/unconfigured or<br />Convex unreachable) it falls back — with one `onNotice` message — to the<br />support-window SSE stream below.<br /><br />Server stream windows are finite: they end cleanly at the function<br />ceiling even while the run keeps executing. A window that ends (cleanly<br />or via transient network error) without a terminal event triggers one<br />durable-status re-check followed by a backed-off reconnect, so long runs<br />tail to completion. Abort via `options.signal` to stop waiting. | `runId: string`<br />`options?: RunsTailOptions` | `Promise<PlayStatus>` |
 | `getRunInput` | method | Get the exact original input retained for a run. This is intentionally separate from status. | `runId: string` | `Promise<{ runId: string; input: Record<string, unknown> \| unknown[]; bytes: number; sha256: string \| null; replayedFromRunId: string \| null; }>` |
@@ -1324,7 +1325,8 @@ Signature: `class DeeplineClient`
 | `getPlaySheetRows` | method | Export persisted runtime-sheet rows for a play dataset/table namespace.<br /><br />This is the SDK form of exporting `ctx.dataset(...).run()` output for a<br />specific play and optional run id. | `input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; rowMode?: 'output' \| 'all'; }` | `Promise<PlaySheetRowsResult>` |
 | `stopRun` | method | Stop a run by id using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs stop <run-id> --reason "stale lock" --json<br />``` | `runId: string`<br />`options?: { reason?: string }` | `Promise<StopPlayRunResult>` |
 | `stopAllRuns` | method | Stop every active run visible to the current workspace.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs stop-all --reason "stale lock" --json<br />```<br /><br />Use this when a failed parent run left child or waiting runs active and you<br />need to clear the workspace run-slot state without knowing each run id. | `options?: { reason?: string; }` | `Promise<StopAllPlayRunsResult>` |
-| `listPlays` | method | List callable plays visible to the workspace.<br /><br />Pass `origin: "prebuilt"` for Deepline-managed prebuilts or<br />`origin: "owned"` for org-owned plays. | `options?: { origin?: 'prebuilt' \| 'owned'; grep?: string; grepMode?: 'all' \| 'any' \| 'phrase'; categories?: string \| string[]; includeToolCategories?: boolean; includeArchived?: boolean; }` | `Promise<PlayListItem[]>` |
+| `listPlays` | method | List one page of callable plays; grep retains exhaustive matching results.<br />Use listPlaysPage to retain pagination metadata.<br /><br />Pass `origin: "prebuilt"` for Deepline-managed prebuilts or<br />`origin: "owned"` for org-owned plays. | `options?: PlaysListOptions` | `Promise<PlayListItem[]>` |
+| `listPlaysPage` | method | Read one bounded inventory page; cursor continues the same filters. | `options?: PlaysListOptions & { limit?: number; cursor?: string \| null; }` | `Promise<PlaysListPage>` |
 | `setPlayPinned` | method | Set whether an org-owned Play sorts before unpinned Plays. | `playName: string`<br />`pinned: boolean` | `Promise<{ name: string; pinned: boolean }>` |
 | `getNotificationSettings` | method | Read product-notification destinations, subscriptions, event catalog, and DLQ health. |  | `Promise<ProductNotificationSettings>` |
 | `connectNotificationSlack` | method | Start the Slack OAuth flow required by product notifications. | `options?: { successUrl?: string; failureUrl?: string; }` | `Promise<{ ok: boolean; redirect_url: string }>` |
@@ -1376,11 +1378,8 @@ Signature: `class DeeplineClient`
 
 ### `client.runs`
 
-Public runs namespace exposed as `client.runs`.
-
-This namespace mirrors the canonical `/api/v2/runs` resource family and is
-the preferred low-level surface for polling, streaming, stopping, reading
-logs, and exporting durable dataset rows.
+`client.runs` mirrors `/api/v2/runs`: the preferred low-level surface for
+polling, streaming, stopping, reading logs, and exporting durable dataset rows.
 
 #### Fields
 
@@ -1391,6 +1390,7 @@ logs, and exporting durable dataset rows.
 | `input` | `(runId: string) => Promise<{ runId: string; input: Record<string, unknown> \| unknown[]; bytes: number; sha256: string \| null; replayedFromRunId: string \| null; }>` | Yes | Explicitly read the retained original input (may include customer data). |
 | `rerun` | `(runId: string) => Promise<{ runId: string; replayedFromRunId: string; revisionId: string \| null; status: string; next: { inspect: string; input: string }; }>` | Yes | Start a fresh run from a prior run's retained input and pinned revision. |
 | `list` | `(options: RunsListOptions) => Promise<PlayRunListItem[]>` | Yes | List runs for one play, optionally filtered by status. |
+| `listPage` | `(options: RunsListOptions) => Promise<RunsListPage>` | Yes | Read one run page with total, offset, limit and completeness metadata. |
 | `tail` | `(runId: string, options?: RunsTailOptions) => Promise<PlayStatus>` | Yes | Stream run events and return the latest/terminal run status. |
 | `logs` | `(runId: string, options?: RunsLogsOptions) => Promise<RunsLogsResult>` | Yes | Fetch persisted log lines for a run. |
 | `exportDatasetRows` | `(input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; rowMode?: 'output' \| 'all'; }) => Promise<PlaySheetRowsResult>` | Yes | Export persisted rows for a runtime-sheet dataset/table namespace. |

@@ -624,11 +624,8 @@ Result returned by `DeeplineClient.stopPlay`.
 
 ### `RunsNamespace`
 
-Public runs namespace exposed as `client.runs`.
-
-This namespace mirrors the canonical `/api/v2/runs` resource family and is
-the preferred low-level surface for polling, streaming, stopping, reading
-logs, and exporting durable dataset rows.
+`client.runs` mirrors `/api/v2/runs`: the preferred low-level surface for
+polling, streaming, stopping, reading logs, and exporting durable dataset rows.
 
 #### Fields
 
@@ -639,6 +636,7 @@ logs, and exporting durable dataset rows.
 | `input` | `(runId: string) => Promise<{ runId: string; input: Record<string, unknown> \| unknown[]; bytes: number; sha256: string \| null; replayedFromRunId: string \| null; }>` | Yes | Explicitly read the retained original input (may include customer data). |
 | `rerun` | `(runId: string) => Promise<{ runId: string; replayedFromRunId: string; revisionId: string \| null; status: string; next: { inspect: string; input: string }; }>` | Yes | Start a fresh run from a prior run's retained input and pinned revision. |
 | `list` | `(options: RunsListOptions) => Promise<PlayRunListItem[]>` | Yes | List runs for one play, optionally filtered by status. |
+| `listPage` | `(options: RunsListOptions) => Promise<RunsListPage>` | Yes | Read one run page with total, offset, limit and completeness metadata. |
 | `tail` | `(runId: string, options?: RunsTailOptions) => Promise<PlayStatus>` | Yes | Stream run events and return the latest/terminal run status. |
 | `logs` | `(runId: string, options?: RunsLogsOptions) => Promise<RunsLogsResult>` | Yes | Fetch persisted log lines for a run. |
 | `exportDatasetRows` | `(input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; rowMode?: 'output' \| 'all'; }) => Promise<PlaySheetRowsResult>` | Yes | Export persisted rows for a runtime-sheet dataset/table namespace. |
