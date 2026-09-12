@@ -283,7 +283,7 @@ while True:
 | `POST` | `/api/v2/cli/send-session/chunk` | `sessions send` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/cli/send-session/chunk/route.ts` |
 | `POST` | `/api/v2/cli/send-session/finalize` | `sessions send` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/cli/send-session/finalize/route.ts` |
 | `POST` | `/api/v2/ingestion/repair` | `repairIngestionStorage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/ingestion/repair/route.ts` |
-| `GET` | `/api/v2/models/describe` | `describeModel` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/models/describe/route.ts`<br />`src/lib/deeplineagent/model-options.ts`<br />`src/lib/deeplineagent/generated/provider-options.ts` |
+| `GET` | `/api/v2/models/describe` | `describeModel` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/models/describe/route.ts`<br />`src/lib/deeplineagent/model-options.ts`<br />`packages/integrations/deeplineagent/generated/provider-options.ts` |
 | `GET` | `/api/v2/monitors/access` | `monitors status` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/access/route.ts` |
 | `POST` | `/api/v2/monitors/audit` | `monitors audit` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/audit/route.ts` |
 | `POST` | `/api/v2/monitors/batch` | `monitors batch submit` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/batch/route.ts` |
