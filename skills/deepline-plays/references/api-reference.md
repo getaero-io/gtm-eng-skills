@@ -185,157 +185,157 @@ while True:
 <!-- prettier-ignore -->
 | Method | Path | SDK/client surface | Purpose | Source |
 |---|---|---|---|---|
-| `GET` | `/api/v2/health` | `health` | Check API availability and SDK target health. | `src/app/api/v2/health/route.ts` |
+| `GET` | `/api/v2/health` | `health` | Check API availability and SDK target health. | `apps/deepline-api/src/app/api/v2/health/route.ts` |
 
 ### Tool And Provider Calls
 
 <!-- prettier-ignore -->
 | Method | Path | SDK/client surface | Purpose | Source |
 |---|---|---|---|---|
-| `GET` | `/api/v2/integrations/:toolId` | `getTool` | Describe one provider-backed tool by integration id. | `src/app/api/v2/integrations/[toolId]/route.ts` |
-| `POST` | `/api/v2/integrations/:toolId/execute` | `executeTool`<br />`executeToolRaw` | Execute one provider-backed tool call through Deepline. | `src/app/api/v2/integrations/execute/route.ts` |
-| `GET` | `/api/v2/integrations/:toolId/get` | `getTool` | Describe one provider-backed tool, including schema, pricing, guidance, and extractors. | `src/app/api/v2/integrations/get/route.ts` |
-| `POST` | `/api/v2/integrations/:toolId/quote` | `quoteInferenceTool` | SDK-facing route. | `src/app/api/v2/integrations/[toolId]/quote/route.ts`<br />`src/lib/deeplineagent/quote-service.ts`<br />`src/lib/deeplineagent/quote.ts` |
-| `POST` | `/api/v2/integrations/connect` | `connectNotificationSlack` | SDK-facing route. | `src/app/api/v2/integrations/connect/route.ts` |
-| `GET` | `/api/v2/integrations/list` | `searchTools` | Compatibility discovery route for integration/tool listing. | `src/app/api/v2/integrations/list/route.ts` |
-| `GET` | `/api/v2/tools` | `listTools` | List callable provider/tool definitions. | `src/app/api/v2/tools/route.ts` |
-| `GET` | `/api/v2/tools/providers` | `listProviders` | SDK-facing route. | `src/app/api/v2/tools/providers/route.ts` |
-| `GET` | `/api/v2/tools/search` | `searchTools` | Search callable provider/tool definitions with ranked metadata search. | `src/app/api/v2/tools/search/route.ts` |
+| `GET` | `/api/v2/integrations/:toolId` | `getTool` | Describe one provider-backed tool by integration id. | `apps/deepline-api/src/app/api/v2/integrations/[toolId]/route.ts` |
+| `POST` | `/api/v2/integrations/:toolId/execute` | `executeTool`<br />`executeToolRaw` | Execute one provider-backed tool call through Deepline. | `apps/deepline-api/src/app/api/v2/integrations/execute/route.ts` |
+| `GET` | `/api/v2/integrations/:toolId/get` | `getTool` | Describe one provider-backed tool, including schema, pricing, guidance, and extractors. | `apps/deepline-api/src/app/api/v2/integrations/get/route.ts` |
+| `POST` | `/api/v2/integrations/:toolId/quote` | `quoteInferenceTool` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/integrations/[toolId]/quote/route.ts`<br />`src/lib/deeplineagent/quote-service.ts`<br />`src/lib/deeplineagent/quote.ts` |
+| `POST` | `/api/v2/integrations/connect` | `connectNotificationSlack` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/integrations/connect/route.ts` |
+| `GET` | `/api/v2/integrations/list` | `searchTools` | Compatibility discovery route for integration/tool listing. | `apps/deepline-api/src/app/api/v2/integrations/list/route.ts` |
+| `GET` | `/api/v2/tools` | `listTools` | List callable provider/tool definitions. | `apps/deepline-api/src/app/api/v2/tools/route.ts` |
+| `GET` | `/api/v2/tools/providers` | `listProviders` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/tools/providers/route.ts` |
+| `GET` | `/api/v2/tools/search` | `searchTools` | Search callable provider/tool definitions with ranked metadata search. | `apps/deepline-api/src/app/api/v2/tools/search/route.ts` |
 
 ### Customer Data
 
 <!-- prettier-ignore -->
 | Method | Path | SDK/client surface | Purpose | Source |
 |---|---|---|---|---|
-| `POST` | `/api/v2/db/query` | `db.query`<br />`queryCustomerDb` | Run a bounded query against the customer data plane. | `src/app/api/v2/db/query/route.ts` |
+| `POST` | `/api/v2/db/query` | `db.query`<br />`queryCustomerDb` | Run a bounded query against the customer data plane. | `apps/deepline-api/src/app/api/v2/db/query/route.ts` |
 
 ### Play Runs
 
 <!-- prettier-ignore -->
 | Method | Path | SDK/client surface | Purpose | Source |
 |---|---|---|---|---|
-| `GET` | `/api/v2/plays/:name/runs` | `listPlayRuns` | List recent runs for one play. | `src/app/api/v2/plays/[name]/runs/route.ts` |
-| `GET` | `/api/v2/plays/:name/sheet` | `runs.exportDatasetRows`<br />`getPlaySheetRows` | Read/export runtime sheet rows for a run dataset. | `src/app/api/v2/plays/[name]/sheet/route.ts` |
-| `POST` | `/api/v2/plays/run` | `startPlayRun`<br />`startPlayRunFromBundle`<br />`runPlay` | Start a saved, prebuilt, or artifact-backed play run. | `src/app/api/v2/plays/run/route.ts` |
-| `GET` | `/api/v2/runs` | `runs.list`<br />`listRuns` | List runs with filters such as play name and status. | `src/app/api/v2/runs/route.ts` |
-| `GET` | `/api/v2/runs/:runId` | `runs.get`<br />`getRunStatus`<br />`getPlayStatus` | Read canonical status, result, outputs, and run package, including Runs identified by ctx.runPlayAsync. | `src/app/api/v2/runs/[runId]/route.ts` |
-| `GET` | `/api/v2/runs/:runId/input` | `runs.input`<br />`getRunInput` | SDK-facing route. | `src/app/api/v2/runs/[runId]/input/route.ts` |
-| `GET` | `/api/v2/runs/:runId/logs` | `runs.logs`<br />`getRunLogs` | SDK-facing route. | `src/app/api/v2/runs/[runId]/logs/route.ts` |
-| `POST` | `/api/v2/runs/:runId/observe-grant` | `runs.tail`<br />`tailRun`<br />`runPlay` | SDK-facing route. | `src/app/api/v2/runs/[runId]/observe-grant/route.ts` |
-| `POST` | `/api/v2/runs/:runId/rerun` | `runs.rerun`<br />`rerun` | SDK-facing route. | `src/app/api/v2/runs/[runId]/rerun/route.ts` |
-| `POST` | `/api/v2/runs/:runId/stop` | `runs.stop`<br />`stopRun`<br />`cancelPlay`<br />`stopPlay` | Stop a running or waiting play run. | `src/app/api/v2/runs/[runId]/stop/route.ts` |
-| `GET` | `/api/v2/runs/:runId/tail` | `runs.tail`<br />`tailRun` | Stream canonical run events over SSE. | `src/app/api/v2/runs/[runId]/tail/route.ts` |
+| `GET` | `/api/v2/plays/:name/runs` | `listPlayRuns` | List recent runs for one play. | `apps/deepline-api/src/app/api/v2/plays/[name]/runs/route.ts` |
+| `GET` | `/api/v2/plays/:name/sheet` | `runs.exportDatasetRows`<br />`getPlaySheetRows` | Read/export runtime sheet rows for a run dataset. | `apps/deepline-api/src/app/api/v2/plays/[name]/sheet/route.ts` |
+| `POST` | `/api/v2/plays/run` | `startPlayRun`<br />`startPlayRunFromBundle`<br />`runPlay` | Start a saved, prebuilt, or artifact-backed play run. | `apps/deepline-api/src/app/api/v2/plays/run/route.ts` |
+| `GET` | `/api/v2/runs` | `runs.list`<br />`listRuns` | List runs with filters such as play name and status. | `apps/deepline-api/src/app/api/v2/runs/route.ts` |
+| `GET` | `/api/v2/runs/:runId` | `runs.get`<br />`getRunStatus`<br />`getPlayStatus` | Read canonical status, result, outputs, and run package, including Runs identified by ctx.runPlayAsync. | `apps/deepline-api/src/app/api/v2/runs/[runId]/route.ts` |
+| `GET` | `/api/v2/runs/:runId/input` | `runs.input`<br />`getRunInput` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/input/route.ts` |
+| `GET` | `/api/v2/runs/:runId/logs` | `runs.logs`<br />`getRunLogs` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/logs/route.ts` |
+| `POST` | `/api/v2/runs/:runId/observe-grant` | `runs.tail`<br />`tailRun`<br />`runPlay` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/observe-grant/route.ts` |
+| `POST` | `/api/v2/runs/:runId/rerun` | `runs.rerun`<br />`rerun` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/rerun/route.ts` |
+| `POST` | `/api/v2/runs/:runId/stop` | `runs.stop`<br />`stopRun`<br />`cancelPlay`<br />`stopPlay` | Stop a running or waiting play run. | `apps/deepline-api/src/app/api/v2/runs/[runId]/stop/route.ts` |
+| `GET` | `/api/v2/runs/:runId/tail` | `runs.tail`<br />`tailRun` | Stream canonical run events over SSE. | `apps/deepline-api/src/app/api/v2/runs/[runId]/tail/route.ts` |
 
 ### Play Definitions
 
 <!-- prettier-ignore -->
 | Method | Path | SDK/client surface | Purpose | Source |
 |---|---|---|---|---|
-| `GET` | `/api/v2/plays` | `listPlays`<br />`searchPlays` | List or search callable plays. | `src/app/api/v2/plays/route.ts` |
-| `DELETE` | `/api/v2/plays/:name` | `deletePlay` | Delete a saved org-owned play. | `src/app/api/v2/plays/[name]/route.ts` |
-| `GET` | `/api/v2/plays/:name` | `getPlay`<br />`describePlay` | Describe a saved, shared, or prebuilt play. | `src/app/api/v2/plays/[name]/route.ts` |
-| `POST` | `/api/v2/plays/:name/history/clear` | `clearPlayHistory` | SDK-facing route. | `src/app/api/v2/plays/[name]/history/clear/route.ts` |
-| `POST` | `/api/v2/plays/:name/live` | `publishPlayVersion` | Promote a revision as the live named play. | `src/app/api/v2/plays/[name]/live/route.ts` |
-| `GET` | `/api/v2/plays/:name/versions` | `listPlayVersions` | List saved play revisions. | `src/app/api/v2/plays/[name]/versions/route.ts` |
+| `GET` | `/api/v2/plays` | `listPlays`<br />`searchPlays` | List or search callable plays. | `apps/deepline-api/src/app/api/v2/plays/route.ts` |
+| `DELETE` | `/api/v2/plays/:name` | `deletePlay` | Delete a saved org-owned play. | `apps/deepline-api/src/app/api/v2/plays/[name]/route.ts` |
+| `GET` | `/api/v2/plays/:name` | `getPlay`<br />`describePlay` | Describe a saved, shared, or prebuilt play. | `apps/deepline-api/src/app/api/v2/plays/[name]/route.ts` |
+| `POST` | `/api/v2/plays/:name/history/clear` | `clearPlayHistory` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/history/clear/route.ts` |
+| `POST` | `/api/v2/plays/:name/live` | `publishPlayVersion` | Promote a revision as the live named play. | `apps/deepline-api/src/app/api/v2/plays/[name]/live/route.ts` |
+| `GET` | `/api/v2/plays/:name/versions` | `listPlayVersions` | List saved play revisions. | `apps/deepline-api/src/app/api/v2/plays/[name]/versions/route.ts` |
 
 ### Play Artifacts
 
 <!-- prettier-ignore -->
 | Method | Path | SDK/client surface | Purpose | Source |
 |---|---|---|---|---|
-| `POST` | `/api/v2/plays/artifacts` | `registerPlayArtifact` | Register a bundled play artifact for ad hoc runs. | `src/app/api/v2/plays/artifacts/route.ts` |
-| `POST` | `/api/v2/plays/check` | `checkPlayArtifact` | Validate a play bundle before storing or running it. | `src/app/api/v2/plays/check/route.ts` |
-| `POST` | `/api/v2/plays/files/stage` | `stagePlayFiles`<br />`resolveStagedPlayFiles` | Stage CSV or packaged files used by play runs. | `src/app/api/v2/plays/files/stage/route.ts` |
+| `POST` | `/api/v2/plays/artifacts` | `registerPlayArtifact` | Register a bundled play artifact for ad hoc runs. | `apps/deepline-api/src/app/api/v2/plays/artifacts/route.ts` |
+| `POST` | `/api/v2/plays/check` | `checkPlayArtifact` | Validate a play bundle before storing or running it. | `apps/deepline-api/src/app/api/v2/plays/check/route.ts` |
+| `POST` | `/api/v2/plays/files/stage` | `stagePlayFiles`<br />`resolveStagedPlayFiles` | Stage CSV or packaged files used by play runs. | `apps/deepline-api/src/app/api/v2/plays/files/stage/route.ts` |
 
 ### Management And CLI
 
 <!-- prettier-ignore -->
 | Method | Path | SDK/client surface | Purpose | Source |
 |---|---|---|---|---|
-| `POST` | `/api/v2/auth/cli/org-create` | `org create` | SDK-facing route. | `src/app/api/v2/auth/cli/org-create/route.ts` |
-| `POST` | `/api/v2/auth/cli/organizations` | `org list` | SDK-facing route. | `src/app/api/v2/auth/cli/organizations/route.ts` |
-| `POST` | `/api/v2/auth/cli/register` | `auth register` | SDK-facing route. | `src/app/api/v2/auth/cli/register/route.ts` |
-| `POST` | `/api/v2/auth/cli/status` | `auth status` | SDK-facing route. | `src/app/api/v2/auth/cli/status/route.ts` |
-| `POST` | `/api/v2/auth/cli/switch` | `org set`<br />`org switch` | SDK-facing route. | `src/app/api/v2/auth/cli/switch/route.ts` |
-| `GET` | `/api/v2/billing/auto-recharge` | `billing.autoRecharge.get`<br />`getTargetAutoRecharge`<br />`billing auto-recharge status` | SDK-facing route. | `src/app/api/v2/billing/auto-recharge/route.ts` |
-| `PUT` | `/api/v2/billing/auto-recharge` | `billing.autoRecharge.update`<br />`updateTargetAutoRecharge`<br />`billing auto-recharge set|off` | SDK-facing route. | `src/app/api/v2/billing/auto-recharge/route.ts` |
-| `GET` | `/api/v2/billing/balance` | `billing balance` | SDK-facing route. | `src/app/api/v2/billing/balance/route.ts` |
-| `GET` | `/api/v2/billing/catalog/current` | `billing.plans`<br />`getBillingPlans`<br />`billing plans` | SDK-facing route. | `src/app/api/v2/billing/catalog/current/route.ts` |
-| `POST` | `/api/v2/billing/checkout` | `billing checkout` | SDK-facing route. | `src/app/api/v2/billing/checkout/route.ts` |
-| `POST` | `/api/v2/billing/checkout/verify` | `billing redeem` | SDK-facing route. | `src/app/api/v2/billing/checkout/verify/route.ts` |
-| `POST` | `/api/v2/billing/credit-purchases` | `purchaseTargetBillingCredits` | SDK-facing route. | `src/app/api/v2/billing/credit-purchases/route.ts` |
-| `GET` | `/api/v2/billing/invoices` | `billing.invoices.list`<br />`listBillingInvoices`<br />`billing invoices` | SDK-facing route. | `src/app/api/v2/billing/invoices/route.ts` |
-| `GET` | `/api/v2/billing/ledger` | `billing history` | SDK-facing route. | `src/app/api/v2/billing/ledger/route.ts` |
-| `DELETE` | `/api/v2/billing/limit` | `billing limit off` | SDK-facing route. | `src/app/api/v2/billing/limit/route.ts` |
-| `GET` | `/api/v2/billing/limit` | `billing limit` | SDK-facing route. | `src/app/api/v2/billing/limit/route.ts` |
-| `POST` | `/api/v2/billing/limit` | `billing limit set` | SDK-facing route. | `src/app/api/v2/billing/limit/route.ts` |
-| `POST` | `/api/v2/billing/plan-transitions` | `transitionTargetBillingPlan` | SDK-facing route. | `src/app/api/v2/billing/plan-transitions/route.ts` |
-| `GET` | `/api/v2/billing/plans` | `getTargetBillingPlans` | SDK-facing route. | `src/app/api/v2/billing/plans/route.ts` |
-| `POST` | `/api/v2/billing/portal-sessions` | `createTargetBillingPortalSession` | SDK-facing route. | `src/app/api/v2/billing/portal-sessions/route.ts` |
-| `GET` | `/api/v2/billing/status` | `getTargetBillingStatus` | SDK-facing route. | `src/app/api/v2/billing/status/route.ts` |
-| `POST` | `/api/v2/billing/subscription/cancel` | `billing.subscription.cancel`<br />`cancelBillingSubscription`<br />`billing subscription cancel` | SDK-facing route. | `src/app/api/v2/billing/subscription/cancel/route.ts` |
-| `POST` | `/api/v2/billing/subscription/checkout` | `billing subscribe` | SDK-facing route. | `src/app/api/v2/billing/subscription/checkout/route.ts` |
-| `GET` | `/api/v2/billing/subscription/status` | `billing.subscription.status`<br />`getBillingSubscriptionStatus`<br />`billing subscription status` | SDK-facing route. | `src/app/api/v2/billing/subscription/status/route.ts` |
-| `POST` | `/api/v2/billing/top-up` | `billing.topUp`<br />`topUpBillingBalance`<br />`billing top-up` | SDK-facing route. | `src/app/api/v2/billing/top-up/route.ts` |
-| `GET` | `/api/v2/billing/usage` | `billing usage` | SDK-facing route. | `src/app/api/v2/billing/usage/route.ts` |
-| `POST` | `/api/v2/cli/feedback` | `feedback` | SDK-facing route. | `src/app/api/v2/cli/feedback/route.ts` |
-| `POST` | `/api/v2/cli/send-session` | `sessions send` | SDK-facing route. | `src/app/api/v2/cli/send-session/route.ts` |
-| `POST` | `/api/v2/cli/send-session/chunk` | `sessions send` | SDK-facing route. | `src/app/api/v2/cli/send-session/chunk/route.ts` |
-| `POST` | `/api/v2/cli/send-session/finalize` | `sessions send` | SDK-facing route. | `src/app/api/v2/cli/send-session/finalize/route.ts` |
-| `POST` | `/api/v2/ingestion/repair` | `repairIngestionStorage` | SDK-facing route. | `src/app/api/v2/ingestion/repair/route.ts` |
-| `GET` | `/api/v2/models/describe` | `describeModel` | SDK-facing route. | `src/app/api/v2/models/describe/route.ts`<br />`src/lib/deeplineagent/model-options.ts`<br />`src/lib/deeplineagent/generated/provider-options.ts` |
-| `GET` | `/api/v2/monitors/access` | `monitors status` | SDK-facing route. | `src/app/api/v2/monitors/access/route.ts` |
-| `POST` | `/api/v2/monitors/audit` | `monitors audit` | SDK-facing route. | `src/app/api/v2/monitors/audit/route.ts` |
-| `POST` | `/api/v2/monitors/batch` | `monitors batch submit` | SDK-facing route. | `src/app/api/v2/monitors/batch/route.ts` |
-| `GET` | `/api/v2/monitors/batch/:runId` | `monitors batch get` | SDK-facing route. | `src/app/api/v2/monitors/batch/[runId]/route.ts` |
-| `POST` | `/api/v2/monitors/check` | `monitors check` | SDK-facing route. | `src/app/api/v2/monitors/check/route.ts` |
-| `POST` | `/api/v2/monitors/deploy` | `monitors deploy` | SDK-facing route. | `src/app/api/v2/monitors/deploy/route.ts` |
-| `GET` | `/api/v2/monitors/deployed` | `monitors list` | SDK-facing route. | `src/app/api/v2/monitors/deployed/route.ts` |
-| `DELETE` | `/api/v2/monitors/deployed/:key` | `monitors delete` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/route.ts` |
-| `GET` | `/api/v2/monitors/deployed/:key` | `monitors get` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/route.ts` |
-| `PATCH` | `/api/v2/monitors/deployed/:key` | `monitors update` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/route.ts` |
-| `POST` | `/api/v2/monitors/deployed/:key/reactivate` | `monitors reactivate` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/reactivate/route.ts` |
-| `POST` | `/api/v2/monitors/deployed/:key/test` | `monitors test` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/test/route.ts` |
-| `POST` | `/api/v2/monitors/deployed/:key/validate` | `monitors validate` | SDK-facing route. | `src/app/api/v2/monitors/deployed/[key]/validate/route.ts` |
-| `GET` | `/api/v2/monitors/fleets` | `monitors fleets get (no id)` | SDK-facing route. | `src/app/api/v2/monitors/fleets/route.ts` |
-| `DELETE` | `/api/v2/monitors/fleets/:fleetId` | `monitors fleets deactivate` | SDK-facing route. | `src/app/api/v2/monitors/fleets/[fleetId]/route.ts` |
-| `GET` | `/api/v2/monitors/fleets/:fleetId` | `monitors fleets get` | SDK-facing route. | `src/app/api/v2/monitors/fleets/[fleetId]/route.ts` |
-| `PUT` | `/api/v2/monitors/fleets/:fleetId` | `monitors fleets sync` | SDK-facing route. | `src/app/api/v2/monitors/fleets/[fleetId]/route.ts` |
-| `POST` | `/api/v2/monitors/fleets/:fleetId/reactivate` | `monitors fleets reactivate` | SDK-facing route. | `src/app/api/v2/monitors/fleets/[fleetId]/reactivate/route.ts` |
-| `POST` | `/api/v2/monitors/fleets/check` | `retained fleet definition check for installed clients (no CLI command)` | SDK-facing route. | `src/app/api/v2/monitors/fleets/check/route.ts` |
-| `GET` | `/api/v2/monitors/health` | `monitors health`<br />`monitors audit --watch` | SDK-facing route. | `src/app/api/v2/monitors/health/route.ts` |
-| `POST` | `/api/v2/monitors/repair` | `monitors repair` | SDK-facing route. | `src/app/api/v2/monitors/repair/route.ts` |
-| `POST` | `/api/v2/monitors/setup` | `monitors deploy (provider-specific post-deploy readback)` | SDK-facing route. | `src/app/api/v2/monitors/setup/[tool]/route.ts` |
-| `GET` | `/api/v2/monitors/tools` | `monitors available` | SDK-facing route. | `src/app/api/v2/monitors/tools/route.ts` |
-| `GET` | `/api/v2/notifications` | `getNotifications` | SDK-facing route. | `src/app/api/v2/notifications/route.ts` |
-| `POST` | `/api/v2/notifications` | `createNotification` | SDK-facing route. | `src/app/api/v2/notifications/route.ts` |
-| `DELETE` | `/api/v2/notifications/:notificationId` | `deleteNotification` | SDK-facing route. | `src/app/api/v2/notifications/[notificationId]/route.ts` |
-| `PATCH` | `/api/v2/notifications/:notificationId` | `updateNotification` | SDK-facing route. | `src/app/api/v2/notifications/[notificationId]/route.ts` |
-| `POST` | `/api/v2/notifications/:notificationId/test` | `testNotification` | SDK-facing route. | `src/app/api/v2/notifications/[notificationId]/test/route.ts` |
-| `GET` | `/api/v2/notifications/slack/channels` | `listNotificationChannels` | SDK-facing route. | `src/app/api/v2/notifications/slack/channels/route.ts` |
-| `POST` | `/api/v2/plays/:name/pin` | `setPlayPinned` | SDK-facing route. | `src/app/api/v2/plays/[name]/pin/route.ts` |
-| `POST` | `/api/v2/plays/:name/restore` | `restorePlay` | SDK-facing route. | `src/app/api/v2/plays/[name]/restore/route.ts` |
-| `DELETE` | `/api/v2/plays/:name/share` | `unpublishSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
-| `GET` | `/api/v2/plays/:name/share` | `getSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
-| `PATCH` | `/api/v2/plays/:name/share` | `updateSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
-| `POST` | `/api/v2/plays/:name/share` | `publishSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/route.ts` |
-| `POST` | `/api/v2/plays/:name/share/regenerate` | `regenerateSharePage` | SDK-facing route. | `src/app/api/v2/plays/[name]/share/regenerate/route.ts` |
-| `POST` | `/api/v2/plays/files/stage/mint` | `stagePlayFiles`<br />`mintStagedPlayFileUploads` | SDK-facing route. | `src/app/api/v2/plays/files/stage/mint/route.ts` |
-| `GET` | `/api/v2/sdk/compat` | `compat check` | SDK-facing route. | `src/app/api/v2/sdk/compat/route.ts` |
-| `GET` | `/api/v2/secrets` | `secrets list`<br />`secrets check`<br />`listSecrets` | SDK-facing route. | `src/app/api/v2/secrets/route.ts` |
-| `POST` | `/api/v2/secrets` | `secrets set` | SDK-facing route. | `src/app/api/v2/secrets/route.ts` |
-| `DELETE` | `/api/v2/secrets/:id` | `secrets delete` | SDK-facing route. | `src/app/api/v2/secrets/[id]/route.ts` |
-| `POST` | `/api/v2/secrets/:id/test` | `secrets test` | SDK-facing route. | `src/app/api/v2/secrets/[id]/test/route.ts` |
-| `DELETE` | `/api/v2/settings/notifications` | `disableNotificationSlack` | SDK-facing route. | `src/app/api/v2/settings/notifications/route.ts` |
-| `GET` | `/api/v2/settings/notifications` | `getNotificationSettings` | SDK-facing route. | `src/app/api/v2/settings/notifications/route.ts` |
-| `PUT` | `/api/v2/settings/notifications` | `setNotificationSlack` | SDK-facing route. | `src/app/api/v2/settings/notifications/route.ts` |
-| `GET` | `/api/v2/settings/notifications/channels` | `listNotificationSlackChannels` | SDK-facing route. | `src/app/api/v2/settings/notifications/channels/route.ts` |
-| `GET` | `/api/v2/settings/notifications/dlq` | `listNotificationDlq` | SDK-facing route. | `src/app/api/v2/settings/notifications/dlq/route.ts` |
-| `GET` | `/api/v2/settings/notifications/dlq/:deliveryId` | `getNotificationDlqDelivery` | SDK-facing route. | `src/app/api/v2/settings/notifications/dlq/[deliveryId]/route.ts` |
-| `POST` | `/api/v2/settings/notifications/dlq/:deliveryId` | `updateNotificationDlqDelivery` | SDK-facing route. | `src/app/api/v2/settings/notifications/dlq/[deliveryId]/route.ts` |
-| `PATCH` | `/api/v2/settings/notifications/subscriptions` | `setNotificationSubscriptions` | SDK-facing route. | `src/app/api/v2/settings/notifications/subscriptions/route.ts` |
-| `POST` | `/api/v2/settings/notifications/test` | `testNotificationSlack` | SDK-facing route. | `src/app/api/v2/settings/notifications/test/route.ts` |
-| `POST` | `/api/v2/workspaces` | `workspaces.create`<br />`org create` | SDK-facing route. | `src/app/api/v2/workspaces/route.ts`<br />`src/lib/workspaces/create-additional-workspace.ts` |
+| `POST` | `/api/v2/auth/cli/org-create` | `org create` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/auth/cli/org-create/route.ts` |
+| `POST` | `/api/v2/auth/cli/organizations` | `org list` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/auth/cli/organizations/route.ts` |
+| `POST` | `/api/v2/auth/cli/register` | `auth register` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/auth/cli/register/route.ts` |
+| `POST` | `/api/v2/auth/cli/status` | `auth status` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/auth/cli/status/route.ts` |
+| `POST` | `/api/v2/auth/cli/switch` | `org set`<br />`org switch` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/auth/cli/switch/route.ts` |
+| `GET` | `/api/v2/billing/auto-recharge` | `billing.autoRecharge.get`<br />`getTargetAutoRecharge`<br />`billing auto-recharge status` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/auto-recharge/route.ts` |
+| `PUT` | `/api/v2/billing/auto-recharge` | `billing.autoRecharge.update`<br />`updateTargetAutoRecharge`<br />`billing auto-recharge set|off` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/auto-recharge/route.ts` |
+| `GET` | `/api/v2/billing/balance` | `billing balance` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/balance/route.ts` |
+| `GET` | `/api/v2/billing/catalog/current` | `billing.plans`<br />`getBillingPlans`<br />`billing plans` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/catalog/current/route.ts` |
+| `POST` | `/api/v2/billing/checkout` | `billing checkout` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/checkout/route.ts` |
+| `POST` | `/api/v2/billing/checkout/verify` | `billing redeem` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/checkout/verify/route.ts` |
+| `POST` | `/api/v2/billing/credit-purchases` | `purchaseTargetBillingCredits` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/credit-purchases/route.ts` |
+| `GET` | `/api/v2/billing/invoices` | `billing.invoices.list`<br />`listBillingInvoices`<br />`billing invoices` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/invoices/route.ts` |
+| `GET` | `/api/v2/billing/ledger` | `billing history` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/ledger/route.ts` |
+| `DELETE` | `/api/v2/billing/limit` | `billing limit off` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/limit/route.ts` |
+| `GET` | `/api/v2/billing/limit` | `billing limit` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/limit/route.ts` |
+| `POST` | `/api/v2/billing/limit` | `billing limit set` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/limit/route.ts` |
+| `POST` | `/api/v2/billing/plan-transitions` | `transitionTargetBillingPlan` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/plan-transitions/route.ts` |
+| `GET` | `/api/v2/billing/plans` | `getTargetBillingPlans` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/plans/route.ts` |
+| `POST` | `/api/v2/billing/portal-sessions` | `createTargetBillingPortalSession` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/portal-sessions/route.ts` |
+| `GET` | `/api/v2/billing/status` | `getTargetBillingStatus` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/status/route.ts` |
+| `POST` | `/api/v2/billing/subscription/cancel` | `billing.subscription.cancel`<br />`cancelBillingSubscription`<br />`billing subscription cancel` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/subscription/cancel/route.ts` |
+| `POST` | `/api/v2/billing/subscription/checkout` | `billing subscribe` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/subscription/checkout/route.ts` |
+| `GET` | `/api/v2/billing/subscription/status` | `billing.subscription.status`<br />`getBillingSubscriptionStatus`<br />`billing subscription status` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/subscription/status/route.ts` |
+| `POST` | `/api/v2/billing/top-up` | `billing.topUp`<br />`topUpBillingBalance`<br />`billing top-up` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/top-up/route.ts` |
+| `GET` | `/api/v2/billing/usage` | `billing usage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/usage/route.ts` |
+| `POST` | `/api/v2/cli/feedback` | `feedback` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/cli/feedback/route.ts` |
+| `POST` | `/api/v2/cli/send-session` | `sessions send` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/cli/send-session/route.ts` |
+| `POST` | `/api/v2/cli/send-session/chunk` | `sessions send` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/cli/send-session/chunk/route.ts` |
+| `POST` | `/api/v2/cli/send-session/finalize` | `sessions send` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/cli/send-session/finalize/route.ts` |
+| `POST` | `/api/v2/ingestion/repair` | `repairIngestionStorage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/ingestion/repair/route.ts` |
+| `GET` | `/api/v2/models/describe` | `describeModel` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/models/describe/route.ts`<br />`src/lib/deeplineagent/model-options.ts`<br />`src/lib/deeplineagent/generated/provider-options.ts` |
+| `GET` | `/api/v2/monitors/access` | `monitors status` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/access/route.ts` |
+| `POST` | `/api/v2/monitors/audit` | `monitors audit` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/audit/route.ts` |
+| `POST` | `/api/v2/monitors/batch` | `monitors batch submit` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/batch/route.ts` |
+| `GET` | `/api/v2/monitors/batch/:runId` | `monitors batch get` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/batch/[runId]/route.ts` |
+| `POST` | `/api/v2/monitors/check` | `monitors check` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/check/route.ts` |
+| `POST` | `/api/v2/monitors/deploy` | `monitors deploy` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/deploy/route.ts` |
+| `GET` | `/api/v2/monitors/deployed` | `monitors list` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/deployed/route.ts` |
+| `DELETE` | `/api/v2/monitors/deployed/:key` | `monitors delete` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/deployed/[key]/route.ts` |
+| `GET` | `/api/v2/monitors/deployed/:key` | `monitors get` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/deployed/[key]/route.ts` |
+| `PATCH` | `/api/v2/monitors/deployed/:key` | `monitors update` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/deployed/[key]/route.ts` |
+| `POST` | `/api/v2/monitors/deployed/:key/reactivate` | `monitors reactivate` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/deployed/[key]/reactivate/route.ts` |
+| `POST` | `/api/v2/monitors/deployed/:key/test` | `monitors test` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/deployed/[key]/test/route.ts` |
+| `POST` | `/api/v2/monitors/deployed/:key/validate` | `monitors validate` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/deployed/[key]/validate/route.ts` |
+| `GET` | `/api/v2/monitors/fleets` | `monitors fleets get (no id)` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/fleets/route.ts` |
+| `DELETE` | `/api/v2/monitors/fleets/:fleetId` | `monitors fleets deactivate` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/fleets/[fleetId]/route.ts` |
+| `GET` | `/api/v2/monitors/fleets/:fleetId` | `monitors fleets get` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/fleets/[fleetId]/route.ts` |
+| `PUT` | `/api/v2/monitors/fleets/:fleetId` | `monitors fleets sync` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/fleets/[fleetId]/route.ts` |
+| `POST` | `/api/v2/monitors/fleets/:fleetId/reactivate` | `monitors fleets reactivate` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/fleets/[fleetId]/reactivate/route.ts` |
+| `POST` | `/api/v2/monitors/fleets/check` | `retained fleet definition check for installed clients (no CLI command)` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/fleets/check/route.ts` |
+| `GET` | `/api/v2/monitors/health` | `monitors health`<br />`monitors audit --watch` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/health/route.ts` |
+| `POST` | `/api/v2/monitors/repair` | `monitors repair` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/repair/route.ts` |
+| `POST` | `/api/v2/monitors/setup` | `monitors deploy (provider-specific post-deploy readback)` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/setup/[tool]/route.ts` |
+| `GET` | `/api/v2/monitors/tools` | `monitors available` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/tools/route.ts` |
+| `GET` | `/api/v2/notifications` | `getNotifications` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/notifications/route.ts` |
+| `POST` | `/api/v2/notifications` | `createNotification` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/notifications/route.ts` |
+| `DELETE` | `/api/v2/notifications/:notificationId` | `deleteNotification` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/notifications/[notificationId]/route.ts` |
+| `PATCH` | `/api/v2/notifications/:notificationId` | `updateNotification` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/notifications/[notificationId]/route.ts` |
+| `POST` | `/api/v2/notifications/:notificationId/test` | `testNotification` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/notifications/[notificationId]/test/route.ts` |
+| `GET` | `/api/v2/notifications/slack/channels` | `listNotificationChannels` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/notifications/slack/channels/route.ts` |
+| `POST` | `/api/v2/plays/:name/pin` | `setPlayPinned` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/pin/route.ts` |
+| `POST` | `/api/v2/plays/:name/restore` | `restorePlay` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/restore/route.ts` |
+| `DELETE` | `/api/v2/plays/:name/share` | `unpublishSharePage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/share/route.ts` |
+| `GET` | `/api/v2/plays/:name/share` | `getSharePage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/share/route.ts` |
+| `PATCH` | `/api/v2/plays/:name/share` | `updateSharePage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/share/route.ts` |
+| `POST` | `/api/v2/plays/:name/share` | `publishSharePage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/share/route.ts` |
+| `POST` | `/api/v2/plays/:name/share/regenerate` | `regenerateSharePage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/share/regenerate/route.ts` |
+| `POST` | `/api/v2/plays/files/stage/mint` | `stagePlayFiles`<br />`mintStagedPlayFileUploads` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/files/stage/mint/route.ts` |
+| `GET` | `/api/v2/sdk/compat` | `compat check` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/sdk/compat/route.ts` |
+| `GET` | `/api/v2/secrets` | `secrets list`<br />`secrets check`<br />`listSecrets` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/secrets/route.ts` |
+| `POST` | `/api/v2/secrets` | `secrets set` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/secrets/route.ts` |
+| `DELETE` | `/api/v2/secrets/:id` | `secrets delete` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/secrets/[id]/route.ts` |
+| `POST` | `/api/v2/secrets/:id/test` | `secrets test` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/secrets/[id]/test/route.ts` |
+| `DELETE` | `/api/v2/settings/notifications` | `disableNotificationSlack` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/settings/notifications/route.ts` |
+| `GET` | `/api/v2/settings/notifications` | `getNotificationSettings` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/settings/notifications/route.ts` |
+| `PUT` | `/api/v2/settings/notifications` | `setNotificationSlack` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/settings/notifications/route.ts` |
+| `GET` | `/api/v2/settings/notifications/channels` | `listNotificationSlackChannels` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/settings/notifications/channels/route.ts` |
+| `GET` | `/api/v2/settings/notifications/dlq` | `listNotificationDlq` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/settings/notifications/dlq/route.ts` |
+| `GET` | `/api/v2/settings/notifications/dlq/:deliveryId` | `getNotificationDlqDelivery` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/settings/notifications/dlq/[deliveryId]/route.ts` |
+| `POST` | `/api/v2/settings/notifications/dlq/:deliveryId` | `updateNotificationDlqDelivery` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/settings/notifications/dlq/[deliveryId]/route.ts` |
+| `PATCH` | `/api/v2/settings/notifications/subscriptions` | `setNotificationSubscriptions` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/settings/notifications/subscriptions/route.ts` |
+| `POST` | `/api/v2/settings/notifications/test` | `testNotificationSlack` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/settings/notifications/test/route.ts` |
+| `POST` | `/api/v2/workspaces` | `workspaces.create`<br />`org create` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/workspaces/route.ts`<br />`src/lib/workspaces/create-additional-workspace.ts` |
 
 ## Recent Compatible API Changes
 
