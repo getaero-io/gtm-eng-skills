@@ -12,7 +12,7 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 | Checked-in SDK fallback | `0.3.1` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.3.1` |
-| Generated sources | `src/lib/sdk/api-routes.ts`<br />`packages/sdk/src/types.ts`<br />`packages/sdk/src/client.ts`<br />`packages/sdk/src/release.ts` |
+| Generated sources | `apps/deepline-api/src/lib/sdk/api-routes.ts`<br />`packages/sdk/src/types.ts`<br />`packages/sdk/src/client.ts`<br />`packages/sdk/src/release.ts` |
 | Coverage | HTTP and SDK client surface for runtime calls: health, tool/provider discovery and execution, customer data queries, play runs, play definitions, play artifacts, files, and run inspection. |
 | Not covered | Provider-specific schemas, dashboard-only UI routes, billing/auth setup guides, and tutorial prose. Provider-specific schemas are returned by the generated tool describe routes. |
 
@@ -195,7 +195,7 @@ while True:
 | `GET` | `/api/v2/integrations/:toolId` | `getTool` | Describe one provider-backed tool by integration id. | `apps/deepline-api/src/app/api/v2/integrations/[toolId]/route.ts` |
 | `POST` | `/api/v2/integrations/:toolId/execute` | `executeTool`<br />`executeToolRaw` | Execute one provider-backed tool call through Deepline. | `apps/deepline-api/src/app/api/v2/integrations/execute/route.ts` |
 | `GET` | `/api/v2/integrations/:toolId/get` | `getTool` | Describe one provider-backed tool, including schema, pricing, guidance, and extractors. | `apps/deepline-api/src/app/api/v2/integrations/get/route.ts` |
-| `POST` | `/api/v2/integrations/:toolId/quote` | `quoteInferenceTool` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/integrations/[toolId]/quote/route.ts`<br />`src/lib/deeplineagent/quote-service.ts`<br />`src/lib/deeplineagent/quote.ts` |
+| `POST` | `/api/v2/integrations/:toolId/quote` | `quoteInferenceTool` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/integrations/[toolId]/quote/route.ts`<br />`apps/deepline-api/src/lib/deeplineagent/quote-service.ts`<br />`apps/deepline-api/src/lib/deeplineagent/quote.ts` |
 | `POST` | `/api/v2/integrations/connect` | `connectNotificationSlack` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/integrations/connect/route.ts` |
 | `GET` | `/api/v2/integrations/list` | `searchTools` | Compatibility discovery route for integration/tool listing. | `apps/deepline-api/src/app/api/v2/integrations/list/route.ts` |
 | `GET` | `/api/v2/tools` | `listTools` | List callable provider/tool definitions. | `apps/deepline-api/src/app/api/v2/tools/route.ts` |
@@ -283,7 +283,7 @@ while True:
 | `POST` | `/api/v2/cli/send-session/chunk` | `sessions send` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/cli/send-session/chunk/route.ts` |
 | `POST` | `/api/v2/cli/send-session/finalize` | `sessions send` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/cli/send-session/finalize/route.ts` |
 | `POST` | `/api/v2/ingestion/repair` | `repairIngestionStorage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/ingestion/repair/route.ts` |
-| `GET` | `/api/v2/models/describe` | `describeModel` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/models/describe/route.ts`<br />`src/lib/deeplineagent/model-options.ts`<br />`packages/integrations/deeplineagent/generated/provider-options.ts` |
+| `GET` | `/api/v2/models/describe` | `describeModel` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/models/describe/route.ts`<br />`apps/deepline-api/src/lib/deeplineagent/model-options.ts`<br />`packages/integrations/deeplineagent/generated/provider-options.ts` |
 | `GET` | `/api/v2/monitors/access` | `monitors status` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/access/route.ts` |
 | `POST` | `/api/v2/monitors/audit` | `monitors audit` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/audit/route.ts` |
 | `POST` | `/api/v2/monitors/batch` | `monitors batch submit` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/batch/route.ts` |
@@ -335,11 +335,11 @@ while True:
 | `POST` | `/api/v2/settings/notifications/dlq/:deliveryId` | `updateNotificationDlqDelivery` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/settings/notifications/dlq/[deliveryId]/route.ts` |
 | `PATCH` | `/api/v2/settings/notifications/subscriptions` | `setNotificationSubscriptions` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/settings/notifications/subscriptions/route.ts` |
 | `POST` | `/api/v2/settings/notifications/test` | `testNotificationSlack` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/settings/notifications/test/route.ts` |
-| `POST` | `/api/v2/workspaces` | `workspaces.create`<br />`org create` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/workspaces/route.ts`<br />`src/lib/workspaces/create-additional-workspace.ts` |
+| `POST` | `/api/v2/workspaces` | `workspaces.create`<br />`org create` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/workspaces/route.ts`<br />`apps/deepline-api/src/lib/workspaces/create-additional-workspace.ts` |
 
 ## Recent Compatible API Changes
 
-These entries come from the compatible SDK/API change ledger and explain additive changes that did not require an SDK API-contract bump. Each change lives in `src/lib/sdk/compatible-changes/` so concurrent PRs do not edit a shared ledger file.
+These entries come from the compatible SDK/API change ledger and explain additive changes that did not require an SDK API-contract bump. Each change lives in `apps/deepline-api/src/lib/sdk/compatible-changes/` so concurrent PRs do not edit a shared ledger file.
 
 <!-- prettier-ignore -->
 | Change | Reason |
