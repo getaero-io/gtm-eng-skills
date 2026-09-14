@@ -28,9 +28,11 @@ deepline plays run prebuilt/name-and-domain-to-email-waterfall-batch \
   --input '{"csv":"leads.csv","columns":{"first_name":"fname","last_name":"lname","domain":"company_domain"}}'
 ```
 
-Discover plays with `deepline plays search <query>` and `deepline plays list
---show-cost`; read contracts with `deepline plays describe <name>`. Do not
-hardcode a provider list a play already encodes.
+Discover plays with `deepline plays search <query>`; use
+`deepline plays list --show-cost` for available cost estimates and
+`deepline plays describe <name>` for contracts. The same `--show-cost` option
+on `plays share publish` or `plays share update` controls public-page cost
+metrics. Do not hardcode a provider list a play already encodes.
 
 Use something else only when:
 
