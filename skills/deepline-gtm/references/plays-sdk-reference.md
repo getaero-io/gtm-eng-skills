@@ -356,9 +356,9 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 <!-- prettier-ignore -->
 | Field | Value |
 |---|---|
-| SDK version | `0.3.0` |
-| SDK HTTP API | `v2` |
-| Checked-in SDK fallback | `0.3.1` |
+| SDK version | `0.3.90` |
+| SDK HTTP API | `v3` |
+| Checked-in SDK fallback | `0.3.90` |
 | Minimum supported SDK | `0.1.53` |
 | Deprecated below | `0.3.1` |
 | Generated sources | `packages/plays/authoring-contract.ts`<br />`packages/plays/cell-staleness.ts`<br />`packages/plays/dataset.ts`<br />`packages/plays/tool-execution-error.ts`<br />`packages/plays/tool-result-types.ts`<br />`packages/sdk/src/client.ts`<br />`packages/sdk/src/errors.ts`<br />`packages/sdk/src/play.ts` |
