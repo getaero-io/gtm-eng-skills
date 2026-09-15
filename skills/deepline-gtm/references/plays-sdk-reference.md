@@ -1371,6 +1371,7 @@ Signature: `class DeeplineClient`
 | `getTargetAutoRecharge` | method | Read the canonical Metronome automatic recharge configuration. |  | `Promise<TargetAutoRechargeResult>` |
 | `updateTargetAutoRecharge` | method | Update automatic recharge and return the server-verified configuration. | `options: TargetAutoRechargeUpdateOptions` | `Promise<TargetAutoRechargeResult>` |
 | `purchaseTargetBillingCredits` | method | Purchase target-billing credits through the durable commercial operation<br />flow. The caller supplies an idempotency key for safe retries. | `options: { credits: number; idempotencyKey: string; }` | `Promise<TargetBillingMutationResult>` |
+| `recoverTargetBillingCreditPurchase` | method | Recover only the original workspace, credit amount, and purchase key; never charge. | `options: { credits: number; orgId: string; idempotencyKey: string; }` | `Promise<TargetBillingMutationResult>` |
 | `transitionTargetBillingPlan` | method | Start, change, cancel, or restore a target plan through one idempotent<br />commercial operation. | `options: TargetBillingPlanTransitionOptions` | `Promise<TargetBillingMutationResult>` |
 | `createTargetBillingPortalSession` | method | Create a Stripe-hosted portal session for payment recovery and invoices. |  | `Promise<{ url: string }>` |
 | `createWorkspace` | method | Create an additional workspace through the durable PAYG workflow. | `options: { name: string; idempotencyKey: string; }` | `Promise<WorkspaceCreateResult>` |
@@ -1399,10 +1400,8 @@ polling, streaming, stopping, reading logs, and exporting durable dataset rows.
 
 ### `client.billing`
 
-Public billing namespace exposed as `client.billing`.
-
-Carries plans, subscription state, cancellation, and invoice/receipt history
-so CLI commands and programmatic callers share one surface.
+Public `client.billing` namespace for CLI commands and programmatic callers.
+Covers plans, subscription state, cancellation, and invoice/receipt history.
 
 #### Fields
 
@@ -1417,6 +1416,7 @@ so CLI commands and programmatic callers share one surface.
 | `targetStatus` | `() => Promise<TargetBillingStatusResult>` | Yes | Normalized target billing state. |
 | `autoRecharge` | `{ get: () => Promise<TargetAutoRechargeResult>; trigger: (options?: { idempotencyKey: string; }) => Promise<{ data: { status: string; operation_id?: string } }>; update: ( options: TargetAutoRechargeUpdateOptions, ) => Promise<TargetAutoRechargeResult>; }` | Yes | Read and manage the Metronome-backed automatic recharge configuration. |
 | `purchaseCredits` | `(options: { credits: number; idempotencyKey: string; }) => Promise<TargetBillingMutationResult>` | Yes | Buy Deepline credits through a payment-gated Metronome commit. |
+| `recoverCreditPurchase` | `(options: { credits: number; orgId: string; idempotencyKey: string; }) => Promise<TargetBillingMutationResult>` | Yes | Inspect or retire the original purchase intent without starting a payment. |
 | `transitionPlan` | `( options: TargetBillingPlanTransitionOptions, ) => Promise<TargetBillingMutationResult>` | Yes | Start, change, cancel, or undo a target plan transition. |
 | `portalSession` | `() => Promise<{ url: string }>` | Yes | Create a Stripe-hosted billing Portal session. |
 

@@ -265,6 +265,7 @@ while True:
 | `POST` | `/api/v2/billing/checkout` | `billing checkout` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/checkout/route.ts` |
 | `POST` | `/api/v2/billing/checkout/verify` | `billing redeem` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/checkout/verify/route.ts` |
 | `POST` | `/api/v2/billing/credit-purchases` | `purchaseTargetBillingCredits` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/credit-purchases/route.ts` |
+| `POST` | `/api/v2/billing/credit-purchases/recover` | `billing.recoverCreditPurchase`<br />`billing top-up-recover` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/credit-purchases/recover/route.ts` |
 | `GET` | `/api/v2/billing/invoices` | `billing.invoices.list`<br />`listBillingInvoices`<br />`billing invoices` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/invoices/route.ts` |
 | `GET` | `/api/v2/billing/ledger` | `billing history` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/ledger/route.ts` |
 | `DELETE` | `/api/v2/billing/limit` | `billing limit off` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/limit/route.ts` |
