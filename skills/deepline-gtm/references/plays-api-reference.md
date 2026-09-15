@@ -325,8 +325,9 @@ while True:
 | `POST` | `/api/v2/plays/files/stage/mint` | `stagePlayFiles`<br />`mintStagedPlayFileUploads` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/files/stage/mint/route.ts` |
 | `GET` | `/api/v2/sdk/compat` | `compat check` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/sdk/compat/route.ts` |
 | `GET` | `/api/v2/secrets` | `secrets list`<br />`secrets check`<br />`listSecrets` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/secrets/route.ts` |
-| `POST` | `/api/v2/secrets` | `secrets set` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/secrets/route.ts` |
+| `POST` | `/api/v2/secrets` | `secrets set`<br />`secrets set --note` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/secrets/route.ts` |
 | `DELETE` | `/api/v2/secrets/:id` | `secrets delete` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/secrets/[id]/route.ts` |
+| `PATCH` | `/api/v2/secrets/:id` | `secrets note`<br />`updateSecretNote` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/secrets/[id]/route.ts` |
 | `POST` | `/api/v2/secrets/:id/test` | `secrets test` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/secrets/[id]/test/route.ts` |
 | `DELETE` | `/api/v2/settings/notifications` | `disableNotificationSlack` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/settings/notifications/route.ts` |
 | `GET` | `/api/v2/settings/notifications` | `getNotificationSettings` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/settings/notifications/route.ts` |
