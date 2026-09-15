@@ -259,6 +259,7 @@ while True:
 | `POST` | `/api/v2/auth/cli/switch` | `org set`<br />`org switch` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/auth/cli/switch/route.ts` |
 | `GET` | `/api/v2/billing/auto-recharge` | `billing.autoRecharge.get`<br />`getTargetAutoRecharge`<br />`billing auto-recharge status` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/auto-recharge/route.ts` |
 | `PUT` | `/api/v2/billing/auto-recharge` | `billing.autoRecharge.update`<br />`updateTargetAutoRecharge`<br />`billing auto-recharge set|off` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/auto-recharge/route.ts` |
+| `POST` | `/api/v2/billing/auto-recharge/trigger` | `billing.autoRecharge.trigger`<br />`billing auto-recharge trigger` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/auto-recharge/trigger/route.ts` |
 | `GET` | `/api/v2/billing/balance` | `billing balance` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/balance/route.ts` |
 | `GET` | `/api/v2/billing/catalog/current` | `billing.plans`<br />`getBillingPlans`<br />`billing plans` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/catalog/current/route.ts` |
 | `POST` | `/api/v2/billing/checkout` | `billing checkout` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/billing/checkout/route.ts` |

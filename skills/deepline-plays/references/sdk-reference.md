@@ -1415,7 +1415,7 @@ so CLI commands and programmatic callers share one surface.
 | `invoices` | `{ list: (options?: { limit?: number }) => Promise<BillingInvoicesResult>; }` | Yes |  |
 | `targetPlans` | `() => Promise<TargetBillingPlansResult>` | Yes | Metronome-authored target catalog and current Contract projection. |
 | `targetStatus` | `() => Promise<TargetBillingStatusResult>` | Yes | Normalized target billing state. |
-| `autoRecharge` | `{ get: () => Promise<TargetAutoRechargeResult>; update: ( options: TargetAutoRechargeUpdateOptions, ) => Promise<TargetAutoRechargeResult>; }` | Yes | Read and manage the Metronome-backed automatic recharge configuration. |
+| `autoRecharge` | `{ get: () => Promise<TargetAutoRechargeResult>; trigger: (options?: { idempotencyKey: string; }) => Promise<{ data: { status: string; operation_id?: string } }>; update: ( options: TargetAutoRechargeUpdateOptions, ) => Promise<TargetAutoRechargeResult>; }` | Yes | Read and manage the Metronome-backed automatic recharge configuration. |
 | `purchaseCredits` | `(options: { credits: number; idempotencyKey: string; }) => Promise<TargetBillingMutationResult>` | Yes | Buy Deepline credits through a payment-gated Metronome commit. |
 | `transitionPlan` | `( options: TargetBillingPlanTransitionOptions, ) => Promise<TargetBillingMutationResult>` | Yes | Start, change, cancel, or undo a target plan transition. |
 | `portalSession` | `() => Promise<{ url: string }>` | Yes | Create a Stripe-hosted billing Portal session. |
