@@ -3,7 +3,7 @@
   "owner": "Deepline",
   "homepage": "https://code.deepline.com",
   "version": "1.0.0",
-  "description": "GTM skills for Claude Code — prospecting, signal discovery, enrichment, and lead generation powered by Deepline",
+  "description": "GTM skills for Claude Code \u2014 prospecting, signal discovery, enrichment, and lead generation powered by Deepline",
   "plugins": [
     {
       "name": "gtm-eng-skills",
@@ -17,7 +17,8 @@
         "niche-signal-discovery",
         "clay-to-deepline",
         "workflow-hello-world",
-        "deepline-feedback"
+        "deepline-feedback",
+        "vibe-prospecting"
       ]
     }
   ]
