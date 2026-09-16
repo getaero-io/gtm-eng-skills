@@ -1,4 +1,4 @@
-<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 43ff933fae7fb4592d326a196de742afe357b84454977166a0ee5cc9c073b24e; run bun run docs:monitor-contract -->
+<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 62262cbe8d4f05730a73993054e2705ad5e66dbd8388d3094b82c595de7b1da0; run bun run docs:monitor-contract -->
 
 # Monitor Contract Reference
 
@@ -466,7 +466,7 @@ Creates a Deepline Native company radar data pipe and writes Deepline Native com
 | ↳ applies | Only company_new_hires, company_job_openings, company_promotions, and company_social_posts_cxo; ignored when job_titles is present. |
 | `seniorities` | Persona seniority filter. |
 | ↳ applies | Only company_new_hires, company_job_openings, company_promotions, and company_social_posts_cxo; ignored when job_titles is present. |
-| `updates_since` | Permanent historical eligibility boundary for a new radar, not a query-time date filter. |
+| `updates_since` | Permanent historical eligibility boundary for a new radar, not a query-time date filter. Omit it for a future-only start. New-hire and promotion source dates are evaluated by calendar month, so current-month values are rejected because they can include earlier findings from that month. |
 | ↳ grammar | RFC3339 timestamp with Z or a numeric UTC offset; now or earlier and within five calendar years. |
 
 #### Pricing, identity, and updates
