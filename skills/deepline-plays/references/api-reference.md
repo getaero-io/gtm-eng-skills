@@ -632,8 +632,7 @@ Result returned by `DeeplineClient.stopPlay`.
 
 ### `RunsNamespace`
 
-`client.runs` mirrors `/api/v2/runs`: the preferred low-level surface for
-polling, streaming, stopping, reading logs, and exporting durable dataset rows.
+Use `client.runs` (`/api/v2/runs`) to poll, stream, stop, read logs, and export durable dataset rows.
 
 #### Fields
 

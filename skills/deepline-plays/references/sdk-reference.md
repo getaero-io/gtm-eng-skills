@@ -1350,6 +1350,8 @@ Signature: `class DeeplineClient`
 | `deleteNotification` | method | Archive one notification without touching its provider integration. | `notificationId: string` | `Promise<{ deleted: boolean; id: string }>` |
 | `searchPlays` | method | Search callable plays and return compact play descriptions.<br /><br />Prebuilt plays are preferred by default because they have maintained<br />contracts and stable run behavior. | `options: { query: string; compact?: boolean; scope?: 'prebuilt' \| 'owned' \| 'all'; }` | `Promise<PlayDescription[]>` |
 | `getPlay` | method | Get the full definition and state of a named play.<br /><br />Returns the play's revision state (draft, live), recent runs,<br />sheet processing summary, and database URL. | `name: string` - Play name<br />`options?: { source?: 'working' \| 'live' \| `version:${number}`; guidance?: boolean; }` | `Promise<PlayDetail>` |
+| `listPlayTriggerInventory` | method | Read one trigger inventory page without loading run histories. | `options?: { cursor?: string }` | `Promise<{ page: Array<{ bindingId: string; name: string; type: string; status: string; cron: string \| null; timezone: string \| null; nextScheduledAt: number \| null; }>; continueCursor: string; isDone: boolean; }>` |
+| `getPlayTriggerHistory` | method | Read one trigger's recent runs, with an explicit partial-history flag. | `bindingId: string`<br />`options?: { limit?: number }` | `Promise<{ recentRuns: Array<{ workflowId: string; runId: string \| null; status: string; createdAt: number; startedAt: number \| null; finishedAt: number \| null; }>; truncated: boolean; cronInput: Record<string, unknown> \| null; }>` |
 | `describePlay` | method | Get a normalized play description suitable for agents and CLIs.<br /><br />The description includes runnable examples, input/output summaries, clone<br />guidance, revision state, and latest run metadata when available. | `name: string`<br />`options?: { compact?: boolean }` | `Promise<PlayDescription>` |
 | `clearPlayHistory` | method | Clear run history and durable sheet/result data for a play without deleting<br />the play definition or revisions. | `name: string`<br />`request?: ClearPlayHistoryRequest` | `Promise<ClearPlayHistoryResult>` |
 | `listPlayVersions` | method | List saved versions for a named play.<br /><br />Returns immutable revision snapshots newest-first, including the revision<br />id needed for exact-version runs and live-version switching. | `name: string` - Play name<br />`options?: { full?: boolean }` | `Promise<PlayRevisionSummary[]>` |
@@ -1380,8 +1382,7 @@ Signature: `class DeeplineClient`
 
 ### `client.runs`
 
-`client.runs` mirrors `/api/v2/runs`: the preferred low-level surface for
-polling, streaming, stopping, reading logs, and exporting durable dataset rows.
+Use `client.runs` (`/api/v2/runs`) to poll, stream, stop, read logs, and export durable dataset rows.
 
 #### Fields
 
