@@ -114,6 +114,20 @@ export type SearchProgram<Row extends JsonRow, Context> = {
   run(input: SearchProgramInput<Row, Context>): Promise<SearchProgramAttempt>;
 };
 
+export function assertExactlyOneSearchProgramIncumbent<
+  Row extends JsonRow,
+  Context,
+>(stage: string, programs: readonly SearchProgram<Row, Context>[]): void {
+  const incumbentIds = programs
+    .filter((program) => program.incumbent)
+    .map((program) => program.id);
+  if (incumbentIds.length !== 1) {
+    throw new Error(
+      `CATALOG_REQUIRED: ${stage} needs exactly one incumbent; found ${incumbentIds.length} (${incumbentIds.join(', ') || 'none'}).`,
+    );
+  }
+}
+
 export type SearchCohortCheck = {
   id: string;
   minimumRatio: number;

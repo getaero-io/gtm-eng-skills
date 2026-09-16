@@ -1,6 +1,7 @@
 import { definePlay } from 'deepline';
 import { bindResearchEvidenceToSource } from './shared/research-experiment';
 import {
+  assertExactlyOneSearchProgramIncumbent,
   runSearchExperiment,
   routeScorecardRows,
   type SearchProgram,
@@ -23,8 +24,9 @@ const companyScopes: CompanyScope[] = [
 ];
 const boundProgramIds: readonly string[] = [];
 
-function assertBound(
-  programs: readonly { id: string; diversityFeatures?: readonly string[] }[],
+function assertBound<Row extends Record<string, unknown>, Context>(
+  stage: string,
+  programs: readonly SearchProgram<Row, Context>[],
 ) {
   if (
     companyScopes.some((row) => row.partition.includes('replace-with')) ||
@@ -33,7 +35,7 @@ function assertBound(
       .some((value) => value.includes('replace-with'))
   ) {
     throw new Error(
-      'CATALOG_REQUIRED: replace scaffold rows and route geometry.',
+      'CATALOG_REQUIRED: replace scaffold rows and route geometry; retain exactly one incumbent.',
     );
   }
   const missing = programs
@@ -44,6 +46,7 @@ function assertBound(
       `CATALOG_REQUIRED: bind every registered strategy body (${missing.join(', ')}).`,
     );
   }
+  assertExactlyOneSearchProgramIncumbent(stage, programs);
 }
 
 export default definePlay(
@@ -164,7 +167,8 @@ export default definePlay(
         },
       },
     ];
-    assertBound([...companyPrograms, ...contactPrograms]);
+    assertBound('company', companyPrograms);
+    assertBound('contact', contactPrograms);
 
     const companyExperiment = await runSearchExperiment({
       ctx,

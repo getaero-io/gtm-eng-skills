@@ -1,6 +1,7 @@
 import { definePlay } from 'deepline';
 import { bindResearchEvidenceToSource } from './shared/research-experiment';
 import {
+  assertExactlyOneSearchProgramIncumbent,
   runSearchExperiment,
   routeScorecardRows,
   type SearchProgram,
@@ -10,10 +11,10 @@ import { attempt, boundClaim, found } from './shared/search-strategy';
 // Change route mechanism, input, extraction, entity key, and source geometry.
 type ScopeRow = { scope: string };
 const rows: ScopeRow[] = [{ scope: 'replace-with-live-input' }];
-// List only programs with literal mechanisms; delete unused dormant programs.
 const boundProgramIds: readonly string[] = [];
-function assertBound(
-  programs: readonly { id: string; diversityFeatures?: readonly string[] }[],
+function assertBound<Row extends Record<string, unknown>, Context>(
+  stage: string,
+  programs: readonly SearchProgram<Row, Context>[],
 ) {
   if (
     rows.some((row) => row.scope.includes('replace-with')) ||
@@ -22,7 +23,7 @@ function assertBound(
       .some((value) => value.includes('replace-with'))
   ) {
     throw new Error(
-      'CATALOG_REQUIRED: replace scaffold rows and route geometry.',
+      'CATALOG_REQUIRED: replace scaffold rows and route geometry; retain exactly one incumbent.',
     );
   }
   const missingProgramIds = programs
@@ -33,6 +34,7 @@ function assertBound(
       `CATALOG_REQUIRED: bind every registered strategy body to an executable mechanism (${missingProgramIds.join(', ')}).`,
     );
   }
+  assertExactlyOneSearchProgramIncumbent(stage, programs);
 }
 export default definePlay(
   'search-experiment-template',
@@ -51,9 +53,7 @@ export default definePlay(
           // const response = await ctx.tools.execute({ id: 'described-tool-id',
           //   tool: 'described-tool-id', input: { described_input: row.scope }, description: 'First route.' });
           // const value = response.extractedValues.described_value?.get() ?? null;
-          // List getters: map rows through `list.keys`, never a guessed raw path.
-          // Worked example in SKILL.md, "Catalog".
-          // Raw is evidence context for boundClaim, never first extraction.
+          // Map list getters through `list.keys`; raw is evidence context, never first extraction.
           // const raw = JSON.stringify(response.toolResponse.raw);
           // `boundClaim` calls bindResearchEvidenceToSource: an unbound value is a candidate, not a claim.
           // const claim = boundClaim({ value, source: 'described-tool-id', independenceClass: 'terminal-corpus', excerpt: String(value), rawSourceText: raw });
@@ -93,7 +93,7 @@ export default definePlay(
         },
       },
     ];
-    assertBound(programs);
+    assertBound('search', programs);
     const experiment = await runSearchExperiment({
       ctx,
       rows,
