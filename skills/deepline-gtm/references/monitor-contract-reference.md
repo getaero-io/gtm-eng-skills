@@ -1,4 +1,4 @@
-<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 62262cbe8d4f05730a73993054e2705ad5e66dbd8388d3094b82c595de7b1da0; run bun run docs:monitor-contract -->
+<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: b39e820310b1efc90be25f554d15d9ae1e1982ae86f5799522c89ce69ce5a8dd; run bun run docs:monitor-contract -->
 
 # Monitor Contract Reference
 
@@ -466,7 +466,8 @@ Creates a Deepline Native company radar data pipe and writes Deepline Native com
 | ↳ applies | Only company_new_hires, company_job_openings, company_promotions, and company_social_posts_cxo; ignored when job_titles is present. |
 | `seniorities` | Persona seniority filter. |
 | ↳ applies | Only company_new_hires, company_job_openings, company_promotions, and company_social_posts_cxo; ignored when job_titles is present. |
-| `updates_since` | Permanent historical eligibility boundary for a new radar, not a query-time date filter. Omit it for a future-only start. New-hire and promotion source dates are evaluated by calendar month, so current-month values are rejected because they can include earlier findings from that month. |
+| `updates_since` | Use this only to request historical findings; it is not a query-time date filter. Omit it for a future-only start at provider creation. For new-hire and promotion radars, source dates are evaluated at calendar-month precision even though the exact submitted timestamp is preserved in the radar response, so Deepline rejects current-month values for those radar types. During initial engagement history, the parent post’s publication time sets eligibility; recurring engagement delivery uses when Deepline Native first discovers the engagement. |
+| ↳ applies | Calendar-month source-date precision applies to company_new_hires and company_promotions. The engagement timing rule applies to initial and recurring social-engagement delivery. |
 | ↳ grammar | RFC3339 timestamp with Z or a numeric UTC offset; now or earlier and within five calendar years. |
 
 #### Pricing, identity, and updates
