@@ -462,7 +462,7 @@ them. Billing fields are Deepline-facing and must not expose provider spend.
 | `toolResponse` | `{ raw: TData; rawV2?: unknown; view?: 'data' \| 'rawV2'; meta?: TMeta; responseMeta?: TMeta; }` | Yes |  |
 | `extractedLists` | `Record<string, unknown>` | No |  |
 | `extractedValues` | `Record<string, unknown>` | No |  |
-| `billing` | `Record<string, unknown>` | No |  |
+| `billing` | `ToolResultBilling` | No |  |
 
 ### `StartPlayRunRequest`
 
