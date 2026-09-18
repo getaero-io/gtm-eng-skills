@@ -222,9 +222,10 @@ while True:
 | `GET` | `/api/v2/runs/:runId/input` | `runs.input`<br />`getRunInput` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/input/route.ts` |
 | `GET` | `/api/v2/runs/:runId/logs` | `runs.logs`<br />`getRunLogs` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/logs/route.ts` |
 | `POST` | `/api/v2/runs/:runId/observe-grant` | `runs.tail`<br />`tailRun`<br />`runPlay` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/observe-grant/route.ts` |
-| `POST` | `/api/v2/runs/:runId/rerun` | `runs.rerun`<br />`rerun` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/rerun/route.ts` |
+| `POST` | `/api/v2/runs/:runId/rerun` | `runs.rerun`<br />`rerun` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/rerun/route.ts`<br />`apps/deepline-api/src/lib/plays/rerun-idempotency.ts` |
 | `POST` | `/api/v2/runs/:runId/stop` | `runs.stop`<br />`stopRun`<br />`cancelPlay`<br />`stopPlay` | Stop a running or waiting play run. | `apps/deepline-api/src/app/api/v2/runs/[runId]/stop/route.ts` |
 | `GET` | `/api/v2/runs/:runId/tail` | `runs.tail`<br />`tailRun` | Stream canonical run events over SSE. | `apps/deepline-api/src/app/api/v2/runs/[runId]/tail/route.ts` |
+| `POST` | `/api/v2/runs/stop-all` | `runs.stopAll`<br />`stopAllRuns` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/stop-all/route.ts` |
 
 ### Play Definitions
 
@@ -647,14 +648,14 @@ Use `client.runs` (`/api/v2/runs`) to poll, stream, stop, read logs, and export 
 |---|---|---:|---|
 | `get` | `(runId: string, options?: RunsGetOptions) => Promise<PlayStatus>` | Yes | Get current run status by public run id. |
 | `input` | `(runId: string) => Promise<{ runId: string; input: Record<string, unknown> \| unknown[]; bytes: number; sha256: string \| null; replayedFromRunId: string \| null; }>` | Yes | Explicitly read the retained original input (may include customer data). |
-| `rerun` | `(runId: string) => Promise<{ runId: string; replayedFromRunId: string; revisionId: string \| null; status: string; next: { inspect: string; input: string }; }>` | Yes | Start a fresh run from a prior run's retained input and pinned revision. |
+| `rerun` | `(runId: string, options?: RerunOptions) => Promise<RerunPlayRunResult>` | Yes | Start a fresh run from a prior run's retained input and pinned revision. |
 | `list` | `(options: RunsListOptions) => Promise<PlayRunListItem[]>` | Yes | List runs for one play, optionally filtered by status. |
 | `listPage` | `(options: RunsListOptions) => Promise<RunsListPage>` | Yes | Read one run page with total, offset, limit and completeness metadata. |
 | `tail` | `(runId: string, options?: RunsTailOptions) => Promise<PlayStatus>` | Yes | Stream run events and return the latest/terminal run status. |
 | `logs` | `(runId: string, options?: RunsLogsOptions) => Promise<RunsLogsResult>` | Yes | Fetch persisted log lines for a run. |
 | `exportDatasetRows` | `(input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; rowMode?: 'output' \| 'all'; }) => Promise<PlaySheetRowsResult>` | Yes | Export persisted rows for a runtime-sheet dataset/table namespace. |
 | `stop` | `( runId: string, options?: { reason?: string }, ) => Promise<StopPlayRunResult>` | Yes | Stop a running/waiting run. |
-| `stopAll` | `(options?: { reason?: string }) => Promise<StopAllPlayRunsResult>` | Yes | Stop active runs across the current workspace. |
+| `stopAll` | `{ ( options: StopAllRunsOptions & { dryRun: true }, ): Promise<StopAllPlayRunsDryRunResult>; ( options?: StopAllRunsOptions & { dryRun?: false }, ): Promise<StopAllPlayRunsStopResult>; (options?: StopAllRunsOptions): Promise<StopAllPlayRunsResult>; }` | Yes | Stop active runs across the current workspace, or with `dryRun: true`<br />enumerate the exact candidates without cancelling anything. |
 
 ### `CustomerDbQueryResult`
 
