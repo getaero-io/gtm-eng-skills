@@ -291,6 +291,11 @@ while True:
 | `POST` | `/api/v2/monitors/batch` | `monitors batch submit` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/batch/route.ts` |
 | `GET` | `/api/v2/monitors/batch/:runId` | `monitors batch get` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/batch/[runId]/route.ts` |
 | `POST` | `/api/v2/monitors/batch/deploy` | `monitors batch deploy` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/batch/deploy/route.ts` |
+| `GET` | `/api/v2/monitors/batches` | `monitors named batch resource paths` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/batches/[batchId]/route.ts` |
+| `DELETE` | `/api/v2/monitors/batches/:batchId` | `monitors named batch stop` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/batches/[batchId]/route.ts` |
+| `GET` | `/api/v2/monitors/batches/:batchId` | `monitors named batch get` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/batches/[batchId]/route.ts` |
+| `PUT` | `/api/v2/monitors/batches/:batchId` | `monitors named batch sync` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/batches/[batchId]/route.ts` |
+| `POST` | `/api/v2/monitors/batches/:batchId/start` | `monitors named batch start` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/batches/[batchId]/start/route.ts` |
 | `POST` | `/api/v2/monitors/check` | `monitors check` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/check/route.ts` |
 | `POST` | `/api/v2/monitors/deploy` | `monitors deploy` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/deploy/route.ts` |
 | `GET` | `/api/v2/monitors/deployed` | `monitors list` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/deployed/route.ts` |
@@ -313,6 +318,7 @@ while True:
 | `GET` | `/api/v2/monitors/jobs/:jobId/logs` | `monitors jobs logs` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/jobs/[jobId]/logs/route.ts` |
 | `POST` | `/api/v2/monitors/repair` | `monitors repair` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/repair/route.ts` |
 | `POST` | `/api/v2/monitors/setup` | `monitors deploy (provider-specific post-deploy readback)` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/setup/[tool]/route.ts` |
+| `POST` | `/api/v2/monitors/sync` | `monitors sync scalar` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/sync/route.ts` |
 | `GET` | `/api/v2/monitors/tools` | `monitors available` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/tools/route.ts` |
 | `GET` | `/api/v2/notifications` | `getNotifications` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/notifications/route.ts` |
 | `POST` | `/api/v2/notifications` | `createNotification` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/notifications/route.ts` |

@@ -1441,7 +1441,8 @@ delete/reactivate through this namespace.
 | `available` | `( toolIdOrOptions?: string \| (MonitorsAvailableOptions & { tool?: string }), options?: MonitorsAvailableOptions, ) => Promise<MonitorsAvailableResult>` | Yes | The deployable monitor tools catalog. Call with no tool id for the list, or<br />with a tool id (positional or `{ tool }`) to describe one tool's full<br />payload/stream contract. |
 | `check` | `(definition: MonitorDefinition) => Promise<MonitorCheckResult>` | Yes | Validate a monitor definition without deploying it (no spend). |
 | `deploy` | `( definition: MonitorDefinition, options?: { dryRun?: boolean }, ) => Promise<MonitorDeployResult>` | Yes | Deploy a monitor from a definition. May spend Deepline credits. |
-| `list` | `(options?: MonitorsListOptions) => Promise<MonitorsListResult>` | Yes | List deployed monitors (active by default). `includeConsumers` requires a limit of 20 or fewer. |
+| `sync` | `( definition: MonitorDefinition, options?: MonitorLifecycleOptions, ) => Promise<MonitorJobResult \| MonitorDeployResult>` | Yes | Set the desired definition for one stable monitor key. |
+| `list` | `(options?: MonitorsListOptions) => Promise<MonitorsListResult>` | Yes | List deployed monitors (active by default). Use `state` to filter the<br />three customer states; `status` is retained for older servers.<br />`includeConsumers` requires a limit of 20 or fewer. |
 | `get` | `(key: string) => Promise<MonitorDetail>` | Yes | Fetch one deployed monitor by public key with bounded current listener health. |
 | `test` | `( key: string, payload: Record<string, unknown>, options?: MonitorTestOptions, ) => Promise<MonitorTestResult>` | Yes | Test a deployed monitor's callback envelope without side effects. |
 | `validate` | `(key: string) => Promise<MonitorValidateResult>` | Yes |  |
@@ -1449,9 +1450,12 @@ delete/reactivate through this namespace.
 | `update` | `( key: string, patch: Record<string, unknown>, ) => Promise<MonitorUpdateResult>` | Yes | Update a deployed monitor by public key. |
 | `delete` | `( key: string, options?: { dryRun?: boolean }, ) => Promise<MonitorDeleteResult>` | Yes | Delete a deployed monitor and its upstream provider resource. `dryRun` returns the delete plan. |
 | `reactivate` | `( key: string, options?: { dryRun?: boolean }, ) => Promise<MonitorReactivateResult>` | Yes | Reactivate a disabled monitor. `dryRun` returns the reactivation cost. |
+| `start` | `( key: string, options?: MonitorLifecycleOptions, ) => Promise<MonitorJobResult \| MonitorBatchOperationResult>` | Yes | Explicitly apply the retained definition for a stopped monitor. |
+| `stop` | `( key: string, options?: MonitorLifecycleOptions, ) => Promise<MonitorJobResult \| MonitorBatchOperationResult>` | Yes | Converge one monitor to inactive while retaining its definition. |
 | `audit` | `(options?: { fleetId?: string; cursor?: string \| null; }) => Promise<MonitorsAuditResult>` | Yes | Re-read what the provider holds onto the monitors that claim it. Bounded<br />and idempotent: pass `cursor` back while `audit.cursor` is non-null. |
 | `repair` | `(options?: { fleetId?: string; dryRun?: boolean; }) => Promise<MonitorsRepairResult>` | Yes | Converge the monitors whose desired and observed states disagree.<br />`dryRun` returns the same plan without queueing anything. |
 | `health` | `(options?: { fleetId?: string }) => Promise<MonitorsHealth>` | Yes | Delivery and convergence health for the workspace or one fleet. |
 | `fleets` | `MonitorFleetsNamespace` | Yes | Define, reconcile, and control table-backed monitor fleets. |
 | `batch` | `MonitorBatchNamespace` | Yes | Deploy an immutable one-off list through the common Monitor Job engine. |
+| `batches` | `MonitorNamedBatchesNamespace` | Yes | Reconcile and control a stable named static Batch. |
 | `jobs` | `MonitorJobsNamespace` | Yes | Read, wait for, inspect, or cancel Monitor Jobs. |
