@@ -222,7 +222,7 @@ while True:
 | `GET` | `/api/v2/runs/:runId/input` | `runs.input`<br />`getRunInput` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/input/route.ts` |
 | `GET` | `/api/v2/runs/:runId/logs` | `runs.logs`<br />`getRunLogs` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/logs/route.ts` |
 | `POST` | `/api/v2/runs/:runId/observe-grant` | `runs.tail`<br />`tailRun`<br />`runPlay` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/observe-grant/route.ts` |
-| `POST` | `/api/v2/runs/:runId/rerun` | `runs.rerun`<br />`rerun` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/rerun/route.ts`<br />`apps/deepline-api/src/lib/plays/rerun-idempotency.ts` |
+| `POST` | `/api/v2/runs/:runId/rerun` | `runs.rerun`<br />`rerun` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/rerun/route.ts`<br />`apps/deepline-api/src/lib/plays/rerun-admission-read.ts`<br />`apps/deepline-api/src/lib/plays/rerun-idempotency.ts`<br />`apps/deepline-api/src/lib/plays/scheduler-admission-read.ts` |
 | `POST` | `/api/v2/runs/:runId/stop` | `runs.stop`<br />`stopRun`<br />`cancelPlay`<br />`stopPlay` | Stop a running or waiting play run. | `apps/deepline-api/src/app/api/v2/runs/[runId]/stop/route.ts` |
 | `GET` | `/api/v2/runs/:runId/tail` | `runs.tail`<br />`tailRun` | Stream canonical run events over SSE. | `apps/deepline-api/src/app/api/v2/runs/[runId]/tail/route.ts` |
 | `POST` | `/api/v2/runs/stop-all` | `runs.stopAll`<br />`stopAllRuns` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/stop-all/route.ts` |
