@@ -13,7 +13,7 @@ two phases:
 
   Phase 2: For any company that Phase 1 returned ZERO contacts for (which
            is the common case for <200-employee, non-US, or niche industrial
-           targets), fall back to exa_search_people with includeDomains=
+           targets), fall back to exa_people_search with includeDomains=
            ['linkedin.com']. Exa neural search goes over public web text and
            finds LinkedIn profiles that mention the company by name — far
            better coverage for small companies than the B2B provider
@@ -195,7 +195,7 @@ def phase1_waterfall(
 
 
 # ----------------------------------------------------------------------
-# Phase 2: exa_search_people fallback for empty companies
+# Phase 2: exa_people_search fallback for empty companies
 # ----------------------------------------------------------------------
 
 _TITLE_RE = re.compile(
@@ -234,7 +234,7 @@ def phase2_exa_people(
     roles: list[str],
     already_covered_domains: set[str],
 ) -> list[dict]:
-    """Run exa_search_people on every prospect that Phase 1 missed.
+    """Run exa_people_search on every prospect that Phase 1 missed.
 
     The Exa neural search is the workhorse for small / non-US / niche
     industrial companies where the B2B provider waterfall has thin data.
@@ -270,7 +270,7 @@ def phase2_exa_people(
 
     spec = json.dumps({
         "alias": "exa_people",
-        "tool": "exa_search_people",
+        "tool": "exa_people_search",
         "payload": {
             "query": query,
             "type": "neural",

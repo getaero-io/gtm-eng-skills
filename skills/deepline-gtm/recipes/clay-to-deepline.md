@@ -67,7 +67,7 @@ Produce before writing any scripts. Get user confirmation before Phase 2.
 graph TD
     A[record_id] --> B[clay_record]
     B --> C[fields]
-    C --> D[exa_research]
+    C --> D[exa_agent]
     D --> E[strategic_initiatives]
     C --> F[qualify_person]
     E --> F
@@ -172,7 +172,7 @@ Answer these **before writing the play** based on what Phase 1 revealed. Only an
 - [ ] Has scoring/qualification columns → use ICP criteria verbatim from Clay config
 - [ ] Has campaign push / CRM update columns → verify with `deepline tools search "<platform> add leads"`
 - [ ] Has cross-table lookups → export linked table to CSV first
-- [ ] **Is a company intelligence table** (source = Mixrank) → use `crustdata_companydb_search`
+- [ ] **Is a company intelligence table** (source = Mixrank) → use `crustdata_v3_company_search`
 
 **Security (all tables):**
 
@@ -315,14 +315,14 @@ deepline tools describe <candidate_tool_id>       # inspect candidate
 | Clay action                                   | Deepline tool                                                                    |
 | --------------------------------------------- | -------------------------------------------------------------------------------- |
 | Email waterfall + `validate-email`            | `name-and-domain-to-email-waterfall` + `perm_fln` + `leadmagic_email_validation` |
-| `enrich-person-with-mixrank-v2`               | `leadmagic_profile_search` → `crustdata_person_enrichment`                       |
+| `enrich-person-with-mixrank-v2`               | `leadmagic_profile_search` → `crustdata_v3_person_enrich`                        |
 | `chat-gpt-schema-mapper`                      | `deeplineagent` with `jsonSchema`                                                |
 | `use-ai` (no web)                             | `deeplineagent`                                                                  |
 | `use-ai` (claygent + web)                     | Binary search optimizer — see §5                                                 |
 | `octave-qualify-person`                       | `deeplineagent` + `jsonSchema` ICP scorer                                        |
 | `add-lead-to-campaign`                        | `instantly_add_to_campaign` or `smartlead_api_request`                           |
 | `route-row`                                   | **Not replicable.** Produce filtered output CSV per destination.                 |
-| `find-lists-of-companies-with-mixrank-source` | `crustdata_companydb_search` + optional `prospeo_enrich_company`                 |
+| `find-lists-of-companies-with-mixrank-source` | `crustdata_v3_company_search` + optional `prospeo_enrich_company`                |
 
 ---
 

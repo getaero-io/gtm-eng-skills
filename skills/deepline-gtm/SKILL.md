@@ -380,7 +380,7 @@ Provider path heuristics:
 
 - Broad first pass: direct tool calls for high-volume discovery.
 - Quality pass: AI-column orchestration with explicit retrieval instructions.
-- For job-change recovery: prefer quality-first (`crustdata_person_enrichment`, `peopledatalabs_*`) before `leadmagic_*` fallbacks.
+- For job-change recovery: prefer quality-first (`crustdata_v3_person_enrich`, `peopledatalabs_*`) before `leadmagic_*` fallbacks.
 - Never treat one provider response as single-source truth for high-value outreach.
 
 ## 6) Additional notes

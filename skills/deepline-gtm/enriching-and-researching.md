@@ -116,7 +116,7 @@ Play tool: `name-and-domain-to-email-waterfall`
 | name + company_name (no domain) or SN `/sales/lead/` URLs | Resolve domain first (below), then use the play   |
 | standard `/in/` LinkedIn URL + name                       | Skip this play — use `LinkedIn URL -> work email` |
 
-**Play internals.** Runs common validated patterns first; only `valid` hits count. Falls through to `dropleads_email_finder -> hunter_email_finder -> leadmagic_email_finder -> crustdata_persondb_search -> peopledatalabs_enrich_contact`. `catch_all` is usable for outreach but not an automatic win inside the play.
+**Play internals.** Runs common validated patterns first; only `valid` hits count. Falls through to `dropleads_email_finder -> hunter_email_finder -> leadmagic_email_finder -> crustdata_v3_person_search -> peopledatalabs_enrich_contact`. `catch_all` is usable for outreach but not an automatic win inside the play.
 
 **Example:**
 

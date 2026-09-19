@@ -30,7 +30,7 @@ the whole payoff of qualifying against the real roster first.
   (e.g. "Revenue Architect" instead of "VP Sales", "GTM Systems" instead of "Sales Ops").
 
 Do **not** reach for paid people-search (`peopledatalabs_person_search`,
-`crustdata_persondb_search`) for this. `company_titles` answers "what titles exist here"
+`crustdata_v3_person_search`) for this. `company_titles` answers "what titles exist here"
 for free; people-search is for when you already know the persona and need volume.
 
 ## Inputs

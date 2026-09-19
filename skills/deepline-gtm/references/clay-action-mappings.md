@@ -38,8 +38,8 @@ deepline tools describe <candidate_tool_id> # verify it exists + see payload sch
 
 | Clay action key                                             | Deepline tool / native play                                                                                                                                                                                                                                                                                                                       | Notes                                                                                         |
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `find-lists-of-companies-with-mixrank-source` (source type) | **Pass 1**: `crustdata_companydb_search` — filters by location, employee count, industry, funding, and investors. Returns company name, domain, LinkedIn URL, HQ, funding, and firmographic fields. **Pass 2** (optional): `prospeo_enrich_company` — adds `description`, `employee_count`, `industry`, `type`. See Company Source section below. | Use `crustdata_companydb_autocomplete` first for canonical filter values                      |
-| `enrich-person-with-mixrank-v2`                             | `leadmagic_profile_search` → `crustdata_person_enrichment` waterfall                                                                                                                                                                                                                                                                              | See Person Enrichment section                                                                 |
+| `find-lists-of-companies-with-mixrank-source` (source type) | **Pass 1**: `crustdata_v3_company_search` — filters by location, employee count, industry, funding, and investors. Returns company name, domain, LinkedIn URL, HQ, funding, and firmographic fields. **Pass 2** (optional): `prospeo_enrich_company` — adds `description`, `employee_count`, `industry`, `type`. See Company Source section below. | Use `crustdata_v3_company_search_autocomplete` first for canonical filter values             |
+| `enrich-person-with-mixrank-v2`                             | `leadmagic_profile_search` → `crustdata_v3_person_enrich` waterfall                                                                                                                                                                                                                                                                               | See Person Enrichment section                                                                 |
 | `lookup-company-in-other-table`                             | `run_javascript` (local CSV join)                                                                                                                                                                                                                                                                                                                 | Export company table to CSV first                                                             |
 | `lookup-multiple-rows-in-other-table`                       | `run_javascript` (local CSV join)                                                                                                                                                                                                                                                                                                                 | Same pattern                                                                                  |
 | `chat-gpt-schema-mapper`                                    | `deeplineagent`; use `jsonSchema` when you need structured extraction                                                                                                                                                                                                                                                                             | Single-value classification                                                                   |
@@ -79,13 +79,13 @@ deepline tools describe <candidate_tool_id> # verify it exists + see payload sch
 
 Key output paths: `.output.body.full_name`, `.output.body.work_experience[0].company_website`, `.output.body.company_website`
 
-**Richer fallback** — `crustdata_person_enrichment`:
+**Richer fallback** — `crustdata_v3_person_enrich`:
 
 ```ts
-.withColumn('person_profile', 'crustdata_person_enrichment', { linkedinProfileUrl: "{{linkedin_url}}" })
+.withColumn('person_profile', 'crustdata_v3_person_enrich', { professional_network_profile_urls: ["{{linkedin_url}}"], fields: ["basic_profile", "experience"] })
 ```
 
-Key output paths: `.output.body[0].name`, `.output.body[0].email`, `.output.body[0].current_employers[0].employer_company_website_domain[0]`
+Key output paths: `.output.body.matches[0].person_data.basic_profile.name`, `.output.body.matches[0].person_data.contact.business_emails[0].email`, `.output.body.matches[0].person_data.experience.employment_details.current[0].company_website_domain`
 
 **Work history / posts** — native HarvestAPI:
 
@@ -133,7 +133,7 @@ The entire Clay waterfall group collapses to one native play. Pick based on avai
 
 ```
 
-Compiles to: `dropleads_email_finder → hunter_email_finder → leadmagic_email_finder → deepline_native_enrich_contact → crustdata_person_enrichment → peopledatalabs_enrich_contact`
+Compiles to: `dropleads_email_finder → hunter_email_finder → leadmagic_email_finder → deepline_native_enrich_contact → crustdata_v3_person_enrich → peopledatalabs_enrich_contact`
 
 **Have name + company only**:
 
@@ -230,9 +230,9 @@ Prefer `name-and-domain-to-email-waterfall` over a hand-built waterfall when you
 
 ## Company Source — Replacing `find-lists-of-companies-with-mixrank-source`
 
-Clay's Mixrank source fetches a pre-built list from a configured Mixrank query. The Deepline equivalent is a two-pass Python script: **discover with `crustdata_companydb_search`**, then **enrich with `prospeo_enrich_company`** for fields Clay gets from Mixrank (description, industry, size, type).
+Clay's Mixrank source fetches a pre-built list from a configured Mixrank query. The Deepline equivalent is a two-pass Python script: **discover with `crustdata_v3_company_search`**, then **enrich with `prospeo_enrich_company`** for fields Clay gets from Mixrank (description, industry, size, type).
 
-### Pass 1 — Generate company list (`crustdata_companydb_search`)
+### Pass 1 — Generate company list (`crustdata_v3_company_search`)
 
 ```python
 import json, subprocess, csv
@@ -240,16 +240,20 @@ import json, subprocess, csv
 # CrustData filter payload — translate from Clay's Mixrank source config
 # Check the Clay table config or ask the user for the original filter criteria
 payload = {
-    "filters": [
-        {"filter_type": "hq_location", "type": "(.)", "value": "Los Angeles"},
-        {"filter_type": "crunchbase_categories", "type": "(.)", "value": "software"},
-        {"filter_type": "employee_count_range", "type": "in", "value": ["51-200", "201-500", "501-1000"]},
-    ],
+    "filters": {
+        "op": "and",
+        "conditions": [
+            {"field": "locations.headquarters", "type": "(.)", "value": "Los Angeles"},
+            {"field": "locations.country", "type": "=", "value": "USA"},
+            {"field": "taxonomy.categories", "type": "(.)", "value": "software"},
+            {"field": "basic_info.employee_count_range", "type": "in", "value": ["51-200", "201-500", "501-1000"]},
+        ],
+    },
     "limit": 100,
 }
 
 result = subprocess.run(
-    ["deepline", "tools", "execute", "crustdata_companydb_search",
+    ["deepline", "tools", "execute", "crustdata_v3_company_search",
      "--payload", json.dumps(payload), "--json"],
     capture_output=True, text=True
 )
@@ -373,7 +377,7 @@ Reference structured output fields in downstream passes as `{{col_name.field}}`.
 **Alternative research via exa_search** (deterministic, auditable):
 
 ```ts
-.withColumn('exa_research', 'exa_search', { query: "{{company_name}} {{company_domain}} strategic initiatives GTM 2024 2025", num_results: 5, contents: { text: true, highlights: true } })
+.withColumn('exa_search', 'exa_search', { query: "{{company_name}} {{company_domain}} strategic initiatives GTM 2024 2025", num_results: 5, contents: { text: true, highlights: true } })
 
 ```
 
@@ -438,15 +442,7 @@ Two passes:
 
 Skip for automation unless explicitly needed (run-as-button in Clay). Two options when needed:
 
-**Option 1 — `crustdata_linkedin_posts` (keyword/filter based):**
-Good for finding posts about a company or topic. Filters by `MEMBER` or `COMPANY` LinkedIn filter type. Not profile-URL-specific.
-
-```ts
-.withColumn('li_posts', 'crustdata_linkedin_posts', { keyword: "{{company_name}}", filters: [ { filter_type: "AUTHOR_COMPANY", type: "in", value: ["{{company_name}}"] } ], limit: 5, datePosted: "past-quarter" })
-
-```
-
-**Option 2 — HarvestAPI (profile-URL-specific):**
+**HarvestAPI (profile-URL-specific):**
 Use when you need posts for a specific person's profile URL. Run it per profile inside the owned Play:
 
 ```bash
@@ -454,7 +450,7 @@ deepline tools describe harvestapi_get_profile_posts --schema-only
 deepline tools execute harvestapi_get_profile_posts --payload '{"profile":"<linkedin_url>","page":1}' --out linkedin-posts.csv
 ```
 
-Note: `crustdata_linkedin_posts` is keyword/filter search — it doesn't take a profile URL directly. Use `harvestapi_get_profile_posts` when you need posts by one specific person.
+There is no supported CrustData post-search replacement. Use `harvestapi_get_profile_posts` only when the target profile URL is known.
 
 ---
 

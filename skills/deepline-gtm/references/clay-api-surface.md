@@ -112,10 +112,10 @@ If a migration needs to know "what population did this table source", `/v3/sourc
 | `*-find-personal-email`, `*-personal-email-from-linkedin` (14 keys) | personal email | `prebuilt/personal-email` |
 | `validate-email`, `*-verify-email`, `*-validate-email` (14 keys) | email validation | `leadmagic_email_validation` or `zerobounce_validate`. Accept `valid`, `valid_catch_all`, `catch_all`; reject `unknown` |
 | `*-find-linkedin-profile`, `contactout-social-url-from-email` (10 keys) | resolve LinkedIn URL | `prebuilt/person-to-linkedin-harvestapi`, or `prebuilt/personal-email-to-linkedin` from an email |
-| `enrich-person`, `enrich-person-with-mixrank-v2`, `*-enrich-person` (10 keys) | person enrichment | `leadmagic_profile_search` then `crustdata_person_enrichment` |
-| `enrich-company`, `*-enrich-company`, `crunchbase-enrich-*` (22 keys) | company enrichment | `prospeo_enrich_company` or `crustdata_companydb_search` |
+| `enrich-person`, `enrich-person-with-mixrank-v2`, `*-enrich-person` (10 keys) | person enrichment | `leadmagic_profile_search` then `crustdata_v3_person_enrich` |
+| `enrich-company`, `*-enrich-company`, `crunchbase-enrich-*` (22 keys) | company enrichment | `prospeo_enrich_company` or `crustdata_v3_company_search` |
 | `use-ai`, claygent variants | AI generation | `deeplineagent` with a `jsonSchema` |
-| `find-lists-of-*-with-mixrank`, `search-person` | sourcing a new list | `crustdata_companydb_search`, `dropleads_search_people`, or `prebuilt/company-to-contact` |
+| `find-lists-of-*-with-mixrank`, `search-person` | sourcing a new list | `crustdata_v3_company_search`, `dropleads_search_people`, or `prebuilt/company-to-contact` |
 | `add-lead-to-campaign`, sequencer keys | campaign push | `instantly_add_to_campaign`, `smartlead_api_request` |
 
 Keys ending `-validate-auth` are Clay's connection health checks. They are not data columns - ignore them during migration.

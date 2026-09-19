@@ -16,7 +16,7 @@ type SourceRow = {
 
 type ProviderName =
   | 'leadmagic_personal_email_finder'
-  | 'crustdata_v2_enrich_person'
+  | 'crustdata_v3_person_enrich'
   | 'contactout_enrich_person'
   | 'datagma_full_enrichment'
   | 'enformion_person_search'
@@ -111,12 +111,15 @@ function leadmagicEmails(result: unknown): string[] {
 
 function crustdataPersonalEmails(result: unknown): string[] {
   const data = raw(result);
-  const rows = Array.isArray(data) ? data : [data, objectValue(data.data)];
-  const candidates = rows.flatMap((row) => {
-    const contact = objectValue(objectValue(row).personal_contact_info);
-    return arrayValue(contact.personal_emails);
-  });
-  return emailsFromCandidates(candidates);
+  const candidates = flattenValues(
+    collectValuesByKey(data, /personal.*email|email.*personal/i),
+  );
+  return emailsFromCandidates(
+    candidates.flatMap((candidate) => [
+      candidate,
+      objectValue(candidate).email,
+    ]),
+  );
 }
 
 function contactoutPersonalEmails(result: unknown): string[] {
@@ -181,14 +184,17 @@ function wizaPersonalEmails(result: unknown): string[] {
   ]);
 }
 
-function providerInput(provider: ProviderName, row: SourceRow): Record<string, unknown> {
+function providerInput(
+  provider: ProviderName,
+  row: SourceRow,
+): Record<string, unknown> {
   if (provider === 'leadmagic_personal_email_finder') {
     return { profile_url: row.linkedin_url };
   }
-  if (provider === 'crustdata_v2_enrich_person') {
+  if (provider === 'crustdata_v3_person_enrich') {
     return {
-      linkedin_profile_url: row.linkedin_url,
-      fields: 'personal_contact_info.personal_emails',
+      professional_network_profile_urls: [row.linkedin_url],
+      fields: ['contact.personal_emails'],
     };
   }
   if (provider === 'contactout_enrich_person') {
@@ -266,7 +272,7 @@ function extractEmails(provider: ProviderName, result: unknown): string[] {
   if (provider === 'leadmagic_personal_email_finder') {
     return leadmagicEmails(result);
   }
-  if (provider === 'crustdata_v2_enrich_person') {
+  if (provider === 'crustdata_v3_person_enrich') {
     return crustdataPersonalEmails(result);
   }
   if (provider === 'contactout_enrich_person') {
@@ -316,10 +322,10 @@ export default definePlay(
             description: providerDescription(input.provider),
           }) as Promise<unknown>;
         }
-        if (input.provider === 'crustdata_v2_enrich_person') {
+        if (input.provider === 'crustdata_v3_person_enrich') {
           return rowCtx.tools.execute({
-            id: 'crustdata_v2_enrich_person',
-            tool: 'crustdata_v2_enrich_person',
+            id: 'crustdata_v3_person_enrich',
+            tool: 'crustdata_v3_person_enrich',
             input: providerInput(input.provider, row) as never,
             description: providerDescription(input.provider),
           }) as Promise<unknown>;
@@ -409,9 +415,7 @@ export default definePlay(
     const hitRows = rowsOut.filter((row) => row.accepted);
     const hashes = new Set(
       hitRows.flatMap((row) =>
-        row.validated_personal_email_hashes_sha256
-          .split(';')
-          .filter(Boolean),
+        row.validated_personal_email_hashes_sha256.split(';').filter(Boolean),
       ),
     );
 
@@ -420,8 +424,7 @@ export default definePlay(
       attempted_rows: rowCount,
       validated_contacts: hitRows.length,
       validated_hashes: hashes.size,
-      hit_rate_pct:
-        rowCount === 0 ? 0 : (hitRows.length * 100) / rowCount,
+      hit_rate_pct: rowCount === 0 ? 0 : (hitRows.length * 100) / rowCount,
       evaluated_rows: evaluated,
     };
   },
