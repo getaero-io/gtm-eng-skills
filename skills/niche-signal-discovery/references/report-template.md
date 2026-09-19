@@ -1,353 +1,43 @@
-# Report Template Reference
+# Final report contract
 
-Template for the niche signals report. Follow this structure and quality rules strictly.
+Deliver one Markdown report per workspace. If publishing to Notion, put the same content on one page. Combine the findings, scoring rules, runnable Play and evaluation results so the reader can decide what to do without opening another report. Link supporting files at the end.
 
-**Every report opens with a Quick Reference Dashboard (Sections 0.1–0.5) before the detailed data sections. This lets any reader — AE, SDR, or executive — understand key findings in under 2 minutes and take action immediately.**
+Lead with the recommendation and its limits. Use plain language, short explanations and tables for comparisons. State the actual completion state: `research_only`, `replay_only`, `exploratory_end_to_end` or `validated_for_named_use_case`. Keep all five sections; mark unfinished work as not run or unavailable with the reason and next step. A polished enrichment sample is not a completed scoring evaluation.
 
----
+Build tables and counts from the final export. Reconcile every displayed value, status and timestamp, then check that prose makes no stronger claim than its evidence. Link the actual Play, run and artifacts. Missing model or label prerequisites are unmet evaluation requirements, not proof that the model failed.
 
-## Section 0: Quick Reference Dashboard
+## 1. Who should we target?
 
-**Required at the top of every report.** Generate once analysis is complete. Use actual lift scores and signal names from your dataset.
+Summarize the best-fit customer profile, strongest supported signals, verified disqualifiers and recommended action. State the product/use case, decision question, analysis unit, cohort, dates and split. Keep fit, engagement and capacity distinct. End the summary with a recommendation to use, pilot or revise, bounded by the validation completed.
 
-### 0.1 TLDR (5 Bullets)
+## 2. Why these signals?
 
-Format as a prominent callout/highlight block at the very top of the report:
+Combine relevant website, hiring, technology and buyer-language findings in one review table: signal/concept, aliases, source, won matches/observed, lost matches/observed, prevalence ratio, uncertainty, interpretation and evidence links. Include neutral, negative-association and inconclusive findings, plus rejected candidates and their reasons.
 
-```
-⚡ TLDR — Read This First
+Show coverage by outcome and source: success, empty, missing, partial and error. Report population membership, exclusions and collection gaps. Support interpretations with exact evidence and counterevidence from both outcomes, including URLs, dates, roles and entity scope. Mark negated, uncertain and vendor mentions. Put the full candidate inventory, truncation flags, prevalence intervals, p-values, correction family and q-values in supporting files.
 
-• #1 signal: [top signal name] on their website — [X]x more common in won accounts — [one-line reason why it indicates buying intent]
-• Best-fit archetype: [ideal won customer in one sentence: size, vertical, regulatory context, maturity stage]
-• Fastest path to pipeline: Deepline people search for "[title 1]" + "[title 2]" at [headcount]-person [vertical] companies — these people own the buying decision
-• Hard skip flags: [signal 1], [signal 2], [signal 3] — [brief reason each signals existing solution, build culture, or procurement freeze]
-• Scoring: 60+ pts → Tier 1 immediate outreach · 35–59 → Tier 2 trigger-based · <35 → nurture or skip
-```
+Name the metric: feature prevalence ratio is not conditional win-rate lift. Do not rank by raw lift bars or infer confidence from a large ratio with few matches. Low ratios do not establish hard anti-fit rules; job ads do not prove software intent, and title counts do not measure headcount. Citation quantity does not establish statistical validity.
 
-### 0.2 Signal Strength at a Glance
+## 3. Which accounts come first?
 
-Two tables with visual lift bars. Sort positive signals by lift descending, anti-fit by lift ascending.
+Use one ranked table with account/identifier, requested score and grade, contributing signals, missing evidence, buyer persona and next action. Show requested score dimensions separately. Keep unresolved or insufficient-evidence rows visible with null scores and reasons. Distinguish known customers, held-out deals and unlabeled alternatives; existing customers are not net-new prospects.
 
-**Lift → Strength Bar scale:**
+Explain every displayed score using the same versioned scoring definition used by the Play and evaluation. Include raw values, transforms, account contributions (including present/absent effects), caps, penalties and missing-value handling so totals reconcile. Separate the primary routing policy from frozen audit outputs and experimental candidates. Follow the scoring delivery contract for percentile grades and frozen references. Do not invent weights or force a ranking when no supported model exists.
 
-| Lift   | Bar          |
-| ------ | ------------ |
-| ≥10x   | 🟩🟩🟩🟩🟩🟩 |
-| ≥4x    | 🟩🟩🟩🟩🟩   |
-| ≥2.5x  | 🟩🟩🟩🟩     |
-| ≥2.0x  | 🟩🟩🟩       |
-| ≥1.5x  | 🟩🟩         |
-| ≥1.0x  | 🟩           |
-| ≥0.4x  | 🟥🟥         |
-| ≥0.25x | 🟥🟥🟥       |
-| ≥0.15x | 🟥🟥🟥🟥     |
-| ≥0.07x | 🟥🟥🟥🟥🟥   |
-| <0.07x | 🟥🟥🟥🟥🟥🟥 |
+## 4. How do we run this?
 
-**✅ Positive Fit Signals** — Top 10–15, sorted by lift descending:
+Include the checked Play link or source artifact, input requirements, example invocation, output fields and actual run status. Explain which evidence it collects through Deepline and which approved rules or frozen model it applies. Identify model/reference versions and link run receipts. State clearly if only cached replay was tested or live enrichment remains unimplemented.
 
-```markdown
-| Signal        | Lift   | Strength | Source                         | What to Look For                              |
-| ------------- | ------ | -------- | ------------------------------ | --------------------------------------------- |
-| [signal name] | [X.Xx] | [bar]    | 🌐 Website / 💼 Jobs / 💻 Tech | [1-sentence: what to check and what it means] |
-```
+When prospecting is requested, include usable company searches, buyer titles and evidence-based messaging angles. Record scope, authorization and budget for follow-on collection. Report generation does not authorize external sends or CRM writes.
 
-Source icons: `🌐 Website` = found in website content · `💼 Jobs` = found in job listings · `💻 Tech` = tech stack detection
+## 5. Does it work?
 
-**🚫 Anti-Fit Signals** — All signals with lift < 0.5x:
+Summarize each evaluation in a table: input/cohort, independent expected result, observed output, metric and acceptance threshold, verdict, and remaining limitation. Cover extraction accuracy, exact score reproduction, and held-out ranking against existing rules and a simple baseline separately. Include precision/lift at the intended outreach capacity, uncertainty, coverage controls and the most important mistakes. Report measured runtime and Deepline credits, including failures; identify unavailable costs rather than assuming zero. Link complete CLI receipts and evaluator outputs.
 
-```markdown
-| Signal        | Lift   | Risk  | Why                                                                         |
-| ------------- | ------ | ----- | --------------------------------------------------------------------------- |
-| [signal name] | [0.Xx] | [bar] | [root cause: existing solution / build culture / procurement freeze / etc.] |
-```
+Explain the adversarial findings: coverage confounding, post-cutoff evidence, parent overlap, label selection, phrase tuning, multiple tests, rare estimates and source mismatch. Current enrichment cannot validate past predictions. If validation is not independent or point-in-time, say exploratory. Report failed comparisons and unmet gates, then state whether to use, pilot or revise and the next useful test. A useful result can be better ROI sizing or a rejected hypothesis rather than a new win predictor.
 
-### 0.3 Platform Search Recipes
+## Supporting files
 
-Pre-built, click-ready search links for each buyer type.
+Link the full input population and labels, candidate inventory and statistics, evidence/counterevidence, score export, frozen model/reference artifacts, Play source/checks, evaluation outputs and run/cost receipts. Keep private customer artifacts in the authorized workspace. These files support the report; the recommendation and key results stay in the report itself.
 
-**People Searches (find the buyers):**
-
-```markdown
-| Who You're Finding          | Why They're the Buyer                                 | Prospecting Link     |
-| --------------------------- | ----------------------------------------------------- | -------------------- |
-| [Title 1, Title 2, Title 3] | [Signal lift + one-line reason they own the decision] | [Open Search ↗](URL) |
-```
-
-**Company Searches (find the accounts):**
-
-```markdown
-| What You're Finding             | Signal It Represents | Prospecting Link     |
-| ------------------------------- | -------------------- | -------------------- |
-| [Company type + keyword filter] | [Signal name + lift] | [Open Search ↗](URL) |
-```
-
-**Google Search Operators (verify a specific company before outreach):**
-
-```markdown
-| What to Check | Google Operator               | Positive Result Looks Like    |
-| ------------- | ----------------------------- | ----------------------------- |
-| [Signal name] | `site:domain.com "[keyword]"` | [What a positive match means] |
-```
-
-**Prospecting command format — use Deepline play-backed searches:**
-
-```
-People search:
-deepline plays run prebuilt/company-to-contact \
-  --input '{"domain":"example.com","roles":["Title One","Title Two"],"seniority":["vp","director"],"limit":25}'
-
-Company search:
-deepline tools execute crustdata_companydb_search \
-  --input '{"company_keywords":["keyword-one","keyword-two"],"countries":["United States"],"headcount_ranges":["201-500"],"limit":50}'
-```
-
-Valid headcount ranges: `1-10` `11-20` `21-50` `51-200` `201-500` `501-1000` `1001-5000` `5001-10000` `10001+`
-
-Valid seniorities: `vp` `director` `manager` `c_suite` `owner` `partner` `senior` `entry`
-
-Use keyword-based company filtering where the selected company-search tool supports it. Do not hardcode provider-specific industry tag IDs; use portable keywords instead.
-
-### 0.4 Buyer Persona Quick Reference
-
-One row per key persona. Pull title patterns and pain points from job hiring signals + keyword analysis. Include 3–5 personas covering: primary decision-maker, economic buyer, technical evaluator, champion.
-
-```markdown
-| Persona | Title Pattern               | Pain Point        | Signal to Reference                    | Prospect Search |
-| ------- | --------------------------- | ----------------- | -------------------------------------- | --------------- |
-| [Name]  | [Title 1, Title 2, Title 3] | [Core pain point] | [Top signal + lift + where to find it] | [Search ↗](URL) |
-```
-
-### 0.5 Lead Scoring Cheatsheet
-
-Condensed scoring model — score any prospect in under 2 minutes.
-
-```markdown
-| Signal                            | Points | How to Check                                          |
-| --------------------------------- | ------ | ----------------------------------------------------- |
-| [Top positive signal]             | +[N]   | `site:domain.com "[keyword]"` OR Deepline jobs/search |
-| ... (8–12 positive signals total) |        |                                                       |
-| [Top anti-fit signal]             | −[N]   | [How to check]                                        |
-| ... (4–6 anti-fit signals total)  |        |                                                       |
-```
-
-Score tiers:
-
-```markdown
-| Score  | Tier      | Action                                                               |
-| ------ | --------- | -------------------------------------------------------------------- |
-| 60–100 | 🟢 Tier 1 | Immediate — personalized sequence referencing their specific signals |
-| 35–59  | 🟡 Tier 2 | Trigger-based — sequence on funding, industry news, or hiring event  |
-| <35    | 🔴 Tier 3 | Nurture or skip — likely not a fit today                             |
-```
-
----
-
-## Header
-
-```markdown
-# {Company Name} ICP Niche Signals Report
-
-**Analysis Date:** {{date}}
-**Target Company:** {{company}} ({{domain}}) — {one-line description}
-**Dataset:** {{won_count}} Closed Won + {{lost_count}} Closed Lost accounts
-**Data Sources:** Multi-page website extraction (exa_search with contents, ~8 pages/company) + job listings (Crustdata)
-**Coverage:** {{won_with_content}}/{{won_count}} won and {{lost_with_content}}/{{lost_count}} lost with website content; {{won_with_jobs}}/{{won_count}} won with job listings
-```
-
----
-
-## Section 1: Executive Summary
-
-**Format:** 2-3 direct sentences profiling best-fit customers. Include top 3 differentiating signals with lift values.
-
-**REQUIRED: Add prospective target companies** (not in dataset) that match the ICP profile:
-
-- List 4-6 concrete companies that fit the profile but aren't current customers
-- Include: company name, size, specific signals (hiring roles, tech stack, pain points mentioned)
-- Shows what the ICP looks like in the wild
-
-**Example:**
-
-> {{Target}}'s buyers are mid-size companies (100-1000 employees) scaling {{domain}} operations. Top signals: hiring {{domain}}-related roles (3-5x lift), using {niche tools} (2-4x lift), mentioning "{buyer pain point}" (3-6x lift).
->
-> **Companies that fit this profile but aren't customers yet:**
->
-> - {Company A} ({{size}} employees) — {specific signal 1}, {specific signal 2}
-> - {Company B} ({{size}} employees) — {specific signal 1}, {specific signal 2}
-
-**Avoid:** Generic "perfect fit customer" descriptions. Be specific and concrete.
-
-### Dataset Caveat (if applicable)
-
-If the dataset has limitations, add a caveat subsection. Common caveats:
-
-- Lookalike companies used as Won (they haven't actually purchased — signals are inferred fit, not validated)
-- Small sample size (<20 won or <10 lost)
-- Uneven group sizes (e.g., 8 won + 32 lost)
-- Auto-extracted domains without manual verification
-
----
-
-## Section 2: Website Keyword Differential
-
-Methodology note at the top:
-
-> Substring matching across multi-page website content for {{won_n}} won and {{lost_n}} lost companies. Lift uses Laplace smoothing: `((won + 0.5) / (won_total + 1)) / ((lost + 0.5) / (lost_total + 1))`. **Bold** = lift > 2x.
-
-### Subsections by category (2.1, 2.2, etc.)
-
-Table format:
-
-```markdown
-| Keyword | Won (n=X) | Lost (n=Y) | Lift | Interpretation |
-```
-
-**Quality rules:**
-
-- Raw counts always: `15% (6)` not just `15%`
-- Sample sizes in headers: `Won (n=37)`, `Lost (n=18)`
-- **Bold** lift > 2x only
-- Interpretation column required — explains WHY this matters for the target company
-
-### Source Evidence (Required for top 3 keywords per table)
-
-After each table, add a blockquote with **exact quotes** and **linked sources** for the top 3 keywords. The analysis script outputs `evidence` objects with `company`, `source_type`, `quote`, `url`, and `page_title` or `job_title`.
-
-Format evidence as:
-
-```markdown
-> **Evidence — "keyword1":**
->
-> - [company1.com](url) (page title): "...exact quote with keyword in context..."
-> - [company2.com](url) (job: "Job Title"): "...exact quote from job listing..."
->
-> **"keyword2":**
->
-> - [company3.com](url) (page title): "...exact quote..."
-```
-
-Each evidence entry must include:
-
-1. **Company domain** as a link to the source URL
-2. **Source context** — page title for websites, job title for listings
-3. **Exact quote** — the ±40 char snippet around the keyword match from the raw text
-4. **Vendor-adjacent annotation** — If the evidence comes from a company that also sells a similar product (e.g., their pricing page mentions the keyword), mark with ⚠️ and note "vendor-adjacent". Clear buyer signals get ✅.
-
-### Sales-Specific Keywords: Source Breakdown
-
-For sales-specific keywords, add a **Source** column showing where matches came from:
-
-```markdown
-| Keyword | Won (n=X) | Lost (n=Y) | Lift | Source (website / jobs / both) | Interpretation |
-```
-
-Source format: `3w / 20j / 2both` (3 from website only, 20 from job descriptions only, 2 from both)
-
-### Tech Stack Keywords: Niche Tool Mentions
-
-Search for specific SaaS tools (not generic keywords like "cloud" or "security"). Group by category:
-
-- Sales & Revenue Tools
-- Data & Analytics Tools
-- Customer Success & Support
-- HR & ATS
-- Anti-Fit Tech Stack
-
-### Anti-Fit Keywords
-
-Separate table for keywords with lift < 0.5x.
-
----
-
-## Section 3: Structured Signal Categories
-
-GTM motion indicators, infrastructure maturity tables with Won%, Lost%, and interpretation.
-
----
-
-## Section 4: Job Hiring Signals
-
-Role prevalence in won companies. If lost companies lack job data, present won-only with note.
-
----
-
-## Section 5: Anti-Fit Signals & Competitive Tool Users
-
-### Anti-Fit Signals Table
-
-Website content anti-signals table for keywords with lift < 0.5x that indicate structural misfit.
-
-### Structural Anti-Fit Patterns
-
-Patterns indicating the company is not a fit:
-
-- Selling the same product category (competitor, not buyer)
-- No job listings in 12+ months (not growing/hiring)
-- Consumer-focused business model (if target sells B2B)
-- Industry/vertical mismatch
-
-### Competitive Tool Users (Migration Opportunity Segment)
-
-**DO NOT exclude companies using competitor tools.** Instead, create a separate prospecting segment:
-
-```markdown
-| Company Segment      | Count          | Approach                                   |
-| -------------------- | -------------- | ------------------------------------------ |
-| Using [Competitor A] | N (X% of lost) | Displacement messaging, comparison content |
-| Using [Competitor B] | N (X% of lost) | Migration case studies                     |
-```
-
-### Red Flag Checklist
-
-Deprioritize if 2+ present (excluding competitive tool usage):
-
-- ✅ Selling the same product (competitor)
-- ⚠️ No relevant job listings in 12 months
-- ⚠️ <50 employees
-- ⚠️ Consumer-only business model
-
----
-
-## Section 6: Composite Lead Scoring Model
-
-0-100 point model organized in 3 tiers:
-
-- Tier 1: Core Fit (0-40 points) — regulatory, compliance, or structural signals
-- Tier 2: Sophistication (0-30 points) — fraud/risk/product maturity signals
-- Tier 3: Developer / Integration Fit (0-30 points) — API-first, tech stack signals
-
-Include scoring examples from the dataset (2 won, 2 lost with full point breakdown).
-
-**CRITICAL — Scoring reconciliation:** After writing this section, cross-check every signal's point value against Section 0.5 (Lead Scoring Cheatsheet). They MUST match. Mismatches between the quick-reference and detailed sections confuse users.
-
----
-
-## Section 7: Niche First-Party Signals to Pull
-
-Actionable checklist grouped by priority:
-
-- Highest-value (pull for every prospect)
-- High-value (pull for Tier 1-2)
-- Enrichment signals (context for personalization)
-
----
-
-## Section 8: Won vs Lost Comparison
-
-Side-by-side archetype profiles with concrete examples from the dataset.
-
----
-
-## Section 9: Recommended Prospecting Workflow
-
-4-step targeting guide: Build list → Enrich → Score → Personalize.
-
-Include personalization hooks for each top signal:
-
-```
-• Regulatory trigger: "Noticed [Company] has [signal] — companies at this maturity typically [pain point]..."
-• Tech stack signal: "Saw [Company] uses [tool] — teams running [tool] often face [specific friction]..."
-• Hiring signal: "Saw you're hiring a [role] — we work with [comparable company] to help their [team] focus on [outcome] rather than [pain]..."
-• Competitive signal: "You're using [competitor] — [specific reason a switch makes sense right now]..."
-```
+Version 2 analyzer exports `signals[]` and statistics; old `keyword_results`/lift consumers require migration. Fisher/Wilson/BH/BY assume account-level observations; disclose parent dependence and design limitations. Corrections cover one invocation, not all prior experiments.

@@ -1,64 +1,158 @@
 {
   "documents": {
+    "references/buyer-language-research.md": {
+      "kind": "guide",
+      "title": "Research Buyer Language Across Public Sources",
+      "tags": [
+        "signals",
+        "research",
+        "keywords"
+      ],
+      "providers": []
+    },
+    "references/testing-and-evaluation.md": {
+      "kind": "guide",
+      "title": "Test Implementation and Evaluate Scoring",
+      "tags": [
+        "scoring",
+        "testing",
+        "evaluation"
+      ],
+      "providers": []
+    },
+    "references/scoring-delivery.md": {
+      "kind": "guide",
+      "title": "Reproducible Scoring Delivery Contract",
+      "tags": [
+        "scoring",
+        "plays",
+        "evaluation"
+      ],
+      "providers": []
+    },
     "SKILL.md": {
       "kind": "entrypoint",
       "title": "Niche Signal Discovery",
-      "tags": ["signals", "icp"],
+      "tags": [
+        "signals",
+        "icp"
+      ],
       "providers": []
     },
     "references/keyword-catalog.md": {
       "kind": "guide",
       "title": "Keyword Catalog",
-      "tags": ["signals"],
+      "tags": [
+        "signals"
+      ],
       "providers": []
     },
     "references/report-template.md": {
       "kind": "guide",
       "title": "Report Template",
-      "tags": ["reporting"],
+      "tags": [
+        "reporting"
+      ],
       "providers": []
     },
     "references/signal-interpretation.md": {
       "kind": "guide",
       "title": "Signal Interpretation",
-      "tags": ["signals"],
+      "tags": [
+        "signals"
+      ],
       "providers": []
     },
     "references/dedupe.md": {
       "kind": "guide",
       "title": "Dedupe Against Existing List",
-      "tags": ["prospecting", "dedupe"],
+      "tags": [
+        "prospecting",
+        "dedupe"
+      ],
       "providers": []
     },
     "references/quality-gate.md": {
       "kind": "guide",
       "title": "Quality Gate",
-      "tags": ["enrichment", "qa"],
+      "tags": [
+        "enrichment",
+        "qa"
+      ],
       "providers": []
     },
     "references/pitfalls.md": {
       "kind": "guide",
       "title": "Common Pitfalls",
-      "tags": ["signals", "troubleshooting"],
+      "tags": [
+        "signals",
+        "troubleshooting"
+      ],
       "providers": []
     },
     "references/proven-signals.md": {
       "kind": "guide",
-      "title": "Proven Signal Patterns",
-      "tags": ["signals", "scoring"],
+      "title": "Hypothesis Library (Not Validated Weights)",
+      "tags": [
+        "signals",
+        "scoring"
+      ],
       "providers": []
     },
     "references/step-7-prospects.md": {
       "kind": "guide",
-      "title": "Step 7 — Top 10 Prospects",
-      "tags": ["prospecting", "contacts"],
+      "title": "Optional Prospect Handoff",
+      "tags": [
+        "prospecting",
+        "contacts"
+      ],
       "providers": []
     },
     "references/scoring-pitfalls.md": {
       "kind": "guide",
-      "title": "Scoring Pitfalls — Confirmation-Biased Fields",
-      "tags": ["signals", "scoring"],
+      "title": "Scoring Pitfalls \u2014 Confirmation-Biased Fields",
+      "tags": [
+        "signals",
+        "scoring"
+      ],
+      "providers": []
+    },
+    "references/capacity-evidence.md": {
+      "kind": "guide",
+      "title": "Staff and Operational Volume: Measurement Boundaries",
+      "tags": [
+        "signals",
+        "measurement"
+      ],
+      "providers": []
+    },
+    "references/technology-evidence.md": {
+      "kind": "guide",
+      "title": "Public Technology Evidence",
+      "tags": [
+        "signals",
+        "technology"
+      ],
+      "providers": []
+    },
+    "references/scorecard-creation.md": {
+      "kind": "guide",
+      "title": "Scorecard Creation Pattern",
+      "tags": [
+        "scoring",
+        "implementation"
+      ],
+      "providers": []
+    },
+    "references/scoring-diagnostics.md": {
+      "kind": "guide",
+      "title": "Scoring Diagnostics",
+      "tags": [
+        "scoring",
+        "troubleshooting"
+      ],
       "providers": []
     }
-  }
+  },
+  "version": "2.2"
 }
