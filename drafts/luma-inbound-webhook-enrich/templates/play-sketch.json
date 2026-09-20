@@ -1,0 +1,100 @@
+{
+  "name": "luma-registration-enrich-v1",
+  "description": "PLACEHOLDER ONLY — Standing Luma webhook → enrich → CRM upsert",
+  "trigger": {
+    "type": "webhook",
+    "source": "luma",
+    "events": ["guest.approved", "guest.registered", "guest.cancelled"]
+  },
+  "steps": [
+    {
+      "id": "validate",
+      "type": "validation",
+      "rules": {
+        "email": "required",
+        "name": "required"
+      }
+    },
+    {
+      "id": "normalize",
+      "type": "transform",
+      "operations": [
+        {
+          "field": "linkedin_url",
+          "transform": "normalize_linkedin_slug"
+        },
+        {
+          "field": "email",
+          "transform": "lowercase_trim"
+        }
+      ]
+    },
+    {
+      "id": "enrich",
+      "type": "deepline_enrich",
+      "fields": [
+        "linkedin_url",
+        "title",
+        "company",
+        "company_domain",
+        "email_valid"
+      ],
+      "provider_waterfall": ["deepline", "pdl", "hunter"],
+      "pilot_first": false,
+      "comment": "Set pilot_first: true if running for first time or testing"
+    },
+    {
+      "id": "score",
+      "type": "scoring",
+      "logic": {
+        "hot": "icp_company AND icp_title",
+        "warm": "icp_company OR icp_title",
+        "low": "email_valid AND NOT (icp_company OR icp_title)",
+        "skip": "NOT email_valid"
+      }
+    },
+    {
+      "id": "upsert_crm",
+      "type": "crm_write",
+      "provider": "hubspot",
+      "config": {
+        "portal_id": "${HUBSPOT_PORTAL_ID}",
+        "api_key": "${HUBSPOT_API_KEY}",
+        "object": "contact",
+        "upsert_key": "email"
+      },
+      "field_map": {
+        "email": "email",
+        "full_name": "{{guest.name}}",
+        "event_registered": "{{event.name}}",
+        "event_registration_date": "{{registration.timestamp}}",
+        "linkedin_url": "{{enriched.linkedin_url}}",
+        "title": "{{enriched.title}}",
+        "company": "{{enriched.company}}",
+        "icp_segment": "{{scored.segment}}"
+      }
+    },
+    {
+      "id": "notify_slack",
+      "type": "slack_webhook",
+      "condition": "{{scored.segment}} == 'hot'",
+      "url": "${SLACK_EVENT_OPS_CHANNEL}",
+      "message": "🔥 Hot guest registered: {{guest.name}} ({{enriched.title}} at {{enriched.company}}) for {{event.name}}"
+    }
+  ],
+  "error_handling": {
+    "on_failure": "log_to_dead_letter_queue",
+    "retry_policy": {
+      "max_attempts": 3,
+      "backoff": "exponential"
+    }
+  },
+  "version": "v1",
+  "notes": [
+    "PLACEHOLDER SKETCH ONLY — NOT EXECUTABLE",
+    "All ${...} secrets must be set in workflow secrets or env vars",
+    "Field paths like {{guest.name}} are schematic; actual Luma payload may differ",
+    "Test with dry_run: true before deploying to prod",
+    "Bump version to v2 when changing field mappings"
+  ]
+}

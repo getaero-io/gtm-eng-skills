@@ -1,0 +1,27 @@
+name,email,company,title,linkedin_url,segment,why_matters
+Ada Example,ada@acme.example,Acme Labs,VP Revenue Operations,https://linkedin.com/in/ada-example,hot,TAL account; owns RevOps stack decisions
+Blake Sample,blake@northwind.example,Northwind Analytics,Head of Growth,https://linkedin.com/in/blake-sample,hot,Series B; hiring SDRs; prior Salesforce
+Casey Demo,casey@contoso.example,Contoso RevOps,Founder,https://linkedin.com/in/casey-demo,warm,Founder in RevOps space; mutual connection via Jordan
+
+# Host-Hit Shortlist (Fictional Sample Only)
+
+This CSV shows the expected format for a host-hit shortlist. All data is fictional.
+
+## Columns
+
+- `name` — Full name
+- `email` — Email address
+- `company` — Company name
+- `title` — Job title
+- `linkedin_url` — LinkedIn profile URL
+- `segment` — hot | warm (from scoring step)
+- `why_matters` — Brief note on why host should prioritize this guest
+
+## Usage
+
+1. Export from `event-ops-score-and-door` host-hits output
+2. Enrich with LinkedIn profile data (photo, experience)
+3. Research: 3-8 bullets per person from public sources
+4. Generate one-pager dossier per guest
+5. Combine into printable PDF pack
+6. Deliver to host before event

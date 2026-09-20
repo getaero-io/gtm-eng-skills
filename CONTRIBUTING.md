@@ -11,6 +11,9 @@ skills/<skill-name>/
 └── scripts/              # Optional — helper scripts the skill can invoke
 ```
 
+**Experimental / draft skills:** If you're working on an unfinished skill, put it in **`drafts/`** instead of `skills/`.
+The `drafts/` folder is not synced by the Deepline CLI. See [`drafts/README.md`](drafts/README.md) for the promotion path.
+
 `SKILL.md` must have YAML frontmatter:
 
 ```yaml

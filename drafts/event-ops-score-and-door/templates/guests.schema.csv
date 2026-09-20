@@ -1,0 +1,26 @@
+name,email,company,title,linkedin_url,rsvp_status,rsvp_timestamp
+Ada Example,ada@acme.example,Acme Labs,VP Revenue Operations,https://linkedin.com/in/ada-example,pending,2026-09-15T14:32:00Z
+Blake Sample,blake@northwind.example,Northwind Analytics,Head of Growth,https://linkedin.com/in/blake-sample,approved,2026-09-14T09:18:00Z
+Casey Demo,casey@contoso.example,Contoso RevOps,Founder,,waitlist,2026-09-16T11:42:00Z
+
+# Guests Schema (Fictional Sample Only)
+
+This CSV shows the expected schema for a Luma guest export. All data is fictional.
+
+## Columns
+
+- `name` — Full name
+- `email` — Email address
+- `company` — Company name (may be empty)
+- `title` — Job title (may be empty)
+- `linkedin_url` — LinkedIn profile URL (may be empty)
+- `rsvp_status` — pending | approved | waitlist | checked_in | cancelled
+- `rsvp_timestamp` — ISO 8601 timestamp
+
+## Usage
+
+1. Export real guest list from Luma
+2. Map to this schema
+3. Enrich missing fields (title, company, LinkedIn URL)
+4. Score and segment
+5. Generate door pack
