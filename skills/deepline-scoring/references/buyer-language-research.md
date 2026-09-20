@@ -1,6 +1,6 @@
 # Research how buyers describe the problem
 
-Use this before expanding a keyword catalog. The output is a source-backed candidate bank, not scoring weights. Follow the two-wave, source-specific research pattern from `last30days` and `deepline-pre-research`: resolve the audience and communities, discover public discussions, follow the useful leads, and only then choose collection routes. This guide is self-contained; neither skill is a runtime dependency.
+Use this before expanding a keyword catalog. The output is a source-backed candidate bank, not scoring weights. Follow the two-wave, source-specific research pattern from `last30days` and `deepline-research`: resolve the audience and communities, discover public discussions, follow the useful leads, and only then choose collection routes. This guide is self-contained; neither skill is a runtime dependency.
 
 ## Plan bounded retrieval
 
@@ -53,4 +53,4 @@ Freeze the reviewed config and source hashes before outcome analysis. New resear
 
 Deliver the complete evidence bank, query/provenance ledger, coverage report, reviewed candidates and rejected/uncertain interpretations. State which concepts are useful vocabulary, which are verified account observations and which have earned predictive support. These are separate claims.
 
-Pattern references: [last30days](https://github.com/mvanhorn/last30days-skill) and the `deepline-pre-research` query-design, source-map and fanout-consolidation guides. This guide describes an original workflow; it does not copy or execute their engine.
+Pattern references: [last30days](https://github.com/mvanhorn/last30days-skill) and the `deepline-research` query-design, source-map and fanout-consolidation guides. This guide describes an original workflow; it does not copy or execute their engine.

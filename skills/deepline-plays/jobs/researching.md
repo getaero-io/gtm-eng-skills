@@ -45,8 +45,8 @@ Offline regression for the compiler itself:
 
 ```bash
 bun .skills/deepline-plays/scripts/evaluate-source-plan-corpus.ts \
-  --corpus .skills/deepline-pre-research/evals/last30days-public-private-corpus.json \
-  --pre-research-planner .skills/deepline-pre-research/scripts/query_design.py
+  --corpus .skills/deepline-research/evals/last30days-public-private-corpus.json \
+  --pre-research-planner .skills/deepline-research/scripts/query_design.py
 ```
 
 That checks planning only. Tool availability, adapters, coverage, and credit

@@ -1,12 +1,12 @@
 {
   "name": "last30days-public-private-corpus",
   "version": "1.0.0-reconstructed",
-  "description": "20 real last30days GTM prompts used to eval the deepline-pre-research query planner. Each case asserts route classification, source-family coverage, and extraction-key emission are same-or-better than what last30days actually returned.",
+  "description": "20 real last30days GTM prompts used to eval the deepline-research query planner. Each case asserts route classification, source-family coverage, and extraction-key emission are same-or-better than what last30days actually returned.",
   "provenance": {
     "reconstructedOn": "2026-08-10",
     "reconstructedFrom": [
-      "~/.deepline-evals/eval-deepline-pre-research-corpus-fixed-1/public_private_corpus_results.json (20/20 pass)",
-      "~/.deepline-evals/eval-deepline-pre-research-standalone-deepline-pre-research-public-private-corpus-1/public_private_corpus_results.json (5/20 pre-fix)"
+      "~/.deepline-evals/eval-deepline-research-corpus-fixed-1/public_private_corpus_results.json (20/20 pass)",
+      "~/.deepline-evals/eval-deepline-research-standalone-deepline-research-public-private-corpus-1/public_private_corpus_results.json (5/20 pre-fix)"
     ],
     "note": "Original corpus JSON was never committed and is absent from disk. Case fields are recovered exactly from preserved expected_* values in the run outputs."
   },

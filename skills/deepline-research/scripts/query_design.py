@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deepline pre-research query design planner.
+"""Deepline research query design planner.
 
 This ports the useful query-design behavior from last30days into a standalone
 Deepline helper. It does not call providers. It turns a verbose research request
@@ -570,7 +570,7 @@ def plan_to_dict(plan: QueryPlan) -> dict[str, Any]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build a Deepline pre-research query plan")
+    parser = argparse.ArgumentParser(description="Build a Deepline research query plan")
     parser.add_argument("topic", nargs="+")
     parser.add_argument("--depth", choices=["quick", "default", "deep"], default="default")
     parser.add_argument("--from-date")

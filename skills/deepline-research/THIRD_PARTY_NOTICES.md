@@ -2,7 +2,7 @@
 
 ## last30days-skill
 
-`deepline-pre-research` includes query-design logic adapted from [`mvanhorn/last30days-skill`](https://github.com/mvanhorn/last30days-skill), including prompt-noise stripping, query type detection, source tiering, source-specific query variants, and supplemental entity extraction patterns.
+`deepline-research` includes query-design logic adapted from [`mvanhorn/last30days-skill`](https://github.com/mvanhorn/last30days-skill), including prompt-noise stripping, query type detection, source tiering, source-specific query variants, and supplemental entity extraction patterns.
 
 The adapted code is used under the MIT License:
 

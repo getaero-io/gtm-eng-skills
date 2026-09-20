@@ -1,6 +1,6 @@
 # Fanout And Consolidation
 
-Use this reference when comparing `/deepline-pre-research` to `last30days` or when designing the actual Deepline workflow.
+Use this reference when comparing `/deepline-research` to `last30days` or when designing the actual Deepline workflow.
 
 ## Baseline To Preserve
 

@@ -1,6 +1,6 @@
 # Source Map
 
-Use this reference to choose source families for `/deepline-pre-research`. Tool ids drift; always confirm with `deepline tools search` and `deepline tools describe`.
+Use this reference to choose source families for `/deepline-research`. Tool ids drift; always confirm with `deepline tools search` and `deepline tools describe`.
 
 ## Required Dataset Inventory
 

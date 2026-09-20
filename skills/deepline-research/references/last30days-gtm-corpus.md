@@ -1,6 +1,6 @@
 # Last30Days GTM Corpus
 
-This summarizes the relevant saved `last30days` runs under `~/Documents/Last30Days` as of this review. Use it as source-selection memory for `/deepline-pre-research`; do not depend on `last30days` at runtime.
+This summarizes the relevant saved `last30days` runs under `~/Documents/Last30Days` as of this review. Use it as source-selection memory for `/deepline-research`; do not depend on `last30days` at runtime.
 
 ## Corpus Shape
 
@@ -36,7 +36,7 @@ Reusable source pattern:
 - Translate into Deepline provider routing: direct provider, waterfall, or gap.
 - Always distinguish "lead source" from "contact enrichment" from "verification"; many bad workflows blur these.
 
-Implication for `/deepline-pre-research`: provider strategy output must include coverage basis, cost basis, expected miss patterns, and fallback order.
+Implication for `/deepline-research`: provider strategy output must include coverage basis, cost basis, expected miss patterns, and fallback order.
 
 ### 2. Contact Enrichment And Identity Resolution
 
@@ -76,7 +76,7 @@ Reusable source pattern:
 - Social/community results are useful because they reveal that a dataset exists, not because the posts are final evidence.
 - Government/open-data datasets need fetch/download/normalize/join steps before enrichment.
 
-Implication: `/deepline-pre-research` should promote "dataset lead discovery" as a source family and ask whether a public registry can be materialized before defaulting to generic company databases.
+Implication: `/deepline-research` should promote "dataset lead discovery" as a source family and ask whether a public registry can be materialized before defaulting to generic company databases.
 
 ### 4. Signals, Scoring, And Propensity
 
@@ -113,7 +113,7 @@ Reusable source pattern:
 - Warehouse/product usage/workflow runs are often the real truth layer for PLG and expansion.
 - Call transcripts, Slack/email, and workflow outputs are useful when converted into dated, attributable signals.
 
-Implication: `/deepline-pre-research` should ask for CRM/warehouse/workflow access before finalizing any GTM source plan.
+Implication: `/deepline-research` should ask for CRM/warehouse/workflow access before finalizing any GTM source plan.
 
 ### 6. Custom Language, Messaging, And Community Language
 
@@ -154,7 +154,7 @@ A Codex session captured the strongest GTM lesson:
 - It found a government-agency post pointing to roughly 3M violation records.
 - The agent built a risk model, scored 6,537 mines, found safety decision makers, validated emails/LinkedIn URLs, and wrote Lemlist campaigns.
 
-This should become the canonical `/deepline-pre-research` mental model:
+This should become the canonical `/deepline-research` mental model:
 
 1. Use social/community/web to discover the dataset and modeling literature.
 2. Materialize the dataset.

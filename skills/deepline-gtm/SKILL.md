@@ -140,7 +140,7 @@ when the request requires it.
 | `portfolio-prospecting.md`      | Finding companies backed by a specific investor or accelerator, then finding contacts and building personalized outbound                   |
 | `small-business-prospecting.md` | Finding local small businesses or storefront/service-area companies using Maps-style search. Doctors, services business, restaurants, etc. |
 
-> **Public/social source discovery, community-language pulls, pre-research source planning, or provider-coverage/cost comparison → use the standalone `deepline-pre-research` skill, not a recipe here.** It owns X/Twitter, Reddit, Hacker News, Bluesky, and public-registry fanout plus the source-plan + Deepline-cost synthesis.
+> **Public/social source discovery, community-language pulls, pre-research source planning, or provider-coverage/cost comparison → use the standalone `deepline-research` skill, not a recipe here.** It owns X/Twitter, Reddit, Hacker News, Bluesky, and public-registry fanout plus the source-plan + Deepline-cost synthesis.
 
 If none match, grep for more specific keywords: `Grep pattern="<keyword>" path="<directory containing this SKILL.md>/recipes/" glob="*.md" output_mode="files_with_matches"`
 

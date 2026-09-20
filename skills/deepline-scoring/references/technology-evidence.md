@@ -1,6 +1,6 @@
 # Public technology evidence
 
-Reviewed 2026-09-09. These are collection and interpretation rules, not a deployed crawler or proof of predictive value. Read deepline-pre-research before selecting providers. Freeze signatures before holdout evaluation, just like keyword rules.
+Reviewed 2026-09-09. These are collection and interpretation rules, not a deployed crawler or proof of predictive value. Read deepline-research before selecting providers. Freeze signatures before holdout evaluation, just like keyword rules.
 
 ## Collect these surfaces
 

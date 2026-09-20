@@ -1,13 +1,13 @@
 # Query Design
 
-`/deepline-pre-research` should not send the user's raw prompt to every source. The query-design layer is the core behavior to preserve from `last30days`.
+`/deepline-research` should not send the user's raw prompt to every source. The query-design layer is the core behavior to preserve from `last30days`.
 
 Attribution: the query-cleaning, query-type, source-tiering, and supplemental extraction patterns are adapted from `mvanhorn/last30days-skill` under the MIT License. See `../THIRD_PARTY_NOTICES.md`.
 
 Use `scripts/query_design.py` to generate the query plan:
 
 ```bash
-python3 .skills/deepline-pre-research/scripts/query_design.py "best GTM data sources for SMB consumer services companies" --depth deep
+python3 .skills/deepline-research/scripts/query_design.py "best GTM data sources for SMB consumer services companies" --depth deep
 ```
 
 In Deepline runtime, use the native API route only after the public-source fanout has produced a first synthesis and source map. The API translates findings into Deepline routes and costs; it must not replace the research pass:

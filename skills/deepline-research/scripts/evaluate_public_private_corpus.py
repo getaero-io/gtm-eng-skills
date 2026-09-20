@@ -20,7 +20,7 @@ DEEPLINE_PRIVATE_SOURCES = {"crm", "warehouse", "workflow", "support"}
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Evaluate the Deepline pre-research query planner on the 20-case last30days corpus")
+    parser = argparse.ArgumentParser(description="Evaluate the Deepline research query planner on the 20-case last30days corpus")
     parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS, help="Corpus JSON path")
     parser.add_argument("--out-md", type=Path, default=OUT_MD, help="Markdown report path")
     parser.add_argument("--out-json", type=Path, default=OUT_JSON, help="JSON report path")
@@ -81,7 +81,7 @@ def evaluate_case(case: dict[str, Any], defaults: dict[str, Any]) -> dict[str, A
 def build_markdown(results: list[dict[str, Any]], corpus_path: Path) -> str:
     passed = sum(1 for result in results if result["same_or_better"])
     lines = [
-        "# Deepline Pre-Research Public/Private Corpus Eval",
+        "# Deepline Research Public/Private Corpus Eval",
         "",
         f"Corpus: `{corpus_path}`",
         f"Result: {passed}/{len(results)} cases same_or_better",

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Compare deepline-pre-research coverage against saved last30days GTM runs.
+"""Compare deepline-research coverage against saved last30days GTM runs.
 
 This intentionally does not call live providers. It reads saved last30days output
-files and checks whether the Deepline pre-research source contract covers the
+files and checks whether the Deepline research source contract covers the
 same public/community sources plus Deepline-specific private, cost, and
 activation requirements.
 """
@@ -396,15 +396,15 @@ def build_report(corpus: Path = DEFAULT_CORPUS) -> tuple[str, dict[str, object]]
     }
 
     lines = [
-        "# Deepline Pre-Research Side-By-Side Eval",
+        "# Deepline Research Side-By-Side Eval",
         "",
         f"Corpus: `{corpus}`",
         "",
-        "This eval reads saved `last30days` GTM outputs and compares their observed public-source coverage against the `deepline-pre-research` contract. It does not call paid providers or require local secrets.",
+        "This eval reads saved `last30days` GTM outputs and compares their observed public-source coverage against the `deepline-research` contract. It does not call paid providers or require local secrets.",
         "",
         "## Summary",
         "",
-        f"{examples_full_coverage}/{examples_checked} examples from the saved `last30days` GTM corpus achieve full contract coverage under the `deepline-pre-research` skill contract.",
+        f"{examples_full_coverage}/{examples_checked} examples from the saved `last30days` GTM corpus achieve full contract coverage under the `deepline-research` skill contract.",
         "",
         f"Result: **same_or_better = {str(same_or_better).lower()}** for public and private GTM pre-research.",
         "",
@@ -461,7 +461,7 @@ def build_report(corpus: Path = DEFAULT_CORPUS) -> tuple[str, dict[str, object]]
         "",
         "## Fanout And Consolidation",
         "",
-        "| Area | last30days baseline | Deepline pre-research contract | Verdict |",
+        "| Area | last30days baseline | Deepline research contract | Verdict |",
         "| --- | --- | --- | --- |",
     ]
 
@@ -483,7 +483,7 @@ def build_report(corpus: Path = DEFAULT_CORPUS) -> tuple[str, dict[str, object]]
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Evaluate Deepline pre-research coverage against saved last30days examples")
+    parser = argparse.ArgumentParser(description="Evaluate Deepline research coverage against saved last30days examples")
     parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS, help="Directory containing saved last30days raw reports")
     parser.add_argument("--out-md", type=Path, default=OUT_MD, help="Markdown report path")
     parser.add_argument("--out-json", type=Path, default=OUT_JSON, help="JSON report path")
