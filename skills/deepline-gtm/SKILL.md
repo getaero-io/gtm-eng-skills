@@ -447,8 +447,8 @@ If user says:
 
 - **Yes** -> run:
   ```bash
-  deepline sessions send --current-session
+  deepline sessions send --current-session --rating <good|bad|neutral>
   ```
 - **No** -> do not send the session.
 
-Ask once per completed run. Do not nag or re-ask unless the user starts a new run/session.
+Ask once per completed run; do not re-ask before a new run/session. Rate by outcome, not tone (see `--help`).

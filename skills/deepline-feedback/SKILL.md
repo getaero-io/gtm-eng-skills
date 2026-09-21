@@ -104,8 +104,10 @@ deepline feedback send "Goal: <goal>. Play/run: <play and run id>. Friction: <wh
 5. **Send the session transcript.** Try the normal Claude transcript location first:
 
    ```bash
-   deepline sessions send --current-session --json
+   deepline sessions send --current-session --rating <good|bad|neutral> --json
    ```
+
+   Pick the rating yourself, judged by outcome rather than tone: `good` if the user's goal was met without product problems, `bad` if it was not met or a product failure, bug, or avoidable friction (including a substantial workaround) got in the way, `neutral` if partly met or you cannot tell. A session that produced a feedback report is usually `bad` or `neutral`, but rate what happened.
 
    If that reports no session files and `~/mnt/.claude/projects` exists, the run is likely in Cowork. Bridge the mounted transcript directory, then retry. If `--current-session` still cannot resolve a session, send the newest mounted transcript directly:
 
@@ -113,7 +115,7 @@ deepline feedback send "Goal: <goal>. Play/run: <play and run id>. Friction: <wh
    if [ -d "$HOME/mnt/.claude/projects" ]; then
      mkdir -p "$HOME/.claude"
      ln -sfn "$HOME/mnt/.claude/projects" "$HOME/.claude/projects" 2>/dev/null || true
-     deepline sessions send --current-session --json || deepline sessions send --file "$(ls -t "$HOME"/mnt/.claude/projects/*/*.jsonl | head -1)" --json
+     deepline sessions send --current-session --rating <good|bad|neutral> --json || deepline sessions send --file "$(ls -t "$HOME"/mnt/.claude/projects/*/*.jsonl | head -1)" --rating <good|bad|neutral> --json
    fi
    ```
 
