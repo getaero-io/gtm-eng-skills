@@ -633,6 +633,7 @@ Result returned by `DeeplineClient.stopPlay`.
 |---|---|---:|---|
 | `runId` | `string` | Yes | Public play-run identifier the stop request targeted. |
 | `stopped` | `boolean` | Yes | Whether the server confirmed the run was stopped. |
+| `cancelling` | `boolean` | No | True when the durable cancellation lane accepted the request and is draining. |
 | `hitlCancelledCount` | `number` | Yes | Number of open HITL interactions marked cancelled. |
 | `staleSchedulerState` | `boolean` | No | True when the scheduler state for the run was stale and the stop could<br />not be confirmed. Absent on older servers (treated as confirmed). |
 | `error` | `string` | No | Server-side error detail when the stop was not confirmed. |
