@@ -32,7 +32,11 @@ This workflow's job is to qualify + route. The sequence itself lives in HubSpot.
 
 ## Deploy
 
+Run from this workflow's folder. Configure only the ignored private copy below; keep the tracked template generic. Bind credentials through private secret handling and keep rendered configuration, tokens, and generated webhook URLs out of commits and logs. Placeholders are not automatically expanded by the CLI.
+
 ```bash
+mkdir -p .private
+cp workflow.json .private/workflow.json
 # 1. Set up HubSpot side first (~5 min in HubSpot UI):
 #    a. HubSpot → Lists → Create two manual lists:
 #       - "Inbound — enterprise"
@@ -45,15 +49,15 @@ This workflow's job is to qualify + route. The sequence itself lives in HubSpot.
 #       - Action: enroll in your sequence
 #    d. (Optional) Same for partnerships — create a separate sequence + workflow on that list.
 
-# 2. Edit workflow.json:
+# 2. Edit .private/workflow.json:
 #    - Replace SLACK_CHANNELS map values
-#    - Replace HUBSPOT_LISTS map with the IDs from step 1a
+#    - Bind HUBSPOT_LIST_ID_ENTERPRISE / HUBSPOT_LIST_ID_AGENCY in the private copy using the IDs from step 1a
 #    - Replace REPLACE_ME_REP_NAME with your sales rep's first name
 #    - Replace REPLACE_ME_PRODUCT_NAME with your product name
 #    - Replace REPLACE_ME_CAL_LINK if you re-enable per-lead drafted emails
 
 # 3. Apply:
-deepline workflows apply --payload "$(cat workflow.json)" --json
+deepline workflows apply --payload "$(cat .private/workflow.json)" --json
 
 # 4. Wire HubSpot webhook → this workflow's webhook URL:
 #    HubSpot → Settings → Integrations → Webhooks → Create subscription

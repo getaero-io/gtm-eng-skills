@@ -6,6 +6,9 @@ The script is deterministic by design: it checks freshness, email risk,
 identity confidence, final-cell shape, domain alignment, and duplicate-person
 conflicts, then projects those flags into ACTION and flag_reason columns.
 
+The bundled fixtures are synthetic, offline-only examples. Their LinkedIn-shaped
+URLs test parsing; never fetch or enrich them as real people.
+
 Usage:
     python3 contact-accuracy-audit.py final.csv > audited.csv
     python3 contact-accuracy-audit.py --fixtures fixtures_contact_accuracy_audit.json

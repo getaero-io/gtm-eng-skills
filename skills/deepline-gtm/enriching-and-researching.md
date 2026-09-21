@@ -178,7 +178,7 @@ Why this play:
 Example:
 
 ```bash
-deepline tools execute deepline_native_enrich_contact --input '{"email":"ada@acme.com"}'
+deepline tools execute deepline_native_enrich_contact --input '{"email":"person@example.com"}'
 ```
 
 For a CSV of inbound emails, author a one-column custom play calling the same tool per row ([recipes/deepline-plays.md](recipes/deepline-plays.md)).
@@ -192,7 +192,7 @@ Use it when a signup list has only personal emails and you want to know who they
 The same play runs two ways:
 
 ```bash
-deepline plays run prebuilt/personal-email-to-linkedin --input '{"personal_email":"ada@gmail.com"}'
+deepline plays run prebuilt/personal-email-to-linkedin --input '{"personal_email":"person@example.com"}'
 
 # CSV of signups
 deepline plays run prebuilt/personal-email-to-linkedin-batch --input '{"csv":"signups.csv"}'
@@ -226,7 +226,7 @@ Example:
 
 ```bash
 deepline plays run prebuilt/person-to-phone \
-  --input '{"first_name":"Ada","last_name":"Lovelace","domain":"acme.com","email":"ada@acme.com","linkedin_url":"https://www.linkedin.com/in/example/"}'
+  --input '{"first_name":"Sample","last_name":"Person","domain":"example.com","email":"person@example.com"}'
 
 # CSV: pilot a slice, then the full file
 deepline plays run prebuilt/person-to-phone-batch --input '{"csv":"contacts.csv"}'

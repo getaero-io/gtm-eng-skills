@@ -58,7 +58,7 @@ When updating field mappings:
 
 ## Secrets / env vars
 
-Never hardcode in SKILL.md or public repos. Use:
+Never hardcode in SKILL.md or public repos. Keep these references in tracked JSON; bind values through deployment tooling and a secret store in the private apply payload, and never commit that rendered payload. Use:
 
 - `${HUBSPOT_PORTAL_ID}` — HubSpot portal ID
 - `${HUBSPOT_API_KEY}` — HubSpot private app token

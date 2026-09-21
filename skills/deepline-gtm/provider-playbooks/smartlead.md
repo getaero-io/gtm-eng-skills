@@ -80,7 +80,7 @@ deepline tools execute smartlead_update_email_account_warmup --payload '{"email_
 ### Block List
 
 ```bash
-deepline tools execute smartlead_add_domain_block_list --payload '{"domain_block_list":["competitor.com","spam@bad.org"]}'
+deepline tools execute smartlead_add_domain_block_list --payload '{"domain_block_list":["competitor.example","person@example.com"]}'
 deepline tools execute smartlead_get_block_list --payload '{"limit":50,"filter_email_or_domain":"example.com"}'
 ```
 

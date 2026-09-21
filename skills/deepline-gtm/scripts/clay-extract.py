@@ -11,25 +11,26 @@ Usage:
     # (In Chrome: DevTools → Network → any api.clay.com request → Copy as cURL → paste)
 
     # Extract a specific table
-    python3 scripts/clay-extract.py https://app.clay.com/workspaces/502058/workbooks/wb_xxx/tables/t_xxx
+    python3 scripts/clay-extract.py 'https://app.clay.com/workspaces/<WORKSPACE_ID>/workbooks/wb_xxx/tables/t_xxx'
 
     # List all tables in a workspace folder
-    python3 scripts/clay-extract.py https://app.clay.com/workspaces/502058/home/f_xxx
+    python3 scripts/clay-extract.py 'https://app.clay.com/workspaces/<WORKSPACE_ID>/home/f_xxx'
 
     # Extract by table ID directly
-    python3 scripts/clay-extract.py t_0t5pj9mqNnpxxjM6jaV
+    python3 scripts/clay-extract.py --workspace <WORKSPACE_ID> t_xxx
 
 Session is saved to .clay-session.json and reused until it expires.
 Output goes to tmp/clay_extract_<table_name>.json (won't overwrite existing files).
 """
 
+import argparse
 import json
 import os
 import re
 import sys
 import time
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 SESSION_FILE = Path(".clay-session.json")
 
@@ -57,23 +58,89 @@ def extract_cookie_from_curl(curl_str: str) -> str | None:
     return None
 
 
-def save_session(cookie: str):
-    """Persist cookie for reuse."""
-    SESSION_FILE.write_text(json.dumps({
-        "cookie": cookie,
-        "savedAt": time.time(),
-    }, indent=2))
+def validate_workspace_id(workspace_id) -> str:
+    """Reject missing or malformed IDs before any authenticated request."""
+    if isinstance(workspace_id, bool):
+        raise ValueError("Workspace ID must be a positive decimal number.")
+    value = str(workspace_id) if workspace_id is not None else ""
+    if not re.fullmatch(r"[1-9][0-9]*", value):
+        raise ValueError("Select a valid workspace with --workspace, a full Clay URL, or CLAY_WORKSPACE_ID.")
+    return value
+
+
+def workspace_from_url(value: str | None) -> str | None:
+    """Read a workspace only from a full Clay URL, without fetching it."""
+    if not value:
+        return None
+    if value.startswith("/") and not value.startswith("//"):
+        raise ValueError("Use a full Clay URL rather than a relative path.")
+    parsed = urlparse(value)
+    if "://" not in value and not value.startswith("//") and parsed.scheme not in {"http", "https"}:
+        return None
+    if not parsed.scheme and not parsed.netloc:
+        return None
+    if (parsed.scheme != "https" or parsed.hostname not in {"app.clay.com", "api.clay.com"}
+            or parsed.username or parsed.password):
+        raise ValueError("Use a full HTTPS URL on app.clay.com or api.clay.com.")
+    candidates = parse_qs(parsed.query, keep_blank_values=True).get("workspaceId", [])
+    match = re.search(r"/workspaces/([^/]*)(?:/|$)", parsed.path)
+    if match:
+        candidates.append(match.group(1))
+    elif re.search(r"/workspaces(?:/|$)", parsed.path):
+        raise ValueError("The Clay URL is missing its workspace ID.")
+    ids = {validate_workspace_id(candidate) for candidate in candidates}
+    if len(ids) > 1:
+        raise ValueError("The Clay URL contains conflicting workspace IDs.")
+    return next(iter(ids), None)
+
+
+def workspace_from_curl(curl_str: str) -> str | None:
+    """Infer from Clay request/referer URLs; never execute the pasted command."""
+    urls = re.findall(r"https://(?:app|api)\.clay\.com/[^\s'\"]+", curl_str)
+    ids = {workspace for url in urls if (workspace := workspace_from_url(url)) is not None}
+    if len(ids) > 1:
+        raise ValueError("The pasted cURL contains conflicting workspace IDs.")
+    return next(iter(ids), None)
+
+
+def resolve_workspace(workspace_id=None, input_url=None, curl_str=None) -> str:
+    """Order: explicit flag, input/cURL URL, environment, private saved session."""
+    url_workspace = workspace_from_url(input_url)
+    curl_workspace = workspace_from_curl(curl_str) if curl_str else None
+    url_ids = {value for value in (url_workspace, curl_workspace) if value is not None}
+    if len(url_ids) > 1:
+        raise ValueError("The input URL and pasted cURL select different workspaces.")
+    selected_url_workspace = next(iter(url_ids), None)
+    if workspace_id is not None:
+        selected = validate_workspace_id(workspace_id)
+        if selected_url_workspace is not None and selected_url_workspace != selected:
+            raise ValueError("--workspace conflicts with the workspace in the supplied URL or cURL.")
+        return selected
+    if selected_url_workspace is not None:
+        return selected_url_workspace
+    if "CLAY_WORKSPACE_ID" in os.environ:
+        return validate_workspace_id(os.environ["CLAY_WORKSPACE_ID"])
+    saved = load_saved_session()
+    return validate_workspace_id(saved.get("workspaceId") if saved else None)
+
+
+def save_session(cookie: str, workspace_id: str):
+    """Persist the cookie and caller-selected workspace in a private file."""
+    workspace_id = validate_workspace_id(workspace_id)
     gitignore = Path(".gitignore")
-    if gitignore.exists():
-        content = gitignore.read_text()
-        if ".clay-session.json" not in content:
-            with open(gitignore, "a") as f:
-                f.write("\n.clay-session.json\n")
+    content = gitignore.read_text() if gitignore.exists() else ""
+    if ".clay-session.json" not in content.splitlines():
+        with gitignore.open("a") as f:
+            f.write("\n.clay-session.json\n")
+    fd = os.open(SESSION_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        os.fchmod(f.fileno(), 0o600)
+        json.dump({"cookie": cookie, "workspaceId": workspace_id, "savedAt": time.time()}, f, indent=2)
     print(f"[OK] Session saved to {SESSION_FILE}")
 
 
-def get_saved_session() -> str | None:
-    """Load saved cookie if still fresh."""
+def load_saved_session() -> dict | None:
+    """Load the private session record if its cookie is still fresh."""
     if not SESSION_FILE.exists():
         return None
     try:
@@ -84,18 +151,25 @@ def get_saved_session() -> str | None:
             return None
         if "claysession" not in cookie:
             return None
-        return cookie
+        return data
     except Exception:
         return None
 
 
-def test_session(cookie: str) -> bool:
-    """Quick check if the cookie is still valid."""
+def get_saved_session() -> str | None:
+    data = load_saved_session()
+    return data["cookie"] if data else None
+
+
+def test_session(cookie: str, workspace_id: str) -> bool:
+    """Check the session only against the caller-selected workspace."""
+    workspace_id = validate_workspace_id(workspace_id)
     import requests
     try:
         # /v3/users/me returns 403; use workspace resources as a lightweight auth check
         resp = requests.get(
-            "https://api.clay.com/v3/actions?workspaceId=502058",
+            "https://api.clay.com/v3/actions",
+            params={"workspaceId": workspace_id},
             headers={"accept": "application/json", "cookie": cookie, "origin": "https://app.clay.com"},
             timeout=10,
         )
@@ -119,7 +193,7 @@ def get_clay_cookie_from_env() -> str | None:
     return None
 
 
-def do_auth():
+def do_auth(workspace_id=None, input_url=None):
     """Interactive auth: user pastes a cURL command."""
     print("Paste a cURL command from Chrome DevTools (any api.clay.com request):")
     print("  Chrome → DevTools (Cmd+Option+I) → Network → click any api.clay.com request")
@@ -150,27 +224,32 @@ def do_auth():
         print("  Make sure you're copying from an api.clay.com request while logged in.")
         sys.exit(1)
 
-    if test_session(cookie):
-        save_session(cookie)
+    selected_workspace = resolve_workspace(workspace_id, input_url, curl_str)
+    if test_session(cookie, selected_workspace):
+        save_session(cookie, selected_workspace)
         print("[OK] Session is valid. You can now run extraction commands.")
     else:
         print("[FAIL] Cookie found but session is invalid/expired. Try copying a fresh cURL.")
         sys.exit(1)
 
 
-def get_cookie() -> str:
+def get_cookie(workspace_id: str) -> str:
     """Get a valid Clay session cookie."""
+    workspace_id = validate_workspace_id(workspace_id)
     # 1. Saved session
     cookie = get_saved_session()
-    if cookie and test_session(cookie):
+    if cookie and test_session(cookie, workspace_id):
+        saved = load_saved_session()
+        if (saved or {}).get("workspaceId") != workspace_id:
+            save_session(cookie, workspace_id)
         print("[OK] Using saved Clay session")
         return cookie
 
     # 2. .env.deepline
     cookie = get_clay_cookie_from_env()
-    if cookie and test_session(cookie):
+    if cookie and test_session(cookie, workspace_id):
         print("[OK] Using Clay session from .env.deepline")
-        save_session(cookie)
+        save_session(cookie, workspace_id)
         return cookie
 
     # 3. Need auth
@@ -380,26 +459,29 @@ def main():
         print(__doc__)
         sys.exit(1)
 
-    if sys.argv[1] == "--auth":
-        do_auth()
-        return
+    parser = argparse.ArgumentParser(description="Extract Clay table configs in a selected workspace.")
+    parser.add_argument("--auth", action="store_true", help="Save a session from a pasted cURL command")
+    parser.add_argument("--workspace", help="Caller-selected numeric Clay workspace ID")
+    parser.add_argument("query", nargs="*", help="Full Clay URL, table/workbook ID, or name search")
+    args = parser.parse_args()
+    arg = " ".join(args.query)
+    try:
+        if args.auth:
+            do_auth(args.workspace, arg or None)
+            return
+        if not arg:
+            parser.error("provide a Clay URL, table/workbook ID, or name search")
+        workspace_id = resolve_workspace(args.workspace, arg)
+    except ValueError as error:
+        parser.error(str(error))
 
-    # Parse args: [--workspace WORKSPACE_ID] <query>
-    args = sys.argv[1:]
-    workspace_id = None
-    if "--workspace" in args:
-        idx = args.index("--workspace")
-        workspace_id = args[idx + 1]
-        args = args[:idx] + args[idx + 2:]
-
-    arg = " ".join(args)
     output_dir = Path("tmp")
     output_dir.mkdir(exist_ok=True)
 
     info = parse_clay_input(arg, workspace_id)
     print(f"[INPUT] Parsed as: {info['type']}")
 
-    cookie = get_cookie()
+    cookie = get_cookie(workspace_id)
     api = ClayAPI(cookie)
 
     extracts = []
@@ -423,9 +505,8 @@ def main():
     elif info["type"] == "search":
         ws_id = info.get("workspace_id")
         if not ws_id:
-            # Try to get workspace ID from saved session or recent extracts
             print("[FAIL] Name search requires a workspace ID.")
-            print("  Use: python3 scripts/clay-extract.py --workspace 502058 \"Demo Requests\"")
+            print("  Use: python3 scripts/clay-extract.py --workspace <WORKSPACE_ID> \"Demo Requests\"")
             print("  Or provide a full Clay URL instead.")
             sys.exit(1)
 

@@ -1,11 +1,12 @@
 name,email,company,title,linkedin_url,rsvp_status,rsvp_timestamp
-Ada Example,ada@acme.example,Acme Labs,VP Revenue Operations,https://linkedin.com/in/ada-example,pending,2026-09-15T14:32:00Z
-Blake Sample,blake@northwind.example,Northwind Analytics,Head of Growth,https://linkedin.com/in/blake-sample,approved,2026-09-14T09:18:00Z
+Ada Example,ada@acme.example,Acme Labs,VP Revenue Operations,,pending,2026-09-15T14:32:00Z
+Blake Sample,blake@northwind.example,Northwind Analytics,Head of Growth,,approved,2026-09-14T09:18:00Z
 Casey Demo,casey@contoso.example,Contoso RevOps,Founder,,waitlist,2026-09-16T11:42:00Z
 
 # Guests Schema (Fictional Sample Only)
 
 This CSV shows the expected schema for a Luma guest export. All data is fictional.
+Leave sample `linkedin_url` cells blank. Never look up or enrich these synthetic people; fill profile URLs only from authorized private input when adapting the template, outside this public repo.
 
 ## Columns
 

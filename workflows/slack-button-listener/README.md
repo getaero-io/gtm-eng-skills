@@ -19,18 +19,22 @@ The inbound-qualification workflows post buttons whose `value` field carries lea
 <action>|<route>|<domain>|<lead_name>[|<hubspot_contact_id>|<hubspot_list_id>]
 ```
 
-Example: `approve|enterprise|acme.com|Jane Doe|123456789|46`
+Example: `approve|enterprise|example.com|Sample Person|<CONTACT_ID>|<LIST_ID>`
 
 ## Deploy
 
+Run from this workflow's folder. Configure only the ignored private copy below; keep the tracked template generic. Bind credentials through private secret handling and keep rendered configuration, tokens, and generated webhook URLs out of commits and logs. Placeholders are not automatically expanded by the CLI.
+
 ```bash
-# 1. Edit workflow.json:
+mkdir -p .private
+cp workflow.json .private/workflow.json
+# 1. Edit .private/workflow.json:
 #    - Replace SLACK_CHANNELS / channel id mappings if needed
 #    - Replace REPLACE_ME_CHANNEL_ID with your inbound channel's actual ID
 #    - Replace REPLACE_ME_INBOUND_CHANNEL with the channel name (#-prefixed)
 
 # 2. Apply:
-deepline workflows apply --payload "$(cat workflow.json)" --json
+deepline workflows apply --payload "$(cat .private/workflow.json)" --json
 
 # 3. Wire Slack:
 #    api.slack.com/apps → your app → Interactivity & Shortcuts

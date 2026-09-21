@@ -92,7 +92,7 @@
   "version": "v1",
   "notes": [
     "PLACEHOLDER SKETCH ONLY — NOT EXECUTABLE",
-    "All ${...} secrets must be set in workflow secrets or env vars",
+    "Keep ${...} references in tracked JSON; bind values via deployment tooling and a secret store in the private apply payload, never in repo files",
     "Field paths like {{guest.name}} are schematic; actual Luma payload may differ",
     "Test with dry_run: true before deploying to prod",
     "Bump version to v2 when changing field mappings"
