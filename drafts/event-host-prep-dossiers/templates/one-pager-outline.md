@@ -56,12 +56,14 @@ From recent public sources:
 
 ## Fictional example output
 
+Do not look up or enrich this synthetic person. The profile URL is intentionally omitted; use only authorized private input when creating a real dossier outside this public repo.
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  [Photo]                                                │
 │  Ada Example                                            │
 │  VP Revenue Operations at Acme Labs                     │
-│  linkedin.com/in/ada-example                            │
+│  [Profile URL omitted in synthetic fixture]              │
 └─────────────────────────────────────────────────────────┘
 
 Why this person matters:

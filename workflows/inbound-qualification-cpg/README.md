@@ -27,18 +27,22 @@ About $0.20-0.50 per inbound (mostly Sonnet for classify + brief + email; Firecr
 
 ## Deploy
 
+Run from this workflow's folder. Configure only the ignored private copy below; keep the tracked template generic. Bind credentials through private secret handling and keep rendered configuration, tokens, and generated webhook URLs out of commits and logs. Placeholders are not automatically expanded by the CLI.
+
 ```bash
-# 1. Edit workflow.json:
+mkdir -p .private
+cp workflow.json .private/workflow.json
+# 1. Edit .private/workflow.json:
 #    - Replace SLACK_CHANNELS map values with your real channel names
 #    - Replace REPLACE_ME_REP_NAME with your sales rep's first name (used in email/DM voice)
 #    - Replace REPLACE_ME_BRAND_NAME with your company name (used in classifier system prompt)
 #    - Replace REPLACE_ME_BRAND_DOMAIN if it appears in source_url
-#    - (Optional) Replace PLACEHOLDER_META_PIXEL_ID etc. in prep_capi step if you want
-#       to fire Meta/LinkedIn Conversions API events on qualified leads. CAPI steps
-#       are gated `run_if_js: return false` until you do.
+#    - CAPI examples stay disabled (`run_if_js: return false`). Implement private
+#      credential binding and validate identifier handling before enabling them.
+#      Never put actual API tokens into the tracked template.
 
 # 2. Apply:
-deepline workflows apply --payload "$(cat workflow.json)" --json
+deepline workflows apply --payload "$(cat .private/workflow.json)" --json
 ```
 
 The response includes the generated webhook URL. Configure your inbound form (Clay, HubSpot form, Typeform, custom) to POST to that URL.
@@ -47,16 +51,16 @@ The response includes the generated webhook URL. Configure your inbound form (Cl
 
 ```json
 {
-  "email": "founder@brand.com",
+  "email": "founder@brand.example",
   "first_name": "Jane",
   "last_name": "Doe",
-  "website": "https://brand.com",
+  "website": "https://brand.example",
   "annual_revenue": "$1m-$3m",
   "in_retail": true,
   "retailers": "Whole Foods, Target",
   "step": 2,
   "source_url": "https://example.com/get-started?fbclid=xyz",
-  "phone": "5555555555",
+  "phone": "+12025550100",
   "utm_source": "meta",
   "utm_campaign": "cpg_inbound"
 }

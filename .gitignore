@@ -1,0 +1,16 @@
+# Private credentials, sessions, and working data
+.env
+.env.*
+!.env.example
+!.env.sample
+.secrets/
+.private/
+.clay-session.json
+tmp/clay_extract_*.json
+
+# Local tooling
+.worktrees/
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store

@@ -30,8 +30,10 @@ Drafts use fictional placeholders only:
 
 - Event: `City GTM Meetup — Sample Night`
 - Companies: `Acme Labs`, `Northwind Analytics`, `Contoso RevOps`
-- People: role labels (`Founder, Acme Labs`) — never real customer rows
+- People: clearly synthetic names (`Ada Example`, `Blake Sample`, `Casey Demo`) or role labels — never real customer rows
+- Email and company-domain examples use reserved `.example` domains. Sample `linkedin_url` cells stay blank; never look up or enrich the synthetic people. Populate profile URLs only from authorized private input when adapting a draft, and keep that input outside the public repo.
 - No live org IDs, API keys, credit balances, campaign IDs, or private CRM fields
+- Keep `${...}` references in tracked JSON. Bind their values through your deployment tooling and secret store; never paste real keys, webhook URLs, or account IDs into repo files or commit a rendered apply payload.
 
 ## How to try a draft
 

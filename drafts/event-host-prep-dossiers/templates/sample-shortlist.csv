@@ -1,11 +1,12 @@
 name,email,company,title,linkedin_url,segment,why_matters
-Ada Example,ada@acme.example,Acme Labs,VP Revenue Operations,https://linkedin.com/in/ada-example,hot,TAL account; owns RevOps stack decisions
-Blake Sample,blake@northwind.example,Northwind Analytics,Head of Growth,https://linkedin.com/in/blake-sample,hot,Series B; hiring SDRs; prior Salesforce
-Casey Demo,casey@contoso.example,Contoso RevOps,Founder,https://linkedin.com/in/casey-demo,warm,Founder in RevOps space; mutual connection via Jordan
+Ada Example,ada@acme.example,Acme Labs,VP Revenue Operations,,hot,TAL account; owns RevOps stack decisions
+Blake Sample,blake@northwind.example,Northwind Analytics,Head of Growth,,hot,Series B; hiring SDRs; prior Salesforce
+Casey Demo,casey@contoso.example,Contoso RevOps,Founder,,warm,Founder in RevOps space; mutual connection via Jordan
 
 # Host-Hit Shortlist (Fictional Sample Only)
 
 This CSV shows the expected format for a host-hit shortlist. All data is fictional.
+Leave sample `linkedin_url` cells blank. Never look up or enrich these synthetic people; fill profile URLs only from authorized private input when adapting the template, outside this public repo.
 
 ## Columns
 

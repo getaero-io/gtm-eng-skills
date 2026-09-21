@@ -79,7 +79,7 @@
           "keywords": ["VP", "Head of", "Director", "CRO", "Revenue", "Sales", "Growth"],
           "exclude_keywords": ["Intern", "Coordinator", "Assistant"]
         },
-        "competitor_domains": ["competitor1.com", "competitor2.com"]
+        "competitor_domains": ["competitor1.example", "competitor2.example"]
       }
     },
     {
@@ -167,7 +167,7 @@
   "version": "v1",
   "notes": [
     "PLACEHOLDER SKETCH ONLY — NOT EXECUTABLE AS-IS",
-    "All ${...} secrets must be set in workflow secrets or environment variables",
+    "Keep ${...} references in tracked JSON; bind values via deployment tooling and a secret store in the private apply payload, never in repo files",
     "Field paths like {{payload.name}} are schematic; actual Luma payload structure may differ",
     "Consult Luma webhook documentation for exact event types and payload schema",
     "Test with dry_run: true or a test event before deploying to production",

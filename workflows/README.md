@@ -17,10 +17,13 @@ Each workflow folder has:
 - `workflow.json` — the apply payload (with placeholders for IDs, channels, secrets)
 - `README.md` — what it does, the wiring instructions, and which placeholders to fill in
 
-Edit the placeholders, then:
+Create a private working copy, configure it for your own authorized workspace, then apply that copy. Keep the tracked templates generic. Bind credentials through your deployment's secret handling; never commit or log rendered tokens or webhook credentials. Placeholder strings do not imply automatic CLI environment-variable expansion.
 
 ```bash
-deepline workflows apply --payload "$(cat workflows/<name>/workflow.json)" --json
+mkdir -p .private
+cp workflows/<name>/workflow.json .private/<name>.json
+# Configure the private copy; keep CAPI examples disabled until implemented and tested.
+deepline workflows apply --payload "$(cat .private/<name>.json)" --json
 ```
 
 The response includes the generated webhook URL — point your form / HubSpot / Slack interactivity URL at that.

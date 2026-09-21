@@ -13,7 +13,7 @@
 ## How to use
 
 1. Copy a sketch file
-2. Replace all `${...}` placeholders with real values from your secret store
+2. Keep `${...}` references in tracked JSON. Bind their values through your deployment tooling and secret store when building the private apply payload; never paste real keys, webhook URLs, or account IDs into repo files or commit the rendered payload. These sketches do not establish automatic environment-variable expansion by the CLI.
 3. Update field mappings to match your CRM schema
 4. Test with `dry_run: true` or a pilot event first
 5. Deploy with `deepline workflows apply` (if using Deepline CLI)
