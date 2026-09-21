@@ -233,6 +233,20 @@ These skills work with any AI coding agent that supports the `SKILL.md` format:
 
 ---
 
+## Draft skills (experimental)
+
+> **Drafts only.** The [`drafts/`](drafts/) folder holds experimental GTM skills and templates
+> (Luma campaigns, HubSpot follow emails, event ops, host-prep dossiers, Luma webhook enrich).
+>
+> These are **not** installed or overwritten by `deepline skills` / the Deepline CLI skill sync.
+> Treat them as starting points; promote into `skills/` or `workflows/` only after review.
+>
+> Samples use fictional placeholders only — no customer or sensitive operational data.
+
+See [`drafts/README.md`](drafts/README.md) for the full list and usage instructions.
+
+---
+
 ## Contributing
 
 PRs welcome. Each skill lives in `skills/<name>/SKILL.md`. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.

@@ -1,0 +1,177 @@
+{
+  "name": "luma-registration-enrich-v1",
+  "description": "PLACEHOLDER SKETCH — Standing Luma webhook → enrich → CRM upsert",
+  "trigger": {
+    "type": "webhook",
+    "source": "luma",
+    "events": ["guest.approved", "guest.registered", "guest.cancelled"],
+    "webhook_secret": "${LUMA_WEBHOOK_SECRET}",
+    "comment": "Subscribe to Luma webhook events in Luma admin dashboard"
+  },
+  "steps": [
+    {
+      "id": "validate",
+      "type": "validation",
+      "description": "Ensure required fields are present",
+      "rules": {
+        "email": "required",
+        "name": "required",
+        "event_id": "required"
+      },
+      "on_failure": "log_to_dead_letter_queue"
+    },
+    {
+      "id": "normalize",
+      "type": "transform",
+      "description": "Normalize email and LinkedIn URL",
+      "operations": [
+        {
+          "field": "linkedin_url",
+          "transform": "normalize_linkedin_slug",
+          "comment": "Convert any LinkedIn URL format to canonical https://www.linkedin.com/in/slug"
+        },
+        {
+          "field": "email",
+          "transform": "lowercase_trim"
+        },
+        {
+          "field": "name",
+          "transform": "title_case"
+        }
+      ]
+    },
+    {
+      "id": "enrich",
+      "type": "deepline_enrich",
+      "description": "Enrich guest with LinkedIn, title, company, email validation",
+      "api_key": "${DEEPLINE_API_KEY}",
+      "fields": [
+        "linkedin_url",
+        "title",
+        "company",
+        "company_domain",
+        "company_size",
+        "email_valid",
+        "email_deliverable"
+      ],
+      "provider_waterfall": ["deepline", "pdl", "hunter"],
+      "pilot_first": false,
+      "comment": "Set pilot_first: true if running for first time or testing new providers"
+    },
+    {
+      "id": "score",
+      "type": "scoring",
+      "description": "Segment guests into hot/warm/low/skip based on ICP fit",
+      "logic": {
+        "hot": "icp_company AND icp_title AND linkedin_url_found",
+        "warm": "(icp_company OR icp_title) AND email_valid",
+        "low": "email_valid AND NOT (icp_company OR icp_title)",
+        "skip": "NOT email_valid OR competitor_domain"
+      },
+      "icp_definitions": {
+        "icp_company": {
+          "employee_count_min": 50,
+          "employee_count_max": 500,
+          "industries": ["SaaS", "Technology", "Software"],
+          "comment": "Customize for your ICP"
+        },
+        "icp_title": {
+          "keywords": ["VP", "Head of", "Director", "CRO", "Revenue", "Sales", "Growth"],
+          "exclude_keywords": ["Intern", "Coordinator", "Assistant"]
+        },
+        "competitor_domains": ["competitor1.com", "competitor2.com"]
+      }
+    },
+    {
+      "id": "upsert_crm",
+      "type": "crm_write",
+      "description": "Upsert enriched guest to HubSpot (or Attio, Salesforce, etc.)",
+      "provider": "hubspot",
+      "config": {
+        "portal_id": "${HUBSPOT_PORTAL_ID}",
+        "api_key": "${HUBSPOT_API_KEY}",
+        "object": "contact",
+        "upsert_key": "email"
+      },
+      "field_map": {
+        "email": "{{payload.email}}",
+        "firstname": "{{payload.name_first}}",
+        "lastname": "{{payload.name_last}}",
+        "event_registered": "{{payload.event_name}}",
+        "event_registration_date": "{{payload.registration_timestamp}}",
+        "event_status": "{{payload.registration_status}}",
+        "linkedin_url": "{{enriched.linkedin_url}}",
+        "jobtitle": "{{enriched.title}}",
+        "company": "{{enriched.company}}",
+        "company_domain": "{{enriched.company_domain}}",
+        "company_size": "{{enriched.company_size}}",
+        "icp_segment": "{{scored.segment}}",
+        "email_valid": "{{enriched.email_valid}}"
+      },
+      "comment": "Update field names to match your HubSpot properties"
+    },
+    {
+      "id": "notify_slack",
+      "type": "slack_webhook",
+      "description": "Notify event ops channel for hot guests",
+      "condition": "{{scored.segment}} == 'hot'",
+      "url": "${SLACK_EVENT_OPS_CHANNEL}",
+      "message": {
+        "text": "🔥 Hot guest registered",
+        "blocks": [
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Hot guest registered:* {{payload.name}}\n*Title:* {{enriched.title}}\n*Company:* {{enriched.company}}\n*Event:* {{payload.event_name}}\n*LinkedIn:* {{enriched.linkedin_url}}"
+            }
+          }
+        ]
+      },
+      "comment": "Optional: remove if you don't want Slack notifications"
+    }
+  ],
+  "error_handling": {
+    "on_failure": "log_to_dead_letter_queue",
+    "retry_policy": {
+      "max_attempts": 3,
+      "backoff": "exponential",
+      "backoff_base_ms": 1000
+    },
+    "dead_letter_config": {
+      "storage": "s3_or_gcs_or_db",
+      "retention_days": 90,
+      "comment": "Keep failed payloads for manual backfill"
+    }
+  },
+  "monitoring": {
+    "log_level": "info",
+    "metrics": [
+      "total_webhooks_received",
+      "enrichment_success_rate",
+      "crm_upsert_success_rate",
+      "hot_guests_count",
+      "failed_validations"
+    ],
+    "alerts": [
+      {
+        "condition": "enrichment_success_rate < 0.8",
+        "action": "send_alert_to_slack"
+      },
+      {
+        "condition": "crm_upsert_success_rate < 0.9",
+        "action": "send_alert_to_slack"
+      }
+    ]
+  },
+  "version": "v1",
+  "notes": [
+    "PLACEHOLDER SKETCH ONLY — NOT EXECUTABLE AS-IS",
+    "All ${...} secrets must be set in workflow secrets or environment variables",
+    "Field paths like {{payload.name}} are schematic; actual Luma payload structure may differ",
+    "Consult Luma webhook documentation for exact event types and payload schema",
+    "Test with dry_run: true or a test event before deploying to production",
+    "Bump version to v2 when changing field mappings or enrichment logic",
+    "See ../luma-inbound-webhook-enrich/references/field-map.md for CRM field guidance"
+  ]
+}
