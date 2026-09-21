@@ -17,7 +17,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_CORPUS = Path.home() / "Documents" / "Last30Days"
+DEFAULT_CORPUS = Path("/Users/jaitoor/Documents/Last30Days")
 OUT_MD = ROOT / "evals" / "side-by-side.md"
 OUT_JSON = ROOT / "evals" / "side-by-side.json"
 

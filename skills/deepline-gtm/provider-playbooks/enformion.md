@@ -46,17 +46,15 @@ No documented rate limit, but runs degrade with >200 concurrent requests. The De
 
 ## Response structure
 
-Fictional schema illustration only. Names, record IDs and contact details below are placeholders.
-
 ```json
 {
   "person": {
-    "name": { "firstName": "Sample", "lastName": "Person" },
+    "name": { "firstName": "Gary", "lastName": "Lincoln" },
     "age": "45",
     "addresses": [...],
     "phones": [
       {
-        "number": "+1 202-555-0100",
+        "number": "(856) 725-5922",
         "type": "mobile",
         "isConnected": true,
         "firstReportedDate": "...",
@@ -120,7 +118,7 @@ To get the personal contact info of a business's officers/agents:
 1. `enformion_business_search({ name, city_state })` → business record with `officers[]` / agents, each carrying a `tahoeId`.
 2. For each officer, `enformion_person_search({ tahoe_id })` → that person's `emailAddresses[]` + `phoneNumbers[]`.
 
-**Entitlement note:** Business Search is a *separately entitled* Galaxy product. If the access profile is not provisioned for it, the call returns `isError: true` ("Access Profile does not permit client to call Business Search."). When that happens, **fall back to person-search-by-name** using the officer name you already resolved (from Google/Yelp/SOS) — Person Search is entitled and returns the same personal contact data.
+**Entitlement note:** Business Search is a *separately entitled* Galaxy product. If the access profile is not provisioned for it, the call returns `isError: true` ("Access Profile does not permit client to call Business Search."). When that happens, **fall back to person-search-by-name** using the officer name you already resolved (from Google/Yelp/SOS) — Person Search is entitled and returns the same personal contact data. (As of 2026-06-09 the `aeroailabs` profile has Person Search but not Business Search.)
 
 ### Response structure (Person Search)
 
@@ -128,15 +126,15 @@ To get the personal contact info of a business's officers/agents:
 {
   "persons": [
     {
-      "tahoeId": "EXAMPLE_PERSON_ID",
-      "fullName": "Sample Person",
-      "name": { "firstName": "Sample", "lastName": "Person" },
+      "tahoeId": "G-2492258155993150029",
+      "fullName": "Maria Delcarmen Castillo",
+      "name": { "firstName": "Maria", "lastName": "Castillo" },
       "age": 49,
       "emailAddresses": [
-        { "emailAddress": "sample.person@personal.example", "emailOrdinal": 1, "isPremium": true, "nonBusiness": 1 }
+        { "emailAddress": "mcastillo12692@gmail.com", "emailOrdinal": 1, "isPremium": true, "nonBusiness": 1 }
       ],
       "phoneNumbers": [
-        { "phoneNumber": "+1 202-555-0100", "phoneType": "Wireless", "isConnected": true }
+        { "phoneNumber": "(305) 555-0142", "phoneType": "Wireless", "isConnected": true }
       ],
       "addresses": [ { "fullAddress": "...", "city": "Miami", "state": "FL" } ]
     }
@@ -168,7 +166,7 @@ Use `enformion_workplace_search` as a **fallback** when `enformion_contact_enric
 
 `emailAddresses[]` in Workplace Search results are almost always the owner's OTHER employer (a corporate day job, a franchise group, etc.) and NOT the restaurant's email. In practice:
 - 97% of returned email addresses belong to a different employer.
-- Only use an email address if the domain matches the target restaurant's domain (e.g., `sample@employer.example` is useless if you want `sample@restaurant.example`).
+- Only use an email address if the domain matches the target restaurant's domain (e.g., `gary@lincolnautogroup.com` is useless if you want `gary@lincolndiner.com`).
 
 ### Rate-limit bucket
 
@@ -180,15 +178,15 @@ Workplace Search uses a **separate** rate-limit bucket from Contact/Enrich. Both
 {
   "workplaceRecords": [
     {
-      "fullName": "Sample Person",
-      "firstName": "Sample",
-      "lastName": "Person",
+      "fullName": "Gary Lincoln",
+      "firstName": "Gary",
+      "lastName": "Lincoln",
       "professionalTitles": "Owner",
-      "phoneNumbers": ["+12025550100"],
-      "emailAddresses": ["sample@employer.example"],
+      "phoneNumbers": ["+18567255922"],
+      "emailAddresses": ["gary.lincoln@someemployer.com"],
       "currentEmployment": [
         {
-          "employer": "Example Employer",
+          "employer": "Lincoln Auto Group",
           "jobTitle": "Owner",
           "level": "Owner",
           "department": "Management"

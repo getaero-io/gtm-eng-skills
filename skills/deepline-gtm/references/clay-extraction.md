@@ -23,15 +23,11 @@ The bookmarklet and the MCP path share one source of truth: `scripts/clay-extrac
 python3 -m venv .venv/clay-extract
 .venv/clay-extract/bin/pip install requests
 
-# Auth: paste a cURL from api.clay.com in Chrome DevTools.
-# Its request/referer URL can supply the workspace; otherwise select it explicitly.
+# Auth: paste a cURL from any api.clay.com request in Chrome DevTools
 .venv/clay-extract/bin/python3 scripts/clay-extract.py --auth
-# Or: .venv/clay-extract/bin/python3 scripts/clay-extract.py --auth --workspace "$CLAY_WORKSPACE_ID"
 ```
 
-The cookie and selected workspace are saved to `.clay-session.json` with mode `0600`; the script adds the file to `.gitignore`, creating that file if needed. Saved sessions are reused for up to 20 hours, subject to server expiry. Never commit the session file or paste its contents into logs.
-
-Session validation uses the first available workspace in this order: `--workspace`, the full input Clay URL (or request/referer URLs in the pasted cURL during `--auth`), `CLAY_WORKSPACE_ID`, then the private saved session. IDs must be positive decimal numbers. Conflicting explicit/URL selections, malformed IDs, or a missing selection stop before any network request; there is no default workspace. Legacy session files without a workspace require one of the other inputs. Table/workbook IDs alone do not identify a workspace.
+Session is saved to `.clay-session.json` and reused until it expires (~24h).
 
 ## Extraction commands
 
@@ -39,17 +35,15 @@ Session validation uses the first available workspace in this order: `--workspac
 PYTHON=.venv/clay-extract/bin/python3
 
 # By table URL or ID
-$PYTHON scripts/clay-extract.py 'https://app.clay.com/workspaces/<WORKSPACE_ID>/workbooks/wb_xxx/tables/t_xxx'
-$PYTHON scripts/clay-extract.py --workspace "$CLAY_WORKSPACE_ID" t_xxx
+$PYTHON scripts/clay-extract.py https://app.clay.com/workspaces/502058/workbooks/wb_xxx/tables/t_xxx
+$PYTHON scripts/clay-extract.py t_0t5pj9mqNnpxxjM6jaV
 
 # By workbook URL (resolves to all tables in the workbook)
-$PYTHON scripts/clay-extract.py 'https://app.clay.com/workspaces/<WORKSPACE_ID>/workbooks/wb_xxx'
+$PYTHON scripts/clay-extract.py https://app.clay.com/workspaces/502058/workbooks/wb_0t5pj9dg5C7fGNTajyw
 
 # By name (fuzzy matches workbook and table names)
-$PYTHON scripts/clay-extract.py --workspace "$CLAY_WORKSPACE_ID" "Demo Request"
+$PYTHON scripts/clay-extract.py --workspace 502058 "Demo Request"
 ```
-
-Replace `<WORKSPACE_ID>`, `wb_xxx`, and `t_xxx` with IDs from your own authorized Clay workspace. Set `CLAY_WORKSPACE_ID` privately when using the environment examples above.
 
 Output goes to `tmp/clay_extract_<table_name>.json`. Never overwrites existing files.
 
@@ -152,7 +146,7 @@ All require `Cookie: claysession=...` + `origin: https://app.clay.com` headers.
 - **Model**: same array → `name: "model"` → `.formulaText` (e.g. `"claude-sonnet-4-6"`)
 - **Field references in formulas**: `{{f_xxx}}` format — map to names via the fields array
 - **Folder URLs** (`/home/f_xxx`): the `f_xxx` is a folder ID, not a field. Folder children aren't exposed via API — use workbook URLs or name search instead.
-- **Cookie security**: `.clay-session.json` is saved with mode `0600` and added to `.gitignore`. Never log or embed cookies in scripts.
+- **Cookie security**: `.clay-session.json` is gitignored. Never log or embed cookies in scripts.
 
 ## MCP extraction (for agents with Claude-in-Chrome)
 

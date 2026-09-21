@@ -24,14 +24,19 @@ two phases:
            phase), run name-and-domain-to-email-waterfall to resolve a
            corporate email. Validate the result against the company's apex
            domain — providers sometimes return stale emails from a previous
-           employer (for example, person@old-employer.example after a job change),
-            and this domain-match validation filters them.
+           employer (e.g. nick.romonoski@orbitalatk.com when Nick is now at
+           X-Bow Systems), and this domain-match validation filters them.
 
 Why this fallback chain exists:
-  Small, industrial, or non-US companies may have thin B2B-provider coverage.
-  Public people search can supply candidate profiles when a waterfall returns
-  no contacts. Verify the employer and role before treating a candidate as a
-  match. Coverage figures and customer-run details belong in private reports.
+  On the nTop run that motivated this skill improvement, Phase 1 (the
+  waterfall) returned ZERO contacts on all 10 top-scoring prospects —
+  Plasma Processes, Ad Astra Rocket, Avimetal, Axial3D, CubeLabs, NextAero,
+  Camber Spine, American Additive Mfg, 3D-Side, 3di GmbH. These are mostly
+  <200-employee industrial companies, many non-US, where B2B waterfall
+  providers have thin coverage. Exa people search found 15 real named
+  contacts at 6 of the 10 in the same pass. The moral: the waterfall is
+  cheaper (free tier) but Exa is the actual discovery engine for niche
+  industrial / non-US targets. Always run both.
 
 Usage:
 
@@ -301,8 +306,9 @@ def phase2_exa_people(
             # Require the title to look role-relevant AND to mention the
             # company name somewhere. The company-name requirement is the
             # main false-positive filter — Exa neural sometimes returns
-            # profiles at a competing company whose job text contains similar terms.
-            # Similar keywords do not establish an employment match.
+            # profiles at COMPETING companies (e.g. on one real run, a search
+            # for "Plasma Processes" engineers returned a Hypertherm plasma
+            # process engineer, which is a different employer).
             is_role_relevant = any(tok in low_title for tok in role_tokens)
             is_company_match = (
                 company_tail and (company_tail in low_title or company_tail in text.lower())

@@ -28,17 +28,17 @@ Nothing rejects work emails. A Google Workspace address is a real Google account
 A hash is a fixed-length code generated from text. SHA-256 turns any input into 64 characters:
 
 ```text
-person@example.com
-542d240129883c019e106e3b1b2d3f3cb3537c43c425364de8e951d5a3083345
+jane@corp.com
+a2327573224b6c023cc60a440a85830a8894f467ea13f33f36290059e2e8193f
 ```
 
 Three properties matter:
 
 1. **Same input, same output, always.** This is what makes matching possible.
-2. **Any change to the input changes the whole output.** `person@example.com` and `Person@Example.com` produce entirely unrelated codes. There is no partial match, which is why normalization rules are not optional.
-3. **A hash is not encryption.** There is no decryption key, but someone can hash candidate email addresses and compare the results. Hashing does not make an email list anonymous.
+2. **Any change to the input changes the whole output.** `jane@corp.com` and `Jane@Corp.com` produce entirely unrelated codes. There is no partial match, which is why normalization rules are not optional.
+3. **You cannot work backwards.** The recipe discards information, so the code cannot be turned back into the address.
 
-Both sides can compare hashes without exchanging readable addresses: you hash your copy, the platform hashes its copy, and the codes are compared. Treat these hashes as sensitive identifiers and keep them out of public examples and repositories.
+That third property is why both sides can compare lists without exchanging addresses. You hash your copy, the platform hashes its copy, and only the codes are compared. For people who do not match, the platform holds a code it cannot reverse for a person it cannot identify.
 
 ## Hash or raw personal email
 

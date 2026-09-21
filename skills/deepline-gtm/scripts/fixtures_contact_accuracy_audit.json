@@ -3,13 +3,13 @@
     "name": "send-valid-current-work-email",
     "rows": [
       {
-        "name": "Contact Example 1",
+        "name": "Avery Chen",
         "company": "Acme Cloud",
-        "company_domain": "acmecloud.example",
+        "company_domain": "acmecloud.com",
         "current_company": "Acme Cloud",
         "current_title": "VP Engineering",
-        "linkedin_url": "https://www.linkedin.com/in/synthetic-fixture-nonperson-0001",
-        "email": "avery.chen@acmecloud.example",
+        "linkedin_url": "https://www.linkedin.com/in/averychen",
+        "email": "avery.chen@acmecloud.com",
         "email_validation": "zerobounce:valid",
         "profile_scraped_at": "2026-06-01",
         "email_verified_at": "2026-06-06",
@@ -18,24 +18,20 @@
       }
     ],
     "expected": [
-      {
-        "action": "SEND",
-        "email_risk": "LOW",
-        "flags": []
-      }
+      {"action": "SEND", "email_risk": "LOW", "flags": []}
     ]
   },
   {
     "name": "catch-all-needs-corroboration",
     "rows": [
       {
-        "name": "Contact Example 2",
+        "name": "Jordan Lee",
         "company": "Globex",
-        "company_domain": "globex.example",
+        "company_domain": "globex.com",
         "current_company": "Globex",
         "current_title": "Head of Sales",
-        "linkedin_url": "https://linkedin.com/in/synthetic-fixture-nonperson-0002",
-        "email": "jordan.lee@globex.example",
+        "linkedin_url": "https://linkedin.com/in/jordanlee",
+        "email": "jordan.lee@globex.com",
         "email_validation": "catch-all",
         "catch_all_corroboration_count": "1",
         "profile_scraped_at": "2026-06-01",
@@ -45,26 +41,20 @@
       }
     ],
     "expected": [
-      {
-        "action": "REVIEW",
-        "email_risk": "HIGH",
-        "flags": [
-          "catch_all_not_corroborated"
-        ]
-      }
+      {"action": "REVIEW", "email_risk": "HIGH", "flags": ["catch_all_not_corroborated"]}
     ]
   },
   {
     "name": "job-changer-removes-or-retargets",
     "rows": [
       {
-        "name": "Contact Example 3",
+        "name": "Morgan Patel",
         "company": "OldCo",
-        "company_domain": "oldco.example",
+        "company_domain": "oldco.com",
         "current_company": "NewCo",
         "current_title": "CFO",
-        "linkedin_url": "https://linkedin.com/in/synthetic-fixture-nonperson-0003",
-        "email": "morgan@oldco.example",
+        "linkedin_url": "https://linkedin.com/in/morganpatel",
+        "email": "morgan@oldco.com",
         "email_validation": "zerobounce:valid",
         "profile_scraped_at": "2026-06-03",
         "email_verified_at": "2026-06-04",
@@ -73,26 +63,20 @@
       }
     ],
     "expected": [
-      {
-        "action": "REMOVE / RE-TARGET",
-        "flags": [
-          "job_changed",
-          "email_domain_mismatch"
-        ]
-      }
+      {"action": "REMOVE / RE-TARGET", "flags": ["job_changed", "email_domain_mismatch"]}
     ]
   },
   {
     "name": "stale-verification-holds",
     "rows": [
       {
-        "name": "Contact Example 4",
+        "name": "Casey Stone",
         "company": "FreshCo",
-        "company_domain": "freshco.example",
+        "company_domain": "freshco.com",
         "current_company": "FreshCo",
         "current_title": "Director of Operations",
-        "linkedin_url": "https://linkedin.com/in/synthetic-fixture-nonperson-0004",
-        "email": "casey@freshco.example",
+        "linkedin_url": "https://linkedin.com/in/caseystone",
+        "email": "casey@freshco.com",
         "email_validation": "zerobounce:valid",
         "profile_scraped_at": "2026-03-01",
         "email_verified_at": "2026-04-15",
@@ -101,27 +85,21 @@
       }
     ],
     "expected": [
-      {
-        "action": "VERIFY",
-        "flags": [
-          "profile_stale",
-          "email_verification_stale"
-        ]
-      }
+      {"action": "VERIFY", "flags": ["profile_stale", "email_verification_stale"]}
     ]
   },
   {
     "name": "allowed-company-email-alias",
     "rows": [
       {
-        "name": "Contact Example 5",
+        "name": "Riley Gomez",
         "company": "Acme Cloud",
-        "company_domain": "acmecloud.example",
-        "allowed_email_domains": "acme.example, acmecloud.example",
+        "company_domain": "acmecloud.com",
+        "allowed_email_domains": "acme.io, acmecloud.com",
         "current_company": "Acme Cloud",
         "current_title": "Chief Revenue Officer",
-        "linkedin_url": "https://linkedin.com/in/synthetic-fixture-nonperson-0005",
-        "email": "riley@acme.example",
+        "linkedin_url": "https://linkedin.com/in/rileygomez",
+        "email": "riley@acme.io",
         "email_validation": "zerobounce:valid",
         "profile_scraped_at": "2026-06-02",
         "email_verified_at": "2026-06-06",
@@ -130,19 +108,16 @@
       }
     ],
     "expected": [
-      {
-        "action": "SEND",
-        "flags": []
-      }
+      {"action": "SEND", "flags": []}
     ]
   },
   {
     "name": "malformed-cell-checks",
     "rows": [
       {
-        "name": "Contact Example 6",
+        "name": "Taylor Brooks",
         "company": "DataWorks",
-        "company_domain": "dataworks.example",
+        "company_domain": "dataworks.com",
         "current_company": "DataWorks",
         "current_title": "DataWorks",
         "linkedin_url": "https://linkedin.com/search/results/people/?keywords=Taylor",
@@ -155,27 +130,20 @@
       }
     ],
     "expected": [
-      {
-        "action": "VERIFY",
-        "flags": [
-          "invalid_email_format",
-          "invalid_linkedin_url",
-          "title_equals_company"
-        ]
-      }
+      {"action": "VERIFY", "flags": ["invalid_email_format", "invalid_linkedin_url", "title_equals_company"]}
     ]
   },
   {
     "name": "duplicate-person-conflict",
     "rows": [
       {
-        "name": "Contact Example 7",
+        "name": "Jamie Park",
         "company": "Northwind",
-        "company_domain": "northwind.example",
+        "company_domain": "northwind.com",
         "current_company": "Northwind",
         "current_title": "Controller",
-        "linkedin_url": "https://linkedin.com/in/synthetic-fixture-nonperson-0006",
-        "email": "jamie@northwind.example",
+        "linkedin_url": "https://linkedin.com/in/jamiepark",
+        "email": "jamie@northwind.com",
         "email_validation": "zerobounce:valid",
         "profile_scraped_at": "2026-06-02",
         "email_verified_at": "2026-06-06",
@@ -183,13 +151,13 @@
         "gold_confidence": "HIGH"
       },
       {
-        "name": "Contact Example 7",
+        "name": "Jamie Park",
         "company": "Northwind",
-        "company_domain": "northwind.example",
+        "company_domain": "northwind.com",
         "current_company": "Northwind",
         "current_title": "Controller",
-        "linkedin_url": "https://www.linkedin.com/in/synthetic-fixture-nonperson-0006/",
-        "email": "jamie.park@northwind.example",
+        "linkedin_url": "https://www.linkedin.com/in/jamiepark/",
+        "email": "jamie.park@northwind.com",
         "email_validation": "zerobounce:valid",
         "profile_scraped_at": "2026-06-02",
         "email_verified_at": "2026-06-06",
@@ -198,18 +166,8 @@
       }
     ],
     "expected": [
-      {
-        "action": "REVIEW",
-        "flags": [
-          "duplicate_person_conflict"
-        ]
-      },
-      {
-        "action": "REVIEW",
-        "flags": [
-          "duplicate_person_conflict"
-        ]
-      }
+      {"action": "REVIEW", "flags": ["duplicate_person_conflict"]},
+      {"action": "REVIEW", "flags": ["duplicate_person_conflict"]}
     ]
   }
 ]

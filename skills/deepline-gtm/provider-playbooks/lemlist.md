@@ -55,7 +55,7 @@ deepline tools execute lemlist_get_activities --payload '{"campaign_id":"cam_abc
 ```bash
 deepline tools execute lemlist_list_inbox --payload '{"user_id":"usr_abc"}'
 deepline tools execute lemlist_get_inbox_thread --payload '{"contact_id":"ctc_abc"}'
-deepline tools execute lemlist_send_email --payload '{"send_user_id":"usr_abc","send_user_email":"person@example.com","send_user_mailbox_id":"mbx_abc","contact_id":"ctc_abc","lead_id":"lea_abc","subject":"Follow up","message":"<p>Hi!</p>"}'
+deepline tools execute lemlist_send_email --payload '{"send_user_id":"usr_abc","send_user_email":"me@co.com","send_user_mailbox_id":"mbx_abc","contact_id":"ctc_abc","lead_id":"lea_abc","subject":"Follow up","message":"<p>Hi!</p>"}'
 deepline tools execute lemlist_send_linkedin_message --payload '{"send_user_id":"usr_abc","lead_id":"lea_abc","contact_id":"ctc_abc","message":"Thanks for connecting!"}'
 ```
 
