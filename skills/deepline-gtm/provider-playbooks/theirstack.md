@@ -26,7 +26,7 @@
 
 3. **Hiring signals:** Use `theirstack_job_search` to find companies actively hiring for specific roles or technologies. Always provide `posted_at_max_age_days` or a company filter — the API requires at least one.
 
-4. **Count before a large search:** Use `theirstack_job_search` with `include_total_results: true`, `blur_company_data: true`, and `limit: 1`. Totals require TheirStack to scan the full matching dataset, so broad filters or long date windows can take up to two minutes.
+4. **Count before a large search:** Use `theirstack_job_search` with `include_total_results: true` and `limit: 1`; omit `blur_company_data`. A matching count returns and bills one job (1 TheirStack API credit); no matches return and bill zero jobs. Totals require TheirStack to scan the full matching dataset, so broad filters or long date windows can take up to two minutes.
 
 5. **Tech stack enrichment:** Use `theirstack_technographics` for a single known company — provide `company_domain` when possible (most reliable identifier).
 

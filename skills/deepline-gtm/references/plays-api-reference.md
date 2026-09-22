@@ -376,7 +376,7 @@ Summary definition of a callable provider-backed tool.
 
 Returned by `DeeplineClient.listTools` and ranked tool search. Use
 `getTool(toolId)` or the matching HTTP describe route for provider-specific
-schema, examples, pricing, and extraction guidance before executing.
+schema, examples, pricing, extraction guidance, and execution metadata.
 
 #### Fields
 
@@ -555,6 +555,8 @@ Poll this until `status` reaches a terminal state:
 | `playName` | `string` | No | Alias for `name` used by run/result APIs. |
 | `dashboardUrl` | `string` | No | Dashboard URL for inspecting the play and its run output in the app. |
 | `status` | `\| 'queued' \| 'running' \| 'waiting' \| 'completed' \| 'failed' \| 'cancelled'` | Yes | Product-level play-run state. |
+| `outcome` | `PlayRunOutcome` | No | How this run was admitted or recovered, when the server can prove it. |
+| `recovery` | `{ mode: 'replayed' \| 'forced' \| 'recovered' \| 'joined'; sourceRunId?: string; }` | No |  |
 | `progress` | `PlayProgressStatus` | No | Execution progress with logs and error details. |
 | `result` | `unknown` | No | Partial or final result. Available once the play returns. |
 | `rowOutcomes` | `{ completedRows: number; failedRows: number; totalRows: number; hasRowFailures: boolean; }` | No | Terminal row outcome truth. A completed run may still contain failed rows<br />when row-level failure isolation persisted those rows for retry. |
@@ -589,7 +591,7 @@ internals.
 |---|---|---:|---|
 | `schemaVersion` | `1` | Yes | Package schema version. |
 | `kind` | `'play_run'` | Yes | Package discriminator. |
-| `run` | `{ id: string; playName: string; status: string; dashboardUrl?: string; acceptedAt?: number \| null; updatedAt?: number \| null; startedAt?: number \| null; finishedAt?: number \| null; durationMs?: number \| null; error?: string; activity?: PlayRunActivityProjection \| null; }` | Yes | Run identity, status, timing, and dashboard metadata. |
+| `run` | `{ id: string; playName: string; status: string; dashboardUrl?: string; acceptedAt?: number \| null; updatedAt?: number \| null; startedAt?: number \| null; finishedAt?: number \| null; durationMs?: number \| null; outcome?: PlayRunOutcome; recovery?: { mode: 'replayed' \| 'forced' \| 'recovered' \| 'joined'; sourceRunId?: string; }; error?: string; activity?: PlayRunActivityProjection \| null; }` | Yes | Run identity, status, timing, and dashboard metadata. |
 | `warnings` | `string[]` | No | Bounded customer-safe warnings about output projection or availability. |
 | `steps` | `Array<Record<string, unknown>>` | Yes | Step-level summaries emitted by the runtime. |
 | `outputs` | `Record<string, Record<string, unknown>>` | Yes | Named output summaries, including dataset handles and scalar outputs. |

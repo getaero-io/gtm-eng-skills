@@ -1,5 +1,9 @@
 # BetterContact Agent Guidance
 
+`bettercontact_get_result` returns each contact's `custom_fields` as an array of
+`{name, value, position}` records. Preserve that list shape; do not treat it as
+an object keyed by custom field name.
+
 ## Key patterns
 
 - **Enrichment is upstream-async.** By default, `bettercontact_enrich` and `bettercontact_bulk_enrich` wait briefly for terminal results. If the job is still running, they return a pollable request id; set `wait_for_completion: false` for launch-only behavior. Use `bettercontact_get_result` to fetch terminal results.
