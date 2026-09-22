@@ -350,6 +350,7 @@ while True:
 | `POST` | `/api/v2/settings/notifications/dlq/:deliveryId` | `updateNotificationDlqDelivery` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/settings/notifications/dlq/[deliveryId]/route.ts` |
 | `PATCH` | `/api/v2/settings/notifications/subscriptions` | `setNotificationSubscriptions` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/settings/notifications/subscriptions/route.ts` |
 | `POST` | `/api/v2/settings/notifications/test` | `testNotificationSlack` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/settings/notifications/test/route.ts` |
+| `GET` | `/api/v2/usage/events` | `billing.usageEvent`<br />`getBillingUsageEvent` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/usage/events/route.ts` |
 | `POST` | `/api/v2/workspaces` | `workspaces.create`<br />`org create` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/workspaces/route.ts`<br />`apps/deepline-api/src/lib/workspaces/create-additional-workspace.ts` |
 
 ## Recent Compatible API Changes
