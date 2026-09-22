@@ -25,6 +25,9 @@ Trestle has two phone APIs:
 
 **Does NOT require a name.** Just pass the phone number.
 
+Phone Intel returns the line type as `line_type`. The Real Contact API returns
+the same signal in its flat dotted-key response as `phone.linetype`.
+
 ## trestle_real_contact (Real Contact API)
 
 **Use when identity verification matters.** Returns everything from Phone Intel plus:
