@@ -1,0 +1,3 @@
+- Use `brave_web_search` for privacy-focused public web searches.
+- A call is billed once even if Brave returns no matching results; a provider 404 is not charged when its response contains no billing evidence.
+- Provider credentials, marketplace hostnames, and upstream billing counts are implementation details and are not part of the customer result.

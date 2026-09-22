@@ -1,5 +1,17 @@
 Use `ai_inference` for plain text or structured-output model calls with no tool use.
 
+Model IDs are case-sensitive. Use the exact `id` string from the live
+[AI Gateway model catalog](https://ai-gateway.vercel.sh/v1/models); the current
+Deepline default is `openai/gpt-5.6-luna`. The `tools describe` CLI also shows
+the selected model metadata and provider option schema:
+`deepline tools describe ai_inference --model openai/gpt-5.6-luna --json`.
+
+For inference and `deeplineagent`, read `toolResponse.raw.result.text` for
+text, `toolResponse.raw.result.object` for optional structured data, and
+`toolResponse.raw.extracted_json` for the compatibility JSON field. For
+`ai_evaluate`, use `toolResponse.raw.result.answers` and
+`toolResponse.raw.extracted_json`.
+
 Use `deeplineagent` when the task benefits from streaming output and tool use across the current whitelist: `serper_google_search`, `exa_search`, `firecrawl_scrape`, `firecrawl_map`, `firecrawl_crawl`, and `bash`.
 
 For research tasks, prefer an adaptive loop: cheap Serper search first, synthesize, then only run targeted Exa follow-up searches if key gaps remain.

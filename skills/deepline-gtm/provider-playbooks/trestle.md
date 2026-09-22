@@ -63,3 +63,9 @@ This causes the waterfall to continue to the next phone provider, ensuring you o
 ## Billing
 
 - Both endpoints are post-deduct — you only pay on success.
+
+The normalized response uses dotted keys at `data`, for example
+`toolResponse.raw.data["phone.is_valid"]` and
+`toolResponse.raw.data["phone.activity_score"]` in CLI JSON output. These keys
+are literal property names; do not try to read them as nested
+`phone.is_valid` objects.

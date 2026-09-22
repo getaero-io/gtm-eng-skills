@@ -6,7 +6,7 @@ AI Ark provides company search, people search, reverse lookup, mobile phone find
 
 **Base URL:** `https://api.ai-ark.com/api/developer-portal`
 **Auth:** `X-TOKEN` header with API key.
-**Rate limits:** 5 req/s, 300 req/min, 18,000 req/hr (all endpoints).
+**Rate limit:** AI Ark documents a default limit of 5 requests per second per API token. Deepline queues calls at that rate within its provider scope; the queue hint does not coordinate separate organizations that use their own tokens. If AI Ark returns HTTP 429, wait for its `Retry-After` value before retrying. [AI Ark rate-limit guidance](https://docs.ai-ark.com/docs/ai-agents).
 
 ## Credit Costs
 
@@ -221,7 +221,7 @@ All search/list endpoints use zero-based pagination with `page` and `size` param
 
 - **409 Conflict**: Export or email-finder result pages were requested while the async job is still processing. Poll statistics first.
 - **404 Not Found**: Profile not found (personality analysis).
-- **429 Too Many Requests**: Rate limit exceeded. Resets every 60 seconds.
+- **429 Too Many Requests**: Rate limit exceeded. Honor the response's `Retry-After` header when present; otherwise use a short exponential backoff. Do not assume a fixed 60-second reset window.
 
 ## Key Constraints
 
