@@ -123,3 +123,6 @@ If the same shared activity already supplies appearance points, do not count it 
 
 The three defaults total 30 points. They remain below verified work overlap at 80 points.
 Users can change weights. No weight setting changes the review status.
+
+Employment checks must exclude roles that are only board, advisory, or angel-investor appointments.
+Do not treat a board location as an employee work location. Use the separate board feature after its evidence passes review.
