@@ -1,12 +1,23 @@
 ---
 name: warm-intro-scoring
 description: |
-  Rank evidence-backed requester → connector → target introduction paths, or match event attendees by shared professional context. Produce an interactive local review artifact with the top three paths, score explanations, and evidence. Use for warm-intro scoring, connector selection, relationship mapping, and event match recommendations. Keeps similarity separate from relationship proof and ask approval.
+  Accept warm connections and optional target contacts, provision customer database tables, enrich full profiles, and incrementally rank evidence-backed requester → connector → target introduction paths, or match event attendees by shared professional context. Produce an interactive local review artifact with the top three paths, score explanations, and evidence. Use for warm-intro scoring, connector selection, relationship mapping, and event match recommendations. Keeps similarity separate from relationship proof and ask approval.
 ---
 
 # Warm intro scoring
 
 Produce a ranked review artifact, a machine-readable scored-path CSV, and an honest evaluation summary. Reuse the existing scorers; do not invent a new weighted model for each run. No messages are sent by this skill.
+
+## Default input and workflow
+
+Input: a list of warm connections and an optional list of target contacts. Accept CSV, database rows, or structured records with stable source IDs, names, profile URLs, company, role, and any relationship evidence. Reuse the current customer workspace and requester identity when known. Deduplicate contacts shared across both lists; retain their separate campaign memberships.
+
+1. **Create customer DB tables.** Verify the active tenant and database dialect, inspect existing tables, and apply the additive [database schema](assets/customer-db.sql) through the supported customer DB interface. Reuse compatible existing tables; do not replace customer data. The supplied SQL targets PostgreSQL and must be adapted if the workspace uses another dialect. Record the workspace, migration result and table names.
+2. **Resolve targets and enrich everyone.** If targets are absent, select ten actual customers or researched example targets in the customer's market using [the pipeline contract](references/pipeline.md). Pull full available profiles for every unique connector and target, including employment and education history. Cache raw receipts privately, build attributable features, and report incomplete profiles rather than dropping contacts.
+3. **Enable incremental scoring.** Create the ingestion → profile enrichment → feature extraction → affected-pair scoring → artifact refresh pattern described in [the pipeline contract](references/pipeline.md). Default triggers are new connections, new targets, changed profiles, and relationship/willingness updates. Use durable event IDs, profile hashes, versioned features and a recoverable job queue. Verify replay, updates and failure recovery before calling the pattern enabled.
+4. **Deliver the review artifact.** Show the three best paths per target, feature explanations, coverage, holds and freshness, plus machine-readable exports. Report whether the database and trigger are actually deployed, or only prepared.
+
+This is the workflow to execute when the skill is invoked with contact data. Updating or installing the skill alone does not create live tables, incur enrichment spend, or enable a schedule. Use existing authorization for the chosen tenant and spend scope; ask only when these cannot be determined.
 
 ## Choose the scoring question
 
@@ -14,7 +25,7 @@ Produce a ranked review artifact, a machine-readable scored-path CSV, and an hon
 - **Find contacts by company/school criteria:** use the existing `lookup.py` discovery interface. Company proximity is not dated overlap. Do not present its score as target-person evidence.
 - **Match people in a room:** use the event app's pair scorer (function 35%, previous roles 25%, school 15%, industry 15%, employers 10%). Keep missing dimensions unknown rather than redistributing their weight. Pair similarity is separate from warm-intro strength, product fit, and gifts. See [source adapters](references/sources.md).
 
-Ask only for missing essentials: requester identity, target person/list or event cohort, intended reason for meeting, permitted data sources and budget. Reuse the user's existing approved scope. Default to private local artifacts and no live enrichment when cached evidence suffices.
+Ask only for missing essentials: requester identity, customer market when neither targets nor customer context exists, intended reason for meeting, permitted data sources and budget. Missing targets alone do not require a question: use the ten-target fallback above. Reuse the user's existing approved scope. Default to private local artifacts and no live enrichment when cached evidence suffices.
 
 ## Gather and normalize evidence
 
