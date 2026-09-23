@@ -58,6 +58,7 @@ Do not merge different company domains without a verified identity link.
 - Reject unresolved or conflicting person identities.
 - Detect duplicate funding rounds and duplicate investor records before totals or graph joins.
 - Keep investment, board membership and personal acquaintance as separate facts.
+- Resolve the investor's entity type. A founder's personal investment does not make the founder's employer an investor. Require a source that names the investing firm before giving its employees company-link points. A cached investor label or a verification flag without a supporting source is insufficient.
 - Require a named board role and dated tenure for board overlap.
 - Require the same named event and people for a shared appearance.
 - Keep source dates distinct from retrieval dates.

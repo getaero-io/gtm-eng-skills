@@ -50,6 +50,7 @@ These are implementation recommendations inferred from the product comparison an
 - One duplicated email or meeting must not earn points twice.
 - Current same-city data must not strengthen a past job overlap without historical location evidence.
 - A shared investor must not become a direct investment role without a named person, company, and valid dates.
+- An angel investor's employer must not become an investing firm. Verify the named investing entity before assigning company-link points to its employees.
 - Blocked or declined intro requests must not appear as ready paths, regardless of similarity score.
 - Every source-list target must appear as scored, unmatched, or held for identity review.
 - Evaluate precision at 3 and pairwise preference agreement from exported human reviews. Split evaluation by account and connector to reduce leakage. Do not call a ranking score a probability of a successful intro.
