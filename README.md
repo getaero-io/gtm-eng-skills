@@ -257,3 +257,7 @@ PRs welcome. Each skill lives in `skills/<name>/SKILL.md`. See [CONTRIBUTING.md]
 ## License
 
 MIT
+
+## Engineering handoffs
+
+[Warm-intro scoring](engineering/warm-intro-scoring/README.md) is a self-contained scoring, data-quality and evaluation package outside the refreshable skills directory. Run `python3 engineering/warm-intro-scoring/check_all.py`; no credentials or network access are needed.

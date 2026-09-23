@@ -1,0 +1,4 @@
+interface:
+  display_name: "Warm Intro Scoring"
+  short_description: "Rank cited intro paths and build a review artifact"
+  default_prompt: "Use $warm-intro-scoring to rank my introduction paths and create an interactive evidence review artifact."
