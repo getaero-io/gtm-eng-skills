@@ -11,6 +11,10 @@ Produce a ranked review artifact, a machine-readable scored-path CSV, and an hon
 
 This copy is maintained outside the refreshable skills tree. Read `README.md` first and run `python3 check_all.py` from this folder. Use this folder as `SKILL_DIR` and its `vendor/` subfolder as `GTM_REPO`; bundled scripts default to the pinned vendor automatically. This copy has no dependency on the parent repository's `skills/` or `examples/` directories.
 
+## Deepline Play execution
+
+Use the reusable [Play workflow](plays/README.md) for Deepline runs. Verify the customer organization before each cloud batch. The TypeScript core preserves the Python reference on the frozen parity suite; use `python3 plays/check_all.py` to verify changes. Source collection, versioned database snapshots, feature extraction, adjustable scoring, quality/evaluation, and reports each have explicit Play entry points. Do not describe manual Plays as an enabled event trigger. Preserve existing declines and human review holds when joining new feature results. Read the documented input and report-size limits before running.
+
 ## Default input and workflow
 
 Input: a list of warm connections and an optional list of target contacts. Accept CSV, database rows, or structured records with stable source IDs, names, profile URLs, company, role, and any relationship evidence. Reuse the current customer workspace and requester identity when known. Deduplicate contacts shared across both lists; retain their separate campaign memberships.
@@ -42,7 +46,7 @@ For paid enrichment, validate the selected tool schema and do a one-row pilot (`
 
 ## Score and review
 
-The wrapper requires a GTM Eng Skills checkout; it imports the maintained example scorer rather than shipping another copy. Set `GTM_REPO` to that checkout and `SKILL_DIR` to this skill directory. Install requires Python 3.10+; scoring/rendering use only the standard library.
+The Python wrapper uses the pinned scorer in `vendor/`. Set `SKILL_DIR` to this package and `GTM_REPO` to its `vendor/` folder. Install requires Python 3.10+; scoring/rendering use only the standard library.
 
 ```bash
 python3 "$SKILL_DIR/scripts/score.py" reviewed-evidence.json \

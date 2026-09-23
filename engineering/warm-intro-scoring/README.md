@@ -1,6 +1,6 @@
 # Warm-intro scoring — engineering handoff
 
-**Start here.** This folder is a self-contained, offline scoring/evaluation package. Keep it outside the generated `skills/` tree. Copy this entire folder into another checkout if needed; Python 3.10+ is the only requirement. No install, credentials, customer database or provider calls are needed for the tests.
+**Start here.** This folder contains Deepline Plays and the offline Python reference for warm-intro scoring. Start with [the Play handoff](plays/README.md) for cloud runs and parity checks. Keep it outside the generated `skills/` tree. Copy this entire folder into another checkout if needed; The offline Python checks require Python 3.10+. The Play checks also use Bun; cloud runs require the Deepline CLI. No install, credentials, customer database or provider calls are needed for the tests.
 
 ```bash
 python3 engineering/warm-intro-scoring/check_all.py
@@ -51,13 +51,13 @@ Existing tests cover both-edge holds, latest declines, future features, train/te
 
 ## Before connecting production
 
-Implement the provider/DB adapters in `references/pipeline.md`; the SQL and trigger pattern are not deployed. The offline checker does not verify that a profile is full or true, query live tables, or implement queue workers. Deployment acceptance must cover transaction rollback, duplicate event replay, lease expiry, out-of-order profile updates, removals, stale artifact invalidation and no extra paid calls after retry. Use source run receipts to reconcile contacts requested/enriched/partial/failed before accepting a batch. Enforce tenant-scoped keys and access controls in the actual database.
+Manual provider, database snapshot, feature, scoring, validation, and report Plays are in `plays/`. The separate queue/trigger schema in `references/pipeline.md` is not deployed. The offline checker does not verify that a profile is full or true, query live tables, or implement queue workers. Deployment acceptance must cover transaction rollback, duplicate event replay, lease expiry, out-of-order profile updates, removals, stale artifact invalidation and no extra paid calls after retry. Use source run receipts to reconcile contacts requested/enriched/partial/failed before accepting a batch. Enforce tenant-scoped keys and access controls in the actual database.
 
 Keep raw profiles, connection exports, credentials and real-person artifacts private. Historical data lacks outcome-complete labels; passing this suite does not establish prediction accuracy or business uplift.
 
 ## Forward this to the team
 
-> The warm-intro handoff lives in `engineering/warm-intro-scoring/`, outside the refreshable skills folder. Run `python3 engineering/warm-intro-scoring/check_all.py` with Python 3.10+. It is offline and credential-free. Start with README.md; the fixtures demonstrate scoring, data-quality reports and evaluation artifacts. Production work remaining is the scoped DB/provider/trigger adapter and independently labeled outcomes, not scoring-model deployment based on synthetic results.
+> The warm-intro handoff lives in `engineering/warm-intro-scoring/`, outside the refreshable skills folder. Run `python3 engineering/warm-intro-scoring/check_all.py` with Python 3.10+. It is offline and credential-free. Start with README.md; the fixtures demonstrate scoring, data-quality reports and evaluation artifacts. Use plays/README.md for the manual cloud workflow and tested parity scope. Automatic triggers, fresh-provider recovery tests, and independently labeled outcomes remain separate deployment gates.
 
 ## Adjustable preferences and company networks
 
