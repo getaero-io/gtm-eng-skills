@@ -162,3 +162,20 @@ class TuningTests(unittest.TestCase):
         self.assertEqual(rows[0]['features']['work_overlap']['value'],0)
         investor['features']['investor_role']['timing_status']='unknown'
         with self.assertRaises(ValueError):tuning.rank(data)
+
+    def test_large_company_overlap_requires_same_role_context(self):
+        def result(size, function, location):
+            p=path()
+            p['features']['work_overlap']=dict(value=1,evidence_ids=['jobs'],explanation='Dated jobs at one company.',timing_status='verified_overlap',overlap_start='2020-01-01',overlap_end='2021-01-01',work_context=dict(company_size=size,same_function=function,same_location=location))
+            # Other jobs or current titles must not inflate historical overlap.
+            p['features']['role_industry']=dict(value=1,evidence_ids=['current'],explanation='Same current function.',timing_status='not_applicable')
+            return tuning.normalize({'as_of':'2026-09-23','paths':[p]})[0]['features']['work_overlap']['value']*80
+        self.assertEqual(result(1000,False,False),20)
+        self.assertEqual(result(1000,False,True),40)
+        self.assertEqual(result(1000,True,False),50)
+        self.assertEqual(result(1000,True,True),80)
+        self.assertEqual(result(999,False,False),80)
+        self.assertEqual(result(None,None,None),20)
+        for size in (True,-1,0,1.5):
+            with self.assertRaises(ValueError):result(size,False,False)
+        with self.assertRaises(ValueError):result(1000,'yes',True)

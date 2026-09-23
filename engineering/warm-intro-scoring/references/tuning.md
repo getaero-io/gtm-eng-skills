@@ -143,3 +143,33 @@ Community membership now has a default maximum of 2 points, reduced from 10.
 Work overlap remains 80. Shared investor-company context remains 3 unless the user changes that weight.
 The high investor weight expresses the user's priority. It does not confirm personal acquaintance or permission.
 All weights remain adjustable. Existing review holds remain unchanged.
+
+## Large-company work overlap (v4)
+
+Use 1,000 employees as the large-company threshold. This is an explicit rule, not a fitted cutoff.
+Attach `work_context` to the `work_overlap` feature:
+
+```json
+{"company_size": 1000, "same_function": true, "same_location": true}
+```
+
+The renderer and scorer apply the same factor to the adjustable work-overlap weight.
+
+| Evidence during the shared employment period | Factor | Points at weight 80 |
+|---|---:|---:|
+| Same company only | 0.25 | 20 |
+| Same company and location | 0.5 | 40 |
+| Same company and function | 0.625 | 50 |
+| Same company, function and location | 1 | 80 |
+
+Both flags must refer to the same two dated employment records at the same canonical company.
+Current job titles and unrelated city history cannot set these flags.
+Use null when a fact is missing. Unknown company size uses the conservative large-company factors.
+A sourced employee count below 1,000 keeps the existing work-overlap factor of 1.
+Retain the headcount source and its date. Do not present a later count as the exact historical count.
+
+Do not add separate function or city points for the same facts already used in this work component.
+A different, independently supported current-role match can remain separate.
+Investor roles, community weights and review status do not change.
+Old inputs without `work_context` keep their old behavior. New profile adapters must supply this context for each positive work overlap.
+The work component uses the smaller of the supplied feature value and the context factor; context cannot create missing overlap.

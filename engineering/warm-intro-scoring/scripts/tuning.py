@@ -12,7 +12,7 @@ DEFAULT_WEIGHTS = dict(direct_intro=160, work_overlap=80, school_overlap=20,
                        city_overlap=10, industry_match=10, community_match=2, investor_role=120)
 TIMED = {'work_overlap', 'school_overlap', 'board_overlap', 'city_overlap', 'investor_role'}
 TIMING = {'verified_overlap', 'non_overlap', 'unknown', 'not_applicable'}
-MODEL = 'evidence-feature-heuristic-v3'
+MODEL = 'evidence-feature-heuristic-v4'
 REVIEW_STATUSES = {'needs_confirmation', 'blocked_declined', 'ready_for_human_review'}
 
 
@@ -43,6 +43,19 @@ def exact_date(value, label):
     if value != parsed.isoformat():
         raise ValueError(f'{label} must be a full YYYY-MM-DD date')
     return parsed
+
+
+def work_overlap_value(company_size, same_function, same_location):
+    """Use the same dated employer roles for both context flags. Unknown size is conservative."""
+    if company_size is not None and (type(company_size) is not int or company_size <= 0):
+        raise ValueError('company_size must be a positive employee count or null')
+    if any(x is not None and type(x) is not bool for x in (same_function, same_location)):
+        raise ValueError('Work context flags must be boolean or null')
+    if company_size is not None and company_size < 1000:
+        return 1.0
+    if same_function and same_location:
+        return 1.0
+    return 0.625 if same_function else 0.5 if same_location else 0.25
 
 
 def normalize(data):
@@ -96,6 +109,14 @@ def normalize(data):
                 if start > end or end > as_of:
                     raise ValueError('Overlap must have start <= end <= as_of')
                 feature.update(overlap_start=start.isoformat(), overlap_end=end.isoformat())
+            if key == 'work_overlap' and 'work_context' in f:
+                context = f['work_context']
+                if not isinstance(context, dict) or set(context) != {'company_size', 'same_function', 'same_location'}:
+                    raise ValueError('work_context requires company_size, same_function and same_location')
+                factor = work_overlap_value(**context)
+                # Keep absent overlap at zero; context cannot create an employment match.
+                feature['value'] = min(value, factor)
+                feature['work_context'] = dict(context)
             row['features'][key] = feature
         rows.append(row)
     return rows
