@@ -249,6 +249,7 @@ New artifacts pin authoring contract edition 8. Check, publish, and run use the 
 | `bindings.webhook.hmac.secretEnv` | `string` | Yes | Environment variable containing the webhook HMAC secret. |
 | `bindings.webhook.hmac.algorithm` | `'sha256'` | No | Webhook signature hash algorithm. Only sha256 is supported. |
 | `bindings.webhook.hmac.header` | `string` | No | HTTP header containing the webhook signature. |
+| `bindings.webhook.hmac.signaturePrefix` | `string` | No | Optional literal before the lowercase hexadecimal HMAC. Set to an empty string for providers that send a bare digest; defaults to sha256= when a signature header is configured. |
 | `bindings.webhook.auth.type` | `'standard-webhooks'` | No | Uses the Standard Webhooks v1 symmetric signing scheme. |
 | `bindings.webhook.auth.headerFamily` | `'standard' \| 'svix'` | No | Header namespace expected from the webhook provider. |
 | `bindings.webhook.auth.signingSecrets[]` | `string` | No | Deepline Secret name used to verify Standard Webhooks. |
