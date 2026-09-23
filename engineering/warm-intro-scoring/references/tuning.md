@@ -102,3 +102,24 @@ Optional context fields do not affect the score:
 Only HTTP and HTTPS source links are clickable. Other locators appear as text. Names, descriptions and source details appear as text, never as executable HTML. The artifact does not make background requests. A user can open a source link in a new tab.
 
 If an evidence registry is supplied, each positive feature must reference records in that registry. A missing record stops rendering. Inputs without a registry can still show source IDs, but the renderer cannot resolve those IDs. Evidence and company-research observation dates must be full `YYYY-MM-DD` dates at or before the artifact cutoff.
+
+## Fallback features (v2)
+
+Three optional features restore background matches: `city_overlap`, `industry_match`, and `community_match`.
+Each has a default maximum of 10 points. Missing inputs stay unknown and add zero points.
+These are preference weights, not measured success probabilities. Existing v1 scores can change only when new evidence is supplied.
+
+`city_overlap` requires the same specific city or metro and verified overlap dates.
+For job-location evidence, say “work city.” Do not call it a home address or proof that people met.
+Exclude remote-only work and broad state or country labels.
+
+`industry_match` requires evidence for both companies or professional histories.
+Do not infer industry from a job title. Do not count the same industry fact in `role_industry` as well.
+The live v2 report uses `role_industry` for job function only; the old key stays compatible with saved inputs.
+
+`community_match` requires an explicit shared professional group.
+Membership alone is weak evidence. Do not infer sensitive affiliations or a personal relationship.
+If the same shared activity already supplies appearance points, do not count it again as community evidence.
+
+The three defaults total 30 points. They remain below verified work overlap at 80 points.
+Users can change weights. No weight setting changes the review status.

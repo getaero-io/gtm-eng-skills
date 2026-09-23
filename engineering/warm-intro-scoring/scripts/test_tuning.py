@@ -133,3 +133,18 @@ class TuningTests(unittest.TestCase):
         for observed in ('2026','2026-09-24','2026-02-30'):
             data['target_research']={'t':[dict(label='Fact',detail='Context',source_url='https://example.com',observed_at=observed,provider='Example')]}
             with self.assertRaises(ValueError): tuning.render(data)
+
+    def test_fallbacks_add_points_without_claiming_a_relationship(self):
+        p=path()
+        p['features'].update(
+            city_overlap=dict(value=1,evidence_ids=['city'],explanation='Same work city during the stated period.',timing_status='verified_overlap',overlap_start='2022-01-01',overlap_end='2023-01-01'),
+            industry_match=dict(value=1,evidence_ids=['industry'],explanation='Both companies serve the same industry.',timing_status='not_applicable'),
+            community_match=dict(value=1,evidence_ids=['community'],explanation='Both list the same professional group.',timing_status='not_applicable'))
+        data={'as_of':'2026-09-23','paths':[p]}
+        row=tuning.rank(data)[0]
+        self.assertEqual(row['tuned_score'],30)
+        self.assertEqual(row['review_status'],'needs_confirmation')
+        self.assertFalse(row['ready_for_human_review'])
+        self.assertEqual(tuning.rank(data,{'city_overlap':0})[0]['tuned_score'],20)
+        p['features']['city_overlap']['timing_status']='unknown'
+        with self.assertRaises(ValueError): tuning.rank(data)

@@ -66,7 +66,7 @@ python3 scripts/tuning.py assets/tuning-example.json --output tuning.html
 python3 scripts/tuning.py assets/tuning-example.json --weights assets/portfolio-focus.weights.json --output portfolio-focus.html
 ```
 
-Eight independent controls cover recorded intros, dated work/school overlap, requester relationships, role/industry, shared investor portfolios, public appearances and dated board overlap. Export a config to reuse it. The baseline score and holds remain fixed. See `references/tuning.md` for the input contract and `references/company-network.md` for investor discovery/portfolio expansion. Real customer snapshots and research graphs stay outside Git.
+Independent controls cover recorded intros, dated work/school overlap, requester relationships, role/industry, shared investor portfolios, public appearances dated board overlap, work city, industry and professional community. Export a config to reuse it. The baseline score and holds remain fixed. See `references/tuning.md` for the input contract and `references/company-network.md` for investor discovery/portfolio expansion. Real customer snapshots and research graphs stay outside Git.
 
 ## Target-first report
 
