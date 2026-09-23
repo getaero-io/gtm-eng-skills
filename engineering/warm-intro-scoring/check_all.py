@@ -23,6 +23,7 @@ def main():
         run(ROOT/'scripts/quality.py',ROOT/'assets/example.json','--output',output/'quality.json')
         run(ROOT/'scripts/score.py',ROOT/'assets/example.json','--output',output/'scores.csv')
         run(ROOT/'scripts/render.py',output/'scores.csv','--output',output/'paths.html')
+        run(ROOT/'scripts/tuning.py',ROOT/'assets/tuning-example.json','--output',output/'tuning.html')
         run(ROOT/'scripts/evaluate.py',ROOT/'assets/evaluation-example.json','--output',output/'evaluation.json','--html',output/'evaluation.html')
     print('PASS: dependency integrity, unit tests, scorer checks, data quality and artifact smoke tests. No network calls.')
 

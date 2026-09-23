@@ -56,6 +56,12 @@ The pinned baseline uses direct-introduction evidence 160, dated work overlap 80
 
 Read [factor research](references/factors.md) when extending the model. New signals are hypotheses until evaluated. Keep weak affinities as context or tie-break candidates; do not let many weak facts overwhelm stronger evidence. Exclude sensitive-trait inference and hidden/private social data. Same city, college, sports team, professional club or public social exchange can suggest a conversation, not familiarity.
 
+## Tune attributes and expand company networks
+
+When a user supplies their employer, apply [company-network expansion](references/company-network.md): issuer investors → public portfolio pages → canonical employer matches, with source coverage reported. Use named, dated board roles separately from investor affiliation. Work and school matches must retain actual tenure/cohort intersection and date precision.
+
+For adjustable preferences, produce normalized feature paths under [the tuning contract](references/tuning.md) and run `python3 scripts/tuning.py normalized-features.json --output tuning.html`. The artifact exposes eight weights, reranks locally, preserves fixed review holds and exports weights. `assets/portfolio-focus.weights.json` raises portfolio priority to 120 points. These are explicit preferences in a separate heuristic model, not calibrated success probabilities or a silent change to the legacy baseline. Missing/undated features remain zero/unknown; do not fabricate overlap dates to enable a slider.
+
 ## Deliver the artifact
 
 Open the generated HTML locally when possible. It must show target and connector identities, requester path, top three alternatives, component scores, evidence IDs, both-edge confidence, willingness and reasons to hold. Include search/status filters, an empty state and responsive keyboard-accessible controls. `scripts/render.py` supplies this without a server or dependencies. The HTML contains the selected people; do not publicly host it without authorization.
