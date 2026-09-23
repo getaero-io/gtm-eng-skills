@@ -1,0 +1,10 @@
+{
+  "upstream_commit": "8e9cd2a2d8575b4619d841402a523ef002c56218",
+  "files": {
+    "vendor/examples/office-hours/warm-intro-scoring/scorer.py": "94a4f858bc0c83dbb2eacdee1d0ab76885cfae1f8224268b99a1af473b8ff647",
+    "vendor/examples/office-hours/warm-intro-scoring/models.py": "2c741d4f02dc681ec75bb481facf98eca881a0c464453443391d0ed7387d4dce",
+    "vendor/examples/office-hours/warm-intro-scoring/db.py": "2aafb67eecd600516f0b65547cb63be6d24b38a061d905372d563a12f4934d67",
+    "vendor/examples/office-hours/warm_intro_contract.py": "34ac039134c452264f44ee2c0bed738c1acb36eea3b209c526be56fbc5a9b5f0",
+    "vendor/examples/office-hours/warm-intro-ask-threads/draft_asks.py": "433af8ec7a969a89d589d3cc039b7701514b4bf72ef0de59537702050f5ae35b"
+  }
+}

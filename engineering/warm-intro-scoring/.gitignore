@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+quality.json
+scores.csv
+paths.html
+evaluation.json
+evaluation.html
+/tuning.html
+/portfolio-focus.html

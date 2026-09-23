@@ -1,0 +1,209 @@
+{
+  "as_of": "2026-09-01T00:00:00Z",
+  "bootstrap_samples": 200,
+  "seed": 7,
+  "queries": [
+    {
+      "id": "fictional-complete",
+      "scored_at": "2026-08-15T00:00:00Z",
+      "target_id": "target-a",
+      "account_id": "account-a",
+      "labels": {
+        "a": 1,
+        "b": 0,
+        "c": 0,
+        "d": 1
+      },
+      "baseline": [
+        "b",
+        "c",
+        "d",
+        "a"
+      ],
+      "candidate": [
+        "a",
+        "d",
+        "b",
+        "c"
+      ],
+      "paths": [
+        {
+          "id": "a",
+          "status": "ready",
+          "sender_edge": "strong",
+          "target_edge": "medium",
+          "willingness": "yes",
+          "feature_dates": [
+            "2026-08-01T00:00:00Z"
+          ]
+        },
+        {
+          "id": "b",
+          "status": "ready",
+          "sender_edge": "strong",
+          "target_edge": "medium",
+          "willingness": "yes",
+          "feature_dates": [
+            "2026-08-01T00:00:00Z"
+          ]
+        },
+        {
+          "id": "c",
+          "status": "ready",
+          "sender_edge": "strong",
+          "target_edge": "medium",
+          "willingness": "yes",
+          "feature_dates": [
+            "2026-08-01T00:00:00Z"
+          ]
+        },
+        {
+          "id": "d",
+          "status": "ready",
+          "sender_edge": "strong",
+          "target_edge": "medium",
+          "willingness": "yes",
+          "feature_dates": [
+            "2026-08-01T00:00:00Z"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fictional-incomplete",
+      "scored_at": "2026-08-15T00:00:00Z",
+      "target_id": "target-b",
+      "account_id": "account-b",
+      "labels": {
+        "a": 1,
+        "b": null,
+        "c": 0,
+        "d": 1
+      },
+      "baseline": [
+        "b",
+        "c",
+        "d",
+        "a"
+      ],
+      "candidate": [
+        "a",
+        "d",
+        "b",
+        "c"
+      ],
+      "paths": [
+        {
+          "id": "a",
+          "status": "ready",
+          "sender_edge": "strong",
+          "target_edge": "medium",
+          "willingness": "yes",
+          "feature_dates": [
+            "2026-08-01T00:00:00Z"
+          ]
+        },
+        {
+          "id": "b",
+          "status": "ready",
+          "sender_edge": "strong",
+          "target_edge": "medium",
+          "willingness": "yes",
+          "feature_dates": [
+            "2026-08-01T00:00:00Z"
+          ]
+        },
+        {
+          "id": "c",
+          "status": "ready",
+          "sender_edge": "strong",
+          "target_edge": "medium",
+          "willingness": "yes",
+          "feature_dates": [
+            "2026-08-01T00:00:00Z"
+          ]
+        },
+        {
+          "id": "d",
+          "status": "ready",
+          "sender_edge": "strong",
+          "target_edge": "medium",
+          "willingness": "yes",
+          "feature_dates": [
+            "2026-08-01T00:00:00Z"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fictional-no-route",
+      "scored_at": "2026-08-15T00:00:00Z",
+      "target_id": "target-c",
+      "account_id": "account-c",
+      "labels": {},
+      "baseline": [],
+      "candidate": [],
+      "paths": []
+    }
+  ],
+  "fictional": true,
+  "baseline_version": "fictional-baseline-v1",
+  "candidate_version": "fictional-candidate-v1",
+  "outcome_window_days": 14,
+  "split": {
+    "train_target_ids": [
+      "training-target"
+    ],
+    "test_target_ids": [
+      "target-a",
+      "target-b",
+      "target-c"
+    ],
+    "train_account_ids": [
+      "training-account"
+    ],
+    "test_account_ids": [
+      "account-a",
+      "account-b",
+      "account-c"
+    ]
+  },
+  "outcomes": [
+    {
+      "id": "fictional-mature-reply",
+      "status": "sent",
+      "created_at": "2026-08-01T00:00:00Z",
+      "sent_at": "2026-08-02T00:00:00Z",
+      "observed_through": "2026-09-01T00:00:00Z",
+      "reply": true,
+      "meeting": false,
+      "reply_at": "2026-08-04T00:00:00Z"
+    },
+    {
+      "id": "fictional-open-window-reply",
+      "status": "sent",
+      "created_at": "2026-08-29T00:00:00Z",
+      "sent_at": "2026-08-30T00:00:00Z",
+      "observed_through": "2026-09-01T00:00:00Z",
+      "reply": true,
+      "meeting": false,
+      "reply_at": "2026-08-31T00:00:00Z"
+    },
+    {
+      "id": "fictional-unobserved",
+      "status": "sent",
+      "created_at": "2026-08-01T00:00:00Z",
+      "sent_at": "2026-08-02T00:00:00Z",
+      "observed_through": "2026-09-01T00:00:00Z",
+      "reply": null,
+      "meeting": null
+    },
+    {
+      "id": "fictional-draft",
+      "status": "draft",
+      "created_at": "2026-08-01T00:00:00Z",
+      "reply": null,
+      "meeting": null
+    }
+  ]
+}
