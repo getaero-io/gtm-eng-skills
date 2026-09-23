@@ -1,7 +1,6 @@
 ---
 name: warm-intro-scoring
-description: |
-  Accept warm connections and optional target contacts, provision customer database tables, enrich full profiles, and incrementally rank evidence-backed requester → connector → target introduction paths, or match event attendees by shared professional context. Produce an interactive local review artifact with the top three paths, score explanations, and evidence. Use for warm-intro scoring, connector selection, relationship mapping, and event match recommendations. Keeps similarity separate from relationship proof and ask approval.
+description: Use when ranking warm-introduction paths, evaluating connector matches, enriching warm connections and target contacts, or checking whether new matching factors improve recommendations.
 ---
 
 # Warm intro scoring
@@ -60,6 +59,9 @@ Open the generated HTML locally when possible. It must show target and connector
 The ask preview is illustrative only. Export CSV matches the existing ask-thread loader; keep `reviewed_override=false`. If draft generation is requested, use the existing ask drafter with its segment/row gates and retain `approved=false`. Sending is a separate authorized action. Do not copy raw private evidence into an outbound ask.
 
 ## Evaluate before claiming improvement
+
+Use the [evaluator contract](references/evaluator.md) for baseline-versus-candidate comparisons. It defines ranking eligibility, mature outcome denominators, research-driven adversarial cases and release gates. Run `python3 "$SKILL_DIR/scripts/evaluate.py" --help` for the executable input/output contract and start with `assets/evaluation-example.json`. Invalid inputs fail closed without a scorecard. Valid JSON and HTML scorecards distinguish insufficient evidence from exploratory comparisons; no result automatically approves deployment.
+
 
 Run `python3 "$SKILL_DIR/scripts/check.py" --repo "$GTM_REPO"`. Check real ask compatibility without generating or sending asks. [Evaluation](references/evaluation.md) explains the historical audit and regression cases.
 
