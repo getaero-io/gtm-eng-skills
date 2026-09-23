@@ -67,12 +67,14 @@
 - **Not the default people search — dropleads is.** Use as a fallback when dropleads fails or returns no results.
 - Uses the dedicated Waterfall search key/budget (`60 RPM`), separate from the higher-throughput enrichment key.
 - **Pricing: `0.56` Deepline credits per contact returned (post-deduct, billed on success). Zero returned contacts are free. Deepline `422` schema validation errors, such as `title_lists[0].titles` not being an array, happen before provider execution and should not bill.** A `page_size: 10` call that returns 10 contacts costs `5.6` credits — keep `page_size` small (`1-3`) for targeted lookups.
-- Synchronous. Returns LinkedIn URLs only — email and phone are always redacted.
+- Synchronous. Returns LinkedIn URLs and profile/title data only. There is no request option to reveal contact data: `professional_email`, `personal_email`, `mobile_phone`, `phone_numbers`, and `email_verified` are present in each person but always empty, and every returned profile still bills. Use `enrich_contact` / `enrich_phone` on the rows you keep.
 - Treat it as a company-scoped LinkedIn candidate finder, not a clean org-chart API. It is good at surfacing plausible current people at a company, but broad title queries can still return adjacent or support roles.
 - Follow up with `enrich_contact` to get email/phone for returned LinkedIn URLs.
 - Supports pagination: `page_number` and `page_size` (default 10, max 250 per page).
 - Always include `domain` when you can. That is the strongest company anchor and produced the best live results.
-- Prefer `title_filters` as `{name, filter}` objects. Use `title_lists` for exact title matching. Legacy string arrays are normalized into a single `title_lists` entry, but raw object form is clearer and more reliable.
+- The upstream applies an email-domain blocklist to `domain` and can reject real companies (e.g. `asics.com`, `business.cableone.net` as "disposable email provider"). That returns `DEEPLINE_NATIVE_SEARCH_CONTACT_DOMAIN_REJECTED` (422, no charge); retry the company with `company_name` or `company_linkedin` instead of `domain`.
+- `company_name` must be at least 3 characters (upstream limit). For names like "2U", use `domain` or `company_linkedin`.
+- Prefer `title_filters` as `{name, filter}` objects. Use `title_lists` for a named list of roster titles, but it is NOT exact matching: live results include titles that merely contain a listed title (e.g. "Staff Engineer Heat Transfer Group" for "Staff Engineer"; 128 of 380 results in one run). Re-check `title` on returned rows if you need exact matches. Legacy string arrays are normalized into a single `title_lists` entry, but raw object form is clearer and more reliable.
 - Best live pattern: function-specific leadership queries such as `VP Sales OR Head of Sales OR Director of Sales` or `VP Engineering OR Head of Engineering OR Director of Engineering`.
 - Risky pattern: broad executive/founder searches such as `CEO OR Founder OR Co-Founder`, which can return noisy founder-adjacent or regional-entity matches.
 - Live API `seniorities` support is narrower than our higher-level plays. Confirmed safe values: `Director`, `Manager`, `Entry`, `Senior`, `Partner`.
