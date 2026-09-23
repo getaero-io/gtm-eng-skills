@@ -94,20 +94,7 @@ On the first build only, omit `--review-state`. On refreshes, supply the existin
 
 These are explicit run, export, merge, and render steps. They do not install an automatic or scheduled pipeline. The one-target full-payload cloud fixture was exported, merged, and accepted by the Python scorer; the full-cohort parity run used compact output.
 
-### Export full evidence and preserve review holds
-
-The default feature result contains compact scores and parity receipts. To retain the full evidence and score breakdowns for a report, use `--targets-per-file 1` when packaging and pass `"include_payload":true` to the feature Play. This mode accepts one target per run to bound memory. Export each result before reusing its dataset keys.
-
-```sh
-python3 plays/prepare-inputs.py sources.json --out /private/path/features.csv --targets-per-file 1
-deepline plays run plays/features.play.ts --input '{"csv":"/private/path/one-target.csv","include_payload":true}' --debug
-python3 plays/merge-payloads.py /private/path/export-*.csv --review-state /private/path/previous-input.json --out /private/path/report-input.json
-bun plays/report-cli.ts /private/path/report-input.json /private/path/review.html
-```
-
-Use the actual CSV filenames emitted by the packager. For a first run with no prior review, omit `--review-state`. For refreshes, provide it so stable path IDs retain declines and human review states. The merge rejects identity changes, duplicate paths, and conflicting evidence. New feature extraction defaults to `needs_confirmation`; it does not read a separate human-review table automatically.
-
-These are manual, composable stages. CSV packaging and report assembly remain local utilities; no automatic trigger or end-to-end scheduled orchestration is enabled.
+CSV packaging and report assembly remain local utilities. New feature extraction defaults to `needs_confirmation`; it does not read a separate human-review table automatically. Export results before reusing their dataset keys.
 
 ### Scoring and reports
 
