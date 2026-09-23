@@ -173,3 +173,29 @@ A different, independently supported current-role match can remain separate.
 Investor roles, community weights and review status do not change.
 Old inputs without `work_context` keep their old behavior. New profile adapters must supply this context for each positive work overlap.
 The work component uses the smaller of the supplied feature value and the context factor; context cannot create missing overlap.
+
+### Review a full target list
+
+The artifact keeps every candidate path. It caches rankings until a weight changes.
+Account and contact filters do not rescore the data. Evidence is loaded into the page
+when you open it. The “All paths” view shows 20 paths at a time. Select “Show next”
+to see more. Changing weights can promote any candidate, including a path that was
+not on the first page.
+
+Record **Good path**, **Weak path**, or **Wrong evidence or person** and add a note.
+Feedback stays in the current tab only. Download feedback before you reload or
+close the page. The JSON file includes each path, target, connector, rating, note,
+score, model, evidence cutoff, review time, and weights used when you saved the
+review. It also includes the current weights at export. A later weight change
+does not rewrite an earlier review's weight snapshot.
+
+These ratings are review opinions. They are not evidence of an introduction,
+reply, meeting, or permission. They never change a path's review status. No data
+is sent to a server. Treat the downloaded file as private contact data.
+
+To check full-list behavior, install Playwright and its Chromium browser, then run
+`node scripts/test_tuning_browser.cjs` from this package. Set `PLAYWRIGHT_MODULE`
+if you use an existing install. The test uses 311 synthetic targets and 91,434
+candidate paths. It checks filtering, lazy evidence, pagination, weight changes,
+feedback persistence within the tab, exported weight snapshots, mobile width,
+and the absence of network requests.

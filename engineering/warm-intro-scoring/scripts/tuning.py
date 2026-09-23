@@ -133,7 +133,7 @@ def rank(data, config=None):
 
 def render(data, config=None):
     payload = dict(paths=rank(data, config), as_of=data['as_of'], weights=weights(config), defaults=DEFAULT_WEIGHTS, model=MODEL)
-    for key in ('requester_name', 'profiles_checked_at'):
+    for key in ('requester_name', 'profiles_checked_at', 'baseline_note'):
         if key in data:
             payload[key] = required_text(data[key], key)
     registry = data.get('evidence', [])
@@ -173,7 +173,21 @@ def render(data, config=None):
                 raise ValueError('Research observation cannot be after as_of')
             cleaned.append(clean)
         payload['target_research'][target_id] = cleaned
-    encoded = json.dumps(payload, ensure_ascii=True, allow_nan=False).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
+    # Full account lists repeat the same evidence across many candidate pairs.
+    # Intern complete feature records without dropping candidates or citations.
+    large = len(payload['paths']) > 5000
+    if large:
+        catalog, index = [], {}
+        for row in payload['paths']:
+            for key, feature in row['features'].items():
+                signature = json.dumps(feature, sort_keys=True, allow_nan=False)
+                if signature not in index:
+                    index[signature] = len(catalog)
+                    catalog.append(feature)
+                row['features'][key] = index[signature]
+        payload['feature_catalog'] = catalog
+    encoded = json.dumps(payload, ensure_ascii=True, allow_nan=False,
+                         separators=(',', ':') if large else None).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
     return (Path(__file__).resolve().parents[1] / 'assets/tuning.html').read_text().replace('__TUNING_DATA__', encoded)
 
 

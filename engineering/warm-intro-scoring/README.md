@@ -74,3 +74,13 @@ The report shows one target at a time. Select a contact, compare intro paths, th
 Use the weight panel to change ranking preferences. Weight changes do not confirm relationships or permission.
 Company research can show source-backed facts from external providers. It does not automatically add score points.
 See [external evidence](references/external-data.md) and [clear output rules](references/readable-output.md).
+
+For full account lists, the tuner keeps all candidates, filters by account, and pages the visible paths. Rate a path and add a note, then use **Download feedback** before closing the tab. Reviews include the score and weights used at review time. They do not change permission or readiness. Read the [competitive review](references/competitive-review.md) for gaps found in Centralize, Connect The Dots, and The Swarm.
+
+An optional browser check exercises 91,434 fictional paths, mobile layout, weight changes, feedback exports, and blocked network requests:
+
+```bash
+PLAYWRIGHT_MODULE=/path/to/node_modules/playwright node scripts/test_tuning_browser.cjs
+```
+
+The core Python checks require no browser dependencies. Real input lists, scores, and feedback stay outside this repository.

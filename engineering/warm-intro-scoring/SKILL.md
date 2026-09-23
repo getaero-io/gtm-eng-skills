@@ -70,6 +70,8 @@ Apply [clear output rules](references/readable-output.md) to all new reports and
 
 Open the generated HTML locally when possible. It must show target and connector identities, requester path, top three alternatives, component scores, evidence IDs, both-edge confidence, willingness and reasons to hold. Include search/status filters, an empty state and responsive keyboard-accessible controls. `scripts/render.py` supplies this without a server or dependencies. The HTML contains the selected people; do not publicly host it without authorization.
 
+For a full target list, reconcile every source contact by stable identity. Report matched, missing, ambiguous, and excluded self-pairs. Do not select one contact per account unless requested. Keep all scored candidates available to the weight tuner; page the display instead of truncating the candidate universe. `scripts/tuning.py` supports account filters and local path ratings with notes. Download feedback before closing or reloading the tab. Ratings capture ranking opinions; they do not record an introduction, reply, meeting, or connector permission. See [competitive feature review](references/competitive-review.md) for evidence-backed gaps and the limits of current product research.
+
 The ask preview is illustrative only. Export CSV matches the existing ask-thread loader; keep `reviewed_override=false`. If draft generation is requested, use the existing ask drafter with its segment/row gates and retain `approved=false`. Sending is a separate authorized action. Do not copy raw private evidence into an outbound ask.
 
 ## Evaluate before claiming improvement

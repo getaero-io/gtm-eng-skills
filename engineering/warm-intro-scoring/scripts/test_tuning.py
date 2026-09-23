@@ -16,6 +16,18 @@ def path(id='a', value=0):
                           explanation='Documented portfolio connection', timing_status='not_applicable')})
 
 class TuningTests(unittest.TestCase):
+    def test_large_artifact_preserves_all_candidates_and_feature_evidence(self):
+        data = {'as_of': '2026-09-23', 'paths': [path(str(i), i % 2) for i in range(5001)]}
+        html = tuning.render(data)
+        payload = json.loads(html.split('<script type="application/json" id="data">', 1)[1].split('</script>', 1)[0])
+        self.assertEqual(len(payload['paths']), 5001)
+        self.assertLess(len(payload['feature_catalog']), 20)
+        for row in payload['paths']:
+            restored = {k: payload['feature_catalog'][v] for k, v in row['features'].items()}
+            self.assertEqual(restored['investor_portfolio']['value'], int(row['id']) % 2)
+            self.assertEqual(restored['investor_portfolio']['evidence_ids'], ['e1'] if int(row['id']) % 2 else [])
+            self.assertEqual(row['review_status'], 'needs_confirmation')
+
     def test_portfolio_can_be_prioritized_without_clearing_hold(self):
         a=path('a',1); b=path('b'); b['features']['direct_intro']=dict(value=1,evidence_ids=['intro'],explanation='Recorded intro',timing_status='not_applicable')
         data={'as_of':'2026-09-23','paths':[a,b]}; original=copy.deepcopy(data)
