@@ -9,10 +9,10 @@ from pathlib import Path
 DEFAULT_WEIGHTS = dict(direct_intro=160, work_overlap=80, school_overlap=20,
                        relationship=15, role_industry=20, investor_portfolio=3,
                        appearance=20, board_overlap=30,
-                       city_overlap=10, industry_match=10, community_match=10)
-TIMED = {'work_overlap', 'school_overlap', 'board_overlap', 'city_overlap'}
+                       city_overlap=10, industry_match=10, community_match=2, investor_role=120)
+TIMED = {'work_overlap', 'school_overlap', 'board_overlap', 'city_overlap', 'investor_role'}
 TIMING = {'verified_overlap', 'non_overlap', 'unknown', 'not_applicable'}
-MODEL = 'evidence-feature-heuristic-v2'
+MODEL = 'evidence-feature-heuristic-v3'
 REVIEW_STATUSES = {'needs_confirmation', 'blocked_declined', 'ready_for_human_review'}
 
 

@@ -50,6 +50,10 @@ Supported keys and default weights:
 | investor_portfolio | 3 |
 | appearance | 20 |
 | board_overlap | 30 |
+| city_overlap | 10 |
+| industry_match | 10 |
+| community_match | 2 |
+| investor_role | 120 |
 
 Every supplied feature requires numeric `value` in [0,1], a nonempty `explanation`, and a list of `evidence_ids`. Positive values require at least one nonempty evidence ID. `timing_status` is one of `verified_overlap`, `non_overlap`, `unknown`, or `not_applicable`; omission defaults to unknown. Missing dimensions become zero with a visible unknown explanation. Explicit zero can distinguish established non-overlap from missing research through its explanation and timing status.
 
@@ -126,3 +130,16 @@ Users can change weights. No weight setting changes the review status.
 
 Employment checks must exclude roles that are only board, advisory, or angel-investor appointments.
 Do not treat a board location as an employee work location. Use the separate board feature after its evidence passes review.
+
+## Investor roles and community weight (v3)
+
+A sourced investor role at the target company has a default maximum of 120 points.
+Use `investor_role` with source IDs and verified dates that overlap the target's tenure.
+A generic investor title or an unspecified list of investments does not qualify.
+Keep this feature separate from employee work overlap. Do not award both for one investor appointment.
+Do not add portfolio-context points for the same investment fact.
+
+Community membership now has a default maximum of 2 points, reduced from 10.
+Work overlap remains 80. Shared investor-company context remains 3 unless the user changes that weight.
+The high investor weight expresses the user's priority. It does not confirm personal acquaintance or permission.
+All weights remain adjustable. Existing review holds remain unchanged.

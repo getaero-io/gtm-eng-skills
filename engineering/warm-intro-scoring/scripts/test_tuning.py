@@ -142,9 +142,23 @@ class TuningTests(unittest.TestCase):
             community_match=dict(value=1,evidence_ids=['community'],explanation='Both list the same professional group.',timing_status='not_applicable'))
         data={'as_of':'2026-09-23','paths':[p]}
         row=tuning.rank(data)[0]
-        self.assertEqual(row['tuned_score'],30)
+        self.assertEqual(row['tuned_score'],22)
         self.assertEqual(row['review_status'],'needs_confirmation')
         self.assertFalse(row['ready_for_human_review'])
-        self.assertEqual(tuning.rank(data,{'city_overlap':0})[0]['tuned_score'],20)
+        self.assertEqual(tuning.rank(data,{'city_overlap':0})[0]['tuned_score'],12)
         p['features']['city_overlap']['timing_status']='unknown'
         with self.assertRaises(ValueError): tuning.rank(data)
+
+    def test_direct_investor_role_ranks_above_work_and_community(self):
+        investor=path('investor')
+        investor['features']['investor_role']=dict(value=1,evidence_ids=['role','target'],explanation='Investor in the target company during target tenure.',timing_status='verified_overlap',overlap_start='2024-01-01',overlap_end='2025-01-01')
+        worker=path('worker')
+        worker['features']['work_overlap']=dict(value=1,evidence_ids=['work'],explanation='Shared employer.',timing_status='verified_overlap',overlap_start='2024-01-01',overlap_end='2025-01-01')
+        worker['features']['community_match']=dict(value=1,evidence_ids=['group'],explanation='Shared professional group.',timing_status='not_applicable')
+        data={'as_of':'2026-09-23','paths':[worker,investor]}
+        rows=tuning.rank(data)
+        self.assertEqual([(r['id'],r['tuned_score']) for r in rows],[('investor',120),('worker',82)])
+        self.assertTrue(all(r['review_status']=='needs_confirmation' for r in rows))
+        self.assertEqual(rows[0]['features']['work_overlap']['value'],0)
+        investor['features']['investor_role']['timing_status']='unknown'
+        with self.assertRaises(ValueError):tuning.rank(data)
