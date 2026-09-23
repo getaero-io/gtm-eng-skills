@@ -87,3 +87,49 @@ class TuningTests(unittest.TestCase):
             subprocess.run([sys.executable,str(ROOT/'scripts/tuning.py'),str(source),'--output',str(dest)],check=True,capture_output=True)
             self.assertEqual(dest.stat().st_mode & 0o777,0o600)
             self.assertNotEqual(subprocess.run([sys.executable,str(ROOT/'scripts/tuning.py'),str(source),'--output',str(dest)],capture_output=True).returncode,0)
+
+    def test_context_does_not_change_scores_or_holds(self):
+        base = {'as_of':'2026-09-23', 'paths':[path('a', 1)]}
+        enriched = copy.deepcopy(base)
+        enriched['paths'][0].update(target_company='Example', target_title='Engineer', requester_name='Owner')
+        enriched['evidence'] = [dict(id='e1',source='https://example.com',detail='Documented holding',observed_at='2026-09-23')]
+        enriched['target_research'] = {'t':[dict(label='Funding', detail='Public funding report', source_url='https://example.com', observed_at='2026-09-23', provider='Example')]}
+        self.assertEqual(tuning.rank(base)[0]['tuned_score'],tuning.rank(enriched)[0]['tuned_score'])
+        self.assertEqual(tuning.rank(enriched)[0]['review_status'],'needs_confirmation')
+        html=tuning.render(enriched)
+        self.assertIn('Documented holding', html)
+        self.assertIn('Public funding report',html)
+        enriched['evidence'].append(enriched['evidence'][0])
+        with self.assertRaises(ValueError): tuning.render(enriched)
+
+    def test_context_is_escaped_and_malformed_context_is_rejected(self):
+        data={'as_of':'2026-09-23', 'paths':[path('a',1)]}
+        attack='</script><script>alert(1)</script>'
+        data['requester_name']=attack
+        data['evidence']=[dict(id='e1',source='javascript:alert(1)',detail=attack,observed_at='2026-09-23')]
+        self.assertNotIn(attack,tuning.render(data))
+        data['target_research']={'t':'invalid'}
+        with self.assertRaises(ValueError): tuning.render(data)
+        del data['target_research']
+        data['paths'][0]['target_company'] = {'bad':'shape'}
+        with self.assertRaises(ValueError): tuning.render(data)
+
+    def test_present_registry_requires_all_positive_references(self):
+        data={'as_of':'2026-09-23','paths':[path('a',1)],'evidence':[]}
+        with self.assertRaisesRegex(ValueError,'missing evidence'): tuning.render(data)
+        data['evidence']=[dict(id='e1',source='https://example.com',detail='Company link',observed_at='2026-09-23')]
+        tuning.render(data)
+        data['paths'][0]['features']['investor_portfolio']['evidence_ids'].append('missing')
+        with self.assertRaisesRegex(ValueError,'missing evidence'): tuning.render(data)
+        del data['evidence']
+        tuning.render(data)  # Backward-compatible IDs-only input has no registry to resolve.
+
+    def test_source_dates_are_full_dates_at_or_before_cutoff(self):
+        data={'as_of':'2026-09-23','paths':[path('a',1)]}
+        for observed in ('2026','2026-09-24','2026-02-30'):
+            data['evidence']=[dict(id='e1',source='https://example.com',detail='Company link',observed_at=observed)]
+            with self.assertRaises(ValueError): tuning.render(data)
+        data['evidence'][0]['observed_at']='2026-09-23'
+        for observed in ('2026','2026-09-24','2026-02-30'):
+            data['target_research']={'t':[dict(label='Fact',detail='Context',source_url='https://example.com',observed_at=observed,provider='Example')]}
+            with self.assertRaises(ValueError): tuning.render(data)

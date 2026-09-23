@@ -64,6 +64,9 @@ def normalize(data):
         pairs.add(pair)
         if row['review_status'] not in REVIEW_STATUSES:
             raise ValueError('Unsupported review status')
+        for key in ('target_company', 'target_title', 'connector_company', 'connector_title', 'requester_name'):
+            if key in raw:
+                row[key] = required_text(raw[key], key)
         row['baseline_score'] = number(raw.get('baseline_score'), 'baseline_score')
         supplied = raw.get('features', {})
         if not isinstance(supplied, dict) or set(supplied) - DEFAULT_WEIGHTS.keys():
@@ -108,6 +111,46 @@ def rank(data, config=None):
 
 def render(data, config=None):
     payload = dict(paths=rank(data, config), as_of=data['as_of'], weights=weights(config), defaults=DEFAULT_WEIGHTS, model=MODEL)
+    for key in ('requester_name', 'profiles_checked_at'):
+        if key in data:
+            payload[key] = required_text(data[key], key)
+    registry = data.get('evidence', [])
+    if not isinstance(registry, list):
+        raise ValueError('evidence must be a list')
+    payload['evidence'] = []
+    ids = set()
+    for record in registry:
+        if not isinstance(record, dict):
+            raise ValueError('Each evidence record must be an object')
+        clean = {key: required_text(record.get(key), key) for key in ('id', 'source', 'detail', 'observed_at')}
+        if exact_date(clean['observed_at'], 'observed_at') > exact_date(data['as_of'], 'as_of'):
+            raise ValueError('Evidence observation cannot be after as_of')
+        if clean['id'] in ids:
+            raise ValueError('Duplicate evidence ID')
+        ids.add(clean['id'])
+        payload['evidence'].append(clean)
+    if 'evidence' in data:
+        for row in payload['paths']:
+            for feature in row['features'].values():
+                if feature['value'] > 0 and any(identifier not in ids for identifier in feature['evidence_ids']):
+                    raise ValueError('Positive feature references a missing evidence record')
+    research = data.get('target_research', {})
+    if not isinstance(research, dict):
+        raise ValueError('target_research must be an object')
+    payload['target_research'] = {}
+    for target_id, records in research.items():
+        required_text(target_id, 'target_id')
+        if not isinstance(records, list):
+            raise ValueError('Target research must be a list')
+        cleaned = []
+        for record in records:
+            if not isinstance(record, dict):
+                raise ValueError('Research record must be an object')
+            clean = {key: required_text(record.get(key), key) for key in ('label', 'detail', 'source_url', 'observed_at', 'provider')}
+            if exact_date(clean['observed_at'], 'observed_at') > exact_date(data['as_of'], 'as_of'):
+                raise ValueError('Research observation cannot be after as_of')
+            cleaned.append(clean)
+        payload['target_research'][target_id] = cleaned
     encoded = json.dumps(payload, ensure_ascii=True, allow_nan=False).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
     return (Path(__file__).resolve().parents[1] / 'assets/tuning.html').read_text().replace('__TUNING_DATA__', encoded)
 

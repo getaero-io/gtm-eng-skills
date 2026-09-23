@@ -85,3 +85,20 @@ The baseline retained by an artifact can use an older historical snapshot. The t
 | Board overlap | 30 | A named board role overlapping the other person's tenure at that company; investor affiliation alone does not qualify. |
 
 These are interpretable initial preferences, not fitted coefficients. Rankings are sorted both within targets and across target groups, so increasing portfolio priority can raise a portfolio target as well as its candidate routes. No tuning setting changes the fixed review status.
+
+## Contact review view
+
+The artifact lists target contacts in a side panel. Select one contact to see its top three possible introduction paths. Each card shows the requester, connector and target. It shows point contributions and the evidence for each positive feature. Open the evidence section to inspect all eight features and their sources. The score has no fixed maximum. It is not a percentage.
+
+Use **Adjust weights** to open the controls. **Download weights** saves only the chosen weights. A change in weight does not change review status. An investor company link can change target priority. It does not prove that a connector knows the target.
+
+Optional context fields do not affect the score:
+
+- Each path can include nonempty `target_company`, `target_title`, `connector_company`, `connector_title` and `requester_name` strings.
+- The root can include `requester_name` and `profiles_checked_at` strings. State the source observation date. Do not call a cached role current.
+- The root `evidence` list contains records with nonempty `id`, `source`, `detail` and `observed_at` strings. IDs must be unique. Feature source IDs resolve to these records. Use a source URL or a database locator for `source`. Keep `detail` short and factual.
+- The root `target_research` object maps each target ID to a list of records. Each record needs nonempty `label`, `detail`, `source_url`, `observed_at` and `provider` strings. These facts appear under **Company research**. They add no score points.
+
+Only HTTP and HTTPS source links are clickable. Other locators appear as text. Names, descriptions and source details appear as text, never as executable HTML. The artifact does not make background requests. A user can open a source link in a new tab.
+
+If an evidence registry is supplied, each positive feature must reference records in that registry. A missing record stops rendering. Inputs without a registry can still show source IDs, but the renderer cannot resolve those IDs. Evidence and company-research observation dates must be full `YYYY-MM-DD` dates at or before the artifact cutoff.

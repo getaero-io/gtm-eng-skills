@@ -32,6 +32,8 @@ Ask only for missing essentials: requester identity, customer market when neithe
 
 ## Gather and normalize evidence
 
+When external data is requested, use [external evidence](references/external-data.md). Read current provider schemas. Resolve identities before joining facts. Keep company context separate from personal access.
+
 Read [sources and input contract](references/sources.md). Reuse an owner-scoped LinkedIn Connections export or existing relationship database. Apify enriches supplied profile URLs; it does not magically retrieve all connections. Preserve connection-export provenance separately from profile enrichment. A profile URL, shared investor, event registration, or co-employment alone never proves a relationship.
 
 Use stable IDs for requester, connector, target, employer and evidence. Hold ambiguous names and conflicting identities. Preserve source locator, evidence kind, subjects, observed date, actual interaction/employment dates, and a short supported detail. Only use information available as of the scoring date. Never invent jobs/dates to explain a known successful introduction.
@@ -63,6 +65,8 @@ When a user supplies their employer, apply [company-network expansion](reference
 For adjustable preferences, produce normalized feature paths under [the tuning contract](references/tuning.md) and run `python3 scripts/tuning.py normalized-features.json --output tuning.html`. The artifact exposes eight weights, reranks locally, preserves fixed review holds and exports weights. `assets/portfolio-focus.weights.json` raises portfolio priority to 120 points. These are explicit preferences in a separate heuristic model, not calibrated success probabilities or a silent change to the legacy baseline. Missing/undated features remain zero/unknown; do not fabricate overlap dates to enable a slider.
 
 ## Deliver the artifact
+
+Apply [clear output rules](references/readable-output.md) to all new reports and explanations. Use target contact → possible intro paths → score breakdown. Keep source details and weight controls separate from the main path review.
 
 Open the generated HTML locally when possible. It must show target and connector identities, requester path, top three alternatives, component scores, evidence IDs, both-edge confidence, willingness and reasons to hold. Include search/status filters, an empty state and responsive keyboard-accessible controls. `scripts/render.py` supplies this without a server or dependencies. The HTML contains the selected people; do not publicly host it without authorization.
 

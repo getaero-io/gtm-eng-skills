@@ -67,3 +67,10 @@ python3 scripts/tuning.py assets/tuning-example.json --weights assets/portfolio-
 ```
 
 Eight independent controls cover recorded intros, dated work/school overlap, requester relationships, role/industry, shared investor portfolios, public appearances and dated board overlap. Export a config to reuse it. The baseline score and holds remain fixed. See `references/tuning.md` for the input contract and `references/company-network.md` for investor discovery/portfolio expansion. Real customer snapshots and research graphs stay outside Git.
+
+## Target-first report
+
+The report shows one target at a time. Select a contact, compare intro paths, then inspect each score breakdown.
+Use the weight panel to change ranking preferences. Weight changes do not confirm relationships or permission.
+Company research can show source-backed facts from external providers. It does not automatically add score points.
+See [external evidence](references/external-data.md) and [clear output rules](references/readable-output.md).
