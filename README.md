@@ -60,6 +60,7 @@ Skills use the [Deepline CLI](https://code.deepline.com) under the hood — one 
 | [`niche-signal-discovery`](skills/niche-signal-discovery/SKILL.md) | Discover niche first-party signals that differentiate Closed Won vs Closed Lost accounts for ICP analysis | ICP analysis, account scoring, signal-based prospecting |
 | [`clay-to-deepline`](skills/clay-to-deepline/SKILL.md) | Convert a Clay table configuration into local Deepline scripts (extraction, action mapping, script generation, parity validation) | Migrating from Clay to code-based enrichment |
 | [`workflow-hello-world`](skills/workflow-hello-world/SKILL.md) | Create a cloud Deepline workflow that runs on a recurring cron schedule or via webhook | Workflow scaffolding and trigger validation |
+| [`warm-intro-scoring`](skills/warm-intro-scoring/SKILL.md) | Rank cited introduction paths and produce an interactive review artifact | Connector selection, event matches, evidence and ask review |
 | [`deepline-feedback`](skills/deepline-feedback/SKILL.md) | Send feedback or bug reports to the Deepline team, including session transcript and environment info | Bug reports, feature requests |
 
 > `gtm-meta-skill` is also published as a deprecated stub that redirects to `deepline-gtm`. Use `deepline-gtm` directly.
