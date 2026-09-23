@@ -35,7 +35,7 @@ Every Play accepts `csv`, a CSV file path staged by the Deepline CLI. JSON field
 | `collect` | `mode` (`cached` or `live`), `observed_at` (date), `max_posts` (1–100; default 50) | `contact_id,linkedin_url` | `profile_json,posts_json` |
 | `research` | `mode` (`cached` or `live`) | `contact_id,name,company` | `cached_json` |
 | `snapshots` | `execute` (boolean) | `record_id,kind,revision,observed_at,payload_json` | — |
-| `features` | — | `section,key,payload_json` | — |
+| `features` | `include_payload` (default false) | `section,key,payload_json` | — |
 | `score` | — | `case_id,payload_json` | `weights_json,expected_json` |
 | `validation` | — | `case_id,operation,payload_json,today` | `expected_json,expected_error,max_age_days` |
 | `report` | — | `case_id,payload_json,artifact_path` | `weights_json,report_kind` |
@@ -72,6 +72,42 @@ Use `--targets-per-file 25` to split targets while retaining their source contex
 The exact typed contract is `FeatureInput` in `features.ts`. Profile snapshots contain stable IDs, LinkedIn URLs, source locators, observation dates, work history, and education. Target records contain a name, canonical profile URL, company, and domain. Unresolved or ambiguous target matches stay in coverage; they are not joined by name.
 
 A target row can wrap its record as `{target, expected_feature_sha256, expected_score_sha256}`. These hashes check features and resulting rankings against a frozen independent reference. They must be generated from that reference, not from the new Play under test.
+
+### Full feature payloads for reports
+
+By default, `features` returns compact scores and parity receipts. Set `include_payload=true` when you need full feature breakdowns and source evidence for a report. This mode requires **one target per run**. Prepare one CSV per target:
+
+```sh
+python3 plays/prepare-inputs.py sources.json --out /private/path/features.csv --targets-per-file 1
+deepline plays run plays/features.play.ts --input '{"csv":"/private/path/features.001.csv","include_payload":true}' --debug
+deepline runs export <run-id> --dataset result.rows --out /private/path/exports/target-001.csv
+```
+
+Run and export each generated CSV. If the input contains just one target, the packager uses the requested filename without the `.001` suffix. Then merge the exported payloads and render the review:
+
+```sh
+python3 plays/merge-payloads.py /private/path/exports/*.csv --review-state previous-input.json --out report-input.json
+bun plays/report-cli.ts report-input.json review.html
+```
+
+On the first build only, omit `--review-state`. On refreshes, supply the existing reviewed input to preserve `blocked_declined` and other review states by path ID. The merger checks connector and target identity before restoring a state. It rejects duplicate paths, conflicting evidence, mixed model/weight metadata, and missing full payloads. Files are private and existing output files are not overwritten. Unresolved target records remain in coverage.
+
+These are explicit run, export, merge, and render steps. They do not install an automatic or scheduled pipeline. The one-target full-payload cloud fixture was exported, merged, and accepted by the Python scorer; the full-cohort parity run used compact output.
+
+### Export full evidence and preserve review holds
+
+The default feature result contains compact scores and parity receipts. To retain the full evidence and score breakdowns for a report, use `--targets-per-file 1` when packaging and pass `"include_payload":true` to the feature Play. This mode accepts one target per run to bound memory. Export each result before reusing its dataset keys.
+
+```sh
+python3 plays/prepare-inputs.py sources.json --out /private/path/features.csv --targets-per-file 1
+deepline plays run plays/features.play.ts --input '{"csv":"/private/path/one-target.csv","include_payload":true}' --debug
+python3 plays/merge-payloads.py /private/path/export-*.csv --review-state /private/path/previous-input.json --out /private/path/report-input.json
+bun plays/report-cli.ts /private/path/report-input.json /private/path/review.html
+```
+
+Use the actual CSV filenames emitted by the packager. For a first run with no prior review, omit `--review-state`. For refreshes, provide it so stable path IDs retain declines and human review states. The merge rejects identity changes, duplicate paths, and conflicting evidence. New feature extraction defaults to `needs_confirmation`; it does not read a separate human-review table automatically.
+
+These are manual, composable stages. CSV packaging and report assembly remain local utilities; no automatic trigger or end-to-end scheduled orchestration is enabled.
 
 ### Scoring and reports
 
