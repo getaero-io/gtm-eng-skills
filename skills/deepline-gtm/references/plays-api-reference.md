@@ -192,8 +192,9 @@ while True:
 <!-- prettier-ignore -->
 | Method | Path | SDK/client surface | Purpose | Source |
 |---|---|---|---|---|
+| `GET` | `/api/v2/executions/by-key/:key` | `executions.getByKey` | Observe or retrieve the retained response for a workspace-scoped tool execution key. | `apps/deepline-api/src/app/api/v2/executions/by-key/[key]/route.ts` |
 | `GET` | `/api/v2/integrations/:toolId` | `getTool` | Describe one provider-backed tool by integration id. | `apps/deepline-api/src/app/api/v2/integrations/[toolId]/route.ts` |
-| `POST` | `/api/v2/integrations/:toolId/execute` | `executeTool`<br />`executeToolRaw` | Execute one provider-backed tool call through Deepline. | `apps/deepline-api/src/app/api/v2/integrations/execute/route.ts` |
+| `POST` | `/api/v2/integrations/:toolId/execute` | `executeTool`<br />`executeToolRaw` | Execute one provider-backed tool call through Deepline. | `apps/deepline-api/src/app/api/v2/integrations/[toolId]/execute/route.ts`<br />`apps/deepline-api/src/app/api/v2/integrations/execute/route.ts` |
 | `GET` | `/api/v2/integrations/:toolId/get` | `getTool` | Describe one provider-backed tool, including schema, pricing, guidance, and extractors. | `apps/deepline-api/src/app/api/v2/integrations/get/route.ts` |
 | `POST` | `/api/v2/integrations/:toolId/quote` | `quoteInferenceTool` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/integrations/[toolId]/quote/route.ts`<br />`apps/deepline-api/src/lib/deeplineagent/quote-service.ts`<br />`apps/deepline-api/src/lib/deeplineagent/quote.ts` |
 | `POST` | `/api/v2/integrations/connect` | `connectNotificationSlack` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/integrations/connect/route.ts` |
@@ -379,8 +380,6 @@ Returned by `DeeplineClient.listTools` and ranked tool search. Use
 `getTool(toolId)` or the matching HTTP describe route for provider-specific
 schema, examples, pricing, extraction guidance, and execution metadata.
 
-#### Fields
-
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
@@ -414,8 +413,6 @@ schema, examples, pricing, extraction guidance, and execution metadata.
 
 Query options for ranked tool/provider discovery.
 
-#### Fields
-
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
@@ -430,8 +427,6 @@ Query options for ranked tool/provider discovery.
 Ranked tool/provider discovery response.
 
 Includes matching tools plus render/action hints used by the CLI and agents.
-
-#### Fields
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -459,8 +454,6 @@ Standard provider/tool execution envelope returned by low-level SDK calls.
 `extractedLists` contain Deepline-normalized getters when the tool exposes
 them. Billing fields are Deepline-facing and must not expose provider spend.
 
-#### Fields
-
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
@@ -472,6 +465,31 @@ them. Billing fields are Deepline-facing and must not expose provider spend.
 | `extractedValues` | `Record<string, unknown>` | No |  |
 | `billing` | `ToolResultBilling` | No |  |
 
+### `ExecutionRecovery`
+
+Durable state returned for a keyed tool execution.
+
+<!-- prettier-ignore -->
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `idempotencyKey` | `string` | Yes | Stable caller key used to resume or replay this execution. |
+| `state` | `'running' \| 'completed' \| 'outcome_unknown'` | Yes | Whether the execution is still running, completed, or has an unknown provider outcome. |
+| `replayed` | `boolean` | Yes | Whether this response came from an existing durable execution. |
+| `expiresAt` | `string` | No | ISO timestamp after which the completed execution can no longer be replayed. |
+
+### `ExecutionByKeyResult`
+
+Durable lookup result for a keyed tool execution.
+
+<!-- prettier-ignore -->
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `executionRecovery` | `ExecutionRecovery` | Yes | Recovery state and the key that owns the execution. |
+| `toolId` | `string` | Yes | Provider tool associated with the execution. |
+| `requestId` | `string` | No | Original server-owned billing request ID, allocated before provider dispatch. |
+| `responseStatus` | `number` | No | HTTP status saved with the original response, when it was terminal. |
+| `response` | `unknown` | No | Saved execution response, when one is available for replay. |
+
 ### `StartPlayRunRequest`
 
 Request body for starting a play run via `DeeplineClient.startPlayRun`.
@@ -481,8 +499,6 @@ Most callers should prefer `deepline plays run`, `DeeplineClient.runPlay`,
 or `Deepline.connect`.
 
 Either `name` (for live plays) or `artifactStorageKey` (for packaged ad hoc runs) is required.
-
-#### Fields
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -522,8 +538,6 @@ Internal/advanced payload returned by low-level play submission primitives.
 Most callers should prefer `deepline plays run`, `DeeplineClient.runPlay`,
 or `PlayJob.get`.
 
-#### Fields
-
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
@@ -543,8 +557,6 @@ Current status of a play execution, returned by `DeeplineClient.getPlayStatus`.
 
 Poll this until `status` reaches a terminal state:
 `'completed'` | `'failed'` | `'cancelled'`.
-
-#### Fields
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -585,8 +597,6 @@ This object is designed for SDK/CLI/API consumers that need stable run
 metadata, output handles, and follow-up actions without reading dashboard
 internals.
 
-#### Fields
-
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
@@ -603,8 +613,6 @@ internals.
 ### `PlayRunListItem`
 
 Summary of a single play run, returned by `DeeplineClient.listPlayRuns`.
-
-#### Fields
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -630,8 +638,6 @@ Summary of a single play run, returned by `DeeplineClient.listPlayRuns`.
 
 Result returned by `DeeplineClient.stopPlay`.
 
-#### Fields
-
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
@@ -645,8 +651,6 @@ Result returned by `DeeplineClient.stopPlay`.
 ### `RunsNamespace`
 
 Use `client.runs` (`/api/v2/runs`) to poll, stream, stop, read logs, and export durable dataset rows.
-
-#### Fields
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -668,8 +672,6 @@ Result returned by `DeeplineClient.db.query`.
 
 Rows are intentionally untyped because the schema depends on the caller's SQL
 query and selected customer tables.
-
-#### Fields
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |

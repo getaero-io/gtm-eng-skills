@@ -395,6 +395,7 @@ Signature: `class DeeplineContext`
 |---|---|---|---|---|
 | `constructor` | constructor | Create a high-level SDK context.<br /><br />Most callers should use `Deepline.connect`; direct construction is<br />equivalent when you already have explicit client options. | `options?: DeeplineClientOptions` - Optional SDK client configuration. |  |
 | `tools` | getter | Tool operations namespace. |  | `DeeplineToolsNamespace` |
+| `executions` | getter | Durable state for recoverable direct tool executions. |  | `DeeplineExecutionsNamespace` |
 | `plays` | getter | Play discovery and named-play handles.<br /><br />Use `plays.list()` for discovery and `plays.get(name)` when you prefer a<br />namespace spelling over `ctx.play(name)`. |  | `DeeplinePlaysNamespace` |
 | `prebuilt` | getter | Convenience references for Deepline-managed prebuilt plays.<br /><br />Known prebuilts are exposed by camel-cased aliases. Any other property is<br />converted into `prebuilt/<property>` so callers can pass the reference to<br />`ctx.runPlay(...)`. |  | `Record<string, PrebuiltPlayRef>` |
 | `play` | method | Get a named play handle for remote lifecycle operations. | `name: string` - Play name (as registered on the server) | `DeeplineNamedPlay<TInput, TOutput>` |
@@ -596,8 +597,6 @@ unseen stable keys. `isolate` records failed rows while siblings continue;
 
 Input object passed to an object-column `run` resolver.
 
-#### Fields
-
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
@@ -612,8 +611,6 @@ Object-column form for `.withColumn(...)`.
 
 Use this when a column needs `runIf` or typed `previousCell`.
 
-#### Fields
-
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
@@ -623,8 +620,6 @@ Use this when a column needs `runIf` or typed `previousCell`.
 ### `StepOptions`
 
 Options for row-level `.withColumn(...)` and `steps().step(...)` entries.
-
-#### Fields
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -641,8 +636,6 @@ Previous durable cell value passed to object-column resolvers.
 The runtime supplies this when a row+column is being recomputed after a
 previous value existed. `value` has the same type that the column returns;
 freshness metadata lives beside it.
-
-#### Fields
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -822,8 +815,6 @@ Signature: `header( header: string, secret: string | PlaySecretPromise | SecretH
 
 The `init` accepted by `ctx.fetch`. Same shape as `RequestInit` plus `auth`.
 
-#### Fields
-
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
@@ -833,8 +824,6 @@ The `init` accepted by `ctx.fetch`. Same shape as `RequestInit` plus `auth`.
 ### `PlayFetchResponse`
 
 A durable response record, not a WHATWG `Response`: read the already-materialized `bodyText` and `json` properties; do not call `.json()`, `.text()`, or `.body`.
-
-#### Fields
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -852,8 +841,6 @@ A durable response record, not a WHATWG `Response`: read the already-materialize
 An opaque reference to a workspace secret used by legacy authoring-contract
 editions. New Plays receive plaintext strings from `ctx.secrets.get`.
 
-#### Fields
-
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
@@ -862,8 +849,6 @@ editions. New Plays receive plaintext strings from `ctx.secrets.get`.
 ### `SecretAuth`
 
 One resolved authentication scheme, built by `ctx.secrets.bearer` or `ctx.secrets.header` and attached to a request through `init.auth`.
-
-#### Fields
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -927,8 +912,6 @@ small and bounded. `PlayDataset` intentionally does not expose `.rows`,
 `.toArray()`, `.length`, numeric indexing, spread, or synchronous iteration;
 those hide the runtime cost of loading persisted rows into memory or make
 behavior depend on whether rows happen to be resident.
-
-#### Fields
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -1037,8 +1020,6 @@ This allowlisted shape crosses the API, runtime, and SDK boundaries.
 `message` remains on the Error object and is deliberately not a policy
 field.
 
-#### Fields
-
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
@@ -1064,8 +1045,6 @@ Constructor input for a structured tool failure.
 Deepline creates these values while decoding the versioned wire payload.
 Customer code normally reads `ToolExecutionError` fields instead of
 constructing an error.
-
-#### Fields
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -1223,7 +1202,7 @@ Tool/provider operations available from a connected `DeeplineContext`.
 This namespace is for regular SDK callers outside a play runtime. Inside a
 `definePlay(...)` body, use `ctx.tools.execute({ id, tool, input, ... })`
 so provider calls become durable runtime checkpoints.<br />
-Signature: `export type DeeplineToolsNamespace = { list(): Promise<ToolDefinition[]>; get(toolId: string): Promise<ToolMetadata>; execute( toolId: string, input: Record<string, unknown>, ): Promise<ToolExecuteResult>; };`
+Signature: `export type DeeplineToolsNamespace = { list(): Promise<ToolDefinition[]>; get(toolId: string): Promise<ToolMetadata>; execute( toolId: string, input: Record<string, unknown>, options?: { idempotencyKey?: string; recover?: boolean; onExecution?: (execution: { idempotencyKey: string; }) => void | Promise<void>; recoveryTimeoutMs?: number; }, ): Promise<DeeplineToolExecuteResult>; };`
 
 ## Remote Plays And Runs
 
@@ -1238,8 +1217,6 @@ Handle to a named play for remote lifecycle operations.
 
 Returned by `DeeplineContext.play` and attached to `DefinedPlay`.
 Provides methods to run, inspect, list runs, and publish a play by name.
-
-#### Fields
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -1258,8 +1235,6 @@ This handle is the SDK-context equivalent of `deepline plays run --watch` and
 the completed user output through `PlayJob.get()` or the status endpoint's
 `result` field. Runtime logs are available from `status().progress.logs` and
 are intentionally separate from the returned output object.
-
-#### Fields
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -1285,6 +1260,7 @@ Signature: `class DeeplineClient`
 | `billing` | property | Billing namespace: subscription status/cancel and invoice history. |  | `BillingNamespace` |
 | `workspaces` | property | Workspace lifecycle namespace. |  | `WorkspacesNamespace` |
 | `baseUrl` | getter | The resolved base URL this client is targeting (e.g. `"http://localhost:3000"`). |  | `string` |
+| `executions` | getter | Public recovery namespace. |  | `{ getByKey: (key: string) => Promise<ExecutionByKeyResult>; }` |
 | `listSecrets` | method | List secret metadata visible to the current workspace. |  | `Promise<PlaySecretMetadata[]>` |
 | `checkSecret` | method | Check whether a named secret exists, is active, and has a stored value. | `name: string` - Secret name. It is normalized to uppercase before lookup. | `Promise<PlaySecretMetadata \| null>` |
 | `inspectSecret` | method | Check effective scope and active-version health without reading the value.<br />Without playName, checks the organization-scoped secret only. With a Play<br />name, an active Play secret takes precedence; a deleted/disabled Play<br />secret falls back to the organization-scoped secret. | `name: string`<br />`options?: { playName?: string }` | `Promise<PlaySecretCheck>` |
@@ -1296,6 +1272,7 @@ Signature: `class DeeplineClient`
 | `describeModel` | method | Describe a Deepline Agent model and its provider-specific option surface.<br /><br />Combines live AI Gateway model metadata with Deepline's generated AI SDK<br />provider option registry so agents can construct `providerOptions`<br />payloads before executing `deeplineagent`.<br /><br />The returned option schemas describe accepted provider option shapes, not<br />guaranteed support for every model. Runtime AI SDK/Gateway errors remain<br />authoritative for model-gated values. | `model: string` - Exact-case Gateway model id such as `"openai/gpt-5.6-luna"` | `Promise<DeeplineAgentModelDescription>` |
 | `quoteInferenceTool` | method | Quote dynamic AI inference pricing for a concrete payload.<br /><br />The result separates a planning estimate from a proven authorization<br />maximum and contains Deepline credits only. | `toolId: 'ai_evaluate' \| 'ai_inference' \| 'deeplineagent'`<br />`payload: Record<string, unknown>` | `Promise<InferenceQuote>` |
 | `executeTool` | method | Execute a tool and return the standard execution envelope.<br /><br />The `toolResponse.raw` field contains the raw tool response.<br />`toolResponse.meta` contains tool/provider metadata.<br />Top-level fields such as `status`, `job_id`, and `billing` describe the<br />Deepline execution envelope. | `toolId: string`<br />`input: Record<string, unknown>`<br />`options?: ExecuteToolRawOptions` | `Promise<ToolExecution<TData, TMeta>>` |
+| `getExecutionByKey` | method | Read the durable state of a keyed tool execution. | `idempotencyKey: string` | `Promise<ExecutionByKeyResult>` |
 | `executeToolRaw` | method | Back-compatible alias for `executeTool`.<br /><br />Retained for callers that still use the older raw naming while the response<br />envelope remains the same. | `toolId: string`<br />`input: Record<string, unknown>`<br />`options?: ExecuteToolRawOptions` | `Promise<ToolExecution<TData, TMeta>>` |
 | `queryCustomerDb` | method | Run a bounded SQL query against the current mutable customer database.<br /><br />This query is not scoped to one play run. Use `client.runs` export actions<br />when the caller needs the rows produced by a specific run. | `input: { sql: string; maxRows?: number; }` | `Promise<CustomerDbQueryResult>` |
 | `repairIngestionStorage` | method | Re-establish this workspace's tenant storage contract: role/DB connect<br />grants plus materialized table grants. Org-admin only. Use when a run fails<br />with WORKSPACE_STORAGE_NOT_READY. | `input?: { provider?: string; }` | `Promise<IngestionStorageRepairResult>` |
@@ -1385,8 +1362,6 @@ Signature: `class DeeplineClient`
 
 Use `client.runs` (`/api/v2/runs`) to poll, stream, stop, read logs, and export durable dataset rows.
 
-#### Fields
-
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
@@ -1405,8 +1380,6 @@ Use `client.runs` (`/api/v2/runs`) to poll, stream, stop, read logs, and export 
 
 Public `client.billing` namespace for CLI commands and programmatic callers.
 Covers plans, subscription state, cancellation, and invoice/receipt history.
-
-#### Fields
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -1433,8 +1406,6 @@ programmatic callers share one product surface — every `deepline monitors`
 verb maps to a method here. Monitors are fully expressible as SDK code: author
 a definition with `defineMonitor`, then check/deploy/list/get/update/
 delete/reactivate through this namespace.
-
-#### Fields
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
