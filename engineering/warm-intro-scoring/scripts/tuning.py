@@ -4,6 +4,7 @@ from datetime import date
 import json
 import math
 import os
+import re
 from pathlib import Path
 
 DEFAULT_WEIGHTS = dict(direct_intro=160, work_overlap=80, school_overlap=20,
@@ -81,6 +82,12 @@ def normalize(data):
         for key in ('target_company', 'target_title', 'connector_company', 'connector_title', 'requester_name'):
             if key in raw:
                 row[key] = required_text(raw[key], key)
+        for key in ('target_linkedin_url', 'connector_linkedin_url'):
+            if key in raw:
+                url = required_text(raw[key], key)
+                if not re.fullmatch(r'https://(?:www\.)?linkedin\.com/in/[^/?#\s]+/?', url):
+                    raise ValueError('Invalid LinkedIn profile URL')
+                row[key] = url
         row['baseline_score'] = number(raw.get('baseline_score'), 'baseline_score')
         supplied = raw.get('features', {})
         if not isinstance(supplied, dict) or set(supplied) - DEFAULT_WEIGHTS.keys():
