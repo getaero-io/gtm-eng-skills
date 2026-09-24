@@ -1,4 +1,4 @@
-<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 0f5ed34c2f82531bc981d7ee93b7ae7612702f0aedd7efd09305b2c319bd98f6; run bun run docs:monitor-contract -->
+<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 1a92218135126f0109c5f6407f01a474dc800697ec65f08d2da7c820497dbb63; run bun run docs:monitor-contract -->
 
 # Monitor Contract Reference
 
@@ -82,7 +82,7 @@ Creates a Deepline Native company radar data pipe and writes Deepline Native com
 #### Pricing, identity, and updates
 
 - Pricing: Deepline pricing is selected by radar_type and returned by the live monitor contract. Provider spend is not exposed.
-- Identity: One Deepline monitor identity is radar_type plus domain per organization.
+- Identity: The provider identity scope is radar_type plus domain. Separate Deepline monitor keys may use different effective payload configurations in that scope; an upstream 409 remains authoritative if the provider rejects a second resource.
 - Update: A filter change replaces the upstream radar under the same Deepline monitor key and retains Customer DB rows.
 - Backfill: Historical matching can arrive during the first 24 hours. A filter update does not request historical findings that would newly match.
 
@@ -132,7 +132,7 @@ Creates a Deepline-managed contact radar data pipe and writes provider-native co
 #### Pricing, identity, and updates
 
 - Pricing: Use the Deepline pricing returned by tools get, monitors available, check, or deploy --dry-run. Provider spend is not exposed.
-- Identity: One monitor identity uses radar_type, profile_url.
+- Identity: The provider resource scope uses radar_type, profile_url. Different effective payload configurations in that scope may be separate monitor resources; exact duplicates still conflict.
 - Update: Use monitors update for a patch or deploy for a complete desired definition.
 - Backfill: Existing Customer DB rows are retained; this capability does not promise provider backfill unless its provider documentation says otherwise.
 
@@ -180,7 +180,7 @@ Creates a Deepline-managed industry radar data pipe and writes provider-native i
 #### Pricing, identity, and updates
 
 - Pricing: Use the Deepline pricing returned by tools get, monitors available, check, or deploy --dry-run. Provider spend is not exposed.
-- Identity: One monitor identity uses radar_type, industry.
+- Identity: The provider resource scope uses radar_type, industry. Different effective payload configurations in that scope may be separate monitor resources; exact duplicates still conflict.
 - Update: Use monitors update for a patch or deploy for a complete desired definition.
 - Backfill: Existing Customer DB rows are retained; this capability does not promise provider backfill unless its provider documentation says otherwise.
 
