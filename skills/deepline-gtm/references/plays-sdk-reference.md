@@ -395,6 +395,7 @@ Signature: `class DeeplineContext`
 | Member | Kind | Purpose | Parameters | Returns / type |
 |---|---|---|---|---|
 | `constructor` | constructor | Create a high-level SDK context.<br /><br />Most callers should use `Deepline.connect`; direct construction is<br />equivalent when you already have explicit client options. | `options?: DeeplineClientOptions` - Optional SDK client configuration. |  |
+| `billing` | getter | Read current billing usage and exact per-request Deepline charges. |  | `BillingNamespace` |
 | `tools` | getter | Tool operations namespace. |  | `DeeplineToolsNamespace` |
 | `executions` | getter | Durable state for recoverable direct tool executions. |  | `DeeplineExecutionsNamespace` |
 | `plays` | getter | Play discovery and named-play handles.<br /><br />Use `plays.list()` for discovery and `plays.get(name)` when you prefer a<br />namespace spelling over `ctx.play(name)`. |  | `DeeplinePlaysNamespace` |
@@ -1344,6 +1345,7 @@ Signature: `class DeeplineClient`
 | `runPlay` | method | Run a play end-to-end: submit, stream until terminal, return result.<br /><br />This is the highest-level play execution method. It submits the play,<br />reads the canonical run stream for status updates, and returns a structured<br />result with logs and timing. Supports cancellation via `AbortSignal`. | `code: string` - Source string fallback; pass the bundled artifact in `options.artifact`<br />`csvPath: string \| null` - Input CSV path, or `null`<br />`name?: string` - Play name<br />`options?: { onProgress?: (status: PlayStatus) => void; signal?: AbortSignal; input?: Record<string, unknown>; sourceCode?: string; artifact?: Record<string, unknown>; compilerManifest?: PlayCompilerManifest; inputFile?: PlayStagedFileRef \| null; packagedFiles?: PlayStagedFileRef[]; force?: boolean; forceToolRefresh?: boolean; }` - Execution options | `Promise<PlayRunResult>` |
 | `getBillingPlans` | method | Published plans plus the caller's active plan: prices, monthly grant<br />credits, rollover policy, and which plans are open for subscription.<br />Prefer `client.billing.plans()`. |  | `Promise<BillingPlansResult>` |
 | `getBillingUsageEvent` | method | Read the authenticated usage record for one execution request. The<br />request id comes from the original `executeTool` result and is not a<br />retry or idempotency token. | `requestId: string` | `Promise<BillingUsageEvent>` |
+| `getBillingUsage` | method | Read workspace usage and recent customer-facing Deepline charges. Pass<br />the `job_id` from `executeTool` as `requestId` to retrieve one exact call,<br />including whether its charge is final or still a temporary hold. Exact<br />request lookups return only the `org_id` and `recent` result fields. | `options?: BillingUsageOptions` | `Promise<BillingUsageResult>` |
 | `topUpBillingBalance` | method | Charge the saved payment method and add Deepline credits to the active<br />workspace. Prefer `client.billing.topUp(...)`. | `options: { credits: number; idempotencyKey?: string; }` | `Promise<BillingTopUpResult>` |
 | `getBillingSubscriptionStatus` | method | Subscription state for the active workspace: active plan, whether a<br />Stripe subscription backs it, renewal/cancellation facts, and remaining<br />Deepline credit pools. Prefer `client.billing.subscription.status()`. |  | `Promise<BillingSubscriptionStatus>` |
 | `cancelBillingSubscription` | method | Schedule subscription cancellation at period end, or reverse a pending<br />cancellation with `{ undo: true }`. The customer keeps the cycle they<br />paid for and every remaining credit — cancellation never claws back<br />credits. Prefer `client.billing.subscription.cancel(...)`. | `options?: { undo?: boolean; }` | `Promise<BillingSubscriptionCancelResult>` |
@@ -1380,7 +1382,8 @@ Use `client.runs` (`/api/v2/runs`) to poll, stream, stop, read logs, and export 
 ### `client.billing`
 
 Public `client.billing` namespace for CLI commands and programmatic callers.
-Covers plans, subscription state, cancellation, and invoice/receipt history.
+Covers usage, plans, subscription state, cancellation, and invoice/receipt
+history.
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -1390,6 +1393,7 @@ Covers plans, subscription state, cancellation, and invoice/receipt history.
 | `subscription` | `{ status: () => Promise<BillingSubscriptionStatus>; cancel: (options?: { undo?: boolean; }) => Promise<BillingSubscriptionCancelResult>; }` | Yes |  |
 | `invoices` | `{ list: (options?: { limit?: number }) => Promise<BillingInvoicesResult>; }` | Yes |  |
 | `usageEvent` | `(requestId: string) => Promise<BillingUsageEvent>` | Yes | Read one exact execution outcome using the request_id returned by executeTool. |
+| `usage` | `(options?: BillingUsageOptions) => Promise<BillingUsageResult>` | Yes | Read current billing usage, or look up one exact execution charge by request ID. |
 | `targetPlans` | `() => Promise<TargetBillingPlansResult>` | Yes | Metronome-authored target catalog and current Contract projection. |
 | `targetStatus` | `() => Promise<TargetBillingStatusResult>` | Yes | Normalized target billing state. |
 | `autoRecharge` | `{ get: () => Promise<TargetAutoRechargeResult>; trigger: (options?: { idempotencyKey: string; }) => Promise<{ data: { status: string; operation_id?: string } }>; update: ( options: TargetAutoRechargeUpdateOptions, ) => Promise<TargetAutoRechargeResult>; }` | Yes | Read and manage the Metronome-backed automatic recharge configuration. |
