@@ -20,7 +20,7 @@ deepline -h
 
 Run `deepline` commands bare — no pipes, redirection, `2>&1`, command chaining, or backgrounding around them. The CLI already formats, truncates, and prints what you need; `deepline billing usage | head` reads as parsing and loses output.
 
-Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/INSTALL.md` to set up Deepline.
+Use `deepline` directly. If missing, try `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm `.cmd` shim on Windows), then follow `https://code.deepline.com/INSTALL.md`.
 
 Before the first Deepline fanout in a task, run `deepline preflight --json` as
 one standalone command and wait for it to finish. Never submit preflight beside
@@ -102,8 +102,8 @@ for the identity gate and ambiguity handling.
 
 ### CLI recovery
 
-The SDK CLI is the supported CLI. If it is unavailable, run `deepline update`
-or reinstall it with `npm install -g deepline@latest`; do not switch CLI families.
+If unavailable, run `deepline update` or reinstall via
+`https://code.deepline.com/INSTALL.md`. Stay on the SDK CLI.
 
 ## 2) Read the matching workflow before execution
 
