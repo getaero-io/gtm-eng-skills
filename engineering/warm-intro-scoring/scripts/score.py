@@ -141,6 +141,13 @@ def score(data, repo):
     return sorted(rows,key=lambda r:(-r['total_score'],r['connector_name'].casefold(),r['path_id']))
 
 
+def csv_safe(value):
+    """Keep spreadsheet applications from executing untrusted profile text."""
+    if isinstance(value, str) and value and (value[0] in '\t\r\n' or value.lstrip().startswith(('=', '+', '-', '@'))):
+        return "'" + value
+    return value
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('input',type=Path)
@@ -150,7 +157,7 @@ def main():
     rows=score(json.loads(args.input.read_text()),args.repo)
     # Exclusive creation prevents accidentally overwriting a reviewed/private export.
     with os.fdopen(os.open(args.output,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),'w',newline='') as f:
-        writer=csv.DictWriter(f,fieldnames=FIELDS);writer.writeheader();writer.writerows(rows)
+        writer=csv.DictWriter(f,fieldnames=FIELDS);writer.writeheader();writer.writerows({k:csv_safe(v) for k,v in row.items()} for row in rows)
     print(f'{len(rows)} paths written; no asks sent or approved.')
 
 if __name__=='__main__':

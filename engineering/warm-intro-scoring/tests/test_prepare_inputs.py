@@ -56,6 +56,43 @@ class InputPackagingTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 merger.merge([source, source])
 
+    def test_declines_survive_missing_refresh_and_changed_path_ids(self):
+        payload = dict(as_of='2026-09-23', requester_name='Requester', evidence=[], paths=[], model='test', weights={})
+        old = dict(id='old', target_id='target', connector_id='connector', review_status='blocked_declined', features={})
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'export.csv'
+            def write(paths):
+                with path.open('w', newline='') as f:
+                    writer=csv.DictWriter(f, fieldnames=['result']);writer.writeheader()
+                    writer.writerow({'result': json.dumps({'payload': dict(payload, paths=paths)})})
+            write([])
+            missing = merger.merge([path], {'paths':[old]})
+            self.assertEqual(missing['review_state'][0]['review_status'], 'blocked_declined')
+            self.assertEqual(len(missing['coverage']['review_states_without_paths']), 1)
+            write([dict(old,id='new',review_status='needs_confirmation')])
+            restored = merger.merge([path], missing)
+            self.assertEqual(restored['paths'][0]['review_status'], 'blocked_declined')
+            write([dict(old,review_status='needs_confirmation',features={'x':{'value':0}})])
+            prior = {'paths':[dict(old,review_status='ready_for_human_review',features={})]}
+            self.assertEqual(merger.merge([path],prior)['paths'][0]['review_status'], 'needs_confirmation')
+
+    def test_missing_target_export_fails_manifest_check(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'export.csv'
+            with path.open('w', newline='') as f:
+                writer=csv.DictWriter(f,fieldnames=['key','result']);writer.writeheader()
+                writer.writerow({'key':'target:0','result':json.dumps({'payload':{'paths':[],'evidence':[]}})})
+            with self.assertRaisesRegex(ValueError,'Missing or unexpected'):
+                merger.merge([path], expected_keys=['target:0','target:1'])
+
+    def test_csv_formula_text_is_inert_and_numeric_scores_unchanged(self):
+        spec=importlib.util.spec_from_file_location('csv_score', Path(__file__).parents[1]/'scripts/score.py')
+        scorer=importlib.util.module_from_spec(spec);spec.loader.exec_module(scorer)
+        self.assertEqual(scorer.csv_safe('=HYPERLINK("https://example.test")'), '\'=HYPERLINK("https://example.test")')
+        self.assertEqual(scorer.csv_safe('  @formula'), "'  @formula")
+        self.assertEqual(scorer.csv_safe(120),120)
+        self.assertEqual(scorer.csv_safe('Alex Example'),'Alex Example')
+
     def test_rejects_bad_shapes_dates_and_record_limits(self):
         data = fixture()
         data['targets'] = 'bad'

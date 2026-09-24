@@ -84,3 +84,7 @@ PLAYWRIGHT_MODULE=/path/to/node_modules/playwright node scripts/test_tuning_brow
 ```
 
 The core Python checks require no browser dependencies. Real input lists, scores, and feedback stay outside this repository.
+
+## End-to-end and adversarial verification
+
+See [the test report](references/adversarial-review.md) for the cached cloud pipeline, Claude Code findings, corrections, changed-score counts, and remaining prebuilt release gates.

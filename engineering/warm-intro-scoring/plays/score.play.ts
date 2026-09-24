@@ -1,3 +1,5 @@
+import {requireEvidenceRegistry,expandFeatureCatalog} from './guardrails';
+import {strictJSON} from './strict-json';
 import { definePlay } from 'deepline';
 import { validatePayload, DEFAULT_WEIGHTS, MODEL } from './core';
 /** @mermaid
@@ -10,12 +12,13 @@ export default definePlay('warm-intro-score', async(ctx,input:{csv:string})=>{
  const batches=await ctx.csv<{case_id:string,payload_json:string,weights_json?:string,expected_json?:string}>(input.csv,{required:['case_id','payload_json']});
  // @mermaid-node validate type:"dataset"
  const rows=await ctx.dataset('scored_batches',batches).withColumn('result',(row)=>{
-  const data=JSON.parse(row.payload_json);
-  if(data.feature_catalog)for(const p of data.paths)for(const key of Object.keys(p.features))p.features[key]=data.feature_catalog[p.features[key]];
-  const config=row.weights_json?JSON.parse(row.weights_json):undefined;
+  const data=strictJSON(row.payload_json);
+  expandFeatureCatalog(data);
+  requireEvidenceRegistry(data);
+  const config=row.weights_json?strictJSON(row.weights_json):undefined;
   const payload=validatePayload(data,config);
   const scores=payload.paths.map((p:any)=>({id:p.id,target_id:p.target_id,connector_id:p.connector_id,score:p.tuned_score,review_status:p.review_status,features:Object.fromEntries(Object.keys(DEFAULT_WEIGHTS).map(k=>[k,p.features[k].value*payload.weights[k]]))}));
-  const expected=row.expected_json?JSON.parse(row.expected_json):null;
+  const expected=row.expected_json?strictJSON(row.expected_json):null;
   if(expected){
    const byId=new Map(scores.map((p:any)=>[p.id,p]));
    if(expected.length!==scores.length)throw new Error('Parity failed: path count');

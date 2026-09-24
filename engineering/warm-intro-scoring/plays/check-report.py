@@ -12,7 +12,7 @@ def main():
  subprocess.run([sys.executable,str(Path(__file__).with_name('sync-template.py')),'--check'],check=True)
  fixtures=[]
  for count in [1,5001]:
-  fixtures.append(dict(as_of='2026-09-23',requester_name='Demo <requester> & review',paths=[dict(id=f'p{i}',target_id='t',target_name='Fictional Target',connector_id=f'c{i}',connector_name=f'Fictional Connector {i}',baseline_score=0,review_status='needs_confirmation',features={}) for i in range(count)]))
+  fixtures.append(dict(as_of='2026-09-23',requester_name='Demo <requester> & review',evidence=[],paths=[dict(id=f'p{i}',target_id='t',target_name='Fictional Target',connector_id=f'c{i}',connector_name=f'Fictional Connector {i}',baseline_score=0,review_status='needs_confirmation',features={}) for i in range(count)]))
  if a.input:fixtures.append(json.loads(a.input.read_text()))
  with tempfile.TemporaryDirectory() as folder:
   for i,data in enumerate(fixtures):

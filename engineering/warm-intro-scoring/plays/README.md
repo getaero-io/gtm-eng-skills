@@ -32,7 +32,7 @@ Every Play accepts `csv`, a CSV file path staged by the Deepline CLI. JSON field
 | Play | Additional input fields | Required CSV columns | Optional CSV columns |
 |---|---|---|---|
 | `read-sources` | `max_rows_per_source` (1–5,000; default 5,000) | `source_id,schema_name,table_name,key_column` | — |
-| `collect` | `mode` (`cached` or `live`), `observed_at` (date), `max_posts` (1–100; default 50) | `contact_id,linkedin_url` | `profile_json,posts_json` |
+| `collect` | `mode` (`cached` or `live`), `observed_at` (date), `max_posts` (1–100; default 50) | `contact_id,linkedin_url` | `profile_json,posts_json,profile_observed_at,account_domain` |
 | `research` | `mode` (`cached` or `live`) | `contact_id,name,company` | `cached_json` |
 | `snapshots` | `execute` (boolean) | `record_id,kind,revision,observed_at,payload_json` | — |
 | `features` | `include_payload` (default false) | `section,key,payload_json` | — |
@@ -46,7 +46,7 @@ Dates use `YYYY-MM-DD` unless the evaluator requires a full timestamp. Stable so
 
 `read-sources` paginates by a unique non-null key. It rejects repeated keys, truncated pages, and sources that exceed the configured bound. Partition a larger source instead of raising a silent row limit. A database read retains the original profile observation date. Key counts are checked before reading and reconciled afterward. This detects count changes, but it is not a transactionally consistent snapshot during concurrent updates; use a stable source view or frozen table.
 
-`collect` in cached mode requires `profile_json`; optional `posts_json` is an array of retained posts. Live mode calls the full-profile and public-post Apify actors. It verifies the returned profile URL against the requested contact. An unfinished actor receipt is not a completed profile and fails the row for later recovery.
+`collect` in cached mode requires `profile_json` and an original receipt date (`profile_observed_at`, profile `observed_at`, or `scrapedAt`). The earliest supplied date is preserved. It returns `normalized_profile` alongside raw evidence. Set `account_domain` from the reviewed account assignment for target profiles; it is not inferred. optional `posts_json` is an array of retained posts. Live mode calls the full-profile and public-post Apify actors. It verifies the returned profile URL against the requested contact. An unfinished actor receipt is not a completed profile and fails the row for later recovery.
 
 `research` in cached mode requires `cached_json`. Live mode searches for public history. Both modes return `needs_verification`. A matching event name, podcast series, or post tag does not automatically add relationship points.
 
@@ -86,7 +86,7 @@ deepline runs export <run-id> --dataset result.rows --out /private/path/exports/
 Run and export each generated CSV. If the input contains just one target, the packager uses the requested filename without the `.001` suffix. Then merge the exported payloads and render the review:
 
 ```sh
-python3 plays/merge-payloads.py /private/path/exports/*.csv --review-state previous-input.json --out report-input.json
+python3 plays/merge-payloads.py /private/path/exports/*.csv --review-state previous-input.json --source-input sources.json --out report-input.json
 bun plays/report-cli.ts report-input.json review.html
 ```
 
@@ -129,6 +129,10 @@ deepline plays run plays/score.play.ts --input '{"csv":"/private/path/score-batc
 For concurrent CLI work, prefix commands with `DEEPLINE_SKIP_SELF_UPDATE=1` after the preflight. Keep run IDs, debug receipts, exports, and source snapshots in a private handoff directory. Export before reusing dataset keys: a later replay can replace the mutable dataset association of an older run. Immutable source revisions remain in the analytics table. Export the completed run with `deepline runs export <run-id> --out <private-output.csv>`.
 
 No Play here sends introductions, emails, or consent requests. Live collection and research can incur provider charges. Deterministic parity verification does not require fresh paid research.
+
+## Adversarial and end-to-end checks
+
+Read [the test report and remaining release gates](../references/adversarial-review.md). It distinguishes the original migration parity from later correctness changes. The cached end-to-end test is `tests/cloud_e2e.py`; it is opt-in because it writes fictional data to the selected workspace.
 
 ## What parity covers
 

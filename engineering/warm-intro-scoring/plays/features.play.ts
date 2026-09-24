@@ -1,3 +1,4 @@
+import {strictJSON} from './strict-json';
 import {definePlay} from 'deepline';
 import {buildFeatures, type FeatureInput} from './features';
 import {validatePayload,DEFAULT_WEIGHTS,MODEL} from './core';
@@ -25,9 +26,9 @@ export default definePlay('warm-intro-features',async(ctx,input:{csv:string,incl
  const records=await source.materialize(5000);
  const config=records.filter(r=>r.section==='config');
  if(config.length!==1)throw new Error('Exactly one config record is required');
- const shared:FeatureInput={...JSON.parse(config[0].payload_json),targets:[],connectors:[],profiles:[]};
+ const shared:FeatureInput={...strictJSON(config[0].payload_json),targets:[],connectors:[],profiles:[]};
  const sections=new Set(['connectors','profiles','company_sizes','funding_edges','verified_firms','owner_portfolio']);
- for(const section of sections)(shared as any)[section]=records.filter(r=>r.section===section).map(r=>JSON.parse(r.payload_json));
+ for(const section of sections)(shared as any)[section]=records.filter(r=>r.section===section).map(r=>strictJSON(r.payload_json));
  if(records.some(r=>!sections.has(r.section)&&!['config','targets'].includes(r.section)))throw new Error('Unknown source record section');
  const targetRecords=records.filter(r=>r.section==='targets');
  if(input.include_payload&&targetRecords.length!==1)throw new Error('include_payload requires one target per run; use --targets-per-file 1');
@@ -38,7 +39,7 @@ export default definePlay('warm-intro-features',async(ctx,input:{csv:string,incl
  const rows=await ctx.dataset('feature_results',targets)
  // @mermaid-node result out:"result"
  .withColumn('result',async row=>{
-  const item=JSON.parse(row.payload_json),data=buildFeatures({...shared,targets:[item.target||item]});
+  const item=strictJSON(row.payload_json),data=buildFeatures({...shared,targets:[item.target||item]});
   const featureVector=data.paths.slice().sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0).map(p=>[p.id,p.baseline_score,p.review_status,Object.keys(DEFAULT_WEIGHTS).sort().map(k=>{const f=p.features[k],c=f.work_context;return[k,f.value,f.timing_status,f.overlap_start||null,f.overlap_end||null,[...f.evidence_ids].sort(),c?[c.company_size,c.same_function,c.same_location]:null];})]);
   const featuresSha256=await hash(featureVector);
   const payload=data.paths.length?validatePayload(data):null;

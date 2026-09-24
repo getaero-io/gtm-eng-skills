@@ -1,7 +1,9 @@
+import {normalizeCollectedProfile} from './collection';
+import {strictJSON} from './strict-json';
 import { definePlay } from 'deepline';
 import { exactDate } from './core';
 import { canonicalLinkedIn } from './features';
-type Row={contact_id:string;linkedin_url:string;profile_json?:string;posts_json?:string};
+type Row={contact_id:string;linkedin_url:string;profile_json?:string;posts_json?:string;profile_observed_at?:string;account_domain?:string};
 function records(result:any):any[]{
  const raw=result?.toolResponse?.rawV2??result?.toolResponse?.raw;
  if(Array.isArray(raw))return raw;
@@ -25,15 +27,17 @@ export default definePlay('warm-intro-collect',async(ctx,input:{csv:string;mode:
   if(!row.contact_id||!canonicalLinkedIn(row.linkedin_url))throw new Error('Stable contact ID and valid LinkedIn URL required');
   if(input.mode==='cached'){
    if(!row.profile_json)throw new Error('Cached profile receipt missing');
-   const p=JSON.parse(row.profile_json);const posts=row.posts_json?JSON.parse(row.posts_json):[];
+   const p=strictJSON(row.profile_json);const posts=row.posts_json?strictJSON(row.posts_json):[];
    if(!Array.isArray(posts))throw new Error('Posts must be an array');
-   return {profile:profile(Array.isArray(p)?p:[p],row.linkedin_url),posts,observed_at:input.observed_at,source:'retained_receipts',posts_status:row.posts_json?'retained':'not_collected'};
+   const selected=profile(Array.isArray(p)?p:[p],row.linkedin_url);const normalized=normalizeCollectedProfile(selected,row.contact_id,row.linkedin_url,'retained:'+row.contact_id,input.observed_at,row.profile_observed_at,row.account_domain);
+   return {profile:selected,normalized_profile:normalized,posts,observed_at:normalized.observed_at,source:'retained_receipts',posts_status:row.posts_json?'retained':'not_collected'};
   }
   const [p,posts]=await Promise.all([
    c.tools.execute({id:'full_profile',tool:'apify_run_actor_sync',input:{actorId:'harvestapi/linkedin-profile-scraper',input:{profileScraperMode:'Profile details no email ($4 per 1k)',urls:[row.linkedin_url]},timeoutMs:90000},description:'Collect full public profile'}),
    c.tools.execute({id:'public_posts',tool:'apify_run_actor_sync',input:{actorId:'harvestapi/linkedin-profile-posts',input:{targetUrls:[row.linkedin_url],maxPosts,includeReposts:false},timeoutMs:90000},description:'Collect public post evidence'})
   ]);
-  return {profile:profile(records(p),row.linkedin_url),posts:records(posts),observed_at:input.observed_at,source:'apify',posts_status:'collected'};
+  const selected=profile(records(p),row.linkedin_url);const normalized=normalizeCollectedProfile(selected,row.contact_id,row.linkedin_url,'apify:'+row.contact_id,input.observed_at,input.observed_at,row.account_domain);
+  return {profile:selected,normalized_profile:normalized,posts:records(posts),observed_at:normalized.observed_at,source:'apify',posts_status:'collected'};
  }).run({key:'contact_id',undrawnColumns:['sources'],description:'Store profiles and posts with source dates'});
  // @mermaid-node saved
  return {rows,count:await rows.count(),mode:input.mode,interpretation:'Collection is not relationship confirmation. Missing or ambiguous identities fail the row.'};

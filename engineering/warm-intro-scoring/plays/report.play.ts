@@ -1,3 +1,5 @@
+import {requireEvidenceRegistry,expandFeatureCatalog} from './guardrails';
+import {strictJSON} from './strict-json';
 import {definePlay} from 'deepline';
 import {renderReview} from './report';
 import {renderLegacy,renderEvaluation} from './reports';
@@ -16,11 +18,12 @@ export default definePlay('warm-intro-review-report',async(ctx,input:{csv:string
  const batches=await ctx.csv<{case_id:string,payload_json:string,weights_json?:string,artifact_path?:string,report_kind?:string}>(input.csv,{required:['case_id','payload_json']});
  // @mermaid-node report type:"dataset"
  const reports=await ctx.dataset('review_reports',batches).withColumn('artifact',async(row,c)=>{
-  const data=JSON.parse(row.payload_json);
-  if(data.feature_catalog)for(const p of data.paths)for(const key of Object.keys(p.features))p.features[key]=data.feature_catalog[p.features[key]];
+  const data=strictJSON(row.payload_json);
+  expandFeatureCatalog(data);
   const kind=row.report_kind||'tuning';
   if(!['tuning','legacy','evaluation'].includes(kind))throw new Error('Unsupported report_kind');
-  const html=kind==='legacy'?renderLegacy(data,LEGACY_TEMPLATE):kind==='evaluation'?renderEvaluation(data):renderReview(data,row.weights_json?JSON.parse(row.weights_json):undefined);
+  if(kind==='tuning')requireEvidenceRegistry(data);
+  const html=kind==='legacy'?renderLegacy(data,LEGACY_TEMPLATE):kind==='evaluation'?renderEvaluation(data):renderReview(data,row.weights_json?strictJSON(row.weights_json):undefined);
   const bytes=new TextEncoder().encode(html).length;
   // Bounded cloud pilot; full reports can use this renderer offline or split by account.
   if(bytes>1000000)throw new Error('Cloud report exceeds the 1 MB safety cap. Render with report.ts offline or split by target account.');

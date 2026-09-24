@@ -1,3 +1,4 @@
+import {strictJSON} from './strict-json';
 import { definePlay } from 'deepline';
 type Row={contact_id:string;name:string;company:string;cached_json?:string};
 /** @mermaid
@@ -12,7 +13,7 @@ export default definePlay('warm-intro-public-history',async(ctx,input:{csv:strin
  // @mermaid-node discover type:"dataset"
  const rows=await ctx.dataset('public_history_candidates',contacts).withColumn('evidence',async(row,c)=>{
   if(!row.contact_id||!row.name||!row.company)throw new Error('Contact identity required');
-  if(input.mode==='cached'){if(!row.cached_json)throw new Error('Cached evidence missing');return {candidates:JSON.parse(row.cached_json),status:'needs_verification'};}
+  if(input.mode==='cached'){if(!row.cached_json)throw new Error('Cached evidence missing');return {candidates:strictJSON(row.cached_json),status:'needs_verification'};}
   const result=await c.tools.execute({id:'public_history',tool:'serper_google_search',input:{query:`"${row.name}" "${row.company}" (podcast OR interview OR panel OR webinar OR speaker)`,gl:'us',hl:'en',page:1,num:10},description:'Find source pages for public history'});
   return {candidates:result.toolResponse.raw,status:'needs_verification'};
  }).run({key:'contact_id',undrawnColumns:['evidence']});

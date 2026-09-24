@@ -1,3 +1,4 @@
+import {strictJSON} from './strict-json';
 import { definePlay } from 'deepline';
 import { exactDate } from './core';
 type Row={record_id:string;kind:string;revision:string;observed_at:string;payload_json:string};
@@ -19,7 +20,7 @@ export default definePlay('warm-intro-snapshots',async(ctx,input:{csv:string;exe
  const rows=await ctx.dataset('snapshot_receipts',source).withColumn('receipt',async(row,c)=>{
   if(!row.record_id||!row.revision||!['contact','target','investor_edge','relationship','willingness','feedback','tombstone'].includes(row.kind)||!/^\d{4}-\d{2}-\d{2}$/.test(row.observed_at))throw new Error('Snapshot identity, kind, revision and date required');
   exactDate(row.observed_at,'observed_at');
-  const payload=canonical(JSON.parse(row.payload_json));const bytes=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(payload)));const hash=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+  const payload=canonical(strictJSON(row.payload_json));const bytes=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(payload)));const hash=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
   const sql=`INSERT INTO analytics.warm_intro_play_snapshots (record_id,kind,revision,observed_at,content_hash,payload) VALUES (${quote(row.record_id)},${quote(row.kind)},${quote(row.revision)},${quote(row.observed_at)}::date,${quote(hash)},${quote(payload)}::jsonb) ON CONFLICT (kind,record_id,revision) DO UPDATE SET content_hash=EXCLUDED.content_hash WHERE warm_intro_play_snapshots.content_hash=EXCLUDED.content_hash AND warm_intro_play_snapshots.observed_at=EXCLUDED.observed_at RETURNING record_id,kind,revision,content_hash`;
   if(!input.execute)return {status:'planned',record_id:row.record_id,kind:row.kind,revision:row.revision,content_hash:hash,table:'analytics.warm_intro_play_snapshots'};
   const write=raw(await c.tools.execute({id:'save_snapshot',tool:'query_customer_db',input:{sql,max_rows:1},description:'Save immutable source revision'}));
