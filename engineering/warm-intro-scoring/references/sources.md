@@ -10,9 +10,13 @@
 
 Read source contracts from your checked-out revision before live execution. Record revision IDs with each evaluation. Initial wrapper parity was checked against GTM Eng Skills `7223771` and the event source release `a17fd35`.
 
+## Batch collection first
+
+Follow the [batch collection contract](batch-collection.md) for all bulk work. The single-profile examples below are schema and identity checks, not the production loop. Reuse caches, batch unresolved URLs, bound concurrency and retain pending job receipts before fallback.
+
 ## Bounded Deepline profile pilot
 
-Setup: [Deepline CLI](https://code.deepline.com). Inspect the tool schema in the active workspace before executing. The supplied plays call this route with a `url` input:
+Setup: [Deepline CLI](https://code.deepline.com). Inspect the tool schema in the active workspace before executing. The native single-profile tool accepts a `url` input:
 
 ```bash
 deepline tools execute harvestapi_get_profile --input '{"url":"https://www.linkedin.com/in/REVIEWED_PROFILE"}'
@@ -44,3 +48,9 @@ Optional fields:
 The script validates IDs, chronology, subject/kind linkage and numeric output. It cannot establish that a citation's prose is true; human/source review remains necessary. Registry source locators can be private record IDs. The public-facing artifact exposes citation IDs, not raw messages or emails. Store the registry privately next to the artifact for review.
 
 CSV adds `model_version`, `baseline_segment`, `target_relationship_confidence`, `connector_willingness`, and `review_status` to the existing ask schema. Extra columns are accepted by its loader. A high factual score may remain held. `reviewed_override` is always false.
+
+## Account-domain holds and export coverage
+
+An `account_domain_mismatch` remains unresolved until stable-identity evidence supports the account assignment. Do not copy the requested domain onto a profile with a different employer to make scoring pass. Restore missing assignment metadata only from an attributable collection request. Accept a domain alias only with sourced company equivalence. Record the reason and source of each correction. Rerun feature extraction and preserve declines and holds. Keep unresolved targets visible even when they have no scored path.
+
+If export completeness is not verified, supply the original source manifest to `plays/merge-payloads.py --source-input` and reconcile the expected target keys. `target_exports_verified` confirms target export coverage only; it does not prove full employee collection or profile accuracy. Keep source-run coverage separate from later user-reported gaps. Never merge either report by name alone.

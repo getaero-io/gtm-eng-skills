@@ -52,3 +52,13 @@ For a genuine outcome evaluation, build a private dated table keyed by request a
 Independent forward testing found a willingness flag could contradict a cited decline or ignore a newer decline. The wrapper now binds willingness values to evidence, honors the latest dated record, and holds same-day conflicts. Relationship confidence is also bound to its reviewed evidence value. Seventeen offline checks passed, along with ten existing ask-drafter tests. Desktop/mobile browser checks covered search, filtering, top-three cards, details, empty state and no horizontal overflow or JavaScript errors.
 
 The four historical asks were not passed through the new as-of wrapper: two lack precise retained employment intervals and none of the inspected rows retain source observation dates. The aggregate audit is the real-data evaluation delivered; no missing dates were fabricated.
+
+## Known introductions and CLI receipts
+
+The retained email-derived historical test module was rerun: 19 passed and one expected failure for unsupported `get` company-prefix normalization. Some fixtures contain assumed roles or dates. Treat these as historical pattern regressions, not a verified set of introductions made through the CLI.
+
+For each claimed CLI introduction, retain a private source receipt with the run/message ID, requester, connector, target and event time. Separate an ask sent to the connector from an introduction actually sent to the target. Dry runs, drafts, approvals and successful enrichment runs are not introduction outcomes. Deduplicate retries by the provider message or event ID. Keep replies and completed meetings as separate outcomes; unknown is not false.
+
+Evaluate known routes using the candidates and evidence available before the ask. Do not add facts learned from the successful introduction to the scoring input. Keep the outcome receipt outside the feature set and split evaluation by time and target account. An observed introduction can label a known route, but it does not label all other routes as failures or establish a conversion denominator.
+
+No verified CLI introduction receipts were located in the retained scoring and draft artifacts inspected for this revision. Those outcomes remain unevaluated until the source run or message records are supplied. Do not count the 871 unapproved drafts as sent asks or introductions.

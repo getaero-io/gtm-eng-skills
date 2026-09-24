@@ -16,6 +16,18 @@ def path(id='a', value=0):
                           explanation='Documented portfolio connection', timing_status='not_applicable')})
 
 class TuningTests(unittest.TestCase):
+    def test_profile_links_survive_scoring_and_reject_unsafe_urls(self):
+        row=path(); row['target_linkedin_url']='https://www.linkedin.com/in/target-example'; row['connector_linkedin_url']='https://linkedin.com/in/connector-example'
+        data={'as_of':'2026-09-23','paths':[row]}
+        self.assertEqual(tuning.rank(data)[0]['target_linkedin_url'],row['target_linkedin_url'])
+        for url in ['javascript:alert(1)','https://linkedin.com.evil.test/in/x','https://linkedin.com/company/x']:
+            row['target_linkedin_url']=url
+            with self.assertRaises(ValueError): tuning.rank(data)
+
+    def test_historical_input_without_cutoff_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, 'as_of must be a full YYYY-MM-DD date'):
+            tuning.rank({'paths': [path()]})
+
     def test_large_artifact_preserves_all_candidates_and_feature_evidence(self):
         data = {'as_of': '2026-09-23', 'paths': [path(str(i), i % 2) for i in range(5001)]}
         html = tuning.render(data)

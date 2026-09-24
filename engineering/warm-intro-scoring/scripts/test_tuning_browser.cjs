@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Standalone CommonJS browser harness supports caller-selected Playwright. */
 /* Offline browser checks. Install Playwright, then run node scripts/test_tuning_browser.cjs.
    PLAYWRIGHT_MODULE can point to an existing Playwright install. No browser downloads here. */
 const assert = require('node:assert/strict');
@@ -17,12 +18,12 @@ import tuning
 rows=[]
 for t in range(311):
  for c in range(294):
-  rows.append(dict(id=f'p{t}-{c}',target_id=f't{t}',target_name=f'Target {t:03d}',target_company=f'Account {t%25:02d}',connector_id=f'c{c}',connector_name=f'Connector {c:03d}',baseline_score=0,review_status='needs_confirmation',features={'investor_portfolio':dict(value=1 if c==293 else 0,evidence_ids=['e'] if c==293 else [],explanation='Company context only.',timing_status='not_applicable')}))
+  rows.append(dict(id=f'p{t}-{c}',target_id=f't{t}',target_name=f'Target {t:03d}',target_company=f'Account {t%25:02d}',connector_id=f'c{c}',connector_name=f'Connector {c:03d}',target_linkedin_url=f'https://www.linkedin.com/in/target-{t}',connector_linkedin_url=f'https://www.linkedin.com/in/connector-{c}',baseline_score=0,review_status='needs_confirmation',features={'investor_portfolio':dict(value=1 if c==293 else 0,evidence_ids=['e'] if c==293 else [],explanation='Company context only.',timing_status='not_applicable')}))
 Path(sys.argv[2]).write_text(tuning.render(dict(as_of='2026-09-23',paths=rows,evidence=[dict(id='e',source='https://example.com',detail='Portfolio fact.',observed_at='2026-09-23')])))
 `, __dirname, output], {encoding:'utf8', maxBuffer:1024*1024});
 assert.equal(generated.status, 0, generated.stderr);
 (async()=>{
- const browser=await chromium.launch({headless:true});
+ const browser=await chromium.launch({headless:true,...(process.env.CHROME_EXECUTABLE?{executablePath:process.env.CHROME_EXECUTABLE}:{})});
  try {
   const page=await browser.newPage({viewport:{width:1440,height:1000},acceptDownloads:true});
   const errors=[],network=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(/^https?:/.test(r.url()))network.push(r.url());});
@@ -30,6 +31,20 @@ assert.equal(generated.status, 0, generated.stderr);
   const loadMs=Date.now()-start;
   assert.equal(await page.locator('.target').count(),311);assert.equal(await page.locator('.card').count(),3);
   assert.match(await page.locator('#coverage').innerText(),/91,434 candidate paths/);
+  assert.equal(await page.locator('.card strong .profile-link').count(),6);
+  assert.equal(await page.locator('.card .person-tag[href]').count(),6);
+  assert.equal(await page.locator('.comparison-item strong a').count(),3);
+  assert.equal(await page.locator('.target-name[href]').count(),311);
+  assert.equal(await page.locator('button a').count(),0,'Profile links must not nest inside buttons.');
+  assert.equal(await page.locator('.card .connector .person-tag').first().getAttribute('href'),await page.locator('.card .connector strong a').first().getAttribute('href'));
+  await page.locator('.comparison-item button').first().click();
+  assert.equal(await page.locator('.card').first().evaluate(node=>node===document.activeElement),true);
+  assert.equal(await page.locator('#target-heading h2 a').getAttribute('href'),'https://www.linkedin.com/in/target-0');
+  assert.equal(await page.locator('.card .profile-link').first().getAttribute('rel'),'noopener noreferrer');
+  assert.equal(await page.locator('.comparison-item').count(),3,'Compare the top three paths.');
+  assert.equal(await page.locator('.relationship-summary').count(),3);
+  assert.match(await page.locator('.relationship-summary').first().innerText(),/Investor company link/);
+  assert.equal(await page.locator('.contribution-reason:visible').count(),0,'Keep full reasons in evidence details.');
   assert.equal(await page.locator('.detail-content').count(),0,'Evidence should be lazy.');
   await page.locator('.detail summary').first().click();await page.waitForSelector('.detail-content');
   assert.equal(await page.locator('.detail-content').count(),1);
@@ -38,12 +53,12 @@ assert.equal(generated.status, 0, generated.stderr);
   const first=page.locator('.card').first();const pathId=await first.getAttribute('data-path-id');
   await first.locator('.feedback select').selectOption('good');await first.locator('textarea').fill('Useful route <script> remains plain text.');
   const oldCache=await page.evaluate(()=>{window.testRankingCache=rankingCache;return true;});assert(oldCache);
-  await page.locator('.target').nth(1).click();assert.equal(await page.locator('.card').count(),20);
+  await page.locator('.target button').nth(1).click();assert.equal(await page.locator('.card').count(),20);
   assert.equal(await page.evaluate(()=>window.testRankingCache===rankingCache),true,'Selection must reuse ranked candidates.');
   await page.locator('#search').fill('no matching contact');assert.equal(await page.locator('.card').count(),0);assert.match(await page.locator('#target-heading').innerText(),/No contacts match/);
   await page.locator('#search').fill('');await page.selectOption('#account','Account 01');assert.equal(await page.locator('.target').count(),13);
   assert.match(await page.locator('#target-heading').innerText(),/Account 01/);
-  await page.selectOption('#account','');await page.locator('.target').first().click();assert.equal(await page.locator('.card').first().getAttribute('data-path-id'),pathId);
+  await page.selectOption('#account','');await page.locator('.target button').first().click();assert.equal(await page.locator('.card').first().getAttribute('data-path-id'),pathId);
   assert.equal(await page.locator('.card').first().locator('.feedback select').inputValue(),'good');
   await page.locator('#toggle-weights').click();await page.getByRole('spinbutton',{name:'Investor company link weight',exact:true}).fill('0');
   assert.equal(await page.evaluate(()=>window.testRankingCache===rankingCache),false,'Weight edits must rerank all candidates.');

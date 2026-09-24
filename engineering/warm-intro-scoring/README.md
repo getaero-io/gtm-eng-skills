@@ -1,12 +1,12 @@
-# Warm-intro scoring — engineering handoff
+# Warm-intro scoring — engineering recipe
 
-**Start here.** This folder is a self-contained, offline scoring/evaluation package. Keep it outside the generated `skills/` tree. Copy this entire folder into another checkout if needed; Python 3.10+ is the only requirement. No install, credentials, customer database or provider calls are needed for the tests.
+**Start here.** This folder contains Deepline Plays and the offline Python reference for warm-intro scoring. Start with [the Play handoff](plays/README.md) for cloud runs and parity checks. This maintained package lives in `engineering/warm-intro-scoring/`, outside both `drafts/` and the generated `skills/` tree. Start with [TESTING.md](TESTING.md) for the packaged demo. Copy this entire folder into another checkout if needed; The offline Python checks require Python 3.10+. The Play checks also use Bun; cloud runs require the Deepline CLI. No install, credentials, customer database or provider calls are needed for the tests.
 
 ```bash
-python3 engineering/warm-intro-scoring/check_all.py
+python3 engineering/warm-intro-scoring/plays/check_all.py
 ```
 
-From inside this folder, the same command is `python3 check_all.py`. It verifies pinned dependencies, runs unit/scoring checks, audits fictional evidence, and generates temporary artifact outputs. Nonzero exit means the handoff is failing.
+From inside this folder, run `python3 plays/check_all.py` for the full TypeScript and Python checks. `python3 check_all.py` runs the Python-only subset. It verifies pinned dependencies, runs unit/scoring checks, audits fictional evidence, and generates temporary artifact outputs. Nonzero exit means the handoff is failing.
 
 ## Try it
 
@@ -23,16 +23,16 @@ Open `paths.html` for the top-three path review or `evaluation.html` for the com
 
 ## What the team is getting
 
-| File | Purpose |
-|---|---|
-| `SKILL.md` | Agent workflow: warm connections + optional targets, enrichment, scoring, artifact |
-| `scripts/quality.py` | Pre-scoring quality audit of the existing reviewed-evidence JSON contract |
-| `scripts/score.py`, `render.py` | Deterministic scoring and interactive evidence review |
-| `scripts/evaluate.py` | Paired rankings, account-cluster intervals, fixed-window outcome evaluation |
-| `assets/customer-db.sql` | PostgreSQL reference migration; inspect tenant and current schema before applying |
-| `references/pipeline.md` | Incremental DB → enrichment → features → scoring deployment contract |
-| `references/evaluator.md` | Labeling, research-derived challenges, statistical limits |
-| `vendor-manifest.json` | Source commit and checksums for the five pinned runtime dependencies |
+| File                            | Purpose                                                                            |
+| ------------------------------- | ---------------------------------------------------------------------------------- |
+| `GUIDE.md`                      | Agent workflow: warm connections + optional targets, enrichment, scoring, artifact |
+| `scripts/quality.py`            | Pre-scoring quality audit of the existing reviewed-evidence JSON contract          |
+| `scripts/score.py`, `render.py` | Deterministic scoring and interactive evidence review                              |
+| `scripts/evaluate.py`           | Paired rankings, account-cluster intervals, fixed-window outcome evaluation        |
+| `assets/customer-db.sql`        | PostgreSQL reference migration; inspect tenant and current schema before applying  |
+| `references/pipeline.md`        | Incremental DB → enrichment → features → scoring deployment contract               |
+| `references/evaluator.md`       | Labeling, research-derived challenges, statistical limits                          |
+| `vendor-manifest.json`          | Source commit and checksums for the five pinned runtime dependencies               |
 
 The defaults use `vendor/`, independent of the repository's examples and refreshable skills directory. The manifest protects against silent drift. When intentionally refreshing the baseline, review the upstream diff, update the pinned files and hashes together, and rerun checks. The original MIT license is included. Vendored ask code is used only to verify CSV compatibility; `check_all.py` never generates or sends asks.
 
@@ -51,13 +51,13 @@ Existing tests cover both-edge holds, latest declines, future features, train/te
 
 ## Before connecting production
 
-Implement the provider/DB adapters in `references/pipeline.md`; the SQL and trigger pattern are not deployed. The offline checker does not verify that a profile is full or true, query live tables, or implement queue workers. Deployment acceptance must cover transaction rollback, duplicate event replay, lease expiry, out-of-order profile updates, removals, stale artifact invalidation and no extra paid calls after retry. Use source run receipts to reconcile contacts requested/enriched/partial/failed before accepting a batch. Enforce tenant-scoped keys and access controls in the actual database.
+Manual provider, database snapshot, feature, scoring, validation, and report Plays are in `plays/`. The separate queue/trigger schema in `references/pipeline.md` is not deployed. The offline checker does not verify that a profile is full or true, query live tables, or implement queue workers. Deployment acceptance must cover transaction rollback, duplicate event replay, lease expiry, out-of-order profile updates, removals, stale artifact invalidation and no extra paid calls after retry. Use source run receipts to reconcile contacts requested/enriched/partial/failed before accepting a batch. Enforce tenant-scoped keys and access controls in the actual database.
 
 Keep raw profiles, connection exports, credentials and real-person artifacts private. Historical data lacks outcome-complete labels; passing this suite does not establish prediction accuracy or business uplift.
 
 ## Forward this to the team
 
-> The warm-intro handoff lives in `engineering/warm-intro-scoring/`, outside the refreshable skills folder. Run `python3 engineering/warm-intro-scoring/check_all.py` with Python 3.10+. It is offline and credential-free. Start with README.md; the fixtures demonstrate scoring, data-quality reports and evaluation artifacts. Production work remaining is the scoped DB/provider/trigger adapter and independently labeled outcomes, not scoring-model deployment based on synthetic results.
+> The warm-intro handoff lives in `engineering/warm-intro-scoring/`, outside the refreshable skills tree. Run `python3 engineering/warm-intro-scoring/check_all.py` with Python 3.10+. It is offline and credential-free. Start with README.md; the fixtures demonstrate scoring, data-quality reports and evaluation artifacts. Use plays/README.md for the manual cloud workflow and tested parity scope. Automatic triggers, fresh-provider recovery tests, and independently labeled outcomes remain separate deployment gates.
 
 ## Adjustable preferences and company networks
 
@@ -84,3 +84,7 @@ PLAYWRIGHT_MODULE=/path/to/node_modules/playwright node scripts/test_tuning_brow
 ```
 
 The core Python checks require no browser dependencies. Real input lists, scores, and feedback stay outside this repository.
+
+## End-to-end and adversarial verification
+
+See [the test report](references/adversarial-review.md) for the cached cloud pipeline, Claude Code findings, corrections, changed-score counts, and remaining prebuilt release gates.
