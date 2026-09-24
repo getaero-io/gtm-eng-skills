@@ -106,7 +106,7 @@ export function temporalOverlap(left:Obj,right:Obj,asOf:string):Obj{
  if(a&&b){const start=max(a[0],b[0]),end=min(a[1],b[1]);if(start<=end)return {status:'verified_overlap',start,end,precision:'conservative_guaranteed_window'};}
  if(al&&bl&&max(al[0],bl[0])>min(al[1],bl[1]))return {status:'non_overlap',start:null,end:null};return {status:'unknown',start:null,end:null};
 }
-// portfolio.py uses date.fromisoformat (including basic and ISO week forms).
+// Match portfolio.py source_date: calendar, basic and ISO week forms.
 function sourceDate(v:any):string {
  if(typeof v!=='string')return fail('Invalid source observation');
  if(/^\d{8}$/.test(v))return exactDate(`${v.slice(0,4)}-${v.slice(4,6)}-${v.slice(6)}`,'observed_at');

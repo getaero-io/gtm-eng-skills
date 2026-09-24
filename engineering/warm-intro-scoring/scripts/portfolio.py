@@ -7,9 +7,22 @@ public portfolio is exhaustive and never promotes a relationship or intro.
 import argparse
 from datetime import date
 import json
+import re
 from pathlib import Path
 from urllib.parse import urlsplit
 from evaluate import loads,write_reports
+
+def source_date(value):
+    """Parse calendar and ISO-week dates consistently on Python 3.10 and later."""
+    if not isinstance(value,str):raise ValueError('Invalid source observation')
+    calendar=re.fullmatch(r'([0-9]{4})(?:-([0-9]{2})-([0-9]{2})|([0-9]{2})([0-9]{2}))',value)
+    if calendar:
+        return date(int(calendar[1]),int(calendar[2] or calendar[4]),int(calendar[3] or calendar[5]))
+    week=re.fullmatch(r'([0-9]{4})(?:-W([0-9]{2})(?:-([1-7]))?|W([0-9]{2})([1-7])?)',value)
+    if week:
+        return date.fromisocalendar(int(week[1]),int(week[2] or week[4]),int(week[3] or week[5] or 1))
+    raise ValueError('Invalid source observation')
+
 
 def expand(graph,company_id):
     def index(rows):
@@ -27,7 +40,7 @@ def expand(graph,company_id):
         parsed=urlsplit(source)
         if company not in companies or investor not in investors:raise ValueError('unresolved edge endpoint')
         if parsed.scheme not in ('https','http') or not parsed.hostname:raise ValueError('source URL required')
-        observed=date.fromisoformat(edge['observed_at'])
+        observed=source_date(edge['observed_at'])
         if observed>date.today():raise ValueError('future source observation')
         key=(company,investor,source)
         if key not in seen:seen.add(key);edges.append(edge)

@@ -5,7 +5,7 @@ Requires Bun and Python 3.10+. No credentials are needed for the demo or offline
 ## Test from a PR checkout
 
 ```sh
-cd .skills/deepline-gtm/assets/warm-intro-scoring
+cd engineering/warm-intro-scoring
 python3 plays/check_all.py
 WORKDIR="$HOME/deepline-tests/warm-intro"
 mkdir -p "$WORKDIR"
@@ -16,9 +16,9 @@ Use a new output directory each time. Open `$WORKDIR/demo-new/review.html`. It s
 
 To test with Claude Code from this checkout, start it at the repository root and ask:
 
-> Read .skills/deepline-gtm/assets/warm-intro-scoring/GUIDE.md. Run the offline checks and recipe demo into a new private directory. Inspect the artifact and score export. Do not use credentials or call providers.
+> Read engineering/warm-intro-scoring/GUIDE.md. Run the offline checks and recipe demo into a new private directory. Inspect the artifact and score export. Do not use credentials or call providers.
 
-After this PR ships, the normal Deepline skills install/update distributes these files inside deepline-gtm. Ask `/deepline-gtm` to rank warm intro paths. A local test does not require replacing your installed skills.
+This permanent engineering recipe is maintained outside the generated CLI skill tree. Read GUIDE.md from this checkout or copy the complete package. Updating this folder does not install a separate skill.
 
 ## Real-data run
 

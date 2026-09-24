@@ -33,7 +33,7 @@ Use “Needs confirmation” for a path without confirmed relationships or permi
 
 ## Google spreadsheet
 
-Deliver a private Google spreadsheet with the report. Use the same validated results, score model and selected weights. Include these tabs:
+Deliver a private Google spreadsheet with the report. Use the same validated results, score model and selected weights. Include these views. The connection roster and its top-three targets can share a tab:
 
 - **All connections:** One row per source connection, including unscored and unresolved records. Include stable ID, name, sourced LinkedIn URL, company, coverage status and reason for any gap. Label company-network candidates separately.
 - **Top paths by target:** Up to three ranked connectors per target. Include rank, both names and LinkedIn URLs, points, one-line relationship summary and review status.
@@ -41,7 +41,7 @@ Deliver a private Google spreadsheet with the report. Use the same validated res
 - **All scored paths:** Every scored pair, including zero scores. Include component points, source references and review holds.
 - **Run details:** Model version, selected weights, score date, source dates, coverage counts and artifact link. State that scores rank evidence, not success probability.
 
-For a large run, use a complete connector-by-target score matrix instead of a long table when needed to fit Google Sheets cell limits. Keep path-level evidence and holds in linked private exports. State which rows appear in the artifact subset; do not describe that subset as the full scored population. Never truncate silently.
+For a large run, keep Google Sheets focused on all connections and top-three results. Link the full scored-pair export as a private downloadable file from Run details. Use a complete connector-by-target matrix only when needed. Keep path-level evidence and holds in linked private exports. State which rows appear in the artifact subset; do not describe that subset as the full scored population. Never truncate silently.
 
 Use the artifact's deterministic ranking and tie order. For the reverse view, rank by points and then stable target ID. Record this tie rule in Run details. Do not add filler rows to reach three paths. Do not hide a decline or hold when a score ranks highly. Regenerate the sheet after weight changes; state the saved weight set and export time.
 

@@ -21,3 +21,9 @@ jobs:
         with:
           bun-version: 1.3.9
       - run: python engineering/warm-intro-scoring/plays/check_all.py
+      - name: Verify package manifest and extracted demo
+        run: |
+          python engineering/warm-intro-scoring/scripts/package-skill.py --output "$RUNNER_TEMP/warm-intro.tar.gz"
+          mkdir "$RUNNER_TEMP/warm-intro-package"
+          tar -xzf "$RUNNER_TEMP/warm-intro.tar.gz" -C "$RUNNER_TEMP/warm-intro-package"
+          bun "$RUNNER_TEMP/warm-intro-package/warm-intro-scoring/scripts/recipe-demo.ts" "$RUNNER_TEMP/warm-intro-demo"

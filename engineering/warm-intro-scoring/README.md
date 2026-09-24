@@ -57,7 +57,7 @@ Keep raw profiles, connection exports, credentials and real-person artifacts pri
 
 ## Forward this to the team
 
-> The warm-intro handoff lives in `engineering/warm-intro-scoring/`, outside the refreshable skills tree. Run `python3 engineering/warm-intro-scoring/check_all.py` with Python 3.10+. It is offline and credential-free. Start with README.md; the fixtures demonstrate scoring, data-quality reports and evaluation artifacts. Use plays/README.md for the manual cloud workflow and tested parity scope. Automatic triggers, fresh-provider recovery tests, and independently labeled outcomes remain separate deployment gates.
+> The warm-intro handoff lives in `engineering/warm-intro-scoring/`, outside the refreshable skills tree. Run `python3 engineering/warm-intro-scoring/plays/check_all.py` with Python 3.10+ and Bun. It is offline and credential-free. Start with README.md; the fixtures demonstrate scoring, data-quality reports and evaluation artifacts. Use plays/README.md for the manual cloud workflow and tested parity scope. Automatic triggers, fresh-provider recovery tests, and independently labeled outcomes remain separate deployment gates.
 
 ## Adjustable preferences and company networks
 
