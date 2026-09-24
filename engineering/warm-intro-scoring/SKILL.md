@@ -34,6 +34,10 @@ This is the workflow to execute when the skill is invoked with contact data. Upd
 
 Ask only for missing essentials: requester identity, customer market when neither targets nor customer context exists, intended reason for meeting, permitted data sources and budget. Missing targets alone do not require a question: use the ten-target fallback above. Reuse the user's existing approved scope. Default to private local artifacts and no live enrichment when cached evidence suffices.
 
+## Review unclear claims
+
+For ambiguous professional facts, use `plays/review-uncertainty.play.ts`: deduplicate uncertain claims, supply retained source excerpts and canonical subject IDs, review with Deepline Agent, then evaluate source-backed proposals with Jev. Skip already resolved claims. Missing evidence, reviewer disagreement and new unverified URLs remain on hold. Preserve declines and do not let an AI verdict grant willingness or directly rewrite scores. See [factor coverage](references/factor-test-matrix.md) and [Play input/output instructions](plays/README.md).
+
 ## Gather and normalize evidence
 
 When external data is requested, use [external evidence](references/external-data.md). Read current provider schemas. Resolve identities before joining facts. Keep company context separate from personal access.
@@ -88,3 +92,9 @@ Run `python3 "$SKILL_DIR/scripts/check.py" --repo "$GTM_REPO"`. Check real ask c
 For predictive evaluation, require a private dated outcome set: candidate paths available at ask time, connector confirmation/decline, intro sent, target reply, meeting completed, and censored/unknown outcomes. Hold out time and target/account groups. Compare on the same candidate universe; report recall@3/MRR only with relevant-route labels, and reply/meeting rates only with comparable observed sends. Unsent drafts are not failures. Do not fit new weights to hand-selected anecdotes or quote a success rate from structural tests.
 
 Finish with the artifact and CSV paths, scoring version, checks run, real-data coverage and any missing evidence. If the requested reference artifact is inaccessible, say so; do not claim visual parity.
+
+### Model boundary
+
+Use Jev only for atomic true/false facts, feature extraction and entity mapping. Do not ask it to produce or validate scores, weights, relationship-strength labels or intro-success probabilities. Code validates extracted features and computes dates, durations, feature contributions and final scores. The ambiguity Play uses boolean questions only; probability cutoffs control whether a factual flag needs review. They are never scoring weights.
+
+For example, reported overlap of 3.5 years plus 5 months is 47 reported months across two employers. Year-only date ranges do not verify that duration. Keep reported and date-verified overlap separate, union simultaneous intervals before summing, and do not merge a historical employer with its later parent without dated entity evidence. A supplied “Medium” label is not a model-verified fact. The current work score uses the strongest overlap; a repeated-employer bonus is not enabled.

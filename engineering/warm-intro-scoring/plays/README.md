@@ -166,3 +166,27 @@ The one-command offline check includes:
 - Live provider behavior was not revalidated through a new paid enrichment run solely to establish deterministic parity.
 
 The generated template file must match the assets. After an intentional UI change, run `python3 plays/sync-template.py`, then rerun the offline check.
+
+## Unclear evidence: Agent review followed by Jev
+
+`review-uncertainty.play.ts` (`warm-intro-review-uncertainty`) takes `claim_id,claim_json` CSV rows. `ReviewClaim` in `uncertainty.ts` specifies canonical subject IDs, factor, precise claim, cutoff date, source excerpts, deterministic status and existing review hold. Feed each distinct uncertain claim once, not every pair that reuses it. Resolve malformed identities or future dates before submitting; models cannot override input validation.
+
+```sh
+deepline plays run plays/review-uncertainty.play.ts --input '{"csv":"/private/unclear-claims.csv","max_claims":10,"max_tool_calls":0}' --debug
+```
+
+Already decided claims skip paid review. Unclear claims with retained sources go to the `deeplineagent` tool. Its proposed exact quotes must exist in the retained source and cover the declared subjects. Proposals that clear that check go to `ai_evaluate` with `typesafe-ai/jev`. Unsupported quotes, disagreement or uncertain probabilities keep the claim at `insufficient_evidence`. A supported fact does not prove access or willingness.
+
+Jev returns probabilities: policy requires at least 0.9 for one verdict and at most 0.1 for the other. These thresholds are routing policy, not calibrated accuracy or intro-success probabilities. Raw answers are retained. Exact subject IDs still depend on trusted upstream identity resolution; this review does not independently prove the source's truth.
+
+The default disables research tools and reviews existing excerpts. Set `max_tool_calls` to 1 or 2 only when public discovery is needed. New URLs remain leads in `additional_sources`; retain and verify their contents before resubmitting. The Play caps claims at 10 by default (maximum 50). These are work bounds, not a guaranteed credit ceiling; usage is billed after execution. Export verdicts and reuse them only for unchanged source evidence and review policy.
+
+Outputs retain citations, reason, Agent proposal, Jev probabilities and the existing decline. They never change scores, mark a path ready, submit consent or send an introduction. The reviewer is a manual workflow stage; automatic queue dispatch and applying reviewed facts to source tables are not yet wired. See [factor coverage](../references/factor-test-matrix.md).
+
+### Model boundary
+
+Use Jev only for atomic true/false facts, feature extraction and entity mapping. Do not ask it to produce or validate scores, weights, relationship-strength labels or intro-success probabilities. Code validates extracted features and computes dates, durations, feature contributions and final scores. The ambiguity Play uses boolean questions only; probability cutoffs control whether a factual flag needs review. They are never scoring weights.
+
+For example, reported overlap of 3.5 years plus 5 months is 47 reported months across two employers. Year-only date ranges do not verify that duration. Keep reported and date-verified overlap separate, union simultaneous intervals before summing, and do not merge a historical employer with its later parent without dated entity evidence. A supplied “Medium” label is not a model-verified fact. The current work score uses the strongest overlap; a repeated-employer bonus is not enabled.
+
+Validation: five offline review tests pass. A three-claim fictional cloud pilot returned supported for an explicit dated investment, insufficient evidence for an investor-relations title, and contradicted for an explicit dated denial. All retained the decline and zero score changes. The earlier undated pilot stayed held; precise claim dates were required. The final prompt adds the fact-only scope restriction and passes static Play validation; that last prompt restriction was not separately live-tested.
