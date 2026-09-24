@@ -18,7 +18,7 @@ import tuning
 rows=[]
 for t in range(311):
  for c in range(294):
-  rows.append(dict(id=f'p{t}-{c}',target_id=f't{t}',target_name=f'Target {t:03d}',target_company=f'Account {t%25:02d}',connector_id=f'c{c}',connector_name=f'Connector {c:03d}',target_linkedin_url=f'https://www.linkedin.com/in/target-{t}',connector_linkedin_url=f'https://www.linkedin.com/in/connector-{c}',baseline_score=0,review_status='needs_confirmation',features={'investor_portfolio':dict(value=1 if c==293 else 0,evidence_ids=['e'] if c==293 else [],explanation='Company context only.',timing_status='not_applicable')}))
+  rows.append(dict(id=f'p{t}-{c}',target_id=f't{t}',target_name=f'Target {t:03d}',target_company=f'Account {t%25:02d}',target_title='VP Sales',connector_title='Investor',connector_company='Example Capital',connector_id=f'c{c}',connector_name=f'Connector {c:03d}',target_linkedin_url=f'https://www.linkedin.com/in/target-{t}',connector_linkedin_url=f'https://www.linkedin.com/in/connector-{c}',baseline_score=0,review_status='needs_confirmation',features={'investor_portfolio':dict(value=1 if c==293 else 0,evidence_ids=['e'] if c==293 else [],explanation='Company context only.',timing_status='not_applicable')}))
 Path(sys.argv[2]).write_text(tuning.render(dict(as_of='2026-09-23',paths=rows,evidence=[dict(id='e',source='https://example.com',detail='Portfolio fact.',observed_at='2026-09-23')])))
 `, __dirname, output], {encoding:'utf8', maxBuffer:1024*1024});
 assert.equal(generated.status, 0, generated.stderr);
@@ -35,6 +35,10 @@ assert.equal(generated.status, 0, generated.stderr);
   assert.equal(await page.locator('.card .person-tag[href]').count(),6);
   assert.equal(await page.locator('.comparison-item strong a').count(),3);
   assert.equal(await page.locator('.target-name[href]').count(),311);
+  assert.match(await page.locator('.target-meta').first().innerText(),/VP Sales · Account 00/);
+  assert.match(await page.locator('.comparison-item .person-job').first().innerText(),/Investor · Example Capital/);
+  assert.match(await page.locator('.card .connector .person-job').first().innerText(),/Investor · Example Capital/);
+  assert.match(await page.locator('#target-heading').innerText(),/VP Sales · Account 00/);
   assert.equal(await page.locator('button a').count(),0,'Profile links must not nest inside buttons.');
   assert.equal(await page.locator('.card .connector .person-tag').first().getAttribute('href'),await page.locator('.card .connector strong a').first().getAttribute('href'));
   await page.locator('.comparison-item button').first().click();

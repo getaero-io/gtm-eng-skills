@@ -78,3 +78,18 @@ test('local reports require the same evidence registry as cloud reports',()=>{
 test('collection retains an explicit reviewed account assignment',()=>{
  const raw={linkedinUrl:'https://linkedin.com/in/fixture',experience:[]};expect(normalizeCollectedProfile(raw,'fixture',raw.linkedinUrl,'fixture:receipt','2026-09-23','2026-08-02','example.test').domain).toBe('example.test');
 });
+test('shows sourced job titles beside unresolved identities and escapes unsafe values',()=>{
+ const data:any=buildFeatures(structuredClone(fixture));
+ data.coverage.unresolved=[{target:{name:'Missing Person',title:'VP <Sales>',company:'Example & Co',linkedin_url:'https://www.linkedin.com/in/missing-person'},reason:'account_domain_mismatch'},{target:{name:'Unknown Role',linkedin_url:'javascript:alert(1)'},reason:'missing_profile'}];
+ const section=renderReview(data).split('<section aria-label="Source coverage">')[1];
+ expect(section).toContain('href="https://www.linkedin.com/in/missing-person"');
+ expect(section).toContain('VP &lt;Sales&gt; · Example &amp; Co');
+ expect(section).toContain('Job title unknown');
+ expect(section).not.toContain('href="javascript:');
+});
+
+test('domain diagnostics remain visible and escape source text',()=>{
+ const data=buildFeatures(structuredClone(fixture));
+ data.coverage.unresolved=[{target:{name:'Target',title:'Engineer',company:'Example'},reason:'account_domain_mismatch',domain_check:{expected_domain:'example.test',profile_domain:'<script>bad</script>',status:'different_domains'}}];
+ const html=renderReview(data);expect(html).toContain('Expected account: example.test');expect(html).toContain('Profile account: &lt;script&gt;bad&lt;/script&gt;');expect(html).not.toContain('Profile account: <script>');
+});
