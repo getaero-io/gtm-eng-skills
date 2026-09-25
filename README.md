@@ -62,6 +62,7 @@ Skills use the [Deepline CLI](https://code.deepline.com) under the hood — one 
 | [`workflow-hello-world`](skills/workflow-hello-world/SKILL.md) | Create a cloud Deepline workflow that runs on a recurring cron schedule or via webhook | Workflow scaffolding and trigger validation |
 | [Warm-intro recipe](engineering/warm-intro-scoring/GUIDE.md) | Rank cited introduction paths; produce linked reviews and private Google Sheets | Connector selection, evidence, tunable scores and ask review |
 | [`deepline-feedback`](skills/deepline-feedback/SKILL.md) | Send feedback or bug reports to the Deepline team, including session transcript and environment info | Bug reports, feature requests |
+| [`vibe-prospecting`](skills/vibe-prospecting/SKILL.md) | Build B2B prospect/account lists and enrich via Explorium Vibe Prospecting MCP (OAuth; complementary to Deepline) | ICP list building, enrichment without Deepline CLI |
 
 > `gtm-meta-skill` is also published as a deprecated stub that redirects to `deepline-gtm`. Use `deepline-gtm` directly.
 
