@@ -525,7 +525,7 @@ withColumn<Name extends string, Value>( name: Name, definition: DatasetColumnDef
 
 withColumn<Name extends string, Value>( name: Name, definition: DatasetColumnDefinition< OutputRow, Value >, ): DatasetBuilder< InputRow, OutputRow & Record<Name, Value> >;
 
-withColumn<Name extends string, Value>( name: Name, resolver: | StepResolver<OutputRow, Value> | RunnableStepProgram<unknown, Value>, options: StepOptions<OutputRow, Value>, ): DatasetBuilder< InputRow, OutputRow & Record<Name, Value | null> >;
+withColumn<Name extends string, Value>( name: Name, resolver: StepResolver<OutputRow, Value> | RunnableStepProgram<unknown, Value>, options: StepOptions<OutputRow, Value>, ): DatasetBuilder< InputRow, OutputRow & Record<Name, Value | null> >;
 
 run( options?: DatasetRunOptions<InputRow>, ): Promise<PlayDataset<OutputRow>>;
 ```
