@@ -433,7 +433,9 @@ Includes matching tools plus render/action hints used by the CLI and agents.
 |---|---|---:|---|
 | `tools` | `ToolDefinition[]` | Yes | Ranked matching tools. |
 | `count` | `number` | No | Count included in this response when available. |
-| `total` | `number` | No | Total available count when the backend reports it. |
+| `total` | `number` | No | Matching count within the selected retrieval set. Check total_is_exact. |
+| `total_is_exact` | `boolean` | No | False when indexed retrieval uses a bounded candidate set. |
+| `may_have_more` | `boolean` | No | True when indexed retrieval may have additional matching tools. |
 | `truncated` | `boolean` | No | Whether results were truncated by server-side limits. |
 | `query` | `string` | No | Echoed query. |
 | `categories` | `string[]` | No | Parsed category filters. |
