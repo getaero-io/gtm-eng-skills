@@ -53,7 +53,7 @@ The waterfall below defaults to **company-wide mapping** (domain to every employ
 
 ### The hard truth about reporting chains
 
-No data source Deepline can reach, including PDL, Dropleads, HarvestAPI, Apify, the `linkedin_scraper` family, or Sales Navigator, exposes a real "reports to" / manager field. LinkedIn does not publish reporting chains, and neither does Sales Nav. It improves _who you can find_, not _who reports to whom_. So **every reporting edge in any org chart this recipe produces is inferred, not retrieved.**
+No data source Deepline can reach, including PDL, Dropleads, HarvestAPI, Apify, the Edges.run (`edges`) family, or Sales Navigator, exposes a real "reports to" / manager field. LinkedIn does not publish reporting chains, and neither does Sales Nav. It improves _who you can find_, not _who reports to whom_. So **every reporting edge in any org chart this recipe produces is inferred, not retrieved.**
 
 That means:
 
