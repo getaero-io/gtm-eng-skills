@@ -336,6 +336,7 @@ while True:
 | `PATCH` | `/api/v2/plays/:name/share` | `updateSharePage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/share/route.ts` |
 | `POST` | `/api/v2/plays/:name/share` | `publishSharePage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/share/route.ts` |
 | `POST` | `/api/v2/plays/:name/share/regenerate` | `regenerateSharePage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/share/regenerate/route.ts` |
+| `POST` | `/api/v2/plays/activity` | `getPlaysActivity` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/activity/route.ts` |
 | `POST` | `/api/v2/plays/files/stage/mint` | `stagePlayFiles`<br />`mintStagedPlayFileUploads` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/files/stage/mint/route.ts` |
 | `GET` | `/api/v2/sdk/compat` | `compat check` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/sdk/compat/route.ts` |
 | `GET` | `/api/v2/secrets` | `secrets list`<br />`secrets check`<br />`listSecrets` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/secrets/route.ts` |
