@@ -16,10 +16,6 @@ Generated from source comments and type declarations by `scripts/generate-play-s
 | Coverage | HTTP and SDK client surface for runtime calls: health, tool/provider discovery and execution, customer data queries, play runs, play definitions, play artifacts, files, and run inspection. |
 | Not covered | Provider-specific schemas, dashboard-only UI routes, billing/auth setup guides, and tutorial prose. Provider-specific schemas are returned by the generated tool describe routes. |
 
-## Best Current Pattern
-
-Strong runtime API references lead with base URL, auth, version/contract metadata, language examples, and exact generated route tables. Deepline follows that shape here: use the quick call flows first, then the generated route and type tables below for contract details.
-
 ## Quick Call Flow
 
 1. `POST /api/v2/plays/run` with a saved/prebuilt `name` and JSON `input`.
