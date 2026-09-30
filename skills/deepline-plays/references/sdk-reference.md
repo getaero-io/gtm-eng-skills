@@ -1295,7 +1295,7 @@ Signature: `class DeeplineClient`
 | `stopPlay` | method | Stop a running play execution, including open HITL waits. | `workflowId: string` - Public Deepline play-run id to stop<br />`options?: { reason?: string }` | `Promise<StopPlayRunResult>` |
 | `listPlayRuns` | method | List recent runs for a named play.<br /><br />Returns runs sorted by start time (newest first), including workflow IDs,<br />status, timestamps, and metadata. | `playName: string` - The play name to query | `Promise<PlayRunListItem[]>` |
 | `getRunStatus` | method | Get a run by id using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs get <run-id> --json<br />``` | `runId: string`<br />`options?: RunsGetOptions` | `Promise<PlayStatus>` |
-| `getRunLifecycleStatus` | method | Read only the bounded scalar projection; does not hydrate the run package. | `runId: string` | `Promise<RunLifecycleStatus>` |
+| `getRunLifecycleStatus` | method | Fetch only the legacy scalar lifecycle status for a run. | `runId: string` | `Promise<RunLifecycleStatus>` |
 | `listRuns` | method | List play runs using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs list --play <play-name> --status failed --json<br />``` | `options: RunsListOptions` | `Promise<PlayRunListItem[]>` |
 | `listRunsPage` | method | Read one run page without discarding server pagination metadata. | `options: RunsListOptions` | `Promise<RunsListPage>` |
 | `observeRunEvents` | method | Observe one run's live events. Uses the Convex Run Snapshot subscription<br />transport first (ADR-0008), then falls back to the canonical SSE stream<br />when the subscription transport or its optional client modules are not<br />available. Pass `fallback: 'none'` to receive<br />`RunObserveTransportUnavailableError` instead. | `runId: string`<br />`options?: { signal?: AbortSignal; onNotice?: (message: string) => void; fallback?: 'sse' \| 'none'; }` | `AsyncGenerator<PlayLiveEvent>` |
@@ -1309,6 +1309,9 @@ Signature: `class DeeplineClient`
 | `listPlays` | method | List one page of callable plays; grep retains exhaustive matching results.<br />Use listPlaysPage to retain pagination metadata.<br /><br />Pass `origin: "prebuilt"` for Deepline-managed prebuilts or<br />`origin: "owned"` for org-owned plays. | `options?: PlaysListOptions` | `Promise<PlayListItem[]>` |
 | `listPlaysPage` | method | Read one bounded inventory page; cursor continues the same filters. | `options?: PlaysListOptions & { limit?: number; cursor?: string \| null; }` | `Promise<PlaysListPage>` |
 | `getPlaysActivity` | method | Count durable Play runs and Monitor deliveries in local calendar days. | `options?: { timeZone?: string; days?: number; endDate?: string; groupBy?: 'kind' \| 'trigger_source'; }` | `Promise<PlaysActivityResponse>` |
+| `getPlaySettings` | method | Read definition-level settings, independently of code revisions. | `playName: string` | `Promise<PlaySettingsResult>` |
+| `updatePlaySettings` | method | Retry-safe field patch; omitted fields retain their current value. | `playName: string`<br />`patch: PlaySettingsPatch` | `Promise<PlaySettingsResult>` |
+| `listPlaySettingsPaths` | method | List one bounded page of existing Play locations; continue with cursor. | `options?: { root?: 'person' \| 'team'; limit?: number; cursor?: string }` | `Promise<PlaySettingsPathsPage>` |
 | `setPlayPinned` | method | Set whether an org-owned Play sorts before unpinned Plays. | `playName: string`<br />`pinned: boolean` | `Promise<{ name: string; pinned: boolean }>` |
 | `getNotificationSettings` | method | Read product-notification destinations, subscriptions, event catalog, and DLQ health. |  | `Promise<ProductNotificationSettings>` |
 | `connectNotificationSlack` | method | Start the Slack OAuth flow required by product notifications. | `options?: { successUrl?: string; failureUrl?: string; }` | `Promise<{ ok: boolean; redirect_url: string }>` |
@@ -1372,7 +1375,7 @@ Use `client.runs` (`/api/v2/runs`) to poll, stream, stop, read logs, and export 
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `get` | `(runId: string, options?: RunsGetOptions) => Promise<PlayStatus>` | Yes | Get current run status by public run id. |
-| `status` | `(runId: string) => Promise<RunLifecycleStatus>` | Yes | Read bounded scalar lifecycle and confirmed work counts only. |
+| `status` | `(runId: string) => Promise<RunLifecycleStatus>` | Yes |  |
 | `input` | `(runId: string) => Promise<{ runId: string; input: Record<string, unknown> \| unknown[]; bytes: number; sha256: string \| null; replayedFromRunId: string \| null; }>` | Yes | Explicitly read the retained original input (may include customer data). |
 | `rerun` | `(runId: string, options?: RerunOptions) => Promise<RerunPlayRunResult>` | Yes | Start a fresh run from a prior run's retained input and pinned revision. |
 | `list` | `(options: RunsListOptions) => Promise<PlayRunListItem[]>` | Yes | List runs for one play, optionally filtered by status. |

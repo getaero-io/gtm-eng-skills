@@ -52,6 +52,7 @@ This skill is not for cold outbound, sequencing, or copywriting. Personal emails
 | "include phone numbers", "add phones"                                    | Hash existing phones digits-only with country code.                | `shared/upload-failure-modes.md`                          |
 | "what was the match rate", "did it match"                                | Read `contactIdInfo.matchRatePercentage`, not the range enum.      | `shared/upload-failure-modes.md`                          |
 | "put it in a sheet", "customer will upload"                              | Publish the validated file to Sheets; verify by row count.         | `shared/upload-failure-modes.md`                          |
+| "connect Meta", "Meta not connected", "(#100)", "business_management"   | Connect Meta with a system user token; Meta login is not offered.  | `shared/meta-connection.md`                               |
 | "upload keeps failing", "422", "audience is locked"                      | Meta locks on write. Send the audience in one call.                | `shared/upload-failure-modes.md`                          |
 | "Upload to Google"                                                       | Validate hash-only rows, create Google audience, sync, readback.   | `plays/upload-google-hash-only-audience.play.ts`          |
 | "Upload to Facebook and Google", "upload to FB/Google", "Meta + GAds"    | Validate once, then upload to Google and Meta.                     | `plays/upload-facebook-google-hash-only-audience.play.ts` |

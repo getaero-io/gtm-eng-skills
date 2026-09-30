@@ -224,7 +224,7 @@ while True:
 | `GET` | `/api/v2/runs/:runId/logs` | `runs.logs`<br />`getRunLogs` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/logs/route.ts` |
 | `POST` | `/api/v2/runs/:runId/observe-grant` | `runs.tail`<br />`tailRun`<br />`runPlay` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/observe-grant/route.ts` |
 | `POST` | `/api/v2/runs/:runId/rerun` | `runs.rerun`<br />`rerun` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/rerun/route.ts`<br />`apps/deepline-api/src/lib/plays/rerun-admission-read.ts`<br />`apps/deepline-api/src/lib/plays/rerun-idempotency.ts`<br />`apps/deepline-api/src/lib/plays/scheduler-admission-read.ts` |
-| `GET` | `/api/v2/runs/:runId/status` | `runs.status`<br />`runs status` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/status/route.ts` |
+| `GET` | `/api/v2/runs/:runId/status` | `runs.status`<br />`runs status` | Legacy scalar-only read retained for compatibility. New clients should use GET /api/v2/runs/:runId (`runs.get`) for status, results, and progress. | `apps/deepline-api/src/app/api/v2/runs/[runId]/status/route.ts` |
 | `POST` | `/api/v2/runs/:runId/stop` | `runs.stop`<br />`stopRun`<br />`cancelPlay`<br />`stopPlay` | Stop a running or waiting play run. | `apps/deepline-api/src/app/api/v2/runs/[runId]/stop/route.ts` |
 | `GET` | `/api/v2/runs/:runId/tail` | `runs.tail`<br />`tailRun` | Stream canonical run events over SSE. | `apps/deepline-api/src/app/api/v2/runs/[runId]/tail/route.ts` |
 | `POST` | `/api/v2/runs/stop-all` | `runs.stopAll`<br />`stopAllRuns` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/stop-all/route.ts` |
@@ -331,6 +331,8 @@ while True:
 | `GET` | `/api/v2/notifications/slack/channels` | `listNotificationChannels` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/notifications/slack/channels/route.ts` |
 | `POST` | `/api/v2/plays/:name/pin` | `setPlayPinned` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/pin/route.ts` |
 | `POST` | `/api/v2/plays/:name/restore` | `restorePlay` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/restore/route.ts` |
+| `GET` | `/api/v2/plays/:name/settings` | `getPlaySettings` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/settings/route.ts` |
+| `PATCH` | `/api/v2/plays/:name/settings` | `updatePlaySettings` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/settings/route.ts` |
 | `DELETE` | `/api/v2/plays/:name/share` | `unpublishSharePage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/share/route.ts` |
 | `GET` | `/api/v2/plays/:name/share` | `getSharePage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/share/route.ts` |
 | `PATCH` | `/api/v2/plays/:name/share` | `updateSharePage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/share/route.ts` |
@@ -338,6 +340,7 @@ while True:
 | `POST` | `/api/v2/plays/:name/share/regenerate` | `regenerateSharePage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/share/regenerate/route.ts` |
 | `POST` | `/api/v2/plays/activity` | `getPlaysActivity` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/activity/route.ts` |
 | `POST` | `/api/v2/plays/files/stage/mint` | `stagePlayFiles`<br />`mintStagedPlayFileUploads` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/files/stage/mint/route.ts` |
+| `GET` | `/api/v2/plays/settings/paths` | `listPlaySettingsPaths` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/settings/paths/route.ts` |
 | `GET` | `/api/v2/sdk/compat` | `compat check` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/sdk/compat/route.ts` |
 | `GET` | `/api/v2/secrets` | `secrets list`<br />`secrets check`<br />`listSecrets` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/secrets/route.ts` |
 | `POST` | `/api/v2/secrets` | `secrets set`<br />`secrets set --note` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/secrets/route.ts` |
@@ -566,6 +569,8 @@ Poll this until `status` reaches a terminal state:
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `runId` | `string` | Yes | Public play-run identifier. |
+| `overview` | `RunLifecycleStatus` | No | Legacy status evidence returned by older servers. |
+| `runStatus` | `RunGetStatus` | No | Additive bounded evidence when returned by the current server. |
 | `apiVersion` | `number` | No | Public Deepline play-run API version. |
 | `name` | `string` | No | Saved play name for this run, when available. |
 | `revisionId` | `string` | No | Exact saved revision launched for this run, when applicable. |
@@ -606,6 +611,9 @@ internals.
 |---|---|---:|---|
 | `schemaVersion` | `1` | Yes | Package schema version. |
 | `kind` | `'play_run'` | Yes | Package discriminator. |
+| `source` | `{ ledgerNextSeq: number \| null }` | No | Ledger position of the detailed snapshot, when provided by this server. |
+| `overview` | `RunLifecycleStatus` | No | Legacy status evidence returned by older servers. |
+| `runStatus` | `RunGetStatus` | No | Optional bounded live evidence from the existing run status projection. |
 | `run` | `{ id: string; playName: string; status: string; dashboardUrl?: string; acceptedAt?: number \| null; updatedAt?: number \| null; startedAt?: number \| null; finishedAt?: number \| null; durationMs?: number \| null; outcome?: PlayRunOutcome; recovery?: { mode: 'replayed' \| 'forced' \| 'recovered' \| 'joined'; sourceRunId?: string; }; error?: string; activity?: PlayRunActivityProjection \| null; }` | Yes | Run identity, status, timing, and dashboard metadata. |
 | `warnings` | `string[]` | No | Bounded customer-safe warnings about output projection or availability. |
 | `steps` | `Array<Record<string, unknown>>` | Yes | Step-level summaries emitted by the runtime. |
@@ -661,7 +669,7 @@ Use `client.runs` (`/api/v2/runs`) to poll, stream, stop, read logs, and export 
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `get` | `(runId: string, options?: RunsGetOptions) => Promise<PlayStatus>` | Yes | Get current run status by public run id. |
-| `status` | `(runId: string) => Promise<RunLifecycleStatus>` | Yes | Read bounded scalar lifecycle and confirmed work counts only. |
+| `status` | `(runId: string) => Promise<RunLifecycleStatus>` | Yes |  |
 | `input` | `(runId: string) => Promise<{ runId: string; input: Record<string, unknown> \| unknown[]; bytes: number; sha256: string \| null; replayedFromRunId: string \| null; }>` | Yes | Explicitly read the retained original input (may include customer data). |
 | `rerun` | `(runId: string, options?: RerunOptions) => Promise<RerunPlayRunResult>` | Yes | Start a fresh run from a prior run's retained input and pinned revision. |
 | `list` | `(options: RunsListOptions) => Promise<PlayRunListItem[]>` | Yes | List runs for one play, optionally filtered by status. |
