@@ -48,8 +48,9 @@
 - Job search is billed per job returned and is cheaper per row. Safe to use with `limit: 25`.
 - Technographics is billed per company lookup, regardless of result count.
 - Catalog keywords and credit balance: free.
-- Deepline credit pricing for these actions is generated from the provider pricing
-  metadata and rendered on the public provider pages.
+- `deepline tools describe <tool> --pricing-only` shows the Deepline credits per
+  returned company or job. Estimate a search as `limit` times that price; TheirStack
+  returns up to 25 rows when `limit` is omitted.
 
 ## Common Mistakes
 

@@ -435,6 +435,7 @@ Includes matching tools plus render/action hints used by the CLI and agents.
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `tools` | `ToolDefinition[]` | Yes | Ranked matching tools. |
+| `search_ref` | `string` | No | Identifies this search; pass it as `searchRef` when executing a tool it found. |
 | `count` | `number` | No | Count included in this response when available. |
 | `total` | `number` | No | Matching count within the selected retrieval set. Check total_is_exact. |
 | `offset` | `number` | No | Zero-based offset used for this page. |
