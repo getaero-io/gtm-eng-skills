@@ -422,6 +422,8 @@ Query options for ranked tool/provider discovery.
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `query` | `string` | No | Free-text search query. |
+| `limit` | `number` | No | Maximum number of ranked tools to return (1-50; defaults to 20). |
+| `offset` | `number` | No | Zero-based offset into the ranked result set. |
 | `categories` | `string` | No | Comma-separated category filter such as `company_search` or `email_finder`. |
 | `searchTerms` | `string` | No | Optional explicit search terms used by agent/CLI callers. |
 | `searchMode` | `'v1' \| 'v2'` | No | Search algorithm/version. Defaults to the current ranked mode. |
@@ -439,6 +441,9 @@ Includes matching tools plus render/action hints used by the CLI and agents.
 | `tools` | `ToolDefinition[]` | Yes | Ranked matching tools. |
 | `count` | `number` | No | Count included in this response when available. |
 | `total` | `number` | No | Matching count within the selected retrieval set. Check total_is_exact. |
+| `offset` | `number` | No | Zero-based offset used for this page. |
+| `limit` | `number` | No | Maximum number of ranked tools requested for this page. |
+| `next_offset` | `number` | No | Offset to pass for the next page, when more results are in this result set. |
 | `total_is_exact` | `boolean` | No | False when indexed retrieval uses a bounded candidate set. |
 | `may_have_more` | `boolean` | No | True when indexed retrieval may have additional matching tools. |
 | `truncated` | `boolean` | No | Whether results were truncated by server-side limits. |
