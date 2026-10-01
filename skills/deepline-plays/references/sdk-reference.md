@@ -912,8 +912,7 @@ runtime control. Use `count()` and `peek()` for bounded inspection. Use
 `materialize(limit)` or async iteration only when the dataset is intentionally
 small and bounded. `PlayDataset` intentionally does not expose `.rows`,
 `.toArray()`, `.length`, numeric indexing, spread, or synchronous iteration;
-those hide the runtime cost of loading persisted rows into memory or make
-behavior depend on whether rows happen to be resident.
+these hide loading costs or make behavior depend on row residency.
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -923,6 +922,7 @@ behavior depend on whether rows happen to be resident.
 | `backing` | `PlayDatasetBacking` | No | Backing store info. |
 | `sourceLabel` | `string \| null` | No | Display label. |
 | `tableNamespace` | `string \| null` | No | Runtime table name. |
+| `columnTypes` | `PlayDatasetColumnTypes` | No | Advisory source types; transformed fields must infer from their values. |
 
 ### `ToolExecuteResult`
 
