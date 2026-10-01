@@ -112,8 +112,8 @@ A live upload without a no-double-hash audit is not acceptable for this workflow
 Discover accounts first. Show account name and ID to the user before upload.
 
 ```bash
-deepline tools search "google ads audiences accounts" --json
-deepline tools search "meta audiences custom audience upload" --json
+deepline tools search "google ads audiences accounts"
+deepline tools search "meta audiences custom audience upload"
 ```
 
 Use the combined play when both channel IDs are ready:

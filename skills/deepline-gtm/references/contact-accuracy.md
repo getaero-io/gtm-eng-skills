@@ -50,7 +50,7 @@ People move. On older lists, a job-changer's listed email is often on their old 
 
 ## 4. Email validation: never trust a single provider's status
 
-Provider "verified"/"valid" flags are the provider grading its own homework. Independently validate every email with a dedicated validator. ZeroBounce and LeadMagic are current starting hints; confirm live tools with `deepline tools search "email validation" --json` and `describe`.
+Provider "verified"/"valid" flags are the provider grading its own homework. Independently validate every email with a dedicated validator. ZeroBounce and LeadMagic are current starting hints; confirm live tools with `deepline tools search "email validation"` and `describe`.
 
 - **valid:** deliverable, ship.
 - **catch-all:** the domain accepts everything; ship only when a second independent finder returned the exact same address.
@@ -95,7 +95,7 @@ This matters most when the list is stale or title-anchored. In stale-account aud
 The pattern, in durable terms:
 
 - **Input contract:** company name + domain (+ optional tier).
-- **Discovery:** domain-anchored people search filtered to the **target role**, across multiple providers in a waterfall: Crustdata by company-domain and a search/finder provider as fallback. Pass the role as a title filter (the user's target function, not hardcoded to finance). Each provider is blind to the others; take the first that returns a current role-holder at that domain. Find the live tool/play names with `deepline plays search "company contacts" --json` and `deepline tools search "people search domain" --json`; confirm input shape with `describe` before running, because provider field names rot.
+- **Discovery:** domain-anchored people search filtered to the **target role**, across multiple providers in a waterfall: Crustdata by company-domain and a search/finder provider as fallback. Pass the role as a title filter (the user's target function, not hardcoded to finance). Each provider is blind to the others; take the first that returns a current role-holder at that domain. Find the live tool/play names with `deepline plays search "company contacts" --json` and `deepline tools search "people search domain"`; confirm input shape with `describe` before running, because provider field names rot.
 - **Verify the discovered person, but don't name-gate them.** The §2 name-match check does not apply: you *want* a different name than the one on your stale list, so requiring the names to match would reject the successor you came to find. What you owe instead is (a) §1's current-role logic on the returned person, to confirm the company is their *current* employer and not a role they already left, and (b) that the company genuinely appears as their current/recent employer (the domain anchor gives you this for free). Confirm those two, and the discovered name is the answer.
 - **Coalesce with any name-first data you also have.** When you run both pipelines (company-first discovery + a name-first refresh of the original contact), record per field which pipeline won, and flag where they disagree: that disagreement is exactly the "the original person left, here's the successor" signal worth surfacing.
 

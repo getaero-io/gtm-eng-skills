@@ -94,7 +94,7 @@ only when every program produces the same complete final row from the same seam.
 ## Catalog
 
 ```bash
-deepline tools search "<information role and controls>" --json
+deepline tools search "<information role and controls>"
 deepline tools grep "<substring>" --json   # ranked search has returned the same
                                            # irrelevant hits for three different queries
 deepline tools list <returned-category> --json

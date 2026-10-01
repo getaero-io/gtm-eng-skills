@@ -21,9 +21,9 @@ Contact-email recovery pattern:
 - Search ScrapeCreators without over-constraining to a category if profile tools are not showing up in the first pass:
 
 ```bash
-deepline tools search "facebook profile email scrapecreators" --json
-deepline tools search "instagram profile bio email scrapecreators" --json
-deepline tools search scrapecreators --json
+deepline tools search "facebook profile email scrapecreators"
+deepline tools search "instagram profile bio email scrapecreators"
+deepline tools search scrapecreators
 ```
 
 - If available, test `scrapecreators_facebook_profile`, `scrapecreators_facebook_profile_posts`, `scrapecreators_instagram_profile`, and `scrapecreators_instagram_user_posts` on a tiny sample before scaling. Fall back to Serper/Firecrawl/Apify or direct website extraction when no managed profile route fits.

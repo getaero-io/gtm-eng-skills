@@ -177,9 +177,9 @@ the query instead.
 ```bash
 DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "web search news source discovery" --categories research --search_terms "web search,news,recency,source discovery"
 DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "social posts reddit x twitter youtube tiktok instagram" --categories research --search_terms "social posts,reddit,x twitter,youtube,tiktok,instagram"
-DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search scrapecreators --json
-DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "facebook profile email scrapecreators" --json
-DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "instagram profile bio links scrapecreators" --json
+DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search scrapecreators
+DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "facebook profile email scrapecreators"
+DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "instagram profile bio links scrapecreators"
 DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "company dataset firmographics funding technographics jobs" --categories company_search --search_terms "company dataset,firmographics,funding,technographics,jobs"
 DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "crm warehouse workflow session usage" --categories admin --search_terms "crm,warehouse,workflow,session,usage"
 ```

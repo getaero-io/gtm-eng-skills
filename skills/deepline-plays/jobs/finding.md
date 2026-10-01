@@ -183,7 +183,7 @@ When a database comes up thin, change where the fact lives:
 | Reactors/commenters on a LinkedIn post                        | `deepline plays search engagers --json`                       |
 
 ```bash
-deepline tools search "company search funding headcount category hq" --json
+deepline tools search "company search funding headcount category hq"
 deepline tools describe <tool-id> --json
 deepline tools execute <tool-id> --payload '{"hq_country":"USA","funding_round":["Series A","Series B"],"employee_count":{"min":50,"max":500},"limit":1}' --json
 deepline plays check ./company-discovery.play.ts
@@ -203,7 +203,7 @@ export.
 **Durable discovery rules** (the difference between "built the list from real data" and "fell back to training-data names after tool friction"):
 
 - **Count before pulling.** Ask the source how many it has (a count endpoint, or `limit: 1` as a shape-and-size probe) before pulling pages. Pulling 100 when the source has 18 inflates cost; pulling 25 when it has 4,000 silently truncates the breadth without telling the user.
-- **Validate enum-like filters first.** Industry codes, category strings, country codes, and funding-round labels often validate against a closed enum. Sending `"financial services"` where the provider wants `"Financial Services"` (or `54`) returns zero results with no error. Use the provider's autocomplete/enum endpoint on a sample value (`deepline tools search autocomplete --json`) before the full search.
+- **Validate enum-like filters first.** Industry codes, category strings, country codes, and funding-round labels often validate against a closed enum. Sending `"financial services"` where the provider wants `"Financial Services"` (or `54`) returns zero results with no error. Use the provider's autocomplete/enum endpoint on a sample value (`deepline tools search autocomplete`) before the full search.
 - **ISO 3-letter country codes for HQ filters.** Most structured company providers want `USA`, `GBR`, `DEU`, not `"United States"`. The country filter is the most common silent-failure mode — the request succeeds, the count is zero, and the agent wrongly concludes "no companies match."
 - **Filter, then supplement; do not re-discover.** When a pass returns mostly good rows and a few bad ones, drop the bad and supplement gaps from a second source. The noise is in the data, not the query — re-running the primary search with new filters chasing a cleaner set rarely helps.
 - **Do not salvage discovery with domain-by-domain enrichment loops.** For "build a list of N companies matching criteria," domain-by-domain enrichment is a gap-fill step after you have a candidate set, not a discovery strategy. If you catch yourself looping over hand-picked domains, return to a provider-native company/job search with broader filters. **Hard stop:** after two provider searches and one supplement pass, write the valid rows with evidence, broaden one filter and rerun, or report the criteria were too narrow.
@@ -260,7 +260,7 @@ executives.
 
 ```bash
 # People across companies
-deepline tools search "people search" --json
+deepline tools search "people search"
 deepline tools execute <tool-id> --payload '{"function":"Marketing","seniority":["VP","Director"],"hq_country":"USA","limit":1}' --json
 
 # People at a known company
@@ -273,7 +273,7 @@ search is the exploit shape after the pilot above. Author each
 candidate route as a `SearchProgram`; the helper creates the evidence ledger,
 comparison, holdout, and scorecard. Resolving a domain from a company name is
 mechanical — use a search tool
-(`deepline tools search search --json`), not `deeplineagent`. Engagers on a
+(`deepline tools search search`), not `deeplineagent`. Engagers on a
 post output a list of people — hand off to the qualification section
 (`deeplineagent` with a tier `jsonSchema`).
 

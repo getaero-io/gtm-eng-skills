@@ -75,7 +75,7 @@ Names in docs are hints. Live `search` and `describe` are the source of truth:
 ```bash
 deepline plays search "<job words>" --json
 deepline plays describe prebuilt/<candidate> --json
-deepline tools search "<provider need>" --categories <category> --json
+deepline tools search "<provider need>" --categories <category>
 deepline tools describe <tool-id> --json
 ```
 

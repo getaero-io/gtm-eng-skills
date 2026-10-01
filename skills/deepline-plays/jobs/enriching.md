@@ -49,7 +49,7 @@ Route by the identifiers each row has:
 | `email`                                                  | hydrated person + company   | reverse contact enrichment                         | `deepline plays search contact --json`          |
 | name + `domain` (+ optional email/linkedin)              | phone number                | identity → phone waterfall                         | `deepline plays search phone --json`            |
 | name + `company_name` (+ optional linkedin)              | job-change status           | job-change detection + verification                | `deepline plays search "job change" --json`     |
-| existing `email`                                         | validation status + verdict | email verifier                                     | `deepline tools search "email verifier" --json` |
+| existing `email`                                         | validation status + verdict | email verifier                                     | `deepline tools search "email verifier"` |
 | name, optional company                                   | LinkedIn profile URL        | name → LinkedIn URL waterfall                      | `deepline plays search linkedin --json`         |
 | row + ICP description                                    | tier / fit classification   | structured AI column with `jsonSchema`             | (see AI research)                               |
 
@@ -70,7 +70,7 @@ A miss on one route is not a dead row — but a second route is a purchase, not 
 - **Emit every fact the evidence already paid for.** A registry or maps route that returned a verified phone while resolving the practice was already billed for it. One run held that phone in a local variable, never emitted it, and shipped nulls for a cohort where 19 of 43 were hospital-employed with no public mailbox. Add the column before concluding the ceiling.
 - **Recognize a structural ceiling — after the aggregator rung.** Some populations keep work emails behind directories few sources index, and their mail domains block SMTP validation, so correct pattern guesses can't be promoted to fills. Once waterfall, re-route, registry, and aggregator rungs are all measured, the right output is the validated fills, honest nulls with miss reasons, and a channel pivot the evidence already paid for (verified practice phone, mobile). Report the measured ceiling instead of buying the same misses again.
 
-After a phone is recovered, validate line type and activity with a phone validator (`deepline tools search phone --json`). A number that connects to the wrong person costs more than a missing number.
+After a phone is recovered, validate line type and activity with a phone validator (`deepline tools search phone`). A number that connects to the wrong person costs more than a missing number.
 
 **Cohort patches are not the method.** A domain blocklist, place-name stopwords, or a specialty regex tuned to one roster do not port to the next job. Three rules do: a URL must corroborate the name it is attached to (use `coherenceChecks`); consensus must be scoped to the relevant sub-population; and a derived contact needs independent verification. Carry those forward, not the lists.
 
