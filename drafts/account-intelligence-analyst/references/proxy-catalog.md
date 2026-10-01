@@ -118,8 +118,9 @@ users ask for:
 - **Budget, approval, procurement stage** — nothing observes internal finance.
 - **Contract renewal dates** — not derivable from any catalog arm.
 - **Private headcount by team** — department *growth signals* exist; actual team rosters do not.
-- **Intent-data / category research activity** — no Deepline tool returns third-party
-  category intent per account; `deepline tools search intent --json` before assuming otherwise.
+- **Intent-data / category research activity** — third-party intent comes from
+  `zoominfo_search_intent` / `zoominfo_enrich_intent`, which need the user's own ZoomInfo
+  connection. Without it, nothing in the catalog returns category intent per account.
 - **Identified website visitors** — traffic arms (`akta_website_traffic`, crustdata
   `web_traffic`) are volume, not identity. `deepline_ip_to_company` resolves your OWN visitor
   IPs, which is first-party data the user must supply.

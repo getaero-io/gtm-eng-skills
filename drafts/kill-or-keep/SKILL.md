@@ -65,7 +65,7 @@ is named below, using it means saying so in the output.
 | **Kill and scale thresholds** | the positive-reply floors per tier | the author's tables below; ask, and if they have no view use them and SAY they are borrowed |
 | **What counts as positive** | which reply categories count as a positive reply | no default. If only an automatic sentiment label exists, every positive count is marked provisional: nothing is killed on it, and a scale on it is marked provisional |
 | **Bounce guardrail** | the bounce rate that flags a sender | 5% is the author's line; say so if used |
-| **Per-variant results** | for A/B verdicts only: one row per variant with sent, positive replies, launch date and sender pool, exported from the campaign UI or any sequencer | variant verdicts become unavailable; every other verdict still runs |
+| **Per-variant results** | for A/B verdicts only: one row per variant with sent, positive replies, launch date and sender pool, exported from the campaign UI or any sequencer; on Instantly, `instantly_get_campaign_analytics_steps` supplies it | variant verdicts become unavailable; every other verdict still runs |
 | **Timezone** | IANA timezone for date boundaries | UTC; say so |
 
 The author's thresholds, offered as a starting point and never applied silently:
@@ -147,7 +147,7 @@ Four levels, each with its own source. Say which ones will run.
 | Sender guardrail | per-sender stats (`instantly_get_daily_account_analytics`, Lemlist stats filtered by `send_user`), or the sender export | Instantly or Lemlist source; file source only with a sender export |
 | Campaign verdict | campaign totals plus positive reply categories, or the campaign export | always, provided positives can be counted |
 | Step funnel | per-step sent and replied counts | Instantly source (`instantly_get_campaign_analytics_steps`); descriptive, no verdict |
-| Variant verdict | the per-variant file | only when the file is supplied |
+| Variant verdict | the per-variant file, or Instantly step analytics | only when one of those is available |
 
 The sequencer stats tools return sent, replied and bounced counts, not positives; positives come
 from the reply categories agreed at Step 1. **None of them returns positives per variant**
@@ -285,7 +285,7 @@ the campaign may be failing because of an inbox, not the copy. Positives are not
 sender, so crediting them all to the healthy senders is the generous reading, and a kill that
 survives it is safe to act on.
 
-**Then each variant test**, only from the supplied file. A winner is called only if all hold:
+**Then each variant test**, only from the supplied file or Instantly step analytics. A winner is called only if all hold:
 
 - every arm launched on the same day from the same sender pool
 - at least 21 days since launch, because replies keep arriving for about three weeks
@@ -333,7 +333,8 @@ person to carry out.
 
 - **A sequencer connected to Deepline:** the only action is pausing one campaign, with
   `instantly_pause_campaign`, `smartlead_update_campaign_status` (status `PAUSED`), `lemlist_pause_campaign` or
-  `heyreach_pause_campaign`. Deepline has no tool to end a variant test, so a test winner is
+  `heyreach_pause_campaign`. Ending a variant test is only possible on EmailBison, with
+  `emailbison_activate_or_deactivate_asequence_step_variant`; on the others a test winner is
   carried out by a person in the sequencer.
 - **Another connected sending tool:** pausing a campaign, or ending a test, if that tool offers it.
 
@@ -390,8 +391,9 @@ Thresholds: author's defaults (borrowed). Positive = "Interested", "Meeting requ
   The diagnosis is a separate job.
 - It does not measure spam complaints or domain authentication. The sequencer stats tools do
   not return them, so the deliverability check here is bounces only.
-- It does not read per-variant positives from the sequencer. No Deepline tool returns them.
-  Without the supplied file there are no variant verdicts.
+- Per-variant numbers come from `instantly_get_campaign_analytics_steps` (step-level rows;
+  confirm the variant field on the first response). The other sequencers' stats tools report per
+  campaign, so for them variant verdicts need the supplied file.
 - It does not replace human classification of replies. On automatic sentiment alone it will not
   kill anything.
 - The default thresholds are one agency's numbers from its own client work. They are a starting

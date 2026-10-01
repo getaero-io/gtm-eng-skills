@@ -121,8 +121,10 @@ anyway). A batch finishes at the speed and cost of its misses. Export batches wi
   consent before any call or SMS use. Before a real call block, offer a second independent
   validation: `searchbug_phone_validation` with `include_dnc` (0.19 credits; line status
   plus DNC registry, US/CA only) or `ipqs_phone_validate` (0.07; fraud score, DNC and
-  line-type risk). No Deepline tool is a dedicated TCPA litigator list; say so rather than
-  implying the screen covers it. Validator disagreement goes to a human, not the dialer.
+  line-type risk). `ipqs_phone_validate` also returns `do_not_call` and `tcpa_blacklist`, the
+  TCPA litigator signal; a `true` on either means do not dial. For a number captured a while ago,
+  `searchbug_reassigned_number` checks the FCC Reassigned Numbers Database. Validator disagreement
+  goes to a human, not the dialer.
 
 ## Rules
 
