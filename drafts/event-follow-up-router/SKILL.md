@@ -113,9 +113,14 @@ Then say where each stage runs, because that is what it costs:
   `salesforce_update_contact`, `salesforce_create_account`) all price as **Free**, so they bill
   against the CRM's API quota rather than credits. Re-read this rather than trusting the sentence;
   the point that survives is *check whether your CRM tools cost credits before assuming either way*.
-- **Salesforce campaign membership has no Deepline tool.** There is no CampaignMember read or write
-  and no SOQL tool. For Salesforce, the sync half delivers an upload-ready CampaignMember file (record
-  id, campaign id, status) for the Data Import Wizard, and the output says so. HubSpot has no
+- **Salesforce campaign membership goes through `salesforce_api_request`** (free; the installer's
+  connected org). Read existing members with `GET /services/data/v60.0/query` and
+  `q=SELECT Id, LeadId, ContactId, Status FROM CampaignMember WHERE CampaignId = '<id>'`; add one with
+  `POST /services/data/v60.0/sobjects/CampaignMember` (`CampaignId`, `LeadId` or `ContactId`,
+  `Status`); change a status with `PATCH /services/data/v60.0/sobjects/CampaignMember/<member id>`.
+  A second POST for the same person fails with `DUPLICATE_VALUE`, so read first and PATCH existing
+  members. `Status` must be one of the campaign's member statuses (`SELECT Label FROM
+  CampaignMemberStatus WHERE CampaignId = '<id>'`). HubSpot has no
   campaign-member status either; the nearest is a static list per status
   (`hubspot_add_records_to_list`) or a contact property written with `hubspot_batch_upsert_objects` —
   confirm which the installer reports on.

@@ -266,7 +266,7 @@ makes this step free and small.
 |---|---|---|
 | **HubSpot** | `hubspot_search_objects` (contacts, companies, deals) — free | **yes**: put eligibility, city and seniority into its property filter groups |
 | **Attio** | `attio_query_records` | **yes**: structured filter objects |
-| **Salesforce** | `salesforce_list_accounts`, `salesforce_list_contacts`, `salesforce_list_opportunities` — free | **no.** These page through records (`limit`, `modified_after`, `next_records_url`) with no `WHERE` clause, and **no Deepline tool reads Salesforce campaign membership or runs SOQL.** Page to the end, filter in the agent, and say the read was unfiltered. For campaign members, ask for a report export |
+| **Salesforce** | `salesforce_api_request` with SOQL (`GET /services/data/v60.0/query`, `q=SELECT ...`) — free | **yes**: put eligibility, city, seniority and owner into the `WHERE` clause; read campaign members with `SELECT ContactId, LeadId, Status FROM CampaignMember WHERE CampaignId = '<id>'`. Follow `nextRecordsUrl` for more than 2,000 rows. The typed `salesforce_list_*` tools have no filter, so use them only for full syncs |
 
 | | |
 |---|---|

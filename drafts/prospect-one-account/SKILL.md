@@ -153,13 +153,14 @@ for the bracketed ones:
    Stage, Amount, CloseDate, Created/LastModified, IsClosed, IsWon, LeadSource, loss reason if
    tracked).
 
-**Deepline's Salesforce tools do not run SOQL.** `salesforce_list_accounts` and
-`salesforce_list_opportunities` page through records (optionally `modified_after`) and
-`salesforce_get_record` reads one record by ID, so the account match is a page-and-filter on
-`Website` in code, and opportunities are filtered to the account ID the same way. No Deepline tool
-reads Salesforce Task/Event activity; if activities matter, run the SOQL through
-`generic_http_request` against the installer's own Salesforce REST `query` endpoint with their
-token, or say the activity half was skipped.
+**Run SOQL through `salesforce_api_request`** (free, the installer's connected org):
+`method: GET`, `path: /services/data/v60.0/query`, `query: {q: "<SOQL>"}`. Match the account with
+`SELECT Id, Name, Website, OwnerId FROM Account WHERE Website LIKE '%<domain>%'`, then pull its
+opportunities (`... FROM Opportunity WHERE AccountId = '<id>'`) and recent activity (`... FROM Task
+WHERE AccountId = '<id>' ORDER BY ActivityDate DESC LIMIT 50`, same for `Event`). Escape quotes in
+any value you interpolate. Results over 2,000 rows return a `nextRecordsUrl`; GET that path for the
+next page. The typed list tools (`salesforce_list_accounts`, `salesforce_list_opportunities`) have no
+`WHERE` clause, so prefer SOQL for anything filtered.
 
 On HubSpot: `hubspot_search_objects` (`object_type: "companies"`, a `filter_groups` filter on
 `domain`), then `hubspot_batch_read_associations` from the company to `deals` and to the engagement
