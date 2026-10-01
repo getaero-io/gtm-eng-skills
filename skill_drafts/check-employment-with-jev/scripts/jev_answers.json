@@ -1,0 +1,531 @@
+{
+ "_about": "Jev's answers for the fixtures.json cases, recorded live from jev-1.13.0 (TypeSafe's API, 2026-09-29) and converted to the shape Deepline's ai_evaluate returns: a Noul is {type: boolean, probability}; a Choice carries no confidence. Replayed by test_offline.py.",
+ "advisor_after_leaving": {
+  "questions": [
+   "kind_0",
+   "kind_1",
+   "main_0",
+   "other_0"
+  ],
+  "response": {
+   "meta": {
+    "model": "typesafe-ai/jev"
+   },
+   "result": {
+    "answers": {
+     "kind_0": {
+      "choice": "advisor_or_board",
+      "probabilities": {
+       "advisor_or_board": 1.0,
+       "contractor": 0.0,
+       "employee": 0.0,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 0.0,
+       "not_enough_information": 0.0
+      },
+      "type": "choice"
+     },
+     "kind_1": {
+      "choice": "employee",
+      "probabilities": {
+       "advisor_or_board": 0.0,
+       "contractor": 0.0,
+       "employee": 0.92,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 0.0,
+       "not_enough_information": 0.08
+      },
+      "type": "choice"
+     },
+     "main_0": {
+      "probability": 0.11,
+      "type": "boolean"
+     },
+     "other_0": {
+      "choice": "employee",
+      "probabilities": {
+       "advisor_or_board": 0.0,
+       "contractor": 0.0,
+       "employee": 1.0,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 0.0,
+       "not_enough_information": 0.0
+      },
+      "type": "choice"
+     }
+    },
+    "response": {
+     "modelId": "jev-1.13.0",
+     "timestamp": "2026-09-29T00:00:00.000Z"
+    }
+   },
+   "status": "completed",
+   "usage": {
+    "inputTokens": 1633,
+    "outputTokens": 0,
+    "totalTokens": 1633
+   }
+  }
+ },
+ "board_seat_only": {
+  "questions": [
+   "kind_0",
+   "main_0",
+   "other_0"
+  ],
+  "response": {
+   "meta": {
+    "model": "typesafe-ai/jev"
+   },
+   "result": {
+    "answers": {
+     "kind_0": {
+      "choice": "advisor_or_board",
+      "probabilities": {
+       "advisor_or_board": 0.99,
+       "contractor": 0.0,
+       "employee": 0.0,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 0.0,
+       "not_enough_information": 0.01
+      },
+      "type": "choice"
+     },
+     "main_0": {
+      "probability": 0.07,
+      "type": "boolean"
+     },
+     "other_0": {
+      "choice": "employee",
+      "probabilities": {
+       "advisor_or_board": 0.0,
+       "contractor": 0.0,
+       "employee": 1.0,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 0.0,
+       "not_enough_information": 0.0
+      },
+      "type": "choice"
+     }
+    },
+    "response": {
+     "modelId": "jev-1.13.0",
+     "timestamp": "2026-09-29T00:00:00.000Z"
+    }
+   },
+   "status": "completed",
+   "usage": {
+    "inputTokens": 1262,
+    "outputTokens": 0,
+    "totalTokens": 1262
+   }
+  }
+ },
+ "fractional_exec": {
+  "questions": [
+   "held_0",
+   "kind_0",
+   "main_0",
+   "other_0",
+   "other_1"
+  ],
+  "response": {
+   "meta": {
+    "model": "typesafe-ai/jev"
+   },
+   "result": {
+    "answers": {
+     "held_0": {
+      "probability": 0.79,
+      "type": "boolean"
+     },
+     "kind_0": {
+      "choice": "contractor",
+      "probabilities": {
+       "advisor_or_board": 0.0,
+       "contractor": 1.0,
+       "employee": 0.0,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 0.0,
+       "not_enough_information": 0.0
+      },
+      "type": "choice"
+     },
+     "main_0": {
+      "probability": 0.24,
+      "type": "boolean"
+     },
+     "other_0": {
+      "choice": "employee",
+      "probabilities": {
+       "advisor_or_board": 0.0,
+       "contractor": 0.02,
+       "employee": 0.98,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 0.0,
+       "not_enough_information": 0.0
+      },
+      "type": "choice"
+     },
+     "other_1": {
+      "choice": "contractor",
+      "probabilities": {
+       "advisor_or_board": 0.0,
+       "contractor": 1.0,
+       "employee": 0.0,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 0.0,
+       "not_enough_information": 0.0
+      },
+      "type": "choice"
+     }
+    },
+    "response": {
+     "modelId": "jev-1.13.0",
+     "timestamp": "2026-09-29T00:00:00.000Z"
+    }
+   },
+   "status": "completed",
+   "usage": {
+    "inputTokens": 2000,
+    "outputTokens": 0,
+    "totalTokens": 2000
+   }
+  }
+ },
+ "investor_title": {
+  "questions": [
+   "kind_0",
+   "main_0",
+   "other_0"
+  ],
+  "response": {
+   "meta": {
+    "model": "typesafe-ai/jev"
+   },
+   "result": {
+    "answers": {
+     "kind_0": {
+      "choice": "investor",
+      "probabilities": {
+       "advisor_or_board": 0.0,
+       "contractor": 0.0,
+       "employee": 0.0,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 0.99,
+       "not_enough_information": 0.01
+      },
+      "type": "choice"
+     },
+     "main_0": {
+      "probability": 0.13,
+      "type": "boolean"
+     },
+     "other_0": {
+      "choice": "employee",
+      "probabilities": {
+       "advisor_or_board": 0.0,
+       "contractor": 0.0,
+       "employee": 0.97,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 0.03,
+       "not_enough_information": 0.0
+      },
+      "type": "choice"
+     }
+    },
+    "response": {
+     "modelId": "jev-1.13.0",
+     "timestamp": "2026-09-29T00:00:00.000Z"
+    }
+   },
+   "status": "completed",
+   "usage": {
+    "inputTokens": 1272,
+    "outputTokens": 0,
+    "totalTokens": 1272
+   }
+  }
+ },
+ "left_cleanly": {
+  "questions": [
+   "kind_0",
+   "other_0"
+  ],
+  "response": {
+   "meta": {
+    "model": "typesafe-ai/jev"
+   },
+   "result": {
+    "answers": {
+     "kind_0": {
+      "choice": "employee",
+      "probabilities": {
+       "advisor_or_board": 0.0,
+       "contractor": 0.0,
+       "employee": 0.82,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 0.0,
+       "not_enough_information": 0.18
+      },
+      "type": "choice"
+     },
+     "other_0": {
+      "choice": "employee",
+      "probabilities": {
+       "advisor_or_board": 0.0,
+       "contractor": 0.0,
+       "employee": 1.0,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 0.0,
+       "not_enough_information": 0.0
+      },
+      "type": "choice"
+     }
+    },
+    "response": {
+     "modelId": "jev-1.13.0",
+     "timestamp": "2026-09-29T00:00:00.000Z"
+    }
+   },
+   "status": "completed",
+   "usage": {
+    "inputTokens": 1017,
+    "outputTokens": 0,
+    "totalTokens": 1017
+   }
+  }
+ },
+ "name_collision": {
+  "questions": [
+   "kind_0",
+   "same_0"
+  ],
+  "response": {
+   "meta": {
+    "model": "typesafe-ai/jev"
+   },
+   "result": {
+    "answers": {
+     "kind_0": {
+      "choice": "employee",
+      "probabilities": {
+       "advisor_or_board": 0.0,
+       "contractor": 0.0,
+       "employee": 0.97,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 0.0,
+       "not_enough_information": 0.03
+      },
+      "type": "choice"
+     },
+     "same_0": {
+      "probability": 0.11,
+      "type": "boolean"
+     }
+    },
+    "response": {
+     "modelId": "jev-1.13.0",
+     "timestamp": "2026-09-29T00:00:00.000Z"
+    }
+   },
+   "status": "completed",
+   "usage": {
+    "inputTokens": 825,
+    "outputTokens": 0,
+    "totalTokens": 825
+   }
+  }
+ },
+ "primary_with_side_roles": {
+  "questions": [
+   "held_0",
+   "kind_0",
+   "main_0",
+   "other_0",
+   "other_1"
+  ],
+  "response": {
+   "meta": {
+    "model": "typesafe-ai/jev"
+   },
+   "result": {
+    "answers": {
+     "held_0": {
+      "probability": 0.81,
+      "type": "boolean"
+     },
+     "kind_0": {
+      "choice": "employee",
+      "probabilities": {
+       "advisor_or_board": 0.0,
+       "contractor": 0.0,
+       "employee": 1.0,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 0.0,
+       "not_enough_information": 0.0
+      },
+      "type": "choice"
+     },
+     "main_0": {
+      "probability": 0.88,
+      "type": "boolean"
+     },
+     "other_0": {
+      "choice": "advisor_or_board",
+      "probabilities": {
+       "advisor_or_board": 1.0,
+       "contractor": 0.0,
+       "employee": 0.0,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 0.0,
+       "not_enough_information": 0.0
+      },
+      "type": "choice"
+     },
+     "other_1": {
+      "choice": "investor",
+      "probabilities": {
+       "advisor_or_board": 0.0,
+       "contractor": 0.0,
+       "employee": 0.0,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 1.0,
+       "not_enough_information": 0.0
+      },
+      "type": "choice"
+     }
+    },
+    "response": {
+     "modelId": "jev-1.13.0",
+     "timestamp": "2026-09-29T00:00:00.000Z"
+    }
+   },
+   "status": "completed",
+   "usage": {
+    "inputTokens": 2044,
+    "outputTokens": 0,
+    "totalTokens": 2044
+   }
+  }
+ },
+ "profile_as_text_other_shape": {
+  "questions": [
+   "kind_0",
+   "same_0"
+  ],
+  "response": {
+   "meta": {
+    "model": "typesafe-ai/jev"
+   },
+   "result": {
+    "answers": {
+     "kind_0": {
+      "choice": "employee",
+      "probabilities": {
+       "advisor_or_board": 0.0,
+       "contractor": 0.0,
+       "employee": 0.98,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 0.0,
+       "not_enough_information": 0.02
+      },
+      "type": "choice"
+     },
+     "same_0": {
+      "probability": 0.91,
+      "type": "boolean"
+     }
+    },
+    "response": {
+     "modelId": "jev-1.13.0",
+     "timestamp": "2026-09-29T00:00:00.000Z"
+    }
+   },
+   "status": "completed",
+   "usage": {
+    "inputTokens": 812,
+    "outputTokens": 0,
+    "totalTokens": 812
+   }
+  }
+ },
+ "stale_current_role": {
+  "questions": [
+   "held_0",
+   "kind_0",
+   "main_0",
+   "other_0"
+  ],
+  "response": {
+   "meta": {
+    "model": "typesafe-ai/jev"
+   },
+   "result": {
+    "answers": {
+     "held_0": {
+      "probability": 0.17,
+      "type": "boolean"
+     },
+     "kind_0": {
+      "choice": "employee",
+      "probabilities": {
+       "advisor_or_board": 0.0,
+       "contractor": 0.0,
+       "employee": 0.78,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 0.0,
+       "not_enough_information": 0.22
+      },
+      "type": "choice"
+     },
+     "main_0": {
+      "probability": 0.31,
+      "type": "boolean"
+     },
+     "other_0": {
+      "choice": "employee",
+      "probabilities": {
+       "advisor_or_board": 0.0,
+       "contractor": 0.0,
+       "employee": 1.0,
+       "honorary": 0.0,
+       "intern": 0.0,
+       "investor": 0.0,
+       "not_enough_information": 0.0
+      },
+      "type": "choice"
+     }
+    },
+    "response": {
+     "modelId": "jev-1.13.0",
+     "timestamp": "2026-09-29T00:00:00.000Z"
+    }
+   },
+   "status": "completed",
+   "usage": {
+    "inputTokens": 1539,
+    "outputTokens": 0,
+    "totalTokens": 1539
+   }
+  }
+ }
+}

@@ -1,0 +1,55 @@
+{
+  "entity": "account",
+  "name": "Route-planning fit (example)",
+  "version": 1,
+  "about": {
+    "we_sell": "Invented example. Route-planning software for companies that run their own delivery fleets.",
+    "ideal_customer": "Invented example. Regional distributors and wholesalers, 50 to 2,000 staff, in North America, running 20+ vehicles.",
+    "sources": ["invented for this example; a real rubric lists where each part came from"]
+  },
+  "inputs": {
+    "company_name": {"label": "Company name", "required": true},
+    "domain": {"label": "Website domain"},
+    "description": {"label": "What the company does", "max_chars": 3000},
+    "industry": {"label": "Industry"},
+    "employee_count": {"label": "Employees", "type": "number"},
+    "country": {"label": "HQ country"},
+    "recent_news": {"label": "Recent news or signals", "max_chars": 2000}
+  },
+  "rules": [
+    {"id": "size", "label": "Company size", "kind": "bands", "input": "employee_count",
+     "bands": [{"below": 50, "points": 0, "says": "under 50 staff"},
+               {"below": 200, "points": 10, "says": "50-199 staff"},
+               {"below": 2000, "points": 15, "says": "200-1,999 staff"},
+               {"points": 5, "says": "2,000+ staff"}]},
+    {"id": "region", "label": "Region", "kind": "match", "input": "country",
+     "values": ["united states", "us", "usa", "canada"], "points": 10, "miss_points": 0,
+     "says": "in North America", "miss_says": "outside North America"},
+    {"id": "competitor", "label": "Competitor", "kind": "match", "input": "domain",
+     "values": ["routewise.example", "fleetplan.example"], "disqualify": true, "says": "a competitor"}
+  ],
+  "questions": [
+    {"id": "runs_own_fleet", "label": "Runs its own fleet", "kind": "noul", "reads": ["description", "industry"],
+     "instructions": "Does the company in `description` deliver goods to its customers with vehicles and drivers it operates itself?",
+     "criteria": {"true": "It runs its own trucks, vans or drivers for deliveries.",
+                  "false": "It outsources delivery, ships by parcel carrier, or does not deliver physical goods."},
+     "points": {"yes": 25, "no": 0}, "says_yes": "runs its own delivery fleet", "says_no": "no own fleet"},
+    {"id": "segment", "label": "Segment", "kind": "choice", "reads": ["description", "industry"],
+     "instructions": "Which of these best describes the business in `description`?",
+     "options": {
+       "distributor": {"means": "Wholesale distributor or dealer that delivers to other businesses.", "points": 25, "says": "a distributor"},
+       "field_service": {"means": "Field service company whose technicians drive to job sites.", "points": 15, "says": "a field service business"},
+       "retailer": {"means": "Retailer delivering to consumers.", "points": 8, "says": "a retailer"},
+       "logistics_provider": {"means": "Third-party logistics or courier company that delivers for others.", "points": 0, "says": "a logistics provider", "disqualify": true},
+       "other": {"means": "Any other kind of business.", "points": 0, "says": "another kind of business"}
+     }},
+    {"id": "growth_signal", "label": "Growth signal", "kind": "score", "reads": ["recent_news"],
+     "instructions": "How strongly does `recent_news` suggest the company is expanding its delivery operations?",
+     "levels": ["No sign of expansion", "General growth, nothing about delivery",
+                "New locations, routes or territories", "Explicit fleet or delivery expansion"],
+     "points": 15}
+  ],
+  "tiers": [{"tier": "A", "min": 70}, {"tier": "B", "min": 45}, {"tier": "C", "min": 25}, {"tier": "D", "min": 0}],
+  "confidence_floor": 0.6,
+  "min_coverage": 0.5
+}
