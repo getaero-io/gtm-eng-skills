@@ -422,6 +422,7 @@ Query options for ranked tool/provider discovery.
 | `offset` | `number` | No | Zero-based offset into the ranked result set. |
 | `categories` | `string` | No | Comma-separated category filter such as `company_search` or `email_finder`. |
 | `searchTerms` | `string` | No | Optional explicit search terms used by agent/CLI callers. |
+| `task` | `string` | No | One sentence: the input you have and the result you need (not the query restated). |
 | `searchMode` | `'v1' \| 'v2'` | No | Search algorithm/version. Defaults to the current ranked mode. |
 | `includeSearchDebug` | `boolean` | No | Include backend debug metadata in the search response. |
 
