@@ -13,7 +13,7 @@ and walk them through it:
 1. [Create a Business app](https://developers.facebook.com/apps/creation/) with
    the use case "Create & manage ads with Marketing API", connected to the
    Business portfolio that owns the ad account.
-2. In [System users](https://business.facebook.com/latest/settings/system_users),
+2. In [System users](https://business.facebook.com/settings/system-users),
    add a system user (the default Employee role is enough). Meta enables Add only after an app
    belongs to the portfolio.
 3. Assign the ad account with Manage campaigns (ads) and the app with Develop
