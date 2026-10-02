@@ -76,6 +76,13 @@ Read [references/state-machine-contract.md](references/state-machine-contract.md
 
 ## Automatic publication and verification
 
+This user-requested engine pilot is separate from product-fix verification. Do
+not use a third-party customer's workspace or data to verify a Deepline fix.
+For a post-fix paid-path check, use only the explicitly operator-owned personal
+workspace or designated Deepline internal Production workspace allowed by
+`docs/production-paid-call-verification.md`; this skill's customer-pilot
+approval path does not override that rule.
+
 After implementation checks pass, complete one dependency-ordered workflow:
 
 1. Read live Deepline balance and pricing, select at most three pilot records, calculate a per-run cap, and disclose the aggregate bound as `(pilot runs + one replay attempt) × billing.maxCreditsPerRun`. If credits are unavailable, stop without attempting a top-up.
