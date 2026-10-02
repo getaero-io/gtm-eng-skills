@@ -64,7 +64,7 @@ head -2 leads.csv > pilot.csv
 deepline plays run ./my-play.play.ts --csv pilot.csv --watch
 ```
 
-Move to 2 rows only when the second exercises a different branch you need to verify. Passing `--input '{"rows":"0:1"}'` does not filter a CSV unless the play code implements that option. Use `ctx.log(...)` for long stages — logs are visible through `--watch`, `runs tail`, and run history, so an agent can tell whether a play is searching, validating, retrying, or stuck.
+Move to 2 rows only when the second exercises a different branch you need to verify. Passing `--input '{"rows":"0:1"}'` does not filter a CSV unless the play code implements that option. Use `ctx.log(...)` for long stages — logs are visible through `--watch`, `runs watch`, and run history, so an agent can tell whether a play is searching, validating, retrying, or stuck.
 
 When a run exposes an empty derived column or a wrong getter path, debug from persisted run tables, not direct tool previews. `tools describe` gives the declared contract and `tools execute` probes an isolated call; neither proves what a prior step serialized into that play's table. The first fix comes from a `deepline db query` row for the failed run:
 

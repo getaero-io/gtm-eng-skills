@@ -215,14 +215,13 @@ while True:
 | `GET` | `/api/v2/plays/:name/sheet` | `runs.exportDatasetRows`<br />`getPlaySheetRows` | Read/export runtime sheet rows for a run dataset. | `apps/deepline-api/src/app/api/v2/plays/[name]/sheet/route.ts` |
 | `POST` | `/api/v2/plays/run` | `startPlayRun`<br />`startPlayRunFromBundle`<br />`runPlay` | Start a saved, prebuilt, or artifact-backed play run. | `apps/deepline-api/src/app/api/v2/plays/run/route.ts` |
 | `GET` | `/api/v2/runs` | `runs.list`<br />`listRuns` | List runs with filters such as play name and status. | `apps/deepline-api/src/app/api/v2/runs/route.ts` |
-| `GET` | `/api/v2/runs/:runId` | `runs.get`<br />`getRunStatus`<br />`getPlayStatus` | Read canonical status, result, outputs, and run package, including Runs identified by ctx.runPlayAsync. | `apps/deepline-api/src/app/api/v2/runs/[runId]/route.ts` |
+| `GET` | `/api/v2/runs/:runId` | `runs.get`<br />`runs.watch`<br />`getRunStatus`<br />`getPlayStatus` | Read canonical status, result, outputs, and run package, including Runs identified by ctx.runPlayAsync. | `apps/deepline-api/src/app/api/v2/runs/[runId]/route.ts` |
 | `GET` | `/api/v2/runs/:runId/input` | `runs.input`<br />`getRunInput` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/input/route.ts` |
 | `GET` | `/api/v2/runs/:runId/logs` | `runs.logs`<br />`getRunLogs` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/logs/route.ts` |
-| `POST` | `/api/v2/runs/:runId/observe-grant` | `runs.tail`<br />`tailRun`<br />`runPlay` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/observe-grant/route.ts` |
 | `POST` | `/api/v2/runs/:runId/rerun` | `runs.rerun`<br />`rerun` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/rerun/route.ts`<br />`apps/deepline-api/src/lib/plays/rerun-admission-read.ts`<br />`apps/deepline-api/src/lib/plays/rerun-idempotency.ts`<br />`apps/deepline-api/src/lib/plays/scheduler-admission-read.ts` |
 | `GET` | `/api/v2/runs/:runId/status` | `runs.status`<br />`runs status` | Legacy scalar-only read retained for compatibility. New clients should use GET /api/v2/runs/:runId (`runs.get`) for status, results, and progress. | `apps/deepline-api/src/app/api/v2/runs/[runId]/status/route.ts` |
 | `POST` | `/api/v2/runs/:runId/stop` | `runs.stop`<br />`stopRun`<br />`cancelPlay`<br />`stopPlay` | Stop a running or waiting play run. | `apps/deepline-api/src/app/api/v2/runs/[runId]/stop/route.ts` |
-| `GET` | `/api/v2/runs/:runId/tail` | `runs.tail`<br />`tailRun` | Stream canonical run events over SSE. | `apps/deepline-api/src/app/api/v2/runs/[runId]/tail/route.ts` |
+| `GET` | `/api/v2/runs/:runId/tail` | `legacy SDK watch fallback` | Stream canonical run events over SSE. | `apps/deepline-api/src/app/api/v2/runs/[runId]/tail/route.ts` |
 | `POST` | `/api/v2/runs/stop-all` | `runs.stopAll`<br />`stopAllRuns` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/stop-all/route.ts` |
 
 ### Play Definitions
@@ -666,7 +665,7 @@ Result returned by `DeeplineClient.stopPlay`.
 
 ### `RunsNamespace`
 
-Use `client.runs` (`/api/v2/runs`) to poll, stream, stop, read logs, and export durable dataset rows.
+Use `client.runs` (`/api/v2/runs`) to watch, stop, read logs, and export durable dataset rows.
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -677,7 +676,8 @@ Use `client.runs` (`/api/v2/runs`) to poll, stream, stop, read logs, and export 
 | `rerun` | `(runId: string, options?: RerunOptions) => Promise<RerunPlayRunResult>` | Yes | Start a fresh run from a prior run's retained input and pinned revision. |
 | `list` | `(options: RunsListOptions) => Promise<PlayRunListItem[]>` | Yes | List runs for one play, optionally filtered by status. |
 | `listPage` | `(options: RunsListOptions) => Promise<RunsListPage>` | Yes | Read one run page with total, offset, limit and completeness metadata. |
-| `tail` | `(runId: string, options?: RunsTailOptions) => Promise<PlayStatus>` | Yes | Stream run events and return the latest/terminal run status. |
+| `watch` | `(runId: string, options?: RunsWatchOptions) => Promise<PlayStatus>` | Yes | Poll run snapshots every two seconds until terminal status. |
+| `tail` | `(runId: string, options?: RunsTailOptions) => Promise<PlayStatus>` | Yes |  |
 | `logs` | `(runId: string, options?: RunsLogsOptions) => Promise<RunsLogsResult>` | Yes | Fetch persisted log lines for a run. |
 | `exportDatasetRows` | `(input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; rowMode?: 'output' \| 'all'; signal?: AbortSignal; }) => Promise<PlaySheetRowsResult>` | Yes | Export persisted rows for a runtime-sheet dataset/table namespace. |
 | `stop` | `( runId: string, options?: { reason?: string }, ) => Promise<StopPlayRunResult>` | Yes | Stop a running/waiting run. |

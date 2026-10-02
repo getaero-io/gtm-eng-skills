@@ -4,11 +4,11 @@ A run failed, stalled, or produced wrong output. Run these three first, in order
 
 ```bash
 deepline runs get <id> --full --json   # terminal state, progress, outputs, execution statistics, last event
-deepline runs tail <id> --json         # waits and prints the terminal package (--jsonl streams live events instead)
+deepline runs watch <id> --json        # polls progress, then prints the terminal package (--jsonl prints live events)
 deepline runs logs <id>                # ctx.log(...) output up to the failure (--failed for error lines, --json to parse)
 ```
 
-`runs get` shows a failed run as `failed` with a final-event message; for a run that never completes it tells you whether it's mid-tool-call, retrying, or waiting. `tail --jsonl` reveals which.
+`runs get` shows a failed run as `failed` with a final-event message; for a run that never completes it tells you whether it's mid-tool-call, retrying, or waiting. `watch --jsonl` reveals which.
 
 ## Triage
 
@@ -68,8 +68,8 @@ The play body re-executes during replay, so effects must be deterministic. Hunt 
 # Latest failed run for a play
 deepline runs list --play <name> --status failed --json | jq -r '.runs[0].runId'
 
-# Tail the most recent run live (--jsonl streams; swap for --json to wait for the terminal package)
-deepline runs list --play <name> --json | jq -r '.runs[0].runId' | xargs -I {} deepline runs tail {} --jsonl
+# Watch the most recent run live (--jsonl prints events; swap for --json to wait for the terminal package)
+deepline runs list --play <name> --json | jq -r '.runs[0].runId' | xargs -I {} deepline runs watch {} --jsonl
 
 # Active runs older than a day (likely stuck)
 deepline runs list --play <name> --status running --json | jq '.runs[] | select((.createdAt // 0) < ((now - 86400) * 1000))'
