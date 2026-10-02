@@ -1364,7 +1364,7 @@ Signature: `class DeeplineClient`
 | `purchaseTargetBillingCredits` | method | Purchase target-billing credits through the durable commercial operation<br />flow. The caller supplies an idempotency key for safe retries. | `options: { credits: number; idempotencyKey: string; }` | `Promise<TargetBillingMutationResult>` |
 | `recoverTargetBillingCreditPurchase` | method | Recover only the original workspace, credit amount, and purchase key; never charge. | `options: { credits: number; orgId: string; idempotencyKey: string; }` | `Promise<TargetBillingMutationResult>` |
 | `transitionTargetBillingPlan` | method | Start, change, cancel, or restore a target plan through one idempotent<br />commercial operation. | `options: TargetBillingPlanTransitionOptions` | `Promise<TargetBillingMutationResult>` |
-| `createTargetBillingPortalSession` | method | Create a Stripe-hosted portal session for payment recovery and invoices. |  | `Promise<{ url: string }>` |
+| `createTargetBillingPortalSession` | method | Create a Stripe-hosted portal session for payment recovery and invoices. | `options?: { flow?: 'customer_update'; }` | `Promise<{ url: string }>` |
 | `createWorkspace` | method | Create an additional workspace through the durable PAYG workflow. | `options: { name: string; idempotencyKey: string; }` | `Promise<WorkspaceCreateResult>` |
 | `health` | method | Check API connectivity and server health. |  | `Promise<{ status: string; version?: string; status_banner?: { message: string; updatedAt: number; }; }>` |
 
@@ -1410,7 +1410,7 @@ history.
 | `purchaseCredits` | `(options: { credits: number; idempotencyKey: string; }) => Promise<TargetBillingMutationResult>` | Yes | Buy Deepline credits through a payment-gated Metronome commit. |
 | `recoverCreditPurchase` | `(options: { credits: number; orgId: string; idempotencyKey: string; }) => Promise<TargetBillingMutationResult>` | Yes | Inspect or retire the original purchase intent without starting a payment. |
 | `transitionPlan` | `( options: TargetBillingPlanTransitionOptions, ) => Promise<TargetBillingMutationResult>` | Yes | Start, change, cancel, or undo a target plan transition. |
-| `portalSession` | `() => Promise<{ url: string }>` | Yes | Create a Stripe-hosted billing Portal session. |
+| `portalSession` | `(options?: { flow?: 'customer_update'; }) => Promise<{ url: string }>` | Yes | Create a Stripe-hosted billing Portal session. |
 
 ### `client.monitors`
 

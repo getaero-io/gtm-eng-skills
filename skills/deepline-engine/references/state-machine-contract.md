@@ -162,7 +162,18 @@ Before publication, prove with static checks and provider-free fixtures:
 - two different business keys remain independent
 - the Play passes `deepline plays check <file.play.ts>`
 
-Do not execute a provider during this pre-publication matrix. Defer provider-backed edge tests to the bounded pilot after the caps and workspace gate below are verified. Use synthetic rows for all tests. An explicit request to build an engine authorizes publication. The bounded paid pilot below additionally requires an explicit internal/test workspace or explicit user approval for the paid pilot and scope. It does not authorize real customer rows, trigger installation, a larger run, or unrelated Customer DB mutations.
+Do not execute a provider during this pre-publication matrix. Defer provider-backed edge tests to the bounded pilot after the caps and workspace gate below are verified. Use synthetic rows for all tests. An explicit request to build an engine authorizes publication. The multi-record authoring pilot below runs only in an explicit internal/test workspace; it does not authorize third-party customer workspaces, real customer rows, trigger installation, a larger run, or unrelated Customer DB mutations.
+
+This section governs the new-engine authoring pilot. It does not replace the
+required post-fix Production acceptance when a code fix depends on a real
+paid-provider response or Production usage admission/settlement. Run that
+separate one-case check through the public SDK/API path in an owner-verified
+operator personal workspace or designated Deepline-owned internal Production
+workspace, following
+[`docs/production-paid-call-verification.md`](../../../docs/production-paid-call-verification.md).
+The acceptance uses that runbook's budget and keeps the ordinary settled
+charge; do not apply this pilot's multi-record/replay or credit-restoration
+requirements to it.
 
 ## Automatic publication and paid pilot
 
@@ -174,8 +185,8 @@ Check the capped orchestrator against the live child contracts and publish it on
 
 Calculate and disclose the aggregate pilot maximum as `(number of pilot top-level runs + one replay attempt) × billing.maxCreditsPerRun`. A per-run cap resets for each top-level run, so presenting it as the whole pilot bound understates exposure. Do not hardcode a credit-to-currency conversion. If credits are zero or unavailable, stop; quote any CLI-provided recovery commands exactly, but do not run them without approval.
 
-Run without another approval in an explicit internal/test workspace. A customer workspace additionally requires explicit approval for the provider, record count, per-run cap, and aggregate maximum plus a verified supported path for restoring the exact consumed test credits. If either is missing, use an internal/test workspace. Do not turn this into a second design review or ask again between pilot records covered by the same bound.
+Run this authoring pilot without another approval in an explicit internal/test workspace. Do not substitute a customer workspace for the authoring pilot. These pilot rules do not gate or replace the separate post-fix Production acceptance described above, which is one case in an owner-verified operator personal or designated Deepline-owned Production workspace. Do not turn this into a second design review or ask again between pilot records covered by the same bound.
 
 Submit one representative synthetic record through the published engine and its real paid transitions. Add at most two more synthetic records only when distinct branches need coverage, and keep all records within one bounded pilot. Stop when outputs are wrong, coverage is poor, a required field is missing, or observed cost per usable result is too high. Replaying a completed transition with the same idempotency key must not create another provider charge, output, or handoff. When the engine has no paid transition, run the same live pilot and report zero spend; adding an unrelated provider would test a different workflow.
 
-Show the pilot inputs, final outputs, observed Deepline spend, published `billing.maxCreditsPerRun`, aggregate bound, and replay result in the deliverable. If a customer workspace was used, restore every Deepline credit consumed by the test and verify the resulting balance; include the restoration receipt. Retain exact per-step traces, including provider calls and charges, and offer them on request instead of including them by default. Real customer data, installed triggers, a larger run, or other external side effects require separate approval. Before a larger paid run, show the pilot results, observed spend, proposed scope, and proposed Deepline-credit cap, then ask for explicit approval. Scaling requires a newly checked and published revision with that approved cap; do not silently remove or raise the pilot cap.
+Show the pilot inputs, final outputs, observed Deepline spend, published `billing.maxCreditsPerRun`, aggregate bound, and replay result in the deliverable. Retain exact per-step traces, including provider calls and charges, and offer them on request instead of including them by default. Real customer data, installed triggers, a larger run, or other external side effects require separate approval. Before a larger paid run, show the pilot results, observed spend, proposed scope, and proposed Deepline-credit cap, then ask for explicit approval. Scaling requires a newly checked and published revision with that approved cap; do not silently remove or raise the pilot cap.
