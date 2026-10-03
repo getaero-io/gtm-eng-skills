@@ -223,6 +223,7 @@ while True:
 | `GET` | `/api/v2/runs/:runId/status` | `runs.status`<br />`runs status` | Legacy scalar-only read retained for compatibility. New clients should use GET /api/v2/runs/:runId (`runs.get`) for status, results, and progress. | `apps/deepline-api/src/app/api/v2/runs/[runId]/status/route.ts` |
 | `POST` | `/api/v2/runs/:runId/stop` | `runs.stop`<br />`stopRun`<br />`cancelPlay`<br />`stopPlay` | Stop a running or waiting play run. | `apps/deepline-api/src/app/api/v2/runs/[runId]/stop/route.ts` |
 | `GET` | `/api/v2/runs/:runId/tail` | `legacy SDK watch fallback` | Stream canonical run events over SSE. | `apps/deepline-api/src/app/api/v2/runs/[runId]/tail/route.ts` |
+| `GET` | `/api/v2/runs/events` | `runs.searchEvents`<br />`searchRunEvents`<br />`runs logs` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/events/route.ts`<br />`apps/deepline-api/src/lib/plays/runtime-event-reader.ts` |
 | `POST` | `/api/v2/runs/stop-all` | `runs.stopAll`<br />`stopAllRuns` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/stop-all/route.ts` |
 
 ### Play Definitions
@@ -684,6 +685,7 @@ Use `client.runs` (`/api/v2/runs`) to watch, stop, read logs, and export durable
 | `watch` | `(runId: string, options?: RunsWatchOptions) => Promise<PlayStatus>` | Yes | Poll run snapshots every two seconds until terminal status. |
 | `tail` | `(runId: string, options?: RunsTailOptions) => Promise<PlayStatus>` | Yes |  |
 | `logs` | `(runId: string, options?: RunsLogsOptions) => Promise<RunsLogsResult>` | Yes | Fetch persisted log lines for a run. |
+| `searchEvents` | `( options?: RunsEventSearchOptions, ) => Promise<RunsEventSearchResult>` | Yes | Search recent durable runtime events across runs in the active organization. |
 | `exportDatasetRows` | `(input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; rowMode?: 'output' \| 'all'; signal?: AbortSignal; }) => Promise<PlaySheetRowsResult>` | Yes | Export persisted rows for a runtime-sheet dataset/table namespace. |
 | `stop` | `( runId: string, options?: { reason?: string }, ) => Promise<StopPlayRunResult>` | Yes | Stop a running/waiting run. |
 | `stopAll` | `{ ( options: StopAllRunsOptions & { dryRun: true }, ): Promise<StopAllPlayRunsDryRunResult>; ( options?: StopAllRunsOptions & { dryRun?: false }, ): Promise<StopAllPlayRunsStopResult>; (options?: StopAllRunsOptions): Promise<StopAllPlayRunsResult>; }` | Yes | Stop active runs across the current workspace, or with `dryRun: true`<br />enumerate the exact candidates without cancelling anything. |

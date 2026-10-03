@@ -6,17 +6,6 @@ The Deepline SDK is a runtime SDK. Your TypeScript defines durable play code and
 Use `definePlay(...)` for code that runs inside a Deepline play. Inside that function, `ctx.*` is the runtime boundary: `ctx.tools.execute` calls managed providers, `ctx.dataset` records row-level work, `ctx.step` checkpoints scalar work, `ctx.fetch` records external HTTP, and `ctx.runPlay` composes registered or prebuilt plays.
 Use `Deepline.connect()` and `DeeplineClient` from regular Node/TypeScript services, scripts, schedulers, or tests. Those APIs discover tools and plays, start runs, stream/poll status, stop runs, and inspect durable output without requiring a local play file.
 
-## Reference Map
-
-<!-- prettier-ignore -->
-| Area | Primary surface | Use when |
-|---|---|---|
-| Runtime entrypoint | `Deepline.connect()` / `DeeplineContext` | A script or service needs to call tools, run plays, or inspect runs. |
-| Play authoring | `definePlay(...)` / `ctx.*` | Code should run durably inside Deepline with persisted steps, datasets, tools, and child plays. |
-| Tool/provider calls | `ctx.tools.execute(...)`, `deepline.tools.execute(...)`, `client.executeTool(...)` | You need provider-backed enrichment/search with Deepline auth, billing, extraction metadata, and retries. |
-| Remote plays/runs | `ctx.play(name)`, `ctx.runPlay(...)`, `PlayJob`, `client.runs` | You need to run, poll, stream, stop, export, publish, or inspect plays. |
-| Raw HTTP | `references/plays-api-reference.md` | A backend, notebook, scheduler, or non-TypeScript caller invokes Deepline over REST. |
-
 ## Detail Policy
 
 <!-- prettier-ignore -->
@@ -1305,6 +1294,7 @@ Signature: `class DeeplineClient`
 | `getRunInput` | method | Get the exact original input retained for a run. This is intentionally separate from status. | `runId: string` | `Promise<{ runId: string; input: Record<string, unknown> \| unknown[]; bytes: number; sha256: string \| null; replayedFromRunId: string \| null; }>` |
 | `rerun` | method | Start a fresh run from a prior run's retained input and pinned revision.<br /><br />Every invocation sends an `Idempotency-Key`. When the caller does not<br />supply one, a fresh key is generated once per call so the transport's own<br />network retries converge on a single rerun. Pass the same explicit key<br />across separate invocations to repeat an ambiguous result safely; a<br />different key intentionally starts another rerun. | `runId: string`<br />`options?: RerunOptions` | `Promise<RerunPlayRunResult>` |
 | `getRunLogs` | method | Fetch persisted logs for a run using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs logs <run-id> --limit 200 --json<br />``` | `runId: string`<br />`options?: RunsLogsOptions` | `Promise<RunsLogsResult>` |
+| `searchRunEvents` | method | Search bounded, structured runtime history without requiring a run id. | `options?: RunsEventSearchOptions` | `Promise<RunsEventSearchResult>` |
 | `getPlaySheetRows` | method | Export persisted runtime-sheet rows for a play dataset/table namespace.<br /><br />This is the SDK form of exporting `ctx.dataset(...).run()` output for a<br />specific play and optional run id. | `input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; rowMode?: 'output' \| 'all'; signal?: AbortSignal; }` | `Promise<PlaySheetRowsResult>` |
 | `stopRun` | method | Stop a run by id using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs stop <run-id> --reason "stale lock" --json<br />``` | `runId: string`<br />`options?: { reason?: string }` | `Promise<StopPlayRunResult>` |
 | `stopAllRuns` | method | Stop every active run visible to the current workspace, or with<br />`dryRun: true` enumerate the exact candidates without cancelling anything.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs stop-all --dry-run --json<br />deepline runs stop-all --reason "stale lock" --json<br />```<br /><br />Use this when a failed parent run left child or waiting runs active and you<br />need to clear the workspace run-slot state without knowing each run id. | `options?: StopAllRunsOptions` | `Promise<StopAllPlayRunsResult>` |
@@ -1386,6 +1376,7 @@ Use `client.runs` (`/api/v2/runs`) to watch, stop, read logs, and export durable
 | `watch` | `(runId: string, options?: RunsWatchOptions) => Promise<PlayStatus>` | Yes | Poll run snapshots every two seconds until terminal status. |
 | `tail` | `(runId: string, options?: RunsTailOptions) => Promise<PlayStatus>` | Yes |  |
 | `logs` | `(runId: string, options?: RunsLogsOptions) => Promise<RunsLogsResult>` | Yes | Fetch persisted log lines for a run. |
+| `searchEvents` | `( options?: RunsEventSearchOptions, ) => Promise<RunsEventSearchResult>` | Yes | Search recent durable runtime events across runs in the active organization. |
 | `exportDatasetRows` | `(input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; rowMode?: 'output' \| 'all'; signal?: AbortSignal; }) => Promise<PlaySheetRowsResult>` | Yes | Export persisted rows for a runtime-sheet dataset/table namespace. |
 | `stop` | `( runId: string, options?: { reason?: string }, ) => Promise<StopPlayRunResult>` | Yes | Stop a running/waiting run. |
 | `stopAll` | `{ ( options: StopAllRunsOptions & { dryRun: true }, ): Promise<StopAllPlayRunsDryRunResult>; ( options?: StopAllRunsOptions & { dryRun?: false }, ): Promise<StopAllPlayRunsStopResult>; (options?: StopAllRunsOptions): Promise<StopAllPlayRunsResult>; }` | Yes | Stop active runs across the current workspace, or with `dryRun: true`<br />enumerate the exact candidates without cancelling anything. |

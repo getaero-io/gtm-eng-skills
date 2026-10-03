@@ -75,6 +75,32 @@ deepline -h
   access/consent remains separate. A credit shortage doesn't block otherwise
   accessible retained results.
 
+**Search accepted runtime events:** use `deepline runs logs` for a run or across
+the active organization. Add `--play`, `--kind`, a UTC `--since`/`--until`, or
+`--where '$.status == "failed"'` to narrow results; `--where` is a bounded
+PostgreSQL JSONPath subset over documented fields, not arbitrary SQL. Add
+`--payloads` to hydrate matching receipt outputs in that same response (maximum
+10 events and 16 MiB). Search
+events are retained for seven days, while the authoritative receipt payload has
+its own retention. Use `deepline runs logs --help` for the current flags.
+
+Typed provider activity events also expose safe `provider` and `operation` keys
+for equality filters. They identify the provider and tool operation recorded by
+the runtime; they do not index raw request/response bodies or promise one search
+event per provider call.
+
+```bash
+deepline runs logs --play company-lookup --since 2026-09-29T12:00:00Z --kind receipt.failed --json
+deepline runs logs --where '$.status == "failed"' --limit 10 --payloads --json
+deepline runs logs --kind activity.observed --where '$.provider == "apollo" && $.operation == "company_lookup"' --json
+```
+
+Before the first Deepline fanout in a task, run `deepline preflight --json` as
+one standalone command and wait for it to finish. Never submit preflight beside
+another Deepline command. After it succeeds, prefix every Deepline command that
+may run concurrently with `DEEPLINE_SKIP_SELF_UPDATE=1`; serial commands may
+stay bare.
+
 The experiment methodology below applies when designing or comparing new work,
 not to execution-only or existing-run inspection requests.
 
