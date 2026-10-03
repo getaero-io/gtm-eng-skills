@@ -56,7 +56,7 @@ Dropleads geo filters (`personalCountries` / `personalStates` / `personalCities`
 
 - Run `dropleads_email_finder` for contacts that passed the discovery pass.
 - Run `dropleads_mobile_finder` only when phone is required for the workflow.
-- Keep pilots small first, then scale after quality checks pass.
+- For larger or uncertain authorized enrichment, use a small representative pilot and check quality before scaling. Do not add a pilot run or repeat approval for a small supplied Play; inspect its existing results without paid repair.
 
 ## 3) Gate outbound with verifier status
 
@@ -73,7 +73,7 @@ Dropleads geo filters (`personalCountries` / `personalStates` / `personalCities`
 5. Extract signals with `run_javascript` from the structured HarvestAPI output (e.g. founder detection, hiring signals).
 6. Enrich emails via waterfall (`dropleads_email_finder` first, then other providers).
 7. Verify candidate emails (`dropleads_email_verifier` or `leadmagic_email_validation`).
-8. Expand only after pilot quality is confirmed.
+8. For larger or uncertain work, expand within the authorized scope after the sample quality is confirmed. This sequence is planning guidance, not a requirement to run extra discovery or enrichment when inspecting a supplied Play or its results.
 
 ## 5) Account discovery boundary
 

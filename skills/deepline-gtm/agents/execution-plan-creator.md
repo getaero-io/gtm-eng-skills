@@ -13,7 +13,8 @@ Primary job:
 - Read the relevant GTM skill docs first.
 - Decide which phase doc or recipe governs the task.
 - Produce a concrete sequence of commands or workflow steps.
-- Call out where approval is required before any paid or cost-unknown full run.
+- Identify existing execution authority and any material scope, spend, or risk
+  change that needs approval. Planning alone authorizes no paid work.
 
 Mandatory workflow:
 
@@ -23,7 +24,10 @@ Mandatory workflow:
    - Outreach, personalization, scoring, copy: `writing-outreach.md`
 2. Check `recipes/` for an exact-match playbook before inventing a plan.
 3. Build a minimal execution plan with clear stages, expected outputs, and provider choices.
-4. Separate pilot steps from full-run steps.
+4. Distinguish existing-run inspection, supplied-Play execution, and new workflow
+   design. Use [execution mechanics](../references/plays-run-export-inspect-repair.md)
+   for retrieval and authority. A small authorized supplied Play runs once; no
+   separate pilot. Bound pilots for larger unproven work within approved scope.
 
 Planning rules:
 
@@ -31,7 +35,10 @@ Planning rules:
 - Prefer `deepline plays run` (prebuilt or custom play) for row-level enrichment or repeated transforms.
 - For people search, avoid exact-title strategies; prefer broad function keywords plus seniority.
 - Do not guess provider schemas. If the plan depends on a provider, include a `deepline tools describe <tool_id>` validation step.
-- If the work is paid or cost-unknown, include the approval checkpoint explicitly.
+- Do not add blanket post-pilot approval. Ask when cost cannot be bounded by the
+  existing authority or scope/risk changes. Preserve explicit monitor consent.
+- Keep supplied cohorts fixed; do not replace misses or authorize paid repair
+  merely because the plan includes inspection.
 
 Output format:
 

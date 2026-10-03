@@ -298,27 +298,39 @@ deepline csv render --csv leads.csv --open
 
 ### Inspect rows (`deepline csv show`)
 
-`deepline csv show --csv <path> [--format json|table|csv] [--verbose] [--summary] [--rows START:END]`
+Keep the complete export, including intermediate evidence; select columns for
+display with `csv show` instead of changing the exported file. See
+`deepline csv show -h` for options.
 
-- format: json (default, `{rows, _metadata}`), table (ASCII, 40-char cap), csv (RFC 4180)
-- --verbose: include step columns + full cell values
-- --summary: per-column stats + miss_reasons
-- --rows: `start:end` bounds (default `0:19`)
+- `--format json|table|csv` applies to both row display and summary; JSON is default.
+- `--columns a,b` includes named columns; `--exclude-columns c` omits them.
+  Exclusions win. Unknown names or an empty selection fail; the file is unchanged.
+- `--verbose` shows full cell values in table output, not additional columns.
+- `--summary` returns one row per selected column with present/missing counts,
+  present percentage, unique count, top repeated values and other count. It
+  analyzes all file rows by default; presence is not verification or a miss reason.
+- `--rows start:end` is inclusive. Normal display defaults to `0:19`; an
+  explicit range also limits the summary.
 
 ```bash
-deepline csv show --csv leads.csv
-deepline csv show --csv leads.csv --format table --rows 0:10
-deepline csv show --csv leads.csv --summary
+deepline csv show leads.csv
+deepline csv show leads.csv --columns first_name,email --format table --rows 0:10
+deepline csv show leads.csv --summary
 ```
+
+Use actual column names from the file. CSV JSON display still contains string
+cells. For native nested objects and arrays, use `runs export --format json`
+as described in [execution mechanics](references/plays-run-export-inspect-repair.md).
 
 ### Re-run a column
 
-`deepline csv` is local inspection only. To recompute a column, re-run the
-play that produced it: completed cells are reused from the durable dataset by
-default, and `deepline plays run --force` starts a fresh run graph when you
-genuinely want everything recomputed.
+`deepline csv` is local inspection only. Inspect the existing export and run
+before proposing recomputation. A new run or forced refresh needs execution
+authority and may spend again; completed receipt reuse is not a free-rerun
+guarantee. Follow [execution mechanics](references/plays-run-export-inspect-repair.md).
 
 ### CLI-only debug posture
 
-- If you need to inspect or re-execute, use these CSV commands directly.
+- Use these commands for local inspection, not re-execution. Deterministic
+  processing is allowed; preserve the original and label derived outputs.
 - If you need to add columns or add providers, switch back to [enriching-and-researching.md](enriching-and-researching.md) instead of extending this page.

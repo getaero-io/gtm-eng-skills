@@ -2,6 +2,28 @@
 
 Every Clay action maps to a specific Deepline CLI tool or native play. Use actual tool IDs in every generated script — never generic descriptions.
 
+## Legacy payload reference — not runnable Play syntax
+
+The string-form `.withColumn(alias, tool, payload)` snippets below retain
+historical payloads, prompts, field paths, provider order, and validation
+semantics. They are **not** current callback-based Play examples. Do not paste
+them into a Play or revive `deepline enrich`, `--with`, or waterfall flags.
+Translate a selected recipe using [Play authoring](../recipes/deepline-plays.md):
+`withColumn(alias, async (row, rowCtx) => ...)`, `rowCtx.tools.execute` with
+stable `id`, `tool`, typed `input`, and `description`, or `rowCtx.runPlay` for a
+prebuilt. Replace brace interpolation with typed row reads and use declared
+getters rather than assuming historical `.output.body` wrappers still exist.
+
+Unmigrated blocks remain below for person enrichment, cross-table filesystem
+joins, email waterfalls/validation/permutations, company-source Python passes,
+normalization, classification/AI/Octave prompts, campaign writes, and field
+interpolation. Their output getters, staging, and side-effect semantics need
+case-by-case contract validation before conversion; no faithful runnable
+replacement is claimed here. Retain their payload knowledge, but use
+[execution mechanics](plays-run-export-inspect-repair.md) for authority and
+retrieval. Campaign writes require explicit authority; a provider miss does not
+authorize adding the fallback routes listed here.
+
 ## ⚠️ Tool Discovery Protocol — Read First
 
 **This mapping is a starting-point reference, not a guarantee.** Deepline adds new tools, native plays, and provider integrations continuously. The right mental model:

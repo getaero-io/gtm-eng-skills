@@ -5,11 +5,13 @@ description: 'Convert a Clay table configuration into local Deepline scripts. Ha
 
 # Clay → Deepline Migration
 
-> **Deprecated recipe.** It converts Clay tables to the deprecated `deepline
-> enrich` surface. Convert Clay tables to custom plays instead: one
-> `withColumn` per Clay column, per [deepline-plays.md](deepline-plays.md).
-> The action-mapping tables below remain useful for choosing the equivalent
-> Deepline tool per Clay action.
+Convert Clay tables to custom Plays: one callback-based `withColumn` per Clay
+column, per [deepline-plays.md](deepline-plays.md). Preserve the extraction,
+payload, prompt, dependency, and parity knowledge below. The linked
+[action mappings](../references/clay-action-mappings.md) retain explicitly
+marked legacy template notation; those blocks are not runnable Play syntax.
+For execution authority, pilots, and retrieval, use
+[execution mechanics](../references/plays-run-export-inspect-repair.md).
 
 ## Choosing your migration target
 
@@ -240,25 +242,35 @@ deepline plays check <table>.play.ts
 
 ### Referencing Columns
 
-Reference columns by alias, never by index. In a payload template, `{{alias}}` resolves to an earlier column or a seed CSV header.
-
-Interpolation walks the full path: `{{fields.title}}`, `{{fields.company.name}}`, and array indices like `{{li_serper.organic[0].link}}` all resolve. A path that does not exist renders empty rather than erroring, so check a sample row when a value comes back blank.
+Reference columns by alias, never by index. Translate legacy payload templates
+to callback reads: `{{alias}}` becomes `row.alias`, `{{fields.title}}` becomes
+`row.fields.title`, and `{{li_serper.organic[0].link}}` becomes the corresponding
+typed array access. Use explicit missing-value handling; TypeScript does not
+interpolate Clay braces or silently turn a missing path into an empty string.
 
 ### Running and Waiting
 
 ```bash
-deepline plays run --file <table>.play.ts --input '{"csv": "seed.csv"}' --watch
+deepline plays run <table>.play.ts --csv seed.csv
+deepline runs get <run-id> --json
 deepline runs export <run-id> --out output_<table>.csv
 ```
 
-`--watch` blocks until the run reaches a terminal state. To inspect fill rates on the export, `deepline csv show --csv output_<table>.csv --format json --summary` returns `columnStats` at the **top level** of the JSON (alongside `total_rows`), not nested under `_metadata`.
+Run waits until completion by default. Export preserves all dataset columns;
+inspect fill rates with `deepline csv show output_<table>.csv --summary`.
+Its JSON `rows` contains one summary per column, with `total_rows` analyzed and
+`source_total_rows` in the file. Summary defaults to the whole file, unlike
+normal display's first 20 rows; explicit `--rows` limits either mode.
+Use `--columns` / `--exclude-columns` for display-only selection, not export
+filtering. See `deepline csv show -h` for formats and options.
 
 ### Piloting A Subset Of Rows
 
-Pilot on a slice of the seed CSV before the full run:
+For a newly migrated large table, use an authorized CSV-aware subset before
+scaling. A small authorized supplied Play runs once, without a separate pilot:
 
 ```bash
-head -4 seed.csv > pilot.csv   # header + 3 rows
+# Prepare pilot.csv with a CSV parser (quoted fields may contain newlines).
 deepline plays run --file <table>.play.ts --input '{"csv": "pilot.csv"}' --watch
 ```
 
@@ -268,13 +280,19 @@ To skip rows a cheaper pass already answered, gate the expensive column with `ru
 runIf: (row) => !row.work_email,
 ```
 
-This replaces the old filter-to-a-separate-CSV-and-merge workaround. Tool receipts are content-addressed on tool + input, so re-running the play does not re-bill results it already bought.
+This replaces the old filter-to-a-separate-CSV-and-merge workaround. Compatible
+completed tool receipts may be reused; incomplete or ambiguous work can execute
+again. Do not promise that a rerun is free.
 
 ### Architecture Choice: Play vs Python SDK
 
-For Claygent-heavy tables, use a **pure Python script** with `deepline tools execute exa_search` + `deeplineagent`. Enables parallel execution with `ThreadPoolExecutor`, full retry/confidence control.
-
-The play pattern still applies for non-AI passes and simple single-column `deeplineagent` enrichments — and unlike shell-assembled JSON, the play is a real TypeScript file: JS transforms live in the file directly with no quoting or escaping problems.
+Use a Play for repeated row execution, including Claygent-heavy tables: keep
+`exa_search` retrieval and `deeplineagent` synthesis as separate stages, with
+explicit confidence and failure outcomes. Historical Python implementations used
+`ThreadPoolExecutor` for parallelism and custom retry/confidence control; retain
+those semantics when migrating, but use Play-managed durable calls rather than
+adding an agent-level retry loop. Local Python remains useful for deterministic
+preparation and parity analysis of saved outputs.
 
 ### Common Failure Modes
 
@@ -465,7 +483,7 @@ Use this mismatch process: check prompt parity → check model parity → check 
 - **Declaration order is execution order**: put `run_javascript` transforms before the paid columns that read them
 - **Gate expensive columns with `runIf`**: never pay for a row a cheaper pass already answered
 - **Flatten first**: a `run_javascript` column that flattens `clay_record` before `{{fields.xxx}}`. Not needed in Python SDK — use `json.loads()` directly
-- **Interpolation walks the full path**: `{{col.field.nested}}` and `{{col.items[0].field}}` both resolve; a missing path renders empty, not an error
+- **Translate full paths**: preserve `{{col.field.nested}}` and `{{col.items[0].field}}` semantics as typed callback reads with explicit missing-value handling, not literal brace strings
 - **Structured JSON for deeplineagent**: Single invocation per column, all fields in one `jsonSchema`
 - **Cookie in env**: Never embed `CLAY_COOKIE` in play code or payloads; read it only from `.env.deepline` in the generated shell fetch script
 - **Catch-all is valid**: Accept `valid`, `valid_catch_all`, `catch_all`. NOT `unknown`
@@ -477,20 +495,22 @@ Use this mismatch process: check prompt parity → check model parity → check 
 
 1. **Extraction (§1)**: Extract Clay table config (or skip if user provides extract)
 2. **Phase 1 (§2)**: Table summary, dependency graph, pass plan, prompt extraction, assumptions
-3. **Confirm**: Get user approval on assumptions and pass plan
+3. **Confirm**: Resolve material assumptions and execution authority; planning alone permits no paid run
 4. **Phase 2 (§3)**: Pre-flight → write `fetch_<table>.sh` + `<table>.play.ts`
-5. **Pilot gate**: `deepline plays check` (compiles, no spend), then a 3-row pilot CSV (real APIs)
-6. **Full run**: After pilot approval
+5. **Check and pilot**: `deepline plays check` (no provider spend), then an authorized bounded pilot for larger unproven work; no duplicate small supplied run
+6. **Full run**: Complete the approved scope without redundant post-pilot approval; ask if scope, cost, or risk changes
 7. **Phase 3 (§7)**: `compare.py ground_truth.csv enriched.csv` — confirm thresholds pass
 8. **Trigger/routing migration** (optional): If table needs triggers/routing → [deepline-plays.md](deepline-plays.md)
 
 ### Pilot Gate
 
-`run_javascript` needs no pilot. For paid tools, compile first, then run 3 rows, in that order:
+Pure transforms can be checked locally. For a newly migrated large paid batch,
+check first, then use an authorized pilot. Account for processed rows when
+scaling; do not repeat them solely to satisfy a full-run ritual:
 
 ```bash
 deepline plays check <table>.play.ts                                        # step 1: compile only, no spend
-head -4 seed.csv > pilot.csv
+# Prepare pilot.csv with a CSV parser; seed.csv below is the remaining scope.
 deepline plays run --file <table>.play.ts --input '{"csv": "pilot.csv"}' --watch   # step 2: 3 rows, real providers
 deepline plays run --file <table>.play.ts --input '{"csv": "seed.csv"}' --watch    # step 3: all rows
 ```

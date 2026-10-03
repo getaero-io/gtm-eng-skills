@@ -12,7 +12,7 @@ Use Parallel for managed research/extraction runs without custom orchestration.
 - If `parallel_run_task` returns pending or times out, keep the `run_id` and use `parallel_get_task_run_result` later to fetch the final output.
 - Ignore `parallel_get_task_run` unless you specifically need run metadata like status timestamps or processor info.
 - Keep monitor/stream endpoints out of default flows unless a user explicitly needs them.
-- Pilot on a small objective first, then widen `max_results` and scope.
+- For larger or uncertain authorized research, pilot on a small objective before widening `max_results` and scope. Do not add a pilot or repeat approval for a small supplied Play. Inspect existing task results by `run_id`; inspection does not authorize a new paid research run or repair. The REST-only policy for Plays and scale still applies.
 - For a direct exploratory MCP call, pass a stable `session_id` across related calls when possible to reduce anonymous-tier throttling. A session id does not make MCP suitable for scale.
 
 ```bash

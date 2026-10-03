@@ -1301,6 +1301,7 @@ Signature: `class DeeplineClient`
 | `getRunLifecycleStatus` | method | Fetch only the legacy scalar lifecycle status for a run. | `runId: string` | `Promise<RunLifecycleStatus>` |
 | `listRuns` | method | List play runs using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs list --play <play-name> --status failed --json<br />``` | `options: RunsListOptions` | `Promise<PlayRunListItem[]>` |
 | `listRunsPage` | method | Read one run page without discarding server pagination metadata. | `options: RunsListOptions` | `Promise<RunsListPage>` |
+| `getRunReceipts` | method | Read batches rather than silently truncating a long key list. | `runId: string`<br />`options: { keys: string[] }` | `Promise<import('./runs/receipts').RunToolReceiptsResponse>` |
 | `getRunInput` | method | Get the exact original input retained for a run. This is intentionally separate from status. | `runId: string` | `Promise<{ runId: string; input: Record<string, unknown> \| unknown[]; bytes: number; sha256: string \| null; replayedFromRunId: string \| null; }>` |
 | `rerun` | method | Start a fresh run from a prior run's retained input and pinned revision.<br /><br />Every invocation sends an `Idempotency-Key`. When the caller does not<br />supply one, a fresh key is generated once per call so the transport's own<br />network retries converge on a single rerun. Pass the same explicit key<br />across separate invocations to repeat an ambiguous result safely; a<br />different key intentionally starts another rerun. | `runId: string`<br />`options?: RerunOptions` | `Promise<RerunPlayRunResult>` |
 | `getRunLogs` | method | Fetch persisted logs for a run using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs logs <run-id> --limit 200 --json<br />``` | `runId: string`<br />`options?: RunsLogsOptions` | `Promise<RunsLogsResult>` |
@@ -1375,6 +1376,7 @@ Use `client.runs` (`/api/v2/runs`) to watch, stop, read logs, and export durable
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
+| `getReceipts` | `( runId: string, options: { keys: string[] }, ) => Promise<import('./runs/receipts').RunToolReceiptsResponse>` | Yes | Read retained tool results associated with a run, in supplied key order. Never executes tools. |
 | `get` | `(runId: string, options?: RunsGetOptions) => Promise<PlayStatus>` | Yes | Get current run status by public run id. |
 | `status` | `(runId: string) => Promise<RunLifecycleStatus>` | Yes |  |
 | `input` | `(runId: string) => Promise<{ runId: string; input: Record<string, unknown> \| unknown[]; bytes: number; sha256: string \| null; replayedFromRunId: string \| null; }>` | Yes | Explicitly read the retained original input (may include customer data). |

@@ -11,6 +11,13 @@ A row is sendable only when it is the **right person**, in their **current role*
 
 The throughline: **a field is only good when you can name its source and the check it passed. Flag everything else.**
 
+These are activation-quality gates, not instructions to buy new evidence for
+every result request. Use retained evidence first. Fresh validation, recovery,
+or replacement contacts need execution authority; inspection alone authorizes
+none. In a fixed supplied cohort, keep every original identity and its hold or
+miss reason. `drop`/`REMOVE` below means exclude from an outreach selection,
+not delete from the execution report. See [execution mechanics](plays-run-export-inspect-repair.md).
+
 ## 1. Current role: take the latest active WORK role, not the top-level title
 
 LinkedIn scrapers expose a top-level `jobTitle`/`companyName` and a full `experiences[]` array. Reconstruct the current role from `experiences[]`. The top-level title is often a past, secondary, board, or advisory entry because the scraper follows whatever LinkedIn surfaced first.

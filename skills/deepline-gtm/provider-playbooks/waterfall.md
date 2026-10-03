@@ -24,7 +24,7 @@
 
 - Rate budget split: `search_contact` uses the dedicated search key/budget (`60 RPM`).
 - Rate budget split: `prospector`, `enrich_contact`, `enrich_phone`, `enrich_company`, `job_change`, and related finder calls use the enrichment key/budget (`200 RPM`).
-- When planning `deepline enrich` waterfalls, do not treat `search_contact` and the enrichment-style Waterfall actions as one shared bucket.
+- When planning provider waterfalls inside a Play, do not treat `search_contact` and the enrichment-style Waterfall actions as one shared bucket.
 
 ### Launcher operations (prospector, enrich_contact, enrich_phone, enrich_company)
 
@@ -120,7 +120,7 @@ the very end, and only for the tier the user actually needs.
 2. `deeplineagent` - given the title list + ICP criteria, return the matching titles as exact strings
 3. `search_contact` with `title_lists` set to those matched titles - find the people
 
-Rules, all verified live:
+Provider rules from prior live verification (the Play recipe below is not a new live verification):
 
 - **Use `title_lists`, not `title_filters`.** `title_lists` returns holders of each title
   you pass (OR across the list). The matched titles come straight from `company_titles`,
@@ -138,65 +138,95 @@ Rules, all verified live:
 - **Raise `page_size` for big title lists.** `search_contact` paginates; the default page
   is small. If you pass many titles, set `page_size` high enough (or page with
   `page_number`) so holders aren't silently truncated.
-- **Placeholders can't reach nested tool output directly, and a bare array placeholder
-  breaks the JSON `--with` spec.** `company_titles` output lands at
-  `result.data.output.titles` and `deeplineagent` JSON lands at `result.object.<field>` in
-  persisted cells - but inside `run_javascript` the alias is already unwrapped
-  (`row.titles.result.data.output.titles`, `row.icp_match.object.matched_titles`).
-  Materialize both into flat scalar columns with `run_javascript` first, then reference
-  the flat column. A raw array placeholder (`"titles": {{matched}}`) fails to compile;
-  wrap it in quotes (`"titles": "{{matched}}"`) so the interpolator substitutes the array.
+- **Pass arrays as typed values inside the Play.** Keep the roster and matched
+  titles as string arrays, not CSV placeholder substitutions. Verify the returned
+  shape before selecting fields; a malformed response is not an empty roster.
+  For inspection of historical exports only: `company_titles` was stored at
+  `result.data.output.titles`, and `deeplineagent` JSON at `result.object.<field>`.
+  The old `run_javascript` aliases were already unwrapped at
+  `row.titles.result.data.output.titles` and `row.icp_match.object.matched_titles`.
+  Those wrapper paths are not a current Play response contract. The old CSV recipe
+  flattened arrays into JSON strings to work around interpolation and sliced the
+  matched list to 100; retain the complete roster and matches in new Plays and
+  batch requests if the described tool contract requires a limit.
 
-**V1 CLI (deepline enrich) - copy/paste, validated end to end:**
+**Play workflow: roster → ICP matching → exact-title contact lookup**
 
-```bash
-# Step 1 - get the full title roster per company (FREE)
-deepline enrich --input companies.csv --output titles.csv \
-  --with '{"alias":"titles","tool":"company_titles","payload":{"domain":"{{domain}}"}}'
+Use a supplied Play when it fits. Otherwise find a maintained workflow with
+`deepline plays search "qualified titles" --json` and inspect it with
+`deepline plays describe <play-ref> --json`. For custom authoring, confirm the
+cached tool hints `company_titles`, `deeplineagent`, and
+`deepline_native_search_contact` using `deepline tools describe <tool-id> --json`.
+Do not substitute IDs solely because Waterfall and Deepline Native share guidance.
 
-# Step 1b - flatten the nested titles array into a scalar column
-deepline enrich --input titles.csv --output titles_flat.csv \
-  --with '{"alias":"titles_flat","tool":"run_javascript","payload":{"code":"const t = row.titles?.result?.data?.output?.titles || []; return JSON.stringify(t);"}}'
+Build `qualified-titles.play.ts` with `definePlay` and a top-level description.
+Read `companies.csv` through `ctx.csv(input.csv, { required: ['domain'] })` and
+materialize the work with `ctx.dataset('companies', companies)`. Within its row
+resolver, use `rowCtx.tools.execute({ id, tool, input, description })` for each
+provider call, with the following steps:
 
-# Step 2 - LLM filters the roster against the ICP, returns matched_titles[] (cheap)
-deepline enrich --input titles_flat.csv --output matched.csv \
-  --with '{
-    "alias":"icp_match",
-    "tool":"deeplineagent",
-    "payload":{
-      "model":"openai/gpt-5.4-mini",
-      "prompt":"ICP: roles with budget authority over Salesforce / GTM-systems purchasing - Marketing Ops, Sales Ops, RevOps, GTM/Business Ops, Salesforce admin/architect. Senior IC and above; exclude recruiters, finance, support, and plain AE/SDR reps. From this exact title list return ONLY matching titles as exact strings: {{titles_flat}}. Return JSON.",
-      "jsonSchema":{"type":"object","properties":{"matched_titles":{"type":"array","items":{"type":"string"}},"reasoning":{"type":"string"}},"required":["matched_titles","reasoning"],"additionalProperties":false}
-    }
-  }'
+1. **`titles` / `company_titles`**: pass `{ domain: row.domain }` (free).
+   Extract the provider's `output.titles` using the described response contract.
+   Preserve the roster. A known company-not-found response can produce an explicit
+   no-match row; other failures stay visible.
+2. **`icp_match` / `deeplineagent`**: use the payload below with the roster in the
+   local `titles` array. Preserve both `matched_titles` and `reasoning`. Validate
+   that every match is an exact member of the original roster before buying
+   contacts; stop the row on a malformed or invented match.
+3. **`contacts` / `deepline_native_search_contact`**: only when matches are
+   nonempty, pass `{ domain: row.domain, title_lists: [{ name: 'icp', titles:
+   matchedTitles }], page_size: 50, page_number: 1 }`. Keep `matchedTitles` as a
+   real string array. Page with `page_number` until the requested holders are
+   retrieved or the authorized scope is reached; report any partial coverage.
+   This is the exact-title route, not a change to the Dropleads-first default.
+4. Retain company inputs, roster, matched titles, reasoning, and `output.persons`
+   evidence. Materialize a contact dataset with one row per returned person,
+   including the source domain and `linkedin_url`, when a flat contact export is
+   needed. Return dataset handles rather than an unbounded inline result.
 
-# Step 2b - flatten matched_titles into a scalar column (note the JS-runtime path: object.matched_titles)
-deepline enrich --input matched.csv --output matched_flat.csv \
-  --with '{"alias":"matched_titles","tool":"run_javascript","payload":{"code":"const t = (row.icp_match && row.icp_match.object && row.icp_match.object.matched_titles) || []; return JSON.stringify(t.slice(0,100));"}}'
+The ICP model input (Play fragment; `titles` is the validated roster from step 1):
 
-# Step 3 - search_contact returns all holders of every matched title (LinkedIn only).
-#   NOTE: title_lists is quoted ("{{matched_titles}}") so the array interpolates into JSON.
-#   Raise page_size when you matched many titles so holders aren't truncated.
-deepline enrich --input matched_flat.csv --output contacts.csv \
-  --with '{
-    "alias":"contacts",
-    "tool":"deepline_native_search_contact",
-    "payload":{
-      "domain":"{{domain}}",
-      "title_lists":[{"name":"icp","titles":"{{matched_titles}}"}],
-      "page_size":50
-    }
-  }'
-
-# Step 4 - flatten one company row into one row per returned contact.
-# Use the same script from the installed deepline-gtm skill when outside the repo.
-python3 .skills/deepline-gtm/scripts/flatten-search-contact-persons.py contacts.csv \
-  --contacts-col contacts > contact_rows.csv
+```ts
+const icpInput = {
+  model: 'openai/gpt-5.4-mini',
+  prompt: `ICP: roles with budget authority over Salesforce / GTM-systems purchasing - Marketing Ops, Sales Ops, RevOps, GTM/Business Ops, Salesforce admin/architect. Senior IC and above; exclude recruiters, finance, support, and plain AE/SDR reps. From this exact title list return ONLY matching titles as exact strings: ${JSON.stringify(titles)}. Return JSON.`,
+  jsonSchema: {
+    type: 'object',
+    properties: {
+      matched_titles: { type: 'array', items: { type: 'string' } },
+      reasoning: { type: 'string' },
+    },
+    required: ['matched_titles', 'reasoning'],
+    additionalProperties: false,
+  },
+};
 ```
 
+Use declared result getters when available; otherwise inspect the current
+`toolResponse.rawV2` contract before accessing provider-specific fields. Do not
+guess new response paths from the historical CSV wrappers above.
+
+After authoring and checking the selected contracts:
+
+```bash
+deepline plays check qualified-titles.play.ts --json
+deepline plays run --file qualified-titles.play.ts --csv companies.csv --watch
+```
+
+For larger or uncertain authorized work, test a representative input before
+scaling. A small supplied Play needs no additional pilot or repeated approval.
+Inspect the existing run with `deepline runs get <run-id> --json`, then use its
+full-result/export commands to save company evidence and `contact_rows.csv`.
+Inspection does not authorize rerunning, paid fallback enrichment, or repair.
+For historical `contacts.csv` exports using the old wrapper shape, the existing
+`python3 .skills/deepline-gtm/scripts/flatten-search-contact-persons.py contacts.csv
+--contacts-col contacts > contact_rows.csv` helper remains a local conversion
+option (use the installed skill's copy outside this repo). New Play exports do
+not need that legacy wrapper conversion.
+
 **Tiered contact reveal - only buy what the user needs.** Step 3 above is the cheapest
-tier. Confirm with the user which contact channels they want before spending, then add
-only the steps they need:
+tier. Use the contact channels already authorized by the user; ask only when the
+channel choice or additional spend is unspecified. Add only the steps they need:
 
 | Tier          | Tool                                        | Cost / result  | Returns                                          |
 | ------------- | ------------------------------------------- | -------------- | ------------------------------------------------ |
@@ -214,7 +244,7 @@ Deepline-facing cost tiers.)
 # Step 1 - get titles
 deepline tools execute company_titles --payload '{"domain":"acme.com"}'
 
-# Step 2 - LLM picks ICP-matching titles from the list (deeplineagent in enrich)
+# Step 2 - LLM picks ICP-matching titles from the list (deeplineagent in the Play)
 
 # Step 3 - search_contact with exact matched titles
 deepline tools execute deepline_native_search_contact --payload '{
@@ -253,12 +283,29 @@ deepline tools execute deepline_native_search_contact --payload '{"domain":"open
 deepline tools execute deepline_native_enrich_company --payload '{"domain":"stripe.com"}'
 ```
 
-### `deepline enrich` usage
+### CSV job-change Play
 
-```bash
-deepline enrich --input contacts.csv --output contacts.csv.out.csv \
-  --with '{"alias":"job_change","tool":"deepline_native_job_change","payload":{"company_domain":"{{domain}}","professional_email":"{{email}}"}}'
+Use the same Play execution and inspection workflow as above. In a
+`ctx.dataset('contacts', contacts)` column named `job_change`, preserve this
+payload mapping (fragment inside a row resolver):
+
+```ts
+const jobChange = await rowCtx.tools.execute({
+  id: 'job_change',
+  tool: 'deepline_native_job_change',
+  input: { company_domain: row.domain, professional_email: row.email },
+  description: 'Check whether this contact changed employers.',
+});
 ```
+
+Confirm the tool with `deepline tools describe deepline_native_job_change --json`.
+Read the source with `ctx.csv(input.csv, { required: ['domain', 'email'] })`, keep
+the original columns and job-change evidence, and return the dataset handle from
+the Play. Save it as `job-change.play.ts` with a top-level description, then use
+`deepline plays check job-change.play.ts --json` and
+`deepline plays run --file job-change.play.ts --csv contacts.csv --watch` for the
+authorized run. Use that run's export command to save `contacts.csv.out.csv`;
+do not launch another run merely to retrieve the result.
 
 ## Anti-Patterns to Avoid
 

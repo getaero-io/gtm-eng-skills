@@ -11,6 +11,7 @@ Exact SDK signatures (`definePlay`, `ctx.*`, `PlayDataset`, tool-result shapes, 
 - Iterate on one play file
 - Idempotency and replay
 - Design inputs for CLI use
+- Design result columns and evidence
 - Compose row programs
 - Handle provider failures
 - Parallelism
@@ -66,15 +67,47 @@ deepline plays run ./my-play.play.ts --csv pilot.csv --watch
 
 Move to 2 rows only when the second exercises a different branch you need to verify. Passing `--input '{"rows":"0:1"}'` does not filter a CSV unless the play code implements that option. Use `ctx.log(...)` for long stages — logs are visible through `--watch`, `runs watch`, and run history, so an agent can tell whether a play is searching, validating, retrying, or stuck.
 
-When a run exposes an empty derived column or a wrong getter path, debug from persisted run tables, not direct tool previews. `tools describe` gives the declared contract and `tools execute` probes an isolated call; neither proves what a prior step serialized into that play's table. The first fix comes from a `deepline db query` row for the failed run:
+When a derived column is empty or a getter looks wrong, inspect retained
+results before a new provider probe. `tools describe` gives the contract, not
+proof of what this run returned. Export the selected dataset and inspect its
+authored evidence; retrieve referenced tool receipts for unanswered questions:
 
 ```bash
-deepline plays run ./my-play.play.ts --input '{...}' --watch
 deepline runs get <run-id> --json
-deepline db query --sql 'select * from "storage"."<run_table>" where _run_id = ... limit 20' --json
+deepline runs export <run-id> --dataset <returned-selector> --format json --out rows.json
+deepline runs receipt <run-id> --key '<returned-receipt-key>'
 ```
 
-Use `top-level outputs` for scalar `ctx.step` / top-level `ctx.tools.execute` results; use `inspect rows` for `ctx.dataset` stages. Then edit the getter from the stored JSON row you actually queried.
+Scalar returned values live in `runs get`'s `result`; `--full` resolves a result
+marked `available_in_full`. Dataset handles require row export. Use a returned
+table query only when necessary and label its mutable scope. With repair
+authority, edit extraction from the observed evidence, not a guessed shape.
+
+## Design result columns and evidence
+
+For new or explicitly revised schemas, author a result object with final
+`resolution` and detailed `_dl_meta`. Flatten every resolution field into a
+convenience column, preserving types and nulls: for an email result, `value`
+becomes `email`, with `email_source`, `email_validated`,
+`email_validation_source`, `email_validation_status`, `email_outcome`, and
+`email_reason`. Unknown validation is null, not false; a finder validity claim
+names the finder, while a separate check names its validator. Nonempty values
+are not proof of validation. Do not add redundant found/not-found flags.
+
+Record actual stage inputs/results, mapped decisions and reasons, and raw tool
+evidence under `_dl_meta` as execution proceeds. A single finder has stages;
+alternatives can use ordered attempts containing multiple validation stages.
+Derive this evidence from the selection logic itself; skipped work has no raw
+response. Keep the returned `result._metadata.execution.receiptKey` even when
+omitting a large payload, and name the captured `rawV2`/`raw` view. The authored
+tool-call `id` is a call-site name, not that receipt key; `job_id` is also
+separate. Missing evidence remains unknown. This is authored JSON, not automatic
+runtime lineage; it can be flattened into columns or unnested into rows later.
+
+Order input columns before derived columns, follow logical execution order,
+and put underscore-prefixed metadata last. Name handles `email_ds` (returned
+as `email_dataset`, for example), reserving `rows` for materialized arrays.
+These patterns do not authorize changing an existing public Play's schema.
 
 ## Idempotency and replay
 

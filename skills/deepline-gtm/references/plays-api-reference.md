@@ -218,6 +218,7 @@ while True:
 | `GET` | `/api/v2/runs/:runId` | `runs.get`<br />`runs.watch`<br />`getRunStatus`<br />`getPlayStatus` | Read canonical status, result, outputs, and run package, including Runs identified by ctx.runPlayAsync. | `apps/deepline-api/src/app/api/v2/runs/[runId]/route.ts` |
 | `GET` | `/api/v2/runs/:runId/input` | `runs.input`<br />`getRunInput` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/input/route.ts` |
 | `GET` | `/api/v2/runs/:runId/logs` | `runs.logs`<br />`getRunLogs` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/logs/route.ts` |
+| `POST` | `/api/v2/runs/:runId/receipts/results` | `runs.getReceipts`<br />`getRunReceipts` | Read a batch of retained tool responses by receipt key, scoped to the authenticated workspace and run. Never executes tools. | `apps/deepline-api/src/app/api/v2/runs/[runId]/receipts/results/route.ts`<br />`apps/deepline-api/src/lib/plays/tool-receipt-results.ts`<br />`apps/deepline-api/src/lib/plays/work-receipt-read-model.ts` |
 | `POST` | `/api/v2/runs/:runId/rerun` | `runs.rerun`<br />`rerun` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/rerun/route.ts`<br />`apps/deepline-api/src/lib/plays/rerun-admission-read.ts`<br />`apps/deepline-api/src/lib/plays/rerun-idempotency.ts`<br />`apps/deepline-api/src/lib/plays/scheduler-admission-read.ts` |
 | `GET` | `/api/v2/runs/:runId/status` | `runs.status`<br />`runs status` | Legacy scalar-only read retained for compatibility. New clients should use GET /api/v2/runs/:runId (`runs.get`) for status, results, and progress. | `apps/deepline-api/src/app/api/v2/runs/[runId]/status/route.ts` |
 | `POST` | `/api/v2/runs/:runId/stop` | `runs.stop`<br />`stopRun`<br />`cancelPlay`<br />`stopPlay` | Stop a running or waiting play run. | `apps/deepline-api/src/app/api/v2/runs/[runId]/stop/route.ts` |
@@ -614,14 +615,16 @@ internals.
 |---|---|---:|---|
 | `schemaVersion` | `1` | Yes | Package schema version. |
 | `kind` | `'play_run'` | Yes | Package discriminator. |
+| `result` | `unknown` | No | Retained return structure with dataset references, not flattened output previews. |
+| `resultState` | `\| 'available' \| 'available_in_full' \| 'not_returned' \| 'unavailable'` | No | Full-only values are omitted as a whole, never replaced with partial authored data. |
 | `source` | `{ ledgerNextSeq: number \| null }` | No | Ledger position of the detailed snapshot, when provided by this server. |
 | `overview` | `RunLifecycleStatus` | No | Legacy status evidence returned by older servers. |
 | `runStatus` | `RunGetStatus` | No | Optional bounded live evidence from the existing run status projection. |
-| `run` | `{ id: string; playName: string; status: string; dashboardUrl?: string; acceptedAt?: number \| null; updatedAt?: number \| null; startedAt?: number \| null; finishedAt?: number \| null; durationMs?: number \| null; outcome?: PlayRunOutcome; recovery?: { mode: 'replayed' \| 'forced' \| 'recovered' \| 'joined'; sourceRunId?: string; }; error?: string; activity?: PlayRunActivityProjection \| null; }` | Yes | Run identity, status, timing, and dashboard metadata. |
+| `run` | `{ id: string; revisionId?: string; playName: string; status: string; dashboardUrl?: string; acceptedAt?: number \| null; updatedAt?: number \| null; startedAt?: number \| null; finishedAt?: number \| null; durationMs?: number \| null; outcome?: PlayRunOutcome; recovery?: { mode: 'replayed' \| 'forced' \| 'recovered' \| 'joined'; sourceRunId?: string; }; error?: string; activity?: PlayRunActivityProjection \| null; }` | Yes | Run identity, status, timing, and dashboard metadata. |
 | `warnings` | `string[]` | No | Bounded customer-safe warnings about output projection or availability. |
 | `steps` | `Array<Record<string, unknown>>` | Yes | Step-level summaries emitted by the runtime. |
 | `outputs` | `Record<string, Record<string, unknown>>` | Yes | Named output summaries, including dataset handles and scalar outputs. |
-| `datasets` | `Array<{ kind: 'dataset'; datasetId?: string; path: string; tableNamespace?: string; rowCount?: number; lifecycle?: { phase: 'registered' \| 'available' \| 'failed'; complete: boolean; persistedRowsAtLeast: number; succeededRowsAtLeast: number; failedRowsAtLeast: number; }; sqlTableName?: string; sqlQualifiedTableName?: string; recovered?: true; exportUnavailable?: { reason: 'empty_dataset' \| 'shared_table_namespace' \| 'returned_dataset_not_persisted'; message: string; }; preview?: Record<string, unknown>; actions?: PlayRunDatasetActions; }>` | No | Every durable Dataset Handle explicitly registered by this run. |
+| `datasets` | `Array<{ kind: 'dataset'; datasetId?: string; path: string; aliases?: string[]; tableNamespace?: string; rowCount?: number; lifecycle?: { phase: 'registered' \| 'available' \| 'failed'; complete: boolean; persistedRowsAtLeast: number; succeededRowsAtLeast: number; failedRowsAtLeast: number; }; sqlTableName?: string; sqlQualifiedTableName?: string; recovered?: true; exportUnavailable?: { reason: 'empty_dataset' \| 'shared_table_namespace' \| 'ambiguous_selector' \| 'returned_dataset_not_persisted'; message: string; }; preview?: Record<string, unknown>; actions?: PlayRunDatasetActions; }>` | No | Every durable Dataset Handle explicitly registered by this run. |
 | `logs` | `{ tail: string[]; totalCount: number; returnedCount: number; truncated?: boolean; }` | No | Small retained tail of customer and runtime logs; fetch the full stream through `runs.logs`. |
 | `next` | `{ inspect?: PlayRunActionPackage; full?: PlayRunActionPackage; billing?: PlayRunActionPackage; export?: PlayRunActionPackage; query?: PlayRunActionPackage; logs?: PlayRunActionPackage; }` | No | Follow-up actions a caller can perform against the run. |
 
@@ -671,6 +674,7 @@ Use `client.runs` (`/api/v2/runs`) to watch, stop, read logs, and export durable
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
+| `getReceipts` | `( runId: string, options: { keys: string[] }, ) => Promise<import('./runs/receipts').RunToolReceiptsResponse>` | Yes | Read retained tool results associated with a run, in supplied key order. Never executes tools. |
 | `get` | `(runId: string, options?: RunsGetOptions) => Promise<PlayStatus>` | Yes | Get current run status by public run id. |
 | `status` | `(runId: string) => Promise<RunLifecycleStatus>` | Yes |  |
 | `input` | `(runId: string) => Promise<{ runId: string; input: Record<string, unknown> \| unknown[]; bytes: number; sha256: string \| null; replayedFromRunId: string \| null; }>` | Yes | Explicitly read the retained original input (may include customer data). |

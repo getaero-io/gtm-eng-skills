@@ -29,17 +29,27 @@ Search-to-enrichment handoff rules:
 
 This doc does not rank providers. Run `deepline tools search` for the job at hand and choose from what it returns: results carry each tool's filters, cost, and availability, and they stay current when a provider is added, repriced, or down. Provide an intent query, or omit it only when `--categories` or `--search_terms` supplies the structured search; both filters accept comma-separated values. Always pass `--task` with the input you have and the result you need. Provider names belong in the query, not in a `--prefix` flag.
 
+Syntax: `deepline tools search [query] [--categories <categories>]
+[--search_terms <terms>] [--json]`. Supply a query or at least one structured
+filter. Search 2-4 synonyms when the first query is ambiguous. Inspection of a
+supplied Play or existing run does not require new provider discovery.
+
 Prefer category-constrained searches. More search terms helps with recall. Then inspect the strongest candidates.
 
 ```bash
-deepline tools search --categories company_search --search_terms "structured filters,firmographics" --task "<input you have -> result you need>" &
-deepline tools search --categories people_search --search_terms "title filters,location" --task "<input you have -> result you need>" &
-wait
-
+deepline tools search --categories company_search --search_terms "structured filters,firmographics" --task "<input you have -> result you need>"
+deepline tools search --categories people_search --search_terms "title filters,location" --task "<input you have -> result you need>"
 deepline tools describe <tool_id>
 ```
 
-After tool discovery, shortlist 1-2 candidates, inspect schemas, validate enum-like inputs, then run a narrow first pass. Prefer free or per-result-priced tools when coverage is uncertain. If a tool times out or is flagged unavailable, do not retry it; take the next candidate from the search results.
+These commands are serial examples. For parallel discovery, first finish the
+standalone preflight and retain each exit status and complete response.
+Do not let a final successful `wait` hide another command's failure.
+
+After tool discovery, shortlist 1-2 candidates, inspect schemas, validate enum-like inputs, then run an authorized narrow first pass. Prefer free or per-result-priced tools when coverage is uncertain. If a tool times out or is flagged unavailable, do not retry it; take the next candidate from the search results within the authorized scope. Use
+[execution mechanics](references/plays-run-export-inspect-repair.md) for pilot,
+spend, fixed-cohort, and output-retrieval boundaries. A planning request alone
+does not authorize provider execution or changing routes after a miss.
 
 When database-style tools return 0 (pre-revenue startups, niche verticals, non-US), search again for semantic/web search, known-URL extraction, or local-business tools.
 

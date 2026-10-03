@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import subprocess
 import sys
 from pathlib import Path
@@ -45,38 +46,82 @@ def load_run_json(run_id: str, deepline: str) -> dict[str, Any]:
 
 
 def find_billing(payload: Any) -> dict[str, Any]:
-    """Locate the run billing object without guessing one envelope shape."""
+    """Read CLI diagnostics, retaining raw SDK/API and saved-envelope support."""
+    billing = locate_billing(payload)
+    if billing is None:
+        raise CostReceiptError(
+            "No run billing object was present. Fetch `runs get --full --json` "
+            "and check diagnostics.billing; missing evidence is not zero spend."
+        )
+    if not isinstance(billing, dict):
+        raise CostReceiptError("Malformed run billing object; expected an object.")
+    billing_number(billing, "totalCredits")
+    billing_number(billing, "totalCalls", count=True)
+    rollup = billing.get("rollup")
+    if rollup is not None:
+        if not isinstance(rollup, dict):
+            raise CostReceiptError("Malformed billing.rollup; expected an object.")
+        for key in ("totalCreditsRollup", "ownCredits", "childCredits"):
+            billing_number(rollup, key)
+        billing_number(rollup, "descendantRunCount", count=True)
+        if not isinstance(rollup.get("rollupComplete"), bool):
+            raise CostReceiptError("Malformed billing rollupComplete; expected a boolean.")
+    return billing
+
+
+def locate_billing(payload: Any) -> Any:
     if isinstance(payload, dict):
-        billing = payload.get("billing")
-        if isinstance(billing, dict) and "totalCredits" in billing:
-            return billing
+        # An overview's authored values/run metadata are not billing evidence.
+        # Do not fall through to those when diagnostics are absent or malformed.
+        if payload.get("kind") == "run_overview" or "diagnostics" in payload:
+            diagnostics = payload.get("diagnostics")
+            if not isinstance(diagnostics, dict):
+                raise CostReceiptError(
+                    "Missing or malformed diagnostics; fetch `runs get --full --json`."
+                )
+            return diagnostics.get("billing")
+        if "billing" in payload:
+            return payload["billing"]
         for key in ("data", "run", "status", "result"):
-            nested = payload.get(key)
-            if isinstance(nested, (dict, list)):
-                try:
-                    return find_billing(nested)
-                except CostReceiptError:
-                    continue
-    raise CostReceiptError(
-        "No run billing object was present. `runs get --full --json` returns it "
-        "only for a settled run; retry once the run has finished settling."
-    )
+            billing = locate_billing(payload.get(key))
+            if billing is not None:
+                return billing
+    return None
+
+
+def billing_number(source: dict[str, Any], key: str, *, count: bool = False) -> Any:
+    value = source.get(key)
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not math.isfinite(value)
+        or value < 0
+        or (count and int(value) != value)
+    ):
+        raise CostReceiptError(
+            f"Missing or malformed billing {key}; expected a finite non-negative "
+            + ("integer." if count else "number.")
+        )
+    return value
 
 
 def operation_rows(billing: dict[str, Any]) -> list[dict[str, Any]]:
     """Flatten billing.breakdown.providers[].operations[] into sortable rows."""
     breakdown = billing.get("breakdown")
     if not isinstance(breakdown, dict):
-        return []
+        raise CostReceiptError("Missing or malformed billing.breakdown; cannot attribute costs.")
+    providers = breakdown.get("providers")
+    if not isinstance(providers, list):
+        raise CostReceiptError("Missing or malformed billing providers; expected an array.")
     rows: list[dict[str, Any]] = []
-    for provider in breakdown.get("providers") or []:
-        if not isinstance(provider, dict):
-            continue
-        for operation in provider.get("operations") or []:
+    for provider in providers:
+        if not isinstance(provider, dict) or not isinstance(provider.get("operations"), list):
+            raise CostReceiptError("Malformed billing provider; expected an operations array.")
+        for operation in provider["operations"]:
             if not isinstance(operation, dict):
-                continue
-            calls = int(operation.get("totalCalls") or 0)
-            credits = float(operation.get("totalCredits") or 0.0)
+                raise CostReceiptError("Malformed billing operation; expected an object.")
+            calls = int(billing_number(operation, "totalCalls", count=True))
+            credits = float(billing_number(operation, "totalCredits"))
             rows.append(
                 {
                     "provider": str(provider.get("provider") or "unknown"),
@@ -87,9 +132,12 @@ def operation_rows(billing: dict[str, Any]) -> list[dict[str, Any]]:
                 }
             )
     runtime = breakdown.get("runtime")
-    if isinstance(runtime, dict) and int(runtime.get("totalCalls") or 0):
-        calls = int(runtime.get("totalCalls") or 0)
-        credits = float(runtime.get("totalCredits") or 0.0)
+    if runtime is not None and not isinstance(runtime, dict):
+        raise CostReceiptError("Malformed billing runtime; expected an object.")
+    if isinstance(runtime, dict):
+        calls = int(billing_number(runtime, "totalCalls", count=True))
+        credits = float(billing_number(runtime, "totalCredits"))
+    if isinstance(runtime, dict) and calls:
         rows.append(
             {
                 "provider": "compute",
@@ -404,6 +452,6 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         raise SystemExit(main())
-    except CostReceiptError as error:
+    except (CostReceiptError, json.JSONDecodeError, OSError) as error:
         sys.stderr.write(f"{error}\n")
         raise SystemExit(1) from error

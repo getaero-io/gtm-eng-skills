@@ -25,8 +25,16 @@ Read budget: normal tasks should use this recipe plus at most one plays referenc
 2. **Describe before spend:** for plays, `plays search` -> `plays describe`; for tools, `tools search` -> `tools describe`.
 3. **Choose direct vs compose:** direct-run only when the described contract exactly matches input, output, export, freshness, and pricing. Otherwise bootstrap, wrap, or author a custom play.
 4. **Check before run:** `plays describe` gates prebuilts; `plays check <file>` is mandatory for local, bootstrapped, or forked plays.
-5. **Pilot before scale:** run 1-3 rows or a small sample, then inspect/export.
-6. **Report reality:** run id, export path, charged Deepline credits or why not visible, executed/reused/failed counts when available, and repair class.
+5. **Execute within authority:** a small supplied Play runs once, without a
+   duplicate pilot. For new or larger unproven work, use an authorized small
+   sample before scaling. Inspection alone authorizes no run or repair.
+6. **Retrieve and report:** overview, complete selected output, then diagnostics
+   for unanswered questions. Report run id, export path, misses/failures and
+   available counts; investigate cost when requested or needed for a decision.
+
+Detailed execution, pilot/approval, cohort, and retrieval mechanics live in
+[run and result retrieval](../references/plays-run-export-inspect-repair.md).
+Do not rediscover providers or redesign a supplied Play just to run or inspect it.
 
 Safe planning-only commands: auth/health/balance, `plays search`, `plays describe`, `tools search`, `tools describe`, `plays check`, `plays bootstrap --help`, and local scaffolding. Do not call `plays run` or provider execution in planning-only mode.
 
@@ -37,7 +45,10 @@ Treat “audit my Plays,” “check whether these Plays are outdated,” and �
 1. Establish whether the scope is local `*.play.ts` files, saved non-archived workspace Plays, or both. Inventory local Plays with hidden and gitignored files included while excluding dependency/build directories. Inventory saved Plays with `deepline plays list --json`; do not claim completeness if the owned result page is capped or the user requested archived Plays that the CLI cannot enumerate.
 2. For saved Plays, check every applicable live and dirty working revision. Fetch each revision's complete source bundle into a unique temporary directory outside the repository, preserve its entry file, and remove the exact temporary directory after the audit.
 3. Run `deepline plays check <entry-file> --json` for every in-scope local or materialized saved revision. Checking is read-only and spends no provider credits. A named check is not a substitute for checking the revision's source bundle.
-4. Read `issues` as the remediation queue. Fix every `error` first because it is Blocking; then fix every `warning` because it is non-blocking migration debt. Use each issue's `path`, `hint`, `validOptions`, and `docsHint`; do not guess replacements. Rerun `plays check` after each Play until both arrays are empty.
+4. Report `issues` as the remediation queue. When repairs are authorized, fix
+   blocking `error` issues before migration `warning` issues. Use each issue's
+   `path`, `hint`, `validOptions`, and `docsHint`; do not guess replacements.
+   Recheck edited Plays and report any remaining issues.
 5. If a warning says validation is partial—for example, a dynamic tool id could not be resolved—make the identity static or report that the Play could not be certified clean. A successful check with unresolved warning issues is not a clean deprecation audit.
 
 Report one row per emitted issue with the Play/revision, severity, path, message, and prescribed fix. Finish with error and warning counts and name every checked Play/revision. Do not edit during an audit-only request, and do not publish or run repaired Plays without separate authorization.
@@ -46,7 +57,10 @@ Report one row per emitted issue with the Play/revision, severity, path, message
 
 ### Trigger notification handoff
 
-After publishing a cron- or webhook-triggered play, verify the product notification path. Do not assume the trigger can report its own failure.
+After an authorized publication of a cron- or webhook-triggered play, verify the
+product notification path. Do not assume the trigger can report its own failure.
+Reading notification configuration does not authorize adding a rule or sending
+a test; obtain authority for those external changes.
 
 ```bash
 deepline notifications list
@@ -94,10 +108,17 @@ Typical flow:
 
 ```bash
 deepline plays describe prebuilt/<name> --json
-deepline plays run prebuilt/<name> --input '{"field":"value"}' --watch
-deepline runs get <run-id> --full --json
-deepline runs export <run-id> --dataset result.rows --out rows.csv
+deepline plays run prebuilt/<name> --input '{"field":"value"}'
+deepline runs get <run-id> --json
+deepline runs export <run-id> --dataset <returned-selector> --out rows.csv
+deepline csv show rows.csv --summary
 ```
+
+Export retains all dataset columns and persisted failed rows. Use `csv show`
+column selection for a focused view without changing the export; use
+`runs export --format json --out rows.json` for native nested evidence.
+See [retrieval and inspection](../references/plays-run-export-inspect-repair.md)
+for preview, receipt, scope and completeness distinctions.
 
 For CSV prebuilts, compare required headers to actual headers. If aliases are unsupported or output projection is custom, bootstrap a wrapper instead of editing the prebuilt.
 
@@ -140,7 +161,7 @@ export default definePlay(
   async (ctx, input: Input = {}) => {
     return { ok: true, limit: input.limit ?? 5 };
   },
-  { billing: { maxCreditsPerRun: 50 } },
+  { description: 'Return the requested limit for this GTM Play.' },
 );
 ```
 
@@ -149,7 +170,9 @@ Authoring rules:
 - Prefer typed inline input. Import validators only if generated refs or bootstrap output prove they exist.
 - Use `ctx.csv`, `ctx.dataset`, `ctx.tools.execute`, `ctx.runPlay`, `ctx.step`, `ctx.fetch`, and `ctx.secrets`.
 - Do not use local `fs`, raw `fetch`, or shell commands anywhere in a Play, including inside `ctx.step`; route external I/O through the matching `ctx.*` API so retries remain safe. Put local nondeterministic computation such as `Date.now` or `Math.random` in a durable `ctx.step` callback. Always use `ctx.secrets` for credentials, never `process.env`, including inside a step — see External HTTP And Secrets below.
-- Use stable ids for paid work. Rename ids only to refresh wrong/stale provider data or changed semantics.
+- Use stable ids for paid work. Inspection is not permission to rename ids or
+  force fresh calls; deliberate refresh needs authority and the current cache
+  contract, not a guessed receipt-bypass technique.
 - The default Play runtime is 30 minutes. For a bounded long batch, set the
   Play-level option `runtime: { timeout: '90m', size: 'standard' }`; static
   whole-minute/hour durations are supported up to `4h`. This is not the CLI
@@ -163,6 +186,35 @@ Authoring rules:
 - For query tools such as `query_customer_db` and `snowflake_run_query`, use `result.extractedLists.rows.get()` and return that Dataset Handle for full-row export. Do not build exports from a raw response preview in newly authored Plays.
 - Dataset Handles are async-only, regardless of whether rows are already in memory. Use `await rows.count()`, `await rows.first()`, `await rows.at(index)`, `await rows.peek(limit)`, `await rows.materialize(limit)`, or `for await...of`. Do not use `.length`, numeric indexing, spread, or synchronous `for...of`.
 - Project to flat user-facing columns with `status`, `miss_reason`, evidence/source, and requested output fields.
+
+### Author results for delivery and investigation
+
+For a new or explicitly revised result schema, keep the answer in a
+`resolution` object and execution evidence in `_dl_meta`. These are authored
+data, not magic runtime fields. Project every resolution field into an ordinary
+dataset column: for example, `email_result.resolution.value -> email`, plus
+`email_source`, `email_validated`, `email_validation_source`,
+`email_validation_status`, `email_outcome`, and `email_reason`. Copy values and
+nulls exactly; do not turn unknown validation into false or add a redundant
+found/not-found flag. Name the finder when it reports validity, and the validator
+when a separate check establishes it. Nonempty email alone proves neither.
+
+Within `_dl_meta`, record stages in logical/execution order: actual input,
+execution result, mapped value/check result, outcome and reason where decided,
+and retained tool evidence. A single finder needs stages, not a synthetic
+waterfall. For alternatives, an ordered attempts array makes rejection and
+skipping distinguishable; nested stage arrays support multiple validations.
+Derive evidence from the same execution and decision logic that selects the
+answer, not a second reconstruction. Keep raw tool responses with their observed
+view and returned receipt key; preserve the key even when omitting a large
+payload. Record unavailable evidence honestly instead of inventing a response
+or receipt for skipped/local work. `_dl_meta` can be flattened into columns or
+unnested into rows for analysis without modifying the original export.
+
+Declare input columns first, then computed columns in logical order, and
+underscore-prefixed metadata last. Use names such as `email_ds` for dataset
+handles and `email_dataset` for returned fields; reserve `rows` for materialized
+arrays. These conventions do not authorize renaming existing public outputs.
 
 ### Cron input is explicit and revision-pinned
 
@@ -186,12 +238,16 @@ later republish.
 
 The most common cell: a tool call. Column resolvers are positional
 `(row, rowCtx)`; call `rowCtx.tools.execute({ id, tool, input, description })`
-(all four required; `id` is the durable receipt key) and read the envelope —
+(all four required; `id` names the authored call site) and read the envelope —
 `result.status` or declared getters. For a newly admitted raw-v2 Play, read
 `result.toolResponse.rawV2` only when the full scrubbed provider response is
 genuinely required and no declared getter represents the needed field. A stored
 legacy artifact can expose only `toolResponse.raw`; keep that access until its
-response contract is deliberately migrated:
+response contract is deliberately migrated. For later retrieval, copy the
+actual returned `result._metadata.execution.receiptKey` into authored evidence.
+It is not the call-site `id` or `job_id`; do not construct it from either.
+See [retained tool responses](../references/plays-run-export-inspect-repair.md#retrieve-retained-tool-responses)
+for the read-only command. Example tool-call syntax:
 
 ```ts
 /** @mermaid probe-accounts
@@ -352,9 +408,14 @@ the `retryable` distinction, and the explicit legacy-contract option.
 
 Load these only when the task needs exact syntax or repair details:
 
-- `references/plays-run-export-inspect-repair.md`: before scale; after every meaningful run; for billing, rerun, export, cached rows, failed rows, logs, suspicious output, partial repair, or UI/run mismatch.
-- `references/plays-sdk-reference.md`: exact current SDK signatures for `.play.ts` authoring, `definePlay`, `ctx.dataset`, `ctx.runPlay`, `ctx.tools.execute`, staleness, and SDK client calls.
-- `references/plays-api-reference.md`: exact API/manual invocation, polling, streaming, stop, list, inspect/export, and artifact routes.
+- [Run and result retrieval](../references/plays-run-export-inspect-repair.md):
+  canonical execution mechanics; overview, complete output, conditional billing
+  or diagnostics, and repair authority.
+- [SDK reference](../references/plays-sdk-reference.md): exact current SDK
+  signatures for `.play.ts` authoring, datasets, composition, tools, staleness,
+  and client calls. Raw SDK shapes are unchanged by the CLI overview.
+- [API reference](../references/plays-api-reference.md): exact HTTP invocation,
+  polling, streaming, stop, list, inspect/export, and artifact routes.
 
 ## Finish Shape
 
@@ -367,6 +428,6 @@ When work ran, summarize:
 - charged Deepline credits or why credits are missing/zero
 - export path and dataset path
 - miss/failure classes
-- next action: scale, rerun, repair, or stop
+- next action only if needed; distinguish proposed repair from authorized work
 
 When no paid run happened, say so explicitly and list the safe commands used.

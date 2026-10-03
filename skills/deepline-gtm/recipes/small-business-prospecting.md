@@ -30,4 +30,6 @@ deepline tools search scrapecreators
 - Add audit columns such as `facebook_url`, `instagram_url`, `social_email`, `social_email_source`, `social_identity_evidence`, and `social_contact_confidence` instead of overwriting the canonical email directly.
 - Accept social profile contact data only when the profile identity matches at least two of business name, address, phone, website/menu/booking link, or Maps profile.
 
-Pilot first on one query and a small limit before scaling.
+For new discovery, use one authorized query with a small limit before scaling.
+Do not add a duplicate pilot to a small supplied Play; follow
+[execution mechanics](../references/plays-run-export-inspect-repair.md).

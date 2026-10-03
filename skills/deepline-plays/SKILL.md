@@ -9,24 +9,74 @@ description: 'Use for Deepline GTM work that searches, enriches, scores, collect
 
 ```bash
 npm install -g deepline
-# Fallback for secure sandboxes: mkdir -p "$HOME/.local" && npm config set prefix "$HOME/.local" && export PATH="$HOME/.local/bin:$PATH" && npm install -g deepline --registry https://code.deepline.com/api/v2/npm/
 deepline auth register --wait auto
-deepline auth wait --timeout 120 # completes Cowork/browser approval; no-op if already connected
-deepline auth status
 deepline -h
 ```
 
-## CLI resolution
+## Build, run and inspect
 
-Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/INSTALL.md` to set up Deepline.
+- **Discover/build:** search and describe relevant Plays/tools; reuse a suitable
+  prebuilt. Use Plays for workflows and batches, direct tools for spot checks.
+  See [authoring](shared/authoring.md) and the [SDK reference](references/sdk-reference.md).
+- **Check/pilot:** inspect input mappings and run `deepline plays check <file>`
+  before local-source execution. Pilot costly or unproven work within the agreed
+  budget. Run small supplied Plays once, without a duplicate pilot or redesign.
+- **Run:** `plays run` waits by default; `--no-wait` returns its ID immediately.
+  Use `runs tail <run-id>` to follow an existing run and `runs get <run-id>`
+  for status/results. After a disconnect, reconnect—don't relaunch.
+- **Inspect/transform:** overview first, then follow the suggested commands.
+  Play datasets persist in database tables. Prefer read-only SQL for filtering,
+  joining, flattening and aggregating stored data before downloading. Inspect
+  actual column types and sample values first; don't assume a JSON structure.
+  After a type error, inspect the data rather than guessing another query.
+  Adapt the suggested SQL, preserving its table and run filter.
 
-**Debug every Play run:** use `deepline plays run <file.play.ts> --input '<json>' --debug` while iterating, or `deepline runs logs <run-id> --debug` for an existing run. `completed` means the runtime finished, not that an external destination accepted the result; the debug logs retain caught non-2xx `ctx.fetch` responses with their key, method, destination origin, and HTTP status.
+  Get the run ID, physical tables and suggested SQL in one call:
 
-Before the first Deepline fanout in a task, run `deepline preflight --json` as
-one standalone command and wait for it to finish. Never submit preflight beside
-another Deepline command. After it succeeds, prefix every Deepline command that
-may run concurrently with `DEEPLINE_SKIP_SELF_UPDATE=1`; serial commands may
-stay bare.
+  ```bash
+  deepline runs get <run-id> --json run.id,datasets.storage,actions
+  ```
+
+  Use the returned schema/table for `<returned-table>` (for example,
+  `"storage"."contact_email_waterfall_email_rows"`). Copy the run-membership
+  predicate from the suggested SQL into `<returned-run-filter>` (for example,
+  `_run_id = '<run-id>'`); storage alone doesn't supply it. Check additional
+  status filters and sample limits before computing whole-run totals.
+  Use the dataset's actual columns and JSON structure:
+
+  ```sql
+  -- Aggregate before downloading.
+  SELECT domain, COUNT(*) AS contacts, COUNT(email) AS emails_found
+  FROM <returned-table>
+  WHERE <returned-run-filter>
+  GROUP BY domain;
+  ```
+
+  These are read-only projections, not changes to stored rows.
+
+- **Export:** use the suggested export command for complete rows, CSV for delivery
+  or `--format json` for nested evidence. The response is a file receipt—read
+  the file. Use `csv show <file> --summary` for local CSV summaries.
+- **CLI hygiene:** use `-h`; run `deepline preflight --json` as a standalone command
+  and wait before parallel Deepline work. No `head`/`tail` truncation of CLI responses;
+  use field selection or summaries. Preserve complete responses, separate
+  stderr from JSON, and check exit status (`pipefail` for pipelines).
+- **Evidence:** previews aren't complete results; completed runs can contain
+  failures; nulls don't explain misses. Inspect affected rows, then referenced
+  tool responses with `runs receipt <run-id> --key '<receipt-key>'`. Take keys
+  from row evidence first, then run logs if missing; receipt reads don't rerun
+  tools. Investigate unresolved requested conditions and stop once supported;
+  repeating a provider check isn't independent corroboration. Use full diagnostics
+  or logs for remaining questions. See [debugging](references/debugging.md).
+- **Save/scope:** keep deliverables in a durable project directory, preserve
+  source files and every supplied identity, including misses and failed rows.
+  Planning/inspection authorizes no paid execution; returned actions don't
+  authorize retries, provider changes, publishing or external writes. Monitor
+  access/consent remains separate. A credit shortage doesn't block otherwise
+  accessible retained results.
+
+The experiment methodology below applies when designing or comparing new work,
+not to execution-only or existing-run inspection requests.
 
 ```text
 contract → compare → exploit → recover → export → price
@@ -164,10 +214,12 @@ A concept is an information geometry, never a vendor.
 
 ## Product friction feedback
 
-Send one proactive `deepline feedback send` report per issue cluster when a Play
+Unless the user restricts external reporting, send one proactive
+`deepline feedback send` report per issue cluster when a Play
 is disproportionately slow, appears stuck through repeated status checks, or an
 ordinary result requires avoidable product steps. Continue the user's task after
-reporting; feedback is not the deliverable.
+reporting; feedback is not the deliverable and does not authorize paid
+reproduction or session sharing.
 
 Use judgment rather than a fixed threshold. Do not report normal provider work
 just because it is not instant. Report when the duration is surprising for the

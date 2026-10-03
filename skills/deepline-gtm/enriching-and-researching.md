@@ -6,6 +6,20 @@ This doc does **not** cover list building, source discovery, or TAM/provider sco
 
 ## Core rule
 
+For an existing run or a supplied Play, follow
+[run and result retrieval](references/plays-run-export-inspect-repair.md).
+The provider routing below is for designing new work, not permission to replace
+a supplied Play, add fallback calls, or repair its misses. Keep the supplied
+cohort intact. Use an authorized pilot for larger unproven work; execute a small
+authorized supplied Play once without a duplicate pilot.
+
+Export the complete selected output before focusing the view.
+`deepline csv show rows.csv --summary` checks all file rows by default;
+`--columns` / `--exclude-columns`
+affect display only. Use `runs export --format json --out rows.json` to inspect
+native nested attempts, not CSV-encoded JSON cells. Preserve original evidence;
+missing values do not by themselves establish a provider failure.
+
 If a play exists, run it with `deepline plays run`. Waterfall prebuilts run
 their whole provider cascade internally and stop on the first valid hit — when
 you use one, say so: state the play's provider order (from `deepline plays
@@ -125,18 +139,17 @@ Play tool: `name-and-domain-to-email-waterfall`
 deepline plays run prebuilt/name-and-domain-to-email-waterfall \
   --input '{"first_name":"Ada","last_name":"Lovelace","domain":"acme.com"}'
 
-# A CSV — pilot on a slice first, then the full file, then EXPORT TO THE REQUESTED PATH
-head -3 leads.csv > pilot.csv
-deepline plays run prebuilt/name-and-domain-to-email-waterfall-batch --input '{"csv":"pilot.csv"}'
-deepline runs export <pilot-run-id> --out pilot_out.csv   # inspect quality + cost
+# A small authorized CSV — run once, then export to the requested path
 deepline plays run prebuilt/name-and-domain-to-email-waterfall-batch --input '{"csv":"leads.csv"}'
-deepline runs export <full-run-id> --out "$FINAL_CSV"     # the deliverable — never skip this
+deepline runs get <run-id> --json
+deepline runs export <run-id> --out "$FINAL_CSV"
 ```
 
-A user-stated scope is already approved (SKILL.md §4.1): after the pilot
-checks out, run the full file and export to `$FINAL_CSV` without stopping to
-ask. For a small stated input (≤ ~25 rows), skip the slice entirely and run
-the full file once. The pilot is never the deliverable.
+A bounded execution request authorizes its stated scope. For larger unproven
+work, validate a CSV-aware subset within that budget before scaling; account
+for processed rows instead of repeating them just for a full-run ritual. Ask
+only if scope, cost, or risk materially changes. A pilot alone is not the
+deliverable for a larger request.
 
 **Domain-first resolution** — when you only have `company_name` or a SN `/sales/lead/` URL, resolve domains before the email play. For a handful of companies, resolve each directly and patch the CSV:
 
@@ -161,7 +174,7 @@ Use when contacts have a **standard `/in/`** LinkedIn URL (e.g. from `dropleads_
 ```bash
 deepline plays run prebuilt/person-linkedin-to-email --input '{"linkedin_url":"https://www.linkedin.com/in/example/"}'
 
-# CSV: pilot a slice, then the full file
+# CSV within the authorized scope
 deepline plays run prebuilt/person-linkedin-to-email-batch --input '{"csv":"contacts.csv"}'
 deepline runs export <run-id> --out contacts_with_emails.csv
 ```
@@ -199,9 +212,10 @@ deepline plays run prebuilt/personal-email-to-linkedin-batch --input '{"csv":"si
 deepline runs export <run-id> --out signups_with_profiles.csv
 ```
 
-Bare personal email coverage is ~25-40%, so over-provision. If a row returns a
-company but no work email, chain `name-and-domain-to-email-waterfall-batch` on
-the export.
+Bare personal email coverage is ~25-40%, so budget extra candidates only for
+fungible discovery. Keep every supplied signup in a fixed cohort, including
+misses. If work-email recovery is also authorized and a row returns a company
+but no work email, chain `name-and-domain-to-email-waterfall-batch` on the export.
 
 ### Contact identity -> phone
 
@@ -228,7 +242,7 @@ Example:
 deepline plays run prebuilt/person-to-phone \
   --input '{"first_name":"Ada","last_name":"Lovelace","domain":"acme.com","email":"ada@acme.com","linkedin_url":"https://www.linkedin.com/in/example/"}'
 
-# CSV: pilot a slice, then the full file
+# CSV within the authorized scope
 deepline plays run prebuilt/person-to-phone-batch --input '{"csv":"contacts.csv"}'
 deepline runs export <run-id> --out contacts_with_phones.csv
 ```
@@ -291,7 +305,7 @@ Example:
 deepline plays run prebuilt/company-to-contact \
   --input '{"domain":"acme.com","roles":["VP Marketing"],"seniority":"VP"}'
 
-# CSV of accounts: pilot a slice, then the full file
+# CSV of accounts within the authorized scope
 deepline plays run prebuilt/company-to-contact-batch --input '{"csv":"accounts.csv"}'
 deepline runs export <run-id> --out accounts_with_contacts.csv
 ```
@@ -398,14 +412,19 @@ author the waterfall fresh per
 [recipes/deepline-plays.md](recipes/deepline-plays.md) (a `steps()` cascade:
 sequential legs, stop on first valid hit, validation after recovery).
 
-Rules that carry over from the native plays: pilot before scale; do not run
+Rules that carry over from the native plays: use an authorized pilot for a new
+route before scaling; do not run
 email waterfalls without minimum match data (name + company, name + domain, or
 a strong LinkedIn-seeded identity); validation belongs after recovery, and the
 cost-aware plays only accept pattern hits the validator marks `valid`.
 
 ## Post-run validation
 
-After a play run, validate data quality before moving to the next phase. Run read-only checks — never modify the enriched CSV during validation.
+Check delivered values against the requested task before the next phase.
+Use retained output and local validation first; do not buy fresh enrichment to
+explain a result. Preserve the original export; label audited or corrected
+files as derived. The checks below are relevant to contact quality, not a
+mandatory diagnostic suite for every supplied Play.
 
 ```bash
 # Email domain vs company domain — catches previous-employer or wrong-contact emails
@@ -413,7 +432,8 @@ python3 ~/.claude/skills/deepline-gtm/scripts/validate-emails.py enriched.csv \
     --email-col email --domain-col domain
 ```
 
-Flag mismatches; if >20% of rows mismatch, rerun contact finding with better company disambiguation.
+Flag mismatches; if >20% mismatch, report a likely company-disambiguation
+problem and propose targeted contact-finding repair. Do not rerun automatically.
 
 ```bash
 # LinkedIn name validation — catches wrong-person matches from search-based lookup
@@ -421,7 +441,8 @@ python3 ~/.claude/skills/deepline-gtm/scripts/validate-linkedin-names.py enriche
     --source-first first_name --source-last last_name --profile-name-col profile_name
 ```
 
-Null out LinkedIn URLs where names don't match.
+In an authorized derived contact list, null out URLs where names do not match
+and keep the original URL plus rejection reason as evidence. Keep the row.
 
 ```bash
 # Current role extraction. Selects latest active work role and repairs artifacts.
@@ -462,12 +483,53 @@ Routing inside the play:
   `extracted*` accessors from `deepline tools describe <tool>` before drilling
   into raw provider nesting.
 
-The iterate loop applies with force here: run the play on 2-3 rows, read the
-per-column outcomes in the storage table, fix prompts/providers, then scale.
+For new custom columns, an authorized 2-3-row pilot can test shape and quality.
+Read the overview and export before investigating a specific column. Change
+prompts/providers or run again only within repair authority; a miss does not
+itself authorize another paid attempt. See the canonical execution reference.
+
+## Apify actor selection
+
+For sites requiring authentication, do not use Apify. Ask the user to use
+Claude in Chrome or guide them through Inspect Element to obtain an authorized
+curl request with the needed headers. Treat cookies and headers as credentials;
+do not expose them in reports or Play output.
+
+1. If the user supplies an actor ID, name, or URL, use that actor within the
+   authorized scope; do not substitute another actor silently.
+2. Otherwise inspect `deepline tools describe apify_run_actor_sync` for actor
+   guidance, or use `deepline tools search`. If no suitable actor is listed,
+   search the actor store and inspect the candidate's input schema.
+3. Avoid rental-priced actors. If the supplied actor requires a rental, surface
+   the pricing conflict and obtain approval before incurring it.
+4. Prefer native HarvestAPI for LinkedIn profiles, employees, posts, comments,
+   reactions, and engagers. Inspect the required operation with
+   `deepline tools describe <operation> --schema-only`; broad search can be
+   noisy. For posts/engagers, starting hints are `harvestapi_search_posts`,
+   `harvestapi_get_post`, `harvestapi_get_post_reactions`, and
+   `harvestapi_get_post_comments`. Use `supreme_coder/linkedin-post` only when
+   the native provider lacks the required shape. Avoid
+   `silentflow/linkedin-posts-scraper-ppr` and
+   `alizarin_refrigerator-owner/linkedin-post-scraper` unless explicitly requested.
+5. Prefer high ratings and high usage/run counts; break ties with evidence
+   quality and price. Honor `operatorNotes` over public ratings when they
+   conflict.
+
+Example discovery payloads (inspect current tool contracts before execution):
+
+```bash
+deepline tools execute apify_list_store_actors --input '{"search":"similarweb traffic scraper","sortBy":"relevance","limit":20}'
+deepline tools execute apify_get_actor_input_schema --input '{"actorId":"radeance/similarweb-scraper"}'
+```
+
+Store discovery and schema lookup are not permission to execute an actor or
+start a rental. For repeated row work, call the selected tool inside a Play.
 
 ## Working directory (guardrail)
 
-**NEVER write to `/tmp/` or any absolute temp directory** — files in `/tmp/` are wiped on reboot and users have lost paid enrichment outputs. Set up a project-local WORKDIR with a task-descriptive slug (e.g. `deepline/data/acme-email-waterfall`) as step zero. See SKILL.md §3.2 for the full rule.
+Keep paid outputs out of system temporary directories: cleanup can erase them.
+Use a project-local WORKDIR with a descriptive slug such as
+`deepline/data/acme-email-waterfall`. Never overwrite the user's source CSV.
 
 ```bash
 WORKDIR="deepline/data/<descriptive-slug>" && mkdir -p "$WORKDIR" && echo "$WORKDIR"

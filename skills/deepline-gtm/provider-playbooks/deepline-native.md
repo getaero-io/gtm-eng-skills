@@ -22,7 +22,7 @@
 
 - Rate budget split: `search_contact` uses the dedicated search key/budget (`60 RPM`).
 - Rate budget split: `prospector`, `enrich_contact`, `enrich_phone`, `enrich_company`, `job_change`, and related finder calls use the enrichment key/budget (`200 RPM`).
-- When planning `deepline enrich` waterfalls, do not treat `search_contact` and the enrichment-style Waterfall actions as one shared bucket.
+- When planning provider waterfalls inside a Play, do not treat `search_contact` and the enrichment-style Waterfall actions as one shared bucket.
 
 ### Launcher operations (prospector, enrich_contact, enrich_phone, enrich_company)
 
@@ -120,12 +120,50 @@ deepline tools execute deepline_native_search_contact --payload '{"domain":"open
 deepline tools execute deepline_native_enrich_company --payload '{"domain":"stripe.com"}'
 ```
 
-### `deepline enrich` usage
+### CSV job-change Play
+
+Use a supplied Play when it already fits the task. When selecting or authoring one,
+discover with `deepline plays search "job change" --json` and confirm the selected
+contract with `deepline plays describe <play-ref> --json`. Tool IDs below are
+starting hints: confirm them with `deepline tools describe <tool-id> --json`;
+do not infer renamed IDs from provider names.
+
+For a custom CSV workflow, save this as `job-change.play.ts`. It keeps the original
+`domain` and `email` columns and adds the provider result without renaming the
+operation's required payload fields.
+
+```ts
+import { definePlay } from 'deepline';
+
+export default definePlay(
+  'job-change',
+  async (ctx, input: { csv: string }) => {
+    const contacts = await ctx.csv(input.csv, { required: ['domain', 'email'] });
+    const rows = await ctx.dataset('contacts', contacts)
+      .withColumn('job_change', (row, rowCtx) => rowCtx.tools.execute({
+        id: 'job_change',
+        tool: 'deepline_native_job_change',
+        input: { company_domain: row.domain, professional_email: row.email },
+        description: 'Check whether this contact changed employers.',
+      }))
+      .run({});
+    return { rows };
+  },
+  { description: 'Check job changes for the supplied CRM contacts.' },
+);
+```
 
 ```bash
-deepline enrich --input contacts.csv --output contacts.csv.out.csv \
-  --with '{"alias":"job_change","tool":"deepline_native_job_change","payload":{"company_domain":"{{domain}}","professional_email":"{{email}}"}}'
+deepline plays check job-change.play.ts --json
+deepline plays run --file job-change.play.ts --csv contacts.csv --watch
 ```
+
+Run only within the requested scope. For larger or uncertain authorized batches,
+use a small representative input before scaling; a small supplied Play does not
+need an extra pilot or repeated approval. Inspect the existing run with
+`deepline runs get <run-id> --json` and follow its full-result/export commands to
+save the rows (for example, to `contacts.csv.out.csv`). Inspection is read-only:
+do not rerun, add paid enrichment, or repair the workflow just to retrieve results.
 
 ## Anti-Patterns to Avoid
 

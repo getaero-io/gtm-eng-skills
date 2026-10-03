@@ -9,10 +9,7 @@ description: 'Use when the user wants a last30days-style pre-research pass in De
 
 ```bash
 npm install -g deepline
-# Fallback for secure sandboxes: mkdir -p "$HOME/.local" && npm config set prefix "$HOME/.local" && export PATH="$HOME/.local/bin:$PATH" && npm install -g deepline --registry https://code.deepline.com/api/v2/npm/
 deepline auth register --wait auto
-deepline auth wait --timeout 120 # completes Cowork/browser approval; no-op if already connected
-deepline auth status
 deepline -h
 ```
 
@@ -22,9 +19,7 @@ Run `deepline` when it is available. If the shell reports that command is missin
 
 Before the first Deepline fanout in a task, run `deepline preflight --json` as
 one standalone command and wait for it to finish. Never submit preflight beside
-another Deepline command. After it succeeds, prefix every Deepline command that
-may run concurrently with `DEEPLINE_SKIP_SELF_UPDATE=1`; serial commands may
-stay bare.
+another Deepline command.
 
 Find the highest-signal GTM data sources, public evidence, and market language for a research or enrichment job before building the pipeline. This is a standalone Deepline skill that should behave like `last30days` with a GTM data lens: broad source coverage, recency, community signals, citations, source stats, and a grounded "What I learned" synthesis. In Deepline, the report first explains what the research found; only after that does it translate the findings into Deepline tool contracts, private/proprietary joins, and Deepline-facing cost.
 
@@ -167,21 +162,20 @@ The skill prompts the agent to call `/api/v2/pre-research/plan`, inspect the ret
 ### 4. Search For Deepline Candidate Tools
 
 Run several focused searches, usually in parallel after the standalone
-preflight. Every search in that parallel batch must set
-`DEEPLINE_SKIP_SELF_UPDATE=1`. `deepline tools search` accepts an optional
+preflight. `deepline tools search` accepts an optional
 intent query, but requires either that query or one of `--categories` /
 `--search_terms`; those filters accept comma-separated values. Use `--json` for
 machine-readable output. There is no `--prefix` flag, so put a provider name in
 the query instead.
 
 ```bash
-DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "web search news source discovery" --categories research --search_terms "web search,news,recency,source discovery"
-DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "social posts reddit x twitter youtube tiktok instagram" --categories research --search_terms "social posts,reddit,x twitter,youtube,tiktok,instagram"
-DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search scrapecreators
-DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "facebook profile email scrapecreators"
-DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "instagram profile bio links scrapecreators"
-DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "company dataset firmographics funding technographics jobs" --categories company_search --search_terms "company dataset,firmographics,funding,technographics,jobs"
-DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "crm warehouse workflow session usage" --categories admin --search_terms "crm,warehouse,workflow,session,usage"
+deepline tools search "web search news source discovery" --categories research --search_terms "web search,news,recency,source discovery"
+deepline tools search "social posts reddit x twitter youtube tiktok instagram" --categories research --search_terms "social posts,reddit,x twitter,youtube,tiktok,instagram"
+deepline tools search scrapecreators
+deepline tools search "facebook profile email scrapecreators"
+deepline tools search "instagram profile bio links scrapecreators"
+deepline tools search "company dataset firmographics funding technographics jobs" --categories company_search --search_terms "company dataset,firmographics,funding,technographics,jobs"
+deepline tools search "crm warehouse workflow session usage" --categories admin --search_terms "crm,warehouse,workflow,session,usage"
 ```
 
 For CRM/private data, also search by provider name when relevant:
@@ -219,7 +213,7 @@ Use the plan to decide:
 - CRM, warehouse, workflow, support, and custom-language private queries
 - supplemental keys to extract after phase-one retrieval
 
-For production Deepline implementation, port this helper to the runtime language or call equivalent logic before `deepline tools execute`/`deepline enrich`.
+For production Deepline implementation, port this helper to the runtime language or call equivalent logic before `deepline tools execute` or a Play.
 
 ### 4.5. Required Coverage Gate
 
@@ -330,7 +324,7 @@ Good probe shapes:
 - one source per probe so coverage and cost are attributable
 - saved raw output path or run id for later workflow design
 
-At scale, use `deepline enrich` rather than ad hoc loops so results are inspectable in Playground.
+At scale, use a Deepline Play rather than ad hoc loops so the run and persisted results remain inspectable.
 
 ### 7. Return A Last30days-Style GTM Research Report
 
@@ -450,7 +444,7 @@ Before any full paid run, include:
 - max spend cap
 - exact approval question
 
-If the user approves, execute through `deepline enrich`, `deepline tools execute`, or a Deepline play/workflow as appropriate.
+If the user approves, execute through a Deepline Play or a targeted `deepline tools execute` call as appropriate.
 
 ## Finish Criteria
 

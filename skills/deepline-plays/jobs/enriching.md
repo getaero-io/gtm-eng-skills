@@ -36,7 +36,7 @@ pilot row. The exploit denominator excludes rows the pilot already solved.
 You have row-shaped input (CSV, JSON array, or discovery output) and a target column. Inspect the CSV with the CLI before choosing a play, so the play choice and any `--columns.*` mapping are based on the actual shape the runtime sees:
 
 ```bash
-deepline csv show --csv <input.csv> --summary
+deepline csv show <input.csv> --summary
 ```
 
 Route by the identifiers each row has:

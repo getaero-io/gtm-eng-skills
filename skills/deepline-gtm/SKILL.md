@@ -9,62 +9,176 @@ description: "GTM prospecting, enrichment, outreach, and Deepline Play work/audi
 
 ```bash
 npm install -g deepline
-# Fallback for secure sandboxes: mkdir -p "$HOME/.local" && npm config set prefix "$HOME/.local" && export PATH="$HOME/.local/bin:$PATH" && npm install -g deepline --registry https://code.deepline.com/api/v2/npm/
 deepline auth register --wait auto
-deepline auth wait --timeout 120 # completes Cowork/browser approval; no-op if already connected
-deepline auth status
 deepline -h
 ```
 
-## CLI resolution
+## 1. Find the right guidance and capabilities
 
-Use `deepline` directly. If missing, try `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm `.cmd` shim on Windows), then follow `https://code.deepline.com/INSTALL.md`.
+Identify the business outcome, target population, constraints, time horizon,
+requested destination and spend/authority boundaries. Resolve implementation
+details yourself: providers, queries, identifier recovery and workflow shape.
+Ask one concise question with a recommendation only when a missing requirement
+materially changes the result or external action. Otherwise state a reasonable
+assumption and proceed. User-specified values override workflow defaults.
 
-Before the first Deepline fanout in a task, run `deepline preflight --json` as
-one standalone command and wait for it to finish. Never submit preflight beside
-another Deepline command. It combines health, authentication, and balance in
-one process and gives any automatic CLI update a serial boundary.
+### Domain guides
 
-After preflight succeeds, prefix every Deepline command that may run
-concurrently with `DEEPLINE_SKIP_SELF_UPDATE=1`. Serial commands do not need
-it; the opt-out is required for every member of a parallel batch.
+Read the relevant guide before new provider work; do not load unrelated guides
+just to inspect an existing run.
 
-**Debug every Play run first.** Start a new run with
-`deepline plays run <play> --input '<json>' --debug`; for an existing run save
-the complete retained stream with `deepline runs logs <run-id> --out run.log --json`, then use
-`deepline runs get <run-id> --full --json`. This preserves the durable trail
-instead of spending on a duplicate run. A caught non-2xx `ctx.fetch` records a
-customer-safe diagnostic with its call key, method, destination origin, and
-HTTP status. Generic HTTP is a separate provider surface: inspect the full run
-package before treating its provider-level error status as the upstream HTTP
-status or its error body as a safe customer-facing explanation.
+| Job | Read and apply |
+| --- | --- |
+| Find companies/people, build lead lists, portfolio/VC sourcing, ICP discovery, contact finding or coverage at scale | [Finding companies and contacts](finding-companies-and-contacts.md): filters, provider mix, parallel search, role matching and list-builder delegation. |
+| Research people/companies; enrich CSVs; find emails, phones or LinkedIn; coalesce, transform, score or add custom signals | [Enriching and researching](enriching-and-researching.md): Play routing, waterfalls, provider evidence and multi-pass research. |
+| Write cold emails, qualification, personalization, sequences or inspect in Playground | [Writing outreach](writing-outreach.md) and its `prompts.json` templates. Also read enrichment guidance when research informs the writing. Keep outreach context active throughout sequence work. |
+| Continuous provider event feeds / Monitors | Run `deepline monitors status --json`. Read [Monitors](recipes/deepline-monitors.md) only after exit 0 with `has_access: true`. Exit 1 with `has_access: false` is rollout denial; exit 3 is auth/permission, exit 5 configuration/reachability. Other failures are not denial. |
+| Public/social source discovery, community language, pre-research source planning or provider coverage/cost comparisons | Use the standalone `deepline-research` skill. |
 
-**Ask for requirements, not implementation instructions.** Requirements are the
-business outcome, target population, constraints, time horizon, requested
-destination, and any stated spend or authority boundary. The provider, tool,
-query shape, identifier recovery, filter expression, fallback order, and
-workflow structure are implementation decisions. Infer and execute the latter;
-do not turn them into a questionnaire. When a requirement is genuinely absent
-and materially changes the result or external action, ask one concise question
-with a recommendation. Otherwise state a reasonable assumption in the result
-and keep moving.
+### Discover Plays and tools
 
-**Decision-ready communication.** The user should never have to infer the
-answer from a status update. When work produces people, companies, events, or
-rows that determine the next move, show those real records in a readable
-Markdown table first. Link a person's name to their verified LinkedIn profile
-when one was returned; do not hide the decision behind counts, summaries, or a
-generic `Profile` column. For choices, show the comparison; for copy, show the
-draft; for research, show the evidence that supports the conclusion.
+For new work, look for a suitable prebuilt Play before assembling a custom
+workflow. Search for the information needed and relevant controls, not only a
+provider name; describe the selected capability to confirm inputs, outputs and
+pricing. Names in guides are starting hints, not substitutes for the live
+contract.
 
-Then make one plain-language recommendation based on what is visible. State the
-concrete boundary—who is in, out, or what changes—not a label such as “keep” or
-“refine.” Do not ask the user to design routine filters or choose plumbing.
-Keep validation, raw ids, feeds, and tool mechanics internal unless they change
-scope, cost, risk, confidence, or action.
+```bash
+deepline plays search "<task or capability>" --json
+deepline plays describe <play-name> --json
+deepline tools search "<information needed and controls>" --task "<input you have -> result you need>"
+deepline tools describe <tool-id> --json
+```
 
-When the user is calibrating, choosing a scope, prioritizing a list, or
-authorizing a change, use this complete envelope:
+Read tool search's default readable output. Choose from its current filters,
+cost and availability rather than a fixed provider ranking. If ranked tool search misses the capability, use
+`deepline tools grep <substring> --json` or
+`deepline tools list <returned-category> --json`. Read the relevant
+provider playbook below for payload conventions, pricing and caveats. Different
+vendors can expose the same underlying source; they are not automatically
+independent corroboration.
+
+Use a supplied Play or already-selected capability directly when suitable;
+don't rediscover or replace it unnecessarily. For an existing run, skip
+discovery and inspect its results.
+
+### Specialized recipes
+
+| Recipe | Use when |
+| --- | --- |
+| [Account org chart](recipes/account-orgchart.md) | Account maps, buying committees, stakeholders and multi-threading around a person/company. |
+| [Build TAM](recipes/build-tam.md) | Total addressable market or large company lists from ICP criteria. |
+| [Clay conversion](recipes/clay-to-deepline.md) | Translate a Clay table's actions and data dependencies into a custom Play. |
+| [Monitors](recipes/deepline-monitors.md) | Access-gated event capture and downstream automation; apply the access and consent rules. |
+| [Play authoring](recipes/deepline-plays.md) | Create/audit local or saved Plays, durable datasets, fallbacks, joins and orchestration. |
+| [Find qualified titles](recipes/find-qualified-titles.md) | Nuanced roles at known companies: qualify actual company titles before revealing contacts. |
+| [LinkedIn URL lookup](recipes/linkedin-url-lookup.md) | Resolve a person's URL from name/company with strict identity validation. |
+| [Portfolio prospecting](recipes/portfolio-prospecting.md) | Investor-backed companies, then contacts and personalized outbound. |
+| [Small-business prospecting](recipes/small-business-prospecting.md) | Local/storefront/service-area businesses using Maps-style search. |
+
+### Domain decisions to preserve
+
+- **Companies before people:** when company criteria drive the task, establish
+  the company set first, then find people there.
+- **Names are enough to start:** recover canonical company domains from official
+  evidence; don't ask the user to supply recoverable identifiers. Carry that
+  evidence forward and surface genuine identity ambiguity.
+- **Nuanced roles:** use the real `company_titles` roster, qualify exact titles,
+  then `deepline_native_search_contact` with `title_lists`. Use Exa for public
+  profile gaps and DropLeads for supplemental database rows or broad sizing.
+- **LinkedIn:** prefer native HarvestAPI for profiles, employees, posts and
+  engagers; use Apify when the native provider lacks the required surface.
+- **Provider routing:** direct structured search first for discovery; AI research
+  for synthesis/ambiguity. Use deterministic transforms for non-AI work,
+  `ai_inference` for classification and `deeplineagent` for context/research.
+  Confirm current tools rather than guessing fields.
+- **Quality:** consult [contact accuracy](references/contact-accuracy.md) before
+  activation. Verification starts with `leadmagic_email_validation`, then
+  corroboration; high-value outreach needs more than a single provider claim.
+  For job-change recovery prefer quality-first Crustdata/PDL before LeadMagic
+  fallbacks; phone recovery follows the enrichment guide.
+- **Population:** preserve every supplied contact/account, including misses.
+  For a fungible “find N” discovery job, source extra candidates within budget
+  (roughly 1.4×N as an initial heuristic), then select the best qualified N.
+  Don't apply that drop-incomplete-rows tactic to a fixed input cohort.
+
+### Provider Playbooks
+
+Provider-specific playbooks are bundled as separate reference files. Open the relevant playbook when provider-specific behavior, pricing, caveats, or payload conventions matter.
+
+[zerobounce](provider-playbooks/zerobounce.md), [cloudflare](provider-playbooks/cloudflare.md), [waterfall](provider-playbooks/waterfall.md), [redshift](provider-playbooks/redshift.md), [ipqs](provider-playbooks/ipqs.md), [discolike](provider-playbooks/discolike.md), [aviato](provider-playbooks/aviato.md), [rapidapi](provider-playbooks/rapidapi.md), [nooks](provider-playbooks/nooks.md), [trestle](provider-playbooks/trestle.md), [twitterapi](provider-playbooks/twitterapi.md), [hubspot](provider-playbooks/hubspot.md), [vector](provider-playbooks/vector.md), [emailguard](provider-playbooks/emailguard.md), [crustdata-v2](provider-playbooks/crustdata-v2.md), [google-ads-audiences](provider-playbooks/google-ads-audiences.md), [apify](provider-playbooks/apify.md), [affinity](provider-playbooks/affinity.md), [harvestapi](provider-playbooks/harvestapi.md), [bettercontact](provider-playbooks/bettercontact.md), [dataforseo](provider-playbooks/dataforseo.md), [google-workspace](provider-playbooks/google-workspace.md), [openwebninja](provider-playbooks/openwebninja.md), [bluesky](provider-playbooks/bluesky.md), [zoominfo](provider-playbooks/zoominfo.md), [hackernews](provider-playbooks/hackernews.md), [openmart](provider-playbooks/openmart.md), [browserbase](provider-playbooks/browserbase.md), [file-transport](provider-playbooks/file-transport.md), [salesloft](provider-playbooks/salesloft.md), [test-unhinted](provider-playbooks/test-unhinted.md), [salesforge](provider-playbooks/salesforge.md), [intercom](provider-playbooks/intercom.md), [kaspr](provider-playbooks/kaspr.md), [ai-ark](provider-playbooks/ai-ark.md), [snowflake](provider-playbooks/snowflake.md), [fullenrich](provider-playbooks/fullenrich.md), [amplemarket](provider-playbooks/amplemarket.md), [hunter](provider-playbooks/hunter.md), [parallel](provider-playbooks/parallel.md), [clay](provider-playbooks/clay.md), [opensosdata](provider-playbooks/opensosdata.md), [datagma](provider-playbooks/datagma.md), [predictleads](provider-playbooks/predictleads.md), [gong](provider-playbooks/gong.md), [allegrow](provider-playbooks/allegrow.md), [outreach](provider-playbooks/outreach.md), [enigma](provider-playbooks/enigma.md), [scrapecreators](provider-playbooks/scrapecreators.md), [limadata](provider-playbooks/limadata.md), [slack](provider-playbooks/slack.md), [leadmagic](provider-playbooks/leadmagic.md), [snitcher](provider-playbooks/snitcher.md), [upcell](provider-playbooks/upcell.md), [attention](provider-playbooks/attention.md), [attio](provider-playbooks/attio.md), [smartleads](provider-playbooks/smartleads.md), [firecrawl](provider-playbooks/firecrawl.md), [lusha](provider-playbooks/lusha.md), [brave](provider-playbooks/brave.md), [tamradar](provider-playbooks/tamradar.md), [bounceban](provider-playbooks/bounceban.md), [crustdata-v3](provider-playbooks/crustdata-v3.md), [dropleads](provider-playbooks/dropleads.md), [contactout](provider-playbooks/contactout.md), [databricks](provider-playbooks/databricks.md), [zoho-crm](provider-playbooks/zoho-crm.md), [generic-http](provider-playbooks/generic-http.md), [searchbug](provider-playbooks/searchbug.md), [quickenrich](provider-playbooks/quickenrich.md), [fireflies](provider-playbooks/fireflies.md), [adyntel](provider-playbooks/adyntel.md), [findymail](provider-playbooks/findymail.md), [luma](provider-playbooks/luma.md), [salesforce](provider-playbooks/salesforce.md), [grain](provider-playbooks/grain.md), [bigquery](provider-playbooks/bigquery.md), [heyreach](provider-playbooks/heyreach.md), [bloomberry](provider-playbooks/bloomberry.md), [theirstack](provider-playbooks/theirstack.md), [deepline-native](provider-playbooks/deepline-native.md), [meta-audiences](provider-playbooks/meta-audiences.md), [versium](provider-playbooks/versium.md), [wiza](provider-playbooks/wiza.md), [prospeo](provider-playbooks/prospeo.md), [akta](provider-playbooks/akta.md), [instantly](provider-playbooks/instantly.md), [icypeas](provider-playbooks/icypeas.md), [buyercaddy](provider-playbooks/buyercaddy.md), [kernel](provider-playbooks/kernel.md), [podscan](provider-playbooks/podscan.md), [govfiles](provider-playbooks/govfiles.md), [lemlist](provider-playbooks/lemlist.md), [deepline-ip-to-company](provider-playbooks/deepline-ip-to-company.md), [postgres](provider-playbooks/postgres.md), [wizleads](provider-playbooks/wizleads.md), [sec-edgar](provider-playbooks/sec-edgar.md), [crustdata](provider-playbooks/crustdata.md), [linkedin-ads-audiences](provider-playbooks/linkedin-ads-audiences.md), [rb2b](provider-playbooks/rb2b.md), [contextdev](provider-playbooks/contextdev.md), [integration-operation](provider-playbooks/integration-operation.md), [exa](provider-playbooks/exa.md), [enformion](provider-playbooks/enformion.md), [google-sheets](provider-playbooks/google-sheets.md), [sentrion](provider-playbooks/sentrion.md), [test](provider-playbooks/test.md), [emailbison](provider-playbooks/emailbison.md), [theswarm](provider-playbooks/theswarm.md), [sumble](provider-playbooks/sumble.md), [builtwith](provider-playbooks/builtwith.md), [serper](provider-playbooks/serper.md), [firmable](provider-playbooks/firmable.md), [forager](provider-playbooks/forager.md), [deeplineagent](provider-playbooks/deeplineagent.md), [clickhouse](provider-playbooks/clickhouse.md), [pipedrive](provider-playbooks/pipedrive.md), [peopledatalabs](provider-playbooks/peopledatalabs.md), [socrata](provider-playbooks/socrata.md), [edges](provider-playbooks/edges.md)
+
+## 2. Build, run and retrieve
+
+- **Build:** reuse a suitable prebuilt or author a Play for workflows and batches;
+  direct tools are for spot checks. Follow [Play authoring](recipes/deepline-plays.md)
+  and the [SDK reference](references/plays-sdk-reference.md). Preserve supplied
+  Plays unless a material mismatch needs a decision.
+- **Check:** inspect input headers and mappings; run `deepline plays check <file>`
+  before executing local source.
+- **Pilot:** test costly or unproven work on a small authorized sample; inspect
+  actual results and spend before scaling. Don't duplicate a small supplied run
+  or reprocess pilot rows unnecessarily.
+- **Run:** `plays run` waits by default; `--no-wait` returns the run ID immediately.
+  Follow an existing run with `runs tail <run-id>`; inspect it with
+  `runs get <run-id>`. Reconnect after a timeout rather than launching again.
+- **Inspect/transform:** overview first, then follow the suggested commands.
+  Play datasets persist in database tables. Prefer read-only SQL for filtering,
+  joining, flattening and aggregating stored data before downloading. Inspect
+  actual column types and sample values first; don't assume a JSON structure.
+  After a type error, inspect the data rather than guessing another query.
+  Adapt the suggested SQL, preserving its table and run filter.
+
+  Get the run ID, physical tables and suggested SQL in one call:
+
+  ```bash
+  deepline runs get <run-id> --json run.id,datasets.storage,actions
+  ```
+
+  Use the returned schema/table for `<returned-table>` (for example,
+  `"storage"."contact_email_waterfall_email_rows"`). Copy the run-membership
+  predicate from the suggested SQL into `<returned-run-filter>` (for example,
+  `_run_id = '<run-id>'`); storage alone doesn't supply it. Check additional
+  status filters and sample limits before computing whole-run totals.
+  Use the dataset's actual columns and JSON structure:
+
+  ```sql
+  -- Aggregate before downloading.
+  SELECT domain, COUNT(*) AS contacts, COUNT(email) AS emails_found
+  FROM <returned-table>
+  WHERE <returned-run-filter>
+  GROUP BY domain;
+  ```
+
+  These are read-only projections, not changes to stored rows.
+
+- **Export:** use the suggested export command for complete rows: CSV for
+  delivery, `--format json` for nested evidence. The response is a file
+  receipt—read the file. Use `csv show <file> --summary` for local CSV summaries.
+- **CLI hygiene:** use `-h`; run `deepline preflight --json` as a standalone command
+  and wait before parallel Deepline work. After preflight, prefix each concurrent
+  command with `DEEPLINE_SKIP_SELF_UPDATE=1`. Prefer field selection or summaries
+  when inspecting structured results. Preserve complete evidence responses,
+  separate stderr from JSON, and check exit status (`pipefail` for pipelines).
+- **Evidence:** previews aren't complete results; completed runs can contain
+  failed rows; nulls don't explain misses. Inspect affected rows, then use
+  `runs receipt <run-id> --key '<receipt-key>'` for referenced tool responses.
+  Take receipt keys from the affected row's evidence first; check run logs if
+  missing. Receipt reads don't rerun tools. Investigate unresolved requested
+  conditions; once supported, stop—rechecking the same provider isn't independent
+  corroboration. Use full diagnostics or logs for remaining questions.
+- **Save:** keep deliverables in a durable project directory, not system temp;
+  preserve source files, input identities and evidence.
+- **Experiments:** route comparisons, scaffolds and cost receipts apply when
+  designing or comparing workflows—not every execution.
+- **Authority:** planning or inspection authorizes no paid execution. Returned
+  actions are capabilities, not approval to retry, publish or write externally.
+  A credit shortage blocks paid work, not accessible retained results.
+
+## 3. Scope, spend and approval
+
+For calibration, scope or prioritization decisions, show the actual records,
+comparison or supporting evidence and one recommendation:
 
 ```markdown
 <the table, comparison, draft, or evidence>
@@ -73,380 +187,121 @@ Recommendation: <one concrete next state and why>.
 Want me to use that, or adjust it?
 ```
 
-End with `Want me to use that, or adjust it?` exactly. The user can say “yes”
-or name the adjustment. A calibration, scope, or prioritization response is
-incomplete without that final line, even when it starts no external action. Do
-not add a second question, a menu, or an implementation checklist. If no user
-decision is needed, state the outcome and stop.
-
-**Paid monitors.** Before deployment show the recommended scope, live
-Deepline price, and delivery in the smallest useful shape. Check Slack first;
-recommend a real connected channel when one is available, otherwise offer Slack
-or the configured CRM. The monitor recipe covers consent, history, and
-similar-company scope.
-
-**Discovery order: companies first, then people.** When the task requires finding contacts at companies matching criteria (portfolio, ICP, hiring signal), discover the company set first, then find people at each company. Do not start with broad people-search queries.
-
-**Named companies are enough to start.** When the user gives company names but
-not domains, resolve each canonical company domain before asking them for
-anything. A domain is a recoverable identifier, not clarification debt. Carry
-the resolved domain and its official-page evidence into the downstream lookup;
-do not ask the user to paste a domain list merely because a later tool needs
-one. Read [finding-companies-and-contacts.md](finding-companies-and-contacts.md)
-for the identity gate and ambiguity handling.
-
-**Known companies + nuanced roles: qualify the real title roster first.** For requests such as "AI leadership at Mount Sinai," "job titles at these companies," or "find the RevOps buyers at these accounts," read and follow [`recipes/find-qualified-titles.md`](recipes/find-qualified-titles.md): `company_titles` -> qualify exact roster titles -> `deepline_native_search_contact` with `title_lists`. Use Exa afterward for public-profile gaps and DropLeads last for supplemental database rows. Broad audience sizing remains a valid DropLeads use case.
-
-### CLI recovery
-
-If unavailable, run `deepline update` or reinstall via
-`https://code.deepline.com/INSTALL.md`. Stay on the SDK CLI.
-
-## 2) Read the matching workflow before execution
-
-SKILL.md routes; the matching doc supplies the execution contract. Read it before
-using a provider so its schema, sequencing, and known failure modes govern the
-run.
-
-**Routing rules — match your task to a doc and READ IT:**
-
-| When the task involves...                                                                                                                                                                                                                                                                                                                                                          | You MUST read this doc first                                                 | What it gives you (that SKILL.md doesn't)                                                                                                                                                                                                                                                                                            |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Finding companies, finding people, building lead lists, prospecting, portfolio/VC sourcing, contact finding at known companies, coverage completion at scale**                                                                                                                                                                                                                   | [finding-companies-and-contacts.md](finding-companies-and-contacts.md)       | Provider filter schemas, parallel execution patterns, provider mix tables, role-based search rules, subagent orchestration, at-scale coverage completion, portfolio/VC shortcuts, contact finding patterns.                                                                                                                          |
-| **Researching companies or people, understanding what they build, figuring out use cases, personalizing based on mission/product/industry, enriching a CSV, adding data columns, waterfall enrichment, finding emails/phones/LinkedIn, coalescing data, custom signals, `run_javascript` / `deeplineagent` columns, Apify actors — any task that adds or transforms row-level data** | [enriching-and-researching.md](enriching-and-researching.md)                 | Play routing per scenario (`deepline plays run` + batch prebuilts + fork/wrap), waterfall orders for email/phone/LinkedIn, `run_javascript` / `deeplineagent` routing inside custom plays, multi-pass pipeline patterns, coalescing, custom signal buckets, Apify actor selection, GTM definitions and defaults. |
-| **Writing, running, auditing, or modernizing Deepline plays** — composing tools/plays, mapping CSV rows, reviewing an existing `.play.ts` or saved Play for deprecated APIs/tool IDs, fallback logic, joins/projections, durable datasets, custom run/export behavior, or webhook/cron-style orchestration. | [recipes/deepline-plays.md](recipes/deepline-plays.md)                       | Direct vs compose decisions, `plays check`-driven audits and remediation order, bootstrap/wrap/fork rules, durable authoring basics, run/export/repair routing, and exact SDK/API reference pointers.                                                                                                                |
-| **Writing cold emails, personalizing outreach, lead scoring, qualification, sequence design, campaign copy, inspecting CSVs in Playground.** If the task also requires researching companies/people to inform the writing, read [enriching-and-researching.md](enriching-and-researching.md) too — it has the multi-pass pipeline pattern.                                         | [writing-outreach.md](writing-outreach.md)                                   | Prompt templates from `prompts.json`. Scoring rubrics. Email length/tone/structure rules. Personalization patterns. Qualification frameworks. Playground inspection commands.                                                                                                                                                        |
-| **Deepline Monitors** — continuously capturing a provider's webhook events (email replies, new job postings, intent signals) into a Customer DB table, or deploying/listing/managing those upstream provider pipes. Event-driven streaming, NOT an on-demand enrich/sourcing run. **Conditional gate:** run `deepline monitors status --json` first. Read the recipe only when the command exits 0 with `has_access: true`. Exit 1 with `has_access: false` means rollout access is absent. For exit 3, fix auth/permission; for exit 5, diagnose configuration/server reachability. Do not reinterpret other failures as rollout denial. | [recipes/deepline-monitors.md](recipes/deepline-monitors.md) | What Monitors are, when to use them vs plays, the command set for delivery health, audit/repair, single monitors, and Fleets; the current billing-recovery boundary; monitor definition shape; the provider-webhook → Customer DB → triggered-play data flow; and access gating. |
-
-If you are hand-authoring enrich columns instead of using a native play, jump straight to the "Handmade step shape quick reference" section in [enriching-and-researching.md](enriching-and-researching.md). That section spells out the exact runtime contract for `run_javascript`, `extract_js`, `result`, and persisted `matched_result`.
-
-### Recipes: step-by-step playbooks for specific tasks (check before executing)
-
-Read the matching recipe before executing. Follow its sequence; adapt it only
-when the request requires it.
-
-| Recipe                          | Use when...                                                                                                                                |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `account-orgchart.md`           | Building an org chart, account map, buying committee, stakeholder map, or multi-threading plan around a target person or company          |
-| `build-tam.md`                  | Building a total addressable market list or large company list from ICP criteria                                                           |
-| `clay-to-deepline.md`           | Converting a Clay table to Deepline (deprecated enrich-era recipe — use its action mappings, author the result as a custom play)           |
-| `deepline-monitors.md`          | **ACCESS-GATED.** Deepline Monitors continuously capture a provider's webhook events into a Customer DB table and trigger plays. Run `deepline monitors status --json` first; only exit 1 with `has_access: false` is a clean rollout denial. Diagnose auth, configuration, and server failures by their actual exit code. |
-| `deepline-plays.md`             | Creating or auditing `.play.ts` and saved Plays, including deprecated APIs/tool IDs, durable datasets, fallback logic, joins/projections, webhook/cron-style orchestration, and custom run/export behavior |
-| `find-qualified-titles.md`      | **Primary path** for nuanced roles at known companies: "AI leadership at Mount Sinai", "find all job titles at these companies", or "find the marketing-ops/RevOps/Salesforce buyers". Pull each company's real title roster (free `company_titles`), qualify exact titles, then find contacts with tiered (LinkedIn, email, phone) reveal. |
-| `linkedin-url-lookup.md`        | Resolving a person's LinkedIn profile URL from their name and company with strict identity validation                                      |
-| `portfolio-prospecting.md`      | Finding companies backed by a specific investor or accelerator, then finding contacts and building personalized outbound                   |
-| `small-business-prospecting.md` | Finding local small businesses or storefront/service-area companies using Maps-style search. Doctors, services business, restaurants, etc. |
-
-> **Public/social source discovery, community-language pulls, pre-research source planning, or provider-coverage/cost comparison → use the standalone `deepline-research` skill, not a recipe here.** It owns X/Twitter, Reddit, Hacker News, Bluesky, and public-registry fanout plus the source-plan + Deepline-cost synthesis.
-
-If none match, grep for more specific keywords: `Grep pattern="<keyword>" path="<directory containing this SKILL.md>/recipes/" glob="*.md" output_mode="files_with_matches"`
-
-### Data
-
-- When the user hands you a CSV, run `deepline csv show --csv <path> --summary` first to understand its shape (row count, columns, sample values) before deciding how to process it.
-- **NEVER read a large CSV into context with the Read tool.** Reading CSV rows into the conversation window exhausts context and produces zero output. This is the single most common failure mode.
-- For row-by-row processing (enrichment, rewriting, research, scoring), use a Deepline play per §2.5: prebuilt if one fits, fork/wrap when close, author when not.
-- To explore or understand CSV content without loading it, use `deepline csv show --csv <path> --rows 0:2` for a two-row sample, or spawn an Explore subagent to answer questions about the data.
-- Pilot before scale: slice the CSV (`head -3 in.csv > pilot.csv`), run the play on the slice, `deepline runs export` and inspect, then run the full file. **Small-input exception:** when an exact-fit prebuilt covers a small input (≤ ~25 rows) whose scope the user already stated, the full file IS the pilot — run it once.
-- **The pilot is never the deliverable.** A task is not done until the FULL input has run and the result is exported to the exact requested output path: `deepline runs export <run-id> --out "$FINAL_CSV"`. Finishing with only a pilot CSV, or an export under a play-derived name, is the single most common way to fail the task while feeling done.
-
-### Tools
-
-For signal-driven discovery (investor, funding, hiring, headcount, industry, geo, tech stack, compliance), start with `deepline tools search [query] [--categories <c>] [--search_terms <t>] [--task <sentence>]`; do not guess fields. Read its default readable output; do not add `--json`. Give a query or at least one filter; use commas for multiple values. There is no `--prefix` flag; put provider names in the query. Always pass `--task`: the input you have and the result you need, not the query restated. It improves ranking.
-
-Search 2-4 synonyms, execute in parallel only after the standalone preflight:
-
-```bash
-DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search investor --task "I have 50 seed-stage company domains and need each company's lead investors"
-DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search "crustdata investor"
-DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search --categories company_search --search_terms "structured filters,icp"
-DEEPLINE_SKIP_SELF_UPDATE=1 deepline tools search --categories people_search --search_terms "title filters,linkedin"
-```
-
-## 2.5) Plays are the surface
-
-For row-by-row processing (per customer, per lead, per LinkedIn URL), run a Deepline play via `deepline plays run`. `deepline enrich` is deprecated — do not use or document it; when no play fits, author one.
-
-1. **Discover live, then run.** `deepline plays search <query>` and `deepline plays describe <name>` — choose from the live catalog and its contract, never from memory. Search results include a `runCommand` and a `cloneEditStarter` for every prebuilt.
-2. **Prebuilt fits** → run it. Batch prebuilts take a CSV directly: `deepline plays run prebuilt/name-and-domain-to-email-waterfall-batch --input '{"csv":"leads.csv"}'`, then `deepline runs export <run-id> --out "$FINAL_CSV"`.
-3. **Close but not exact** → pull and edit it. Every prebuilt is forkable:
-
-   ```bash
-   deepline plays get prebuilt/<name> --source --out ./<name>.play.ts
-   deepline plays check ./<name>.play.ts   # mandatory before running
-   deepline plays run --file ./<name>.play.ts --input '{...}'
-   ```
-
-   If `plays check` fails on a missing local import, that prebuilt is multi-file — wrap it instead of forking: `deepline plays bootstrap <family> --from <source> --using play:prebuilt/<name> --limit 5 --out workflow.play.ts`.
-4. **No play fits** → author one from scratch per [recipes/deepline-plays.md](recipes/deepline-plays.md): compose tools and other plays, map CSVs, add fallback logic and joins.
-
-**Results live in the Customer DB.** Every batch play persists its dataset as a durable table: `deepline db query --sql 'select * from "storage"."<table>" limit 20' --max-rows 20 --json` (the run output names the table). Columns are the play's snake_case fields plus per-leg columns like `email_result__hunter_email` — the per-provider audit trail. Rerunning reuses filled cells instead of re-buying them; exports are projections of this table, so nothing is lost if a CSV goes missing.
-
-**The iterate loop — pilot, price, fix, then scale:**
-
-1. Run a few rows (slice the CSV or run 2-3 scalar inputs).
-2. Read price and performance: `deepline runs get <run-id> --full --json` reports billing and per-step outcomes; the storage table's per-leg columns show which providers hit, missed, or erred.
-3. Fix what the pilot exposed BEFORE scaling: a provider that misses or flakes on your segment gets dropped or reordered in a fork; wrong columns get a `columns` map; weak coverage gets a different route. Do not buy the same failure at full scale.
-4. Run the full file, export to `FINAL_CSV`, and report to the user: rows delivered, coverage, observed credits, and what you changed after the pilot.
-
-## 3) Core policy defaults
-
-### 3.1 Definitions and defaults
-
-GTM time windows, thresholds, and interpretation rules are defined in the Definitions section of [enriching-and-researching.md](enriching-and-researching.md).
-
-## Provider Playbooks
-
-Provider-specific playbooks are bundled as separate reference files. Open the relevant playbook when provider-specific behavior, pricing, caveats, or payload conventions matter.
-
-[bloomberry](provider-playbooks/bloomberry.md), [hunter](provider-playbooks/hunter.md), [contextdev](provider-playbooks/contextdev.md), [zoho-crm](provider-playbooks/zoho-crm.md), [leadmagic](provider-playbooks/leadmagic.md), [edges](provider-playbooks/edges.md), [waterfall](provider-playbooks/waterfall.md), [buyercaddy](provider-playbooks/buyercaddy.md), [test](provider-playbooks/test.md), [predictleads](provider-playbooks/predictleads.md), [scrapecreators](provider-playbooks/scrapecreators.md), [deeplineagent](provider-playbooks/deeplineagent.md), [file-transport](provider-playbooks/file-transport.md), [vector](provider-playbooks/vector.md), [crustdata-v2](provider-playbooks/crustdata-v2.md), [hackernews](provider-playbooks/hackernews.md), [slack](provider-playbooks/slack.md), [theswarm](provider-playbooks/theswarm.md), [datagma](provider-playbooks/datagma.md), [bluesky](provider-playbooks/bluesky.md), [govfiles](provider-playbooks/govfiles.md), [socrata](provider-playbooks/socrata.md), [ipqs](provider-playbooks/ipqs.md), [kaspr](provider-playbooks/kaspr.md), [exa](provider-playbooks/exa.md), [builtwith](provider-playbooks/builtwith.md), [generic-http](provider-playbooks/generic-http.md), [crustdata](provider-playbooks/crustdata.md), [amplemarket](provider-playbooks/amplemarket.md), [lusha](provider-playbooks/lusha.md), [dropleads](provider-playbooks/dropleads.md), [forager](provider-playbooks/forager.md), [peopledatalabs](provider-playbooks/peopledatalabs.md), [grain](provider-playbooks/grain.md), [salesforge](provider-playbooks/salesforge.md), [salesforce](provider-playbooks/salesforce.md), [fullenrich](provider-playbooks/fullenrich.md), [enigma](provider-playbooks/enigma.md), [clickhouse](provider-playbooks/clickhouse.md), [theirstack](provider-playbooks/theirstack.md), [searchbug](provider-playbooks/searchbug.md), [google-ads-audiences](provider-playbooks/google-ads-audiences.md), [bounceban](provider-playbooks/bounceban.md), [nooks](provider-playbooks/nooks.md), [integration-operation](provider-playbooks/integration-operation.md), [snowflake](provider-playbooks/snowflake.md), [deepline-ip-to-company](provider-playbooks/deepline-ip-to-company.md), [meta-audiences](provider-playbooks/meta-audiences.md), [redshift](provider-playbooks/redshift.md), [zerobounce](provider-playbooks/zerobounce.md), [bettercontact](provider-playbooks/bettercontact.md), [contactout](provider-playbooks/contactout.md), [deepline-native](provider-playbooks/deepline-native.md), [sentrion](provider-playbooks/sentrion.md), [openmart](provider-playbooks/openmart.md), [apify](provider-playbooks/apify.md), [ai-ark](provider-playbooks/ai-ark.md), [google-workspace](provider-playbooks/google-workspace.md), [gong](provider-playbooks/gong.md), [allegrow](provider-playbooks/allegrow.md), [bigquery](provider-playbooks/bigquery.md), [fireflies](provider-playbooks/fireflies.md), [lemlist](provider-playbooks/lemlist.md), [zoominfo](provider-playbooks/zoominfo.md), [browserbase](provider-playbooks/browserbase.md), [kernel](provider-playbooks/kernel.md), [serper](provider-playbooks/serper.md), [enformion](provider-playbooks/enformion.md), [cloudflare](provider-playbooks/cloudflare.md), [test-unhinted](provider-playbooks/test-unhinted.md), [clay](provider-playbooks/clay.md), [crustdata-v3](provider-playbooks/crustdata-v3.md), [firmable](provider-playbooks/firmable.md), [salesloft](provider-playbooks/salesloft.md), [linkedin-ads-audiences](provider-playbooks/linkedin-ads-audiences.md), [google-sheets](provider-playbooks/google-sheets.md), [harvestapi](provider-playbooks/harvestapi.md), [luma](provider-playbooks/luma.md), [limadata](provider-playbooks/limadata.md), [outreach](provider-playbooks/outreach.md), [instantly](provider-playbooks/instantly.md), [brave](provider-playbooks/brave.md), [discolike](provider-playbooks/discolike.md), [emailguard](provider-playbooks/emailguard.md), [quickenrich](provider-playbooks/quickenrich.md), [adyntel](provider-playbooks/adyntel.md), [sumble](provider-playbooks/sumble.md), [openwebninja](provider-playbooks/openwebninja.md), [emailbison](provider-playbooks/emailbison.md), [wiza](provider-playbooks/wiza.md), [opensosdata](provider-playbooks/opensosdata.md), [findymail](provider-playbooks/findymail.md), [icypeas](provider-playbooks/icypeas.md), [affinity](provider-playbooks/affinity.md), [akta](provider-playbooks/akta.md), [prospeo](provider-playbooks/prospeo.md), [heyreach](provider-playbooks/heyreach.md), [upcell](provider-playbooks/upcell.md), [parallel](provider-playbooks/parallel.md), [sec-edgar](provider-playbooks/sec-edgar.md), [pipedrive](provider-playbooks/pipedrive.md), [aviato](provider-playbooks/aviato.md), [tamradar](provider-playbooks/tamradar.md), [rapidapi](provider-playbooks/rapidapi.md), [attio](provider-playbooks/attio.md), [trestle](provider-playbooks/trestle.md), [intercom](provider-playbooks/intercom.md), [attention](provider-playbooks/attention.md), [smartleads](provider-playbooks/smartleads.md), [versium](provider-playbooks/versium.md), [hubspot](provider-playbooks/hubspot.md), [snitcher](provider-playbooks/snitcher.md), [wizleads](provider-playbooks/wizleads.md), [postgres](provider-playbooks/postgres.md), [dataforseo](provider-playbooks/dataforseo.md), [twitterapi](provider-playbooks/twitterapi.md), [firecrawl](provider-playbooks/firecrawl.md), [databricks](provider-playbooks/databricks.md), [podscan](provider-playbooks/podscan.md), [rb2b](provider-playbooks/rb2b.md)
-
-- Apply defaults when user input is absent.
-- User-specified values always override defaults.
-- In approval messages, list active defaults as assumptions.
-
-### 3.2 Working directory — set up BEFORE any file writes
-
-**NEVER write files to `/tmp/` or any absolute temp directory.** Files in system `/tmp/` are wiped on reboot — users permanently lose enriched CSVs, research outputs, and hours of paid enrichment work. This is a critical data-loss risk.
-
-Set up a descriptive project-local working directory as your first action:
-
-```bash
-WORKDIR="deepline/data/<descriptive-task-slug>" && mkdir -p "$WORKDIR" && echo "$WORKDIR"
-```
-
-The slug must describe the task (e.g. `deepline/data/yc-cmo-outbound`, `deepline/data/acme-email-waterfall`). Do NOT use random names like `mktemp` generates — the user needs to find these files later. See [enriching-and-researching.md](enriching-and-researching.md) for full details.
-
-### 3.3 Output policy and User Interaction Pattern
-
-- Always use a Deepline play for list enrichment or discovery at scale (>5 rows) — §2.5 routing. The run's play page lets the user inspect rows and rerun; send that URL.
-- Even for company → ICP person flows, plays work: search and filter as part of the process, with providers like Apify to guide.
-- Even when you don't have a CSV, create one and run the batch play against it.
-- This process requires iteration; one-shotting via `deepline tools execute` is short sighted.
-- In chat, send file/run links and render a decision table when rows inform a decision.
-- Preserve lineage columns (especially `_metadata`) end-to-end. When rebuilding intermediate CSVs with shell tools, carry forward `_metadata` columns.
-- Never overwrite a user-provided source CSV; write outputs to your working directory. Reruns of a play reuse completed cells by default.
-
-See [enriching-and-researching.md](enriching-and-researching.md) for `deepline csv` commands, pre-flight/post-run script templates, and inspection details.
-
-### 3.4 Final file and run check (light)
-
-- Keep one intended final CSV path: `FINAL_CSV="${OUTPUT_DIR:-$WORKDIR}/<requested_filename>.csv"`
-- Before finishing: use the post-run inspection script pattern from [enriching-and-researching.md](enriching-and-researching.md). Run it once instead of separate checks.
-- **Checkpoint the deliverable.** On multi-phase pipelines (companies → contacts → emails), write `FINAL_CSV` as soon as the first complete rows exist and overwrite it as later phases improve it. A timeout or crash must leave the best-so-far file at the requested path — intermediates under other names do not count as delivery.
-- **For a task that ran a Play, include its result.** Give the exact `FINAL_CSV`
-  path and play page link; do not invent one for monitor-only, research, or advisory work.
-
-## 4) Credit and approval gate (paid actions)
-
-This section's pilot, CSV preview, and full-run template governs enrichment,
-sourcing, and other row-processing runs. Monitor mutations use the workflow in
-`recipes/deepline-monitors.md` instead: inspect scope, reuse candidates,
-downstream actions/unknown consumers, and price before asking. Keep that
-approval decision-first: scope table, recommendation, live Deepline price, and
-one question. Because a monitor can incur variable future event charges, require
-explicit approval before every paid deploy, reactivate, or historical
-widening—even when the user stated the scope. A historical rung is empty only
-after its documented provider completion window; leave it intact while that
-window is pending. Ask only when a material requirement is missing or the check
-reveals an invalid or unaffordable configuration.
-
-### 4.1 Required run order
-
-1. Pilot on a narrow scope: a small CSV slice through the same batch play, or 2-3 scalar runs.
-2. If the scope is NOT already approved (see below), request explicit approval.
-3. Run full scope, report the pilot's cost and quality findings alongside the deliverable.
-
-**User-stated scope = already approved for bounded row-processing only.** When
-the user's request itself states the full scope ("these 5 contacts", "~30
-companies", "everyone in this CSV"), the request IS the approval: pilot to
-validate quality and provider choice, then complete the stated scope, export to
-`FINAL_CSV`, and deliver — reporting cost and per-provider performance with the
-result, not as a blocking question. This exception never applies to monitors;
-follow the monitor-specific consent gate above.
-
-**Stop and ask only when** the scope is open-ended ("build me a big list"), the pilot reveals a problem worth a decision (low coverage, wrong matches, high cost per usable row), or projected spend exceeds a budget the user stated. Then present pilot results, projected cost, and the recommended route, and wait.
-
-### 4.2 Execution sizing
-
-- Use smaller sequential commands first.
-- Keep limits low and windows bounded before scaling.
-- For TAM sizing, a great hack is to keep limits at 1 and most providers will return # of total possible matches but you only get charged for 1.
-- Prefer providers and plays that charge on returned results or successful hits when coverage is uncertain. If a provider bills per attempt/request/page, prove quality on a tiny pilot before letting it fan out.
-- Stop after the pilot when the first rows show low usable coverage, wrong-person/company matches, missing getters, or high cost per usable row. Change route/provider order before buying the same failure at full scale.
-- Do not depend on monthly caps as a hard risk control.
-- Plan play spend before full scale by reading the play contract, using `deepline plays list --show-cost` for its static or observed per-row/per-run estimate when available, then running a small pilot and inspecting actual spend with `deepline runs get <run-id> --full --json`; label any extrapolation as an estimate. On `plays share publish` and `plays share update`, `--show-cost` instead opts into average cost metrics on the public page when safe, comparable run samples are available. `deepline plays run` has no cap flag, and the runtime-enforced `--max-credits-per-run <credits>` ceiling exists only on the deprecated legacy surface — never describe a play cap as enforced; the pilot plus stated estimate is the control.
-
-### 4.2.1 Over-provision, then filter — never chase missing rows
-
-When the user asks for N rows, start with ~1.4×N (e.g., 35 for 25). Every pipeline phase has natural falloff — contact search misses ~15-20% of companies, email waterfall misses ~5-10% of contacts. Fighting to complete the hard rows is almost always a waste: the companies that providers can't find contacts for are the same ones that won't have email coverage either.
-
-**Do this:**
-
-1. Pull more candidates than needed at the top of funnel.
-2. Run the full pipeline (contacts → emails → outbound).
-3. At the end, filter to the best N complete rows and deliver those.
-4. Drop incomplete rows — don't retry or manually patch them.
-
-**Do NOT do this:**
-
-- Trim results to exactly N before running the pipeline.
-- Spend turns retrying failed lookups with fallback providers, `deeplineagent` research passes, or manual patching.
-- Run enrichment on all rows just to fill gaps in a few (especially broad `deeplineagent` research passes).
-
-Provider coverage is a property of the company, not something you can overcome with more effort. Tiny startups with 5 people will have zero coverage across all providers — no amount of retrying changes that. Over-provision at the top and let incomplete rows fall off naturally.
-
-### 4.3 Approval message content
-
-Include all of:
-
-1. Play or provider(s)
-2. Pilot summary and observed behavior
-3. Intent-level assumptions (3–5 one-line bullets)
-4. CSV preview from the real pilot: the head of `deepline runs export <pilot-run-id> --out`
-5. Credits estimate / range
-6. Full-run scope size
-7. Max spend cap (stated and monitored; no runtime-enforced play cap exists)
-8. Approval question: `Approve full run?`
-
-Strict format contract (blocking):
-
-1. Use the exact four section headers: Assumptions, CSV Preview (ASCII), Credits + Scope + Cap, Approval Question.
-2. If any required section is missing, remain in `AWAIT_APPROVAL` and do not run paid/cost-unknown actions.
-3. Only transition to `FULL_RUN` after an explicit user confirmation to the approval question.
-4. `run_javascript` is the non-AI path. `ai_inference` is for general classification/structured reasoning, and `deeplineagent` is for context gathering / web research / signal extraction.
-
-Approval template:
+Use that final question only when a calibration decision is needed. For a paid
+scope decision use the approval format below instead, not both questions.
+When no decision is needed, proceed without manufacturing one.
+
+A user-stated bounded row-processing scope (“these 5 contacts”, “everyone in this
+CSV”) authorizes completing that scope within stated constraints. Do not ask
+again merely because a pilot finished. For small supplied Plays, the requested
+run itself is the check; no mandatory extra pilot.
+
+For larger or uncertain new work, use a small representative subset within the
+approved scope/budget to validate identity, coverage, shape and cost before
+scaling. Account for processed inputs rather than repeating them solely to
+satisfy a full-run ritual. Stop when wrong matches, low usable coverage or cost
+changes require a decision; don't enter an unbounded fix-and-rerun loop.
+For open-ended requests, agree bounded scope/spend before a paid pilot.
+Planning or inspection alone authorizes no paid execution.
+
+Estimate with the Play contract, `deepline plays list --show-cost` where
+available and observed Deepline spend; label extrapolations. Prefer
+success-priced routes when appropriate, but verify the provider's actual price
+basis before assuming a one-result search pays for only one result. Monthly
+caps and estimates are not hard per-run controls. Do not advertise a runtime
+Play spending cap unless the current contract actually supports it.
+
+When a paid scope decision is needed, show the following format and ask only
+its approval question. Use actual pilot evidence if one was authorized; label
+“not run” rather than spending or inventing a preview to fill the template.
 
 ```markdown
 Assumptions
 
-- <intent assumption 1>
-- <intent assumption 2>
+- <intent and constraints>
 
 CSV Preview (ASCII)
-<paste verbatim pilot output: the runs export head>
+<real pilot rows, or "Not run — approval required before paid work.">
+
 Credits + Scope + Cap
 
-- Provider: <name>
-- Estimated credits: <value or range>
+- Provider: <route>
+- Estimated credits: <range and basis>
 - Full-run scope: <rows/items>
-- Spend cap: <cap>
-- Pilot summary: <one short paragraph>
+- Spend cap: <user budget; distinguish monitored from enforced>
+- Pilot summary: <observed findings, or not run>
 
 Approval Question
 Approve full run?
 ```
 
-### 4.4 Mandatory checkpoint
+When approving only a pilot, replace “Full-run scope” / “Approve full run?” with
+“Pilot scope” / “Approve pilot?” so the question matches the authorized action.
 
-- Must run a real pilot against the exact CSV intended for the full run: a small slice through the same batch play.
-- Must include the pilot output preview verbatim in approval.
-- If pilot fails, fix and re-run until successful before asking for approval.
-- Ask for approval in chat after the pilot. Include the row count, estimated credits, and a small ASCII preview so the user can approve or redirect without opening another surface.
+**Monitors are different:** require explicit approval for every paid deploy,
+reactivate or historical widening, even when scope was stated. Inspect scope,
+reuse candidates, downstream actions/unknown consumers and live Deepline price
+before asking. Check Slack for an existing delivery channel; otherwise offer
+Slack or the configured CRM. Don't call a historical rung empty before its
+provider completion window. Follow the monitor recipe; bounded row permission
+does not authorize recurring work, outreach or CRM writes.
 
-### 4.5 Billing commands
+For credit issues use `deepline billing balance`, `deepline billing usage` or
+`deepline billing limit` as appropriate. For an exact charge, use
+`deepline billing usage --request-id <job_id> --json`; only `posted` is final,
+while holds and pending results are provisional. If credits are unavailable,
+stop paid work. When recovery information is returned, quote its
+`top_up_command` and `checkout_command` exactly, including `--json` and
+`--no-open`, and wait for approval before running them. Use live prices, not a
+hardcoded USD-to-credit conversion.
 
-```bash
-deepline billing balance  # Show current credit balance
-deepline billing usage    # Show recent billing activity and grouped recent usage
-deepline billing limit    # Show the current monthly billing cap
-```
+## 4. Deliver results
 
-Exact Deepline charge: `deepline billing usage --request-id <job_id> --json`.
-Only `posted` is final; holds and pending results are provisional.
+Show useful records and a plain-language summary: delivered population,
+coverage, missing/rejected values, actual failures and any evidence limits.
+Don't claim “nothing failed” when commands failed and recovered.
+An agent-written explanation is analysis, not a raw provider response.
+Link a person's name to a returned, verified LinkedIn profile. Keep raw IDs
+and plumbing internal unless they affect cost, scope or confidence.
 
-When credits are unavailable, stop paid work and ask the user to top up. If
-`recovery` is present, quote its `top_up_command` and `checkout_command`
-exactly, with all flags, and wait for approval. Use live output for USD
-estimates; never hardcode the exchange rate.
+For row-processing work, export the complete requested population to the
+intended final file, link it and the returned Play page, and verify identity,
+row count and requested columns. Preserve evidence and lineage fields
+(including authored `_dl_meta` and runtime `_metadata`) when transforming.
+A partial pilot is not completion of a larger request; label partial coverage
+explicitly.
 
-## 5) Provider routing (high level)
+On multi-phase work, checkpoint the best-so-far deliverable at the intended path
+and update it as phases finish, so interruption doesn't erase useful results.
+Honor the requested destination and filename; don't invent a CSV or Play link
+for monitor-only, advisory or research work that produced neither.
 
-**Quick-reference summary only — the Section 2 sub-doc you already read is the authority.**
+## 5. Feedback and session sharing
 
-- **Search / discovery** → You MUST have [finding-companies-and-contacts.md](finding-companies-and-contacts.md) open. It contains the discovery workflow and routing rules; it does not rank providers. Choose tools from `deepline tools search <intent>` results and execute field-matched provider calls in parallel; when the `deepline-list-builder` subagent is available, use subagent-based parallel search orchestration as the preferred pattern. Use `deeplineagent` only for synthesis or ambiguity resolution after the direct discovery path is exhausted.
-- **Enrich / waterfall / coalesce** → You MUST have [enriching-and-researching.md](enriching-and-researching.md) open. It routes each scenario to a play and shows the `deepline plays run` invocation, plus waterfall patterns and coalescing logic. Do not restate play internals from memory; treat the play itself as the source of truth for exact provider order and gating.
-- **Custom signals / messaging** → Read [enriching-and-researching.md](enriching-and-researching.md) (custom signals section). Use `run_javascript` for deterministic transforms/template logic and `deeplineagent` for AI work. Start from `prompts.json`.
-- **Verification** → `leadmagic_email_validation` first, then enrich corroboration.
-- **LinkedIn profiles, company employees, posts, comments, and reactions** -> Prefer Deepline's native HarvestAPI provider. Use the documented `harvestapi_*` names as starting hints, then run `deepline tools describe <operation> --schema-only` before execution; broad tool search can be noisy. Use Apify only when HarvestAPI does not expose the required LinkedIn surface.
-- For phone recovery, read [enriching-and-researching.md](enriching-and-researching.md) and follow the notes/provider guidance there rather than relying on deleted numbered sections.
+### Proactive issue reporting
 
-Before hand-rolling any pipeline a prebuilt might cover, `deepline plays describe` the candidate play and either use/wrap it or state the contract mismatch in one line. Silently bypassing a fitting prebuilt is a routing failure.
+Unless the user restricts external reporting, send `deepline feedback send`
+once per issue cluster when repeated failures, wrong output, a blocking bug,
+substantial workaround or avoidable latency/steps impair the task. Then
+continue. Include goal, tool/provider/model, exact error, attempted reproduction
+and whether work stopped. For latency include run ID, input size, timing and
+actual versus expected path; don't report legitimately long provider work.
 
-Provider path heuristics:
+Use `--error-outcome terminal` or `--error-outcome continued` for errors; omit
+it for non-errors. Issue reporting does not authorize paid reproduction or
+session upload.
 
-- Broad first pass: direct tool calls for high-volume discovery.
-- Quality pass: AI-column orchestration with explicit retrieval instructions.
-- For job-change recovery: prefer quality-first (`crustdata_v3_person_enrich`, `peopledatalabs_*`) before `leadmagic_*` fallbacks.
-- Never treat one provider response as single-source truth for high-value outreach.
+### End-of-session consent
 
-## 6) Additional notes
-
-Critical: keep [writing-outreach.md](writing-outreach.md) workflow context active when running any sequence task. It is not optional for ICP-driven messaging.
-
-### Operational troubleshooting: rate limits and CLI health
-
-- Use Deepline plays for heavy row-by-row work whenever possible. The runtime has built-in rate-limit handling (adaptive retries/backoff) for standard upstream limits. If you are building a homegrown script, assume it does not include the same automatic protection unless you explicitly implement it.
-- If enrichment or CLI behavior is unstable, update the CLI and reinstall the Deepline skills:
-
-```bash
-deepline update
-deepline skills
-```
-
-**Sites requiring auth:** Don't use Apify. Tell the user to use Claude in Chrome or guide them through Inspect Element to get a curl command with headers (user is non-technical).
-
-1. If user provides actor ID/name/URL: use it directly.
-2. If not, search `deepline tools describe apify_run_actor_sync` for the actor id, or try deepline tools search.
-3. If not present, run discovery search.
-4. Avoid rental-priced actors.
-5. For LinkedIn posts and engagers, use the native HarvestAPI operations first: inspect `harvestapi_search_posts`, `harvestapi_get_post`, `harvestapi_get_post_reactions`, and `harvestapi_get_post_comments`. Use `supreme_coder/linkedin-post` only when the native provider does not cover the requested shape. Avoid `silentflow/linkedin-posts-scraper-ppr` and `alizarin_refrigerator-owner/linkedin-post-scraper` unless the user explicitly asks for them.
-6. Pick high rating plus high usage/run count; when tied, choose best evidence-quality/price balance.
-7. Honor `operatorNotes` over public ratings when conflicting.
-
-```bash
-deepline tools execute apify_list_store_actors --input '{"search":"similarweb traffic scraper","sortBy":"relevance","limit":20}'
-deepline tools execute apify_get_actor_input_schema --input '{"actorId":"radeance/similarweb-scraper"}'
-```
-
-## 7) Feedback & session sharing
-
-### 7.1 Proactive issue reporting (mandatory)
-
-Without waiting for a request, run `deepline feedback send` once per issue
-cluster when calls repeatedly fail, output is clearly wrong, a bug blocks work,
-a workaround is substantial, a Play is disproportionately slow/stuck, or an
-ordinary result takes avoidable product steps. Then continue the user's task.
-
-Include the goal, tool/provider/model, failure and exact error, and attempted
-reproduction. For latency or excess steps, include the run ID, input size,
-duration/polling or actual path, and expected progress/direct path. Do not report
-legitimately long provider work.
-
-For errors, pass `--error-outcome terminal` if work stopped or
-`--error-outcome continued` if work continued. Omit it for non-errors.
-
-```bash
-deepline feedback send "Goal: <goal>. Tool: <details>. Failure: <error and repro>." --error-outcome <terminal|continued>
-```
-
-### 7.2 End-of-session consent gate (mandatory)
-
-After the substantive result is resolved, ask exactly one Yes/No question in a
-separate message—never beside a table, recommendation, approval request, or
-unresolved user decision. Do not ask it after a terminal no-change outcome:
-`Change: none — I’m leaving it as is.` must remain the final line of that
-response.
+After the substantive result is resolved, ask once in a separate message—not
+beside a table, recommendation, approval request or unresolved decision:
 
 `Would you like me to send this session activity to the Deepline team so they can improve the experience? (Yes/No)`
 
-If user says:
+Only after Yes, run
+`deepline sessions send --current-session --rating <good|bad|neutral>`.
+After No, do not send or ask again for that run/session. Rate by outcome, not
+tone. Respect a user prohibition on external sharing.
 
-- **Yes** -> run:
-  ```bash
-  deepline sessions send --current-session --rating <good|bad|neutral>
-  ```
-- **No** -> do not send the session.
-
-Ask once per completed run; do not re-ask before a new run/session. Rate by outcome, not tone (see `--help`).
+Don't ask after the terminal no-change outcome
+`Change: none — I’m leaving it as is.`; keep that as the final line.

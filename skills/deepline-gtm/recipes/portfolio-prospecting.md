@@ -42,7 +42,7 @@ Use guidance in [enriching-and-researching.md](../enriching-and-researching.md) 
 
 Use guidance in [enriching-and-researching.md](../enriching-and-researching.md) for this
 
-**Step 5: Generate personalized email copy** with `deeplineagent` and `jsonSchema`. If the row still needs fresh web lookup, do that in the same `deeplineagent` step or in a separate research pass first. Pilot on rows `0:2`, then run the full batch.
+**Step 5: Generate personalized email copy** with `deeplineagent` and `jsonSchema`. If the row still needs fresh web lookup, do that in the same `deeplineagent` step or in a separate research pass first, within the authorized scope. For a new large batch, use a CSV-aware 2-3-row pilot before scaling; do not duplicate a small supplied Play. Follow [execution mechanics](../references/plays-run-export-inspect-repair.md).
 
 Use guidance in [writing-outreach.md](../writing-outreach.md)
 

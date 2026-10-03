@@ -199,6 +199,8 @@ Confirm the live input and Deepline pricing with `deepline tools describe <opera
 - Exa is a weak fallback (23% validated rate), but recovers some Serper misses.
 - Crustdata and Prospeo are paid fallbacks for a custom route.
 - **Name-validate every looked-up URL.** Company/title matching alone is not enough.
-- Pilot on `--rows 0` before the full batch. Row ranges are inclusive.
+- For larger unproven batches, use an authorized CSV-aware subset as Play input
+  before scaling; a small authorized supplied Play runs once. Follow
+  [execution mechanics](../references/plays-run-export-inspect-repair.md).
 - Extract the `/in/username` slug - strip query params and trailing slashes.
 - Without company context, add role keywords to serper query.

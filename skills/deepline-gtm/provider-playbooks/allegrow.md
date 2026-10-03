@@ -24,9 +24,22 @@ Allegrow specialises in B2B catch-all domain resolution and primary-email identi
 - **After ZeroBounce returns `catch_all`**: Run Allegrow on those rows to resolve dead vs safe. Allegrow's B2B specialisation makes it materially better than generic verifiers on corporate domains.
 - **Executive lists**: Use `subStatus == primary` to prefer the primary address when multiple candidates exist.
 - **Do not use** `allegrow_validate` as a bulk first-pass verifier. It costs per call and is slower than SMTP-based verifiers. Reserve it for catch-all resolution and high-value contacts.
-- **Polling**: The sync endpoint has a 30-second timeout. A 202 response includes `pollUrl` and `retryAfter`. If your run context supports polling, retry after `retryAfter` seconds. In `deepline enrich` this is handled automatically.
+- **Polling**: The sync endpoint has a 30-second timeout. A 202 response includes `pollUrl` and `retryAfter`; it is pending, not a final verdict. In a Play, preserve the existing validation identity and use the described `allegrow_validate_status` contract for later status reads, respecting `retryAfter` with `ctx.sleep`. Do not assume launching a Play automatically completes pending validations, or submit another paid validation to inspect one. Keep any polling bounded and report unresolved work if the deadline expires.
 - **Async validation**: Use `allegrow_validate_async` only when a configured webhook or later polling via `allegrow_validate_status` fits the workflow.
 - **Bulk CSV**: Use the CSV job endpoints when the user explicitly needs Allegrow's bulk CSV workflow. `allegrow_create_csv_validation_job` only creates the job and upload URL; the CSV upload itself is a direct PUT to the returned presigned URL.
+
+For multi-step validation, use a supplied Play or discover with
+`deepline plays search "email validation" --json` and inspect the selected
+contract with `deepline plays describe <play-ref> --json`. Confirm operation
+hints using `deepline tools describe <tool-id> --json`, then call them inside
+the Play via `ctx.tools.execute({ id, tool, input, description })`.
+For a custom CSV Play that reads `ctx.csv(input.csv)`, check it with
+`deepline plays check validate-email.play.ts --json` and run the authorized input
+with `deepline plays run --file validate-email.play.ts --csv contacts.csv --watch`.
+Pilot only for larger or uncertain authorized work; do not require an extra run
+or repeated approval for a small supplied Play. Inspect retained results with
+`deepline runs get <run-id> --json` and its result/export commands, without paid
+fallback or repair unless that additional work was requested.
 
 ## Known Limitations
 

@@ -1,14 +1,85 @@
 # Debugging
 
-A run failed, stalled, or produced wrong output. Run these three first, in order — they answer most "why did this stop working" questions before you read any play code:
+A run failed, stalled, or produced unexpected output. Start with the overview
+of the existing run, not a new execution:
 
 ```bash
-deepline runs get <id> --full --json   # terminal state, progress, outputs, execution statistics, last event
-deepline runs watch <id> --json        # polls progress, then prints the terminal package (--jsonl prints live events)
-deepline runs logs <id>                # ctx.log(...) output up to the failure (--failed for error lines, --json to parse)
+deepline runs get <id> --json
 ```
 
-`runs get` shows a failed run as `failed` with a final-event message; for a run that never completes it tells you whether it's mid-tool-call, retrying, or waiting. `watch --jsonl` reveals which.
+Read lifecycle, progress, output selectors, summaries, errors and actions. A
+completed run can contain row failures or ordinary data misses. Preview rows
+are samples, not complete output. Follow the selected output's export action
+before drawing population-wide conclusions. `result` preserves the return
+structure; dataset references link to `datasets[]` by `datasetId`. Dataset names
+are logical names, `storage` holds physical identifiers, and flat `actions`
+hold retrieval commands. Use the returned commands rather than guessing paths
+from a physical table name. `exportUnavailable` explains export restrictions.
+
+Export keeps all columns, including intermediate evidence. Inspect a CSV with
+`deepline csv show rows.csv --summary` for whole-file coverage, or
+`--columns` / `--exclude-columns` for a focused display without changing the
+file. For nested attempts or other structured evidence, use
+`deepline runs export <id> --dataset <returned-selector> --format json --out rows.json`.
+This preserves native nested values; CSV display's JSON format does not decode
+JSON text inside cells. Inspect recorded attempts before attributing a null to
+a provider failure. Missing evidence remains unknown, not permission to rerun.
+
+For referenced tool evidence, use [retained tool responses](#retained-tool-responses)
+before a new probe. For runtime questions, use only the next read that answers
+the question: `runs watch <id>` to resume
+observation, `runs logs <id> --failed --json` for a terminal failure window,
+`runs logs <id> --debug` for retained delivery/runtime detail, or
+`runs get <id> --full --json` for the **same overview plus diagnostics** and a
+retained result marked `available_in_full`. Dataset handles still need export.
+There is no mandatory debug/full/log sequence on every run. Logs can be sampled
+or truncated; missing evidence is not proof that nothing failed.
+
+Diagnosis alone does not authorize editing, stopping, rerunning, refreshing,
+or changing providers.
+The remedies below describe options when repairs are authorized; do not start
+a new pilot to explain already-paid output.
+
+## Retained tool responses
+
+Read the exported row's authored final fields and stage evidence first. In a
+resolution-based schema, ordinary fields are convenience copies; `_dl_meta`
+holds intermediate evidence. A nonempty value is not validation, a skipped
+alternative is not a miss, and a rejected candidate need not be a failed call.
+
+If a stage records a `receipt_key`, use `deepline runs receipt -h` and retrieve
+that retained response. This requires the originating run's workspace auth;
+the key must belong to work produced or reused by that run. It never executes
+a provider. The runtime's returned `_metadata.execution.receiptKey` is the key,
+not an authored call-site `id`/`call_key` or `job_id`.
+
+```bash
+deepline runs receipt <run-id> --key '<returned-receipt-key>'
+deepline runs receipt <run-id> --keys receipt-keys.txt --out responses.json
+```
+
+`--keys -` also accepts newline-separated keys from stdin. For example, if the
+actual row schema has `email_result._dl_meta.attempts[].stages[]`:
+
+```bash
+set -o pipefail
+jq -r '.[].email_result._dl_meta.attempts[].stages[]? | .receipt_key // empty' "$WORKDIR/rows.json" \
+  | deepline runs receipt "$RUN_ID" --keys - --out "$WORKDIR/responses.json"
+```
+
+Adapt the field path to the exported schema; a single finder may have stages
+directly, without attempts. Missing/skipped stages do not invent receipt keys.
+The response has `runId` and ordered `receipts`, each with `result` or `error`.
+Read `result.toolResponse`. `--out` creates a new private file; otherwise JSON
+goes to stdout. Missing keys exit 4 and incomplete/unavailable results exit 5;
+good peer results remain available. Empty input is an error. Preserve failures
+through pipes rather than treating a successful parser as a successful read.
+
+Stored responses retain redactions and list previews; they are not guaranteed
+full HTTP captures. Compare the recorded `rawV2`/`raw` view and field values,
+not wrapper equality alone. Keep originals unchanged. Missing evidence or an
+unavailable command is a limitation to report, not authority to rerun or
+replace a deliberately pinned CLI.
 
 ## Triage
 
@@ -19,48 +90,71 @@ One row per failure class. The row is usually the whole fix; the three deep-dive
 | Column empty / getter path wrong                                                                                             | Play guessed a provider path or copied a `tools execute` probe shape; runtime wrapper differs                                                                                                                                            | Inspect the persisted row, don't cast — see **Empty column** below                                                                                                                                                                                                                                                                                                                |
 | Fails at registration or mid-run with replay / determinism / non-deterministic error                                         | An effect bypasses `ctx.*` in the play body                                                                                                                                                                                              | Route it through `ctx.*` — see **Replay-safety** below                                                                                                                                                                                                                                                                                                                            |
 | `plays run <name>` output doesn't match local file; or `set-live` rejects "local differs from stored source"                 | Live registered version is older than the local file; runtime ran the registered one                                                                                                                                                     | See **Set-live vs file** below                                                                                                                                                                                                                                                                                                                                                    |
-| Confusing rerun output, or an old run keeps spending                                                                         | V2 allows concurrent runs; a stale run keeps its own sheets and keeps billing                                                                                                                                                            | `deepline runs list --play <name> --status running --json`, then `deepline runs stop <id> --reason "superseded" --json`. Row-level leases fence writes, so stale runs don't corrupt newer ones — they just waste spend.                                                                                                                                                           |
+| Confusing rerun output, or an old run keeps spending | Concurrent runs may still be active | Inspect `deepline runs list --play <name> --status running --json` and identify the exact runs. Stop only with cancellation authority. Do not launch another run to inspect the current one. |
 | **Input shape rejected** — schema/validation error, or empty set for a payload that worked before                            | Tool/play input contract changed; a field was renamed or an enum value moved (e.g. `c_level` → `C-Level`)                                                                                                                                | `deepline plays describe <name> --json` / `deepline tools describe <id> --json` (authoritative), diff against your payload                                                                                                                                                                                                                                                        |
-| **Provider returns nothing** — every row's column is `null`, run succeeded                                                   | (1) wrong filter shape (`"United States"` vs `"USA"`); (2) wrong provider for the data class (work-email tool for a personal-email ask); (3) Sales Navigator `/sales/lead/` URL fed to an email waterfall — every provider rejects those | Pilot one row (`head -2 rows.csv > pilot.csv`; rerun `--csv pilot.csv`). Nothing back for row 1 → filter wrong. Data back but column null → extraction wrong. See `jobs/finding.md` enum/ISO rules, `jobs/enriching.md` provider-class rules                                                                                                                                      |
+| **Provider returns nothing** — every row's column is `null`, run succeeded | Possible filter mismatch (`"United States"` vs `"USA"`), provider-class mismatch (work vs personal email), unsupported `/sales/lead/` URL, legitimate miss, or missing evidence | Inspect retained inputs, row/cell outcomes and declared contracts. A null alone does not prove a bad filter. Use [finding](../jobs/finding.md) for enum/ISO rules and [enriching](../jobs/enriching.md) for provider classes. Propose a bounded probe only if evidence is insufficient and new execution is authorized. |
 | `ctx.csv` / `ctx.dataset` error                                                                                              | `csv input not staged`: invocation and `ctx.csv(input.<field>)` disagree. `duplicate dataset key`: two `ctx.dataset` calls share a key. `cannot read .length of dataset`: code treats the `PlayDataset` as an array                      | staged: if `ctx.csv(input.csv)` invoke `--csv leads.csv`; if `ctx.csv(input.file)` invoke `--input '{"file":"leads.csv"}'` because **`--file` is reserved for the play file target**. dup key: distinct name per stage. length: pass the dataset to `ctx.dataset`; use `count()`/`peek()`, or `materialize(limit)` only for small bounded data. Contract in `shared/authoring.md` |
-| Stuck — `tail` stops emitting, `runs get` still active                                                                       | Waiting: slow provider call (Apify actors, big company searches), an intentional `ctx.sleep`, or a quiet rate-limit backoff                                                                                                              | Read the play source for the current step. Intentional waits and long provider calls: wait — the runtime handles retries/timeouts. Genuinely stuck (no progress 10+ min on a fast synchronous tool): `deepline runs stop <id> --reason "stuck on provider call" --json`, rerun                                                                                                    |
+| Stuck — `tail` stops emitting, `runs get` still active | Slow provider call (Apify, large searches), intentional sleep, backoff, or an execution fault | Inspect current-step source, timing, activity and retained logs. Resume observing the same run. Report unexplained lack of progress; elapsed time alone is not permission to stop and rerun. |
 | Looks right, still fails (same payload worked yesterday)                                                                     | Environment drift                                                                                                                                                                                                                        | `deepline auth status --json` (expired / wrong host), `deepline health` (runtime reachable), then re-check `tools describe` and the play's set-live version — a teammate may have shipped a breaking change                                                                                                                                                                       |
-| **Declared getter is undefined at runtime**, or a tool documenting one scalar returns a full list                            | `tools describe` is the _authoring_ contract and can disagree with runtime. Observed: a SERP action declaring an `extractedLists` getter that does not exist, and a maps action declaring only `phone` while returning a full `places[]` | Sentinel-probe one row before scaling. Read the persisted row (**Empty column** below), bind the observed path, and treat the mismatch as an adapter seam — not a source miss                                                                                                                                                                                                     |
-| **Export fails after a successful run** — "the backing dataset was not ready to export yet", possibly with a wrong row count | The backing table is still materializing. Observed lasting ~75s while the table was already correct and queryable via `db query`                                                                                                         | `run-and-export-search-experiment.py` retries this for you. Exporting by hand: retry the printed command, or read rows with `deepline db query` in the meantime. Never rerun the Play — the rows are already paid for                                                                                                                                                             |
-| **Export demands `--dataset`** or exports the wrong table                                                                    | The Play returns more than one dataset (results plus route scorecard), so an unqualified export is ambiguous                                                                                                                             | Pass `--dataset result.results`. `run-and-export-search-experiment.py` passes it by default and also exports the scorecard                                                                                                                                                                                                                                                        |
+| **Declared getter is undefined at runtime**, or a tool documenting one scalar returns a full list | Declared and observed contracts can disagree: e.g. absent SERP `extractedLists` getter or maps `places[]` beyond the declared `phone` | Inspect persisted evidence first (**Empty column** below); report the contract mismatch, not a source miss. If repair is authorized, bind only an evidenced path and validate before scaling. |
+| **Export fails after a successful run** — "the backing dataset was not ready to export yet", possibly with a wrong row count | Materialization delay has been observed (~75s); other errors may be selector/scope failures | Retry the same retrieval only when its error is retryable; the experiment helper handles this materialization case. A current `db query` is not a run snapshot. Report unresolved completeness instead of rerunning the Play. |
+| **Export demands `--dataset`** or exports the wrong table | Multiple returned datasets make selection ambiguous | Use the selector returned by the overview/export error. `result.results` is the experiment scaffold's result path, not a universal default. Its helper also exports the route scorecard. |
 | Route scorecard shows `deepline_credits` empty, `cost_basis=catalog_upper_bound`                                             | No attempt carried a cost receipt, so the column can only hold a catalog bound                                                                                                                                                           | Declare `tools: [...]` on each program and read the COST RECEIPT from `scripts/cost-receipt.py`, which joins the run's billing breakdown onto those ids                                                                                                                                                                                                                           |
 | A registered route reports zero results but you never saw it run                                                             | It was never reached: `maxFallbacks` bounds the dependency-closed waterfall                                                                                                                                                              | Check `reachability` in the scorecard. `never_reached` is not a source miss and not a coverage ceiling                                                                                                                                                                                                                                                                            |
 
 ## What a run cost
 
-`runs get --full` under-reports reuse: on a rerun that bought nothing it still
-printed `progress.reused: 0`, `executed: 3`, and every column `cached: 0`. Two
-places tell the truth and no others:
+Investigate cost when asked or needed for a spending decision. Follow the
+overview's billing action: CLI `runs get <id> --full --json` exposes billing at
+`.diagnostics.billing`. Raw SDK/API billing fields are unchanged. Reuse and
+execution counters are not charge receipts; they have historically disagreed.
+An empty provider-event list does not by itself prove zero total charges.
 
-- `runs get <id> --full --json` → `billing.providerEvents` and
-  `billing.breakdown.providers`. Zero events and an empty providers array means
-  nothing was bought.
-- `billing balance --json` before and after. This never lies.
+Report available parent charges and child rollups separately. Inline
+`ctx.runPlay` work belongs to the parent; independently launched child runs can
+have their own charges. The experiment cost-receipt helper joins billing to
+the route scorecard. Missing billing is unknown, not zero; account balance
+deltas may include other work. Expose Deepline charges, never provider spend.
 
-`runs get --full` reports the **parent** run's billing; a Play using
-`ctx.runPlay` bills children under child runs, rolled up in
-`billingChildCredits` / `billingTotalCreditsRollup`. `scripts/cost-receipt.py`
-reads the same breakdown and joins it to the route scorecard.
-
-Piped JSON from `bunx deepline@latest ... --json` carries a resolver preamble;
-strip everything before the first `{` or `[` before parsing.
+Use the installed CLI for clean JSON. Do not pipe live CLI output through
+`head` or `tail`: this can hide validity, warnings and failures. Use supported
+field selection, or save complete stdout and stderr separately, check the CLI's
+exit status, then analyze the saved response. Do not merge diagnostics into
+JSON with `2>&1`. Preserve failures through other pipelines with `pipefail`.
+Do not silently discard arbitrary prefixes until malformed output happens to
+parse.
 
 ## Empty column / getter path
 
-The authoritative output shape for a play is the object persisted by the run, not `tools execute` probe output and not `tools describe` (that's the input contract). `runs get --full --json` lists the persisted tables under `execution statistics` and prints ready `deepline db query` commands: `top-level outputs:` hits the run-receipt table for top-level `ctx.step` / `ctx.tools.execute` outputs; `inspect rows:` hits the map/runtime-sheet table for row-backed stages. Tool-result cells are JSON: raw provider data under `toolResponse.raw`, semantic getters under `extractedValues` / `extractedLists`. Query the row holding both the raw column and the derived column, then fix the play from what you see — use declared getters like `result.extractedValues.email.get()` / `result.extractedLists.people.get()` when the tool exposes them. Never add casts before inspecting the stage-table row or an explicit `ctx.log(...)` shape.
+Compare the run's persisted provider value with its derived column. Follow the
+overview's selector/export actions before resorting to storage diagnostics.
+Use a returned current-table query only with its mutable scope labeled; it is
+not a historical snapshot. Tool execution returns an envelope: declared
+semantic getters live under `extractedValues` / `extractedLists`, while raw
+provider nesting depends on the artifact's response contract (`rawV2` for new
+contracts, `raw` for legacy). A direct probe can have a different wrapper.
+Use declared getters such as `result.extractedValues.email.get()` or
+`result.extractedLists.people.get()` when supported. Do not cast an invented
+shape or launch a new probe instead of inspecting existing evidence. With
+repair authority, change extraction only from an evidenced contract; otherwise
+report the discrepancy and proposed fix.
 
 ## Replay-safety
 
-The play body re-executes during replay, so effects must be deterministic. Hunt the body for: `Date.now()`, `new Date()`, `Math.random()`, `crypto.randomUUID()` outside a `ctx.step`; `fs.readFile`/`fs.writeFile`; bare `fetch(url)` instead of `ctx.fetch('stable-key', url)` (first arg is the durable checkpoint key); `process.env.X` reads; any top-level side effect at module load. Route each through its `ctx.*` method, or wrap arbitrary work in `ctx.step('stable-id', () => op())`. Full safe-surface list in `shared/authoring.md`.
+The play body re-executes during replay, so effects must be deterministic. Hunt
+for `Date.now()`, `new Date()`, `Math.random()`, or `crypto.randomUUID()` outside
+a `ctx.step`; filesystem reads/writes; bare `fetch`; `process.env`; and module
+side effects. With repair authority, route external I/O through `ctx.*`, use
+`ctx.secrets` for credentials, and reserve `ctx.step` for local nondeterminism,
+not arbitrary filesystem/network work. See [authoring](../shared/authoring.md).
 
 ## Set-live vs file
 
-`plays run <file.play.ts>` runs the local file directly — use it while iterating. `plays run <name>` and `ctx.runPlay` calls run the registered version, so publish with `deepline plays set-live <file.play.ts> --json` when the file is stable and you want callers to pick up the change.
+`plays run <file.play.ts>` submits the local source; `plays run <name>` and
+`ctx.runPlay` resolve the registered version. Compare the launched revision
+and retained source before concluding that local edits were executed. Publish
+with `deepline plays set-live <file.play.ts> --json` only when changing what
+other callers run is authorized, not merely to investigate the mismatch.
 
 ## One-liners
 

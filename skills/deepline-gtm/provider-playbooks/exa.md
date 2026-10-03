@@ -5,7 +5,7 @@ Use Exa for web-grounded retrieval, then synthesis.
 - In AI-column workflows, instruct the model prompt to use Exa retrieval explicitly for website-derived tech stack and on-site signals.
 - Use direct Exa tool calls when you need tighter provider controls or auditable step-by-step retrieval outside AI-column orchestration.
 - For auditable outputs, run `exa_search`/`exa_contents` first and synthesize after inspecting citations.
-- Use focused queries and small `numResults` during pilots, then widen only if coverage is low.
+- For larger or uncertain authorized research, use focused queries and small `numResults` during a pilot, then widen only if coverage is low. A small supplied Play needs no extra pilot; inspect retained citations without rerunning retrieval or adding paid repair.
 - Treat `exa_answer` as the summarization layer, not the first retrieval step, when precision matters.
 
 ```bash

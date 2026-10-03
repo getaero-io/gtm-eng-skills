@@ -9,10 +9,7 @@ description: 'Use this skill when a human needs to review a Deepline Play result
 
 ```bash
 npm install -g deepline
-# Fallback for secure sandboxes: mkdir -p "$HOME/.local" && npm config set prefix "$HOME/.local" && export PATH="$HOME/.local/bin:$PATH" && npm install -g deepline --registry https://code.deepline.com/api/v2/npm/
 deepline auth register --wait auto
-deepline auth wait --timeout 120 # completes Cowork/browser approval; no-op if already connected
-deepline auth status
 deepline -h
 ```
 
@@ -109,14 +106,26 @@ pilot on one or two rows before scaling: a wrong payload or output shape can
 otherwise waste credits across every candidate. Preserve source and status
 columns because they explain why a row passed or failed.
 
-Inspect the completed run and choose the durable dataset path the user wants to
+Inspect the completed run and choose the durable dataset the user wants to
 review:
 
 ```bash
 deepline runs get "$RUN_ID" --full --json > "$WORKDIR/run.json"
-jq '.package.datasets[] | {path, datasetId, tableNamespace, rowCount}' \
-  "$WORKDIR/run.json"
+jq -e '
+  .datasets | if type != "array" then error("Expected datasets array") else .[] end |
+  if (.datasetId | type) != "string" or .datasetId == "" then error("Missing dataset identity")
+  else {datasetId, name, table: .storage.table, rowCount} end
+' "$WORKDIR/run.json"
 ```
+
+The CLI returns a `run_overview`: datasets are at `.datasets`, and full raw
+diagnostics (including billing) are at `.diagnostics`. Raw SDK/API responses
+still use `package.datasets` and `billing`; do not apply those paths to CLI JSON.
+Choose an advertised `datasetId` as `DATASET_ID`: the Google Workspace export
+tool accepts that identity directly, without translating a dataset name into a
+return path. If the dataset list or identity is missing or malformed, stop and
+retrieve valid run evidence instead of guessing `result.rows`. Preview rows are
+samples, not export evidence.
 
 Export the persisted dataset, never CLI preview rows. Use one operation key for
 one intended export; reuse it only to retry that exact request. Leave
@@ -126,7 +135,7 @@ run tab to an existing workbook:
 ```bash
 : "${SKILL_DIR:?Set SKILL_DIR to the installed deepline-plays-review directory}"
 : "${RUN_ID:?Set RUN_ID to a completed Play run}"
-DATASET_PATH="${DATASET_PATH:-result.rows}"
+: "${DATASET_ID:?Set DATASET_ID to the selected datasets[].datasetId}"
 TAB_LABEL="${TAB_LABEL:-Results}"
 SPREADSHEET_TITLE="${SPREADSHEET_TITLE:-Play review}"
 OPERATION_KEY="${OPERATION_KEY:-review-$(date -u +%Y%m%dT%H%M%SZ)}"
@@ -134,14 +143,14 @@ PRESENTATION="$(node "$SKILL_DIR/scripts/review-sheet-presentation.mjs")"
 
 EXPORT_INPUT="$(jq -n \
   --arg run_id "$RUN_ID" \
-  --arg dataset_path "$DATASET_PATH" \
+  --arg dataset_id "$DATASET_ID" \
   --arg spreadsheet_id "${SPREADSHEET_ID:-}" \
   --arg spreadsheet_title "$SPREADSHEET_TITLE" \
   --arg tab_name "$TAB_LABEL" \
   --arg operation_key "$OPERATION_KEY" \
   --argjson presentation "$PRESENTATION" \
   '{
-    dataset: {run_id: $run_id, path: $dataset_path},
+    dataset: {run_id: $run_id, dataset_id: $dataset_id},
     destination: (
       {tab_name: $tab_name, mode: "new_tab"} +
       if $spreadsheet_id == ""
