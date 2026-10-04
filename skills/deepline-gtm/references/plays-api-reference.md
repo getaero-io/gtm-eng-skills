@@ -335,6 +335,8 @@ while True:
 | `PATCH` | `/api/v2/plays/:name/share` | `updateSharePage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/share/route.ts` |
 | `POST` | `/api/v2/plays/:name/share` | `publishSharePage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/share/route.ts` |
 | `POST` | `/api/v2/plays/:name/share/regenerate` | `regenerateSharePage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/share/regenerate/route.ts` |
+| `GET` | `/api/v2/plays/:name/triggers` | `getPlayTriggerConfig` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/triggers/route.ts` |
+| `PUT` | `/api/v2/plays/:name/triggers` | `updatePlayTriggerConfig` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/triggers/route.ts` |
 | `POST` | `/api/v2/plays/activity` | `getPlaysActivity` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/activity/route.ts` |
 | `POST` | `/api/v2/plays/files/stage/mint` | `stagePlayFiles`<br />`mintStagedPlayFileUploads` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/files/stage/mint/route.ts` |
 | `GET` | `/api/v2/plays/settings/paths` | `listPlaySettingsPaths` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/settings/paths/route.ts` |
@@ -686,7 +688,7 @@ Use `client.runs` (`/api/v2/runs`) to watch, stop, read logs, and export durable
 | `tail` | `(runId: string, options?: RunsTailOptions) => Promise<PlayStatus>` | Yes |  |
 | `logs` | `(runId: string, options?: RunsLogsOptions) => Promise<RunsLogsResult>` | Yes | Fetch persisted log lines for a run. |
 | `searchEvents` | `( options?: RunsEventSearchOptions, ) => Promise<RunsEventSearchResult>` | Yes | Search recent durable runtime events across runs in the active organization. |
-| `exportDatasetRows` | `(input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; rowMode?: 'output' \| 'all'; signal?: AbortSignal; }) => Promise<PlaySheetRowsResult>` | Yes | Export persisted rows for a runtime-sheet dataset/table namespace. |
+| `exportDatasetRows` | `(input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; rowMode?: 'output' \| 'all' \| 'live'; signal?: AbortSignal; }) => Promise<PlaySheetRowsResult>` | Yes | Export persisted rows for a runtime-sheet dataset/table namespace. |
 | `stop` | `( runId: string, options?: { reason?: string }, ) => Promise<StopPlayRunResult>` | Yes | Stop a running/waiting run. |
 | `stopAll` | `{ ( options: StopAllRunsOptions & { dryRun: true }, ): Promise<StopAllPlayRunsDryRunResult>; ( options?: StopAllRunsOptions & { dryRun?: false }, ): Promise<StopAllPlayRunsStopResult>; (options?: StopAllRunsOptions): Promise<StopAllPlayRunsResult>; }` | Yes | Stop active runs across the current workspace, or with `dryRun: true`<br />enumerate the exact candidates without cancelling anything. |
 
