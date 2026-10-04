@@ -84,6 +84,15 @@ PostgreSQL JSONPath subset over documented fields, not arbitrary SQL. Add
 events are retained for seven days, while the authoritative receipt payload has
 its own retention. Use `deepline runs logs --help` for the current flags.
 
+**Write searchable customer logs:** use `ctx.log('Lookup finished', { context:
+{ companyId: 'acme_123', rows: 12 } })`, then filter with
+`--where '$.context.companyId == "acme_123"'`. The runtime attaches the
+authenticated org, Run, Play and known attempt; do not copy those into context.
+Customer KV cannot override that identity. Context allows eight flat scalar
+fields and 2 KiB per line, with a 128 KiB context budget per run. Sampling and
+run text limits also apply. Fetch large outputs through receipt events and
+`--payloads`, rather than logging their bodies.
+
 Typed provider activity events also expose safe `provider` and `operation` keys
 for equality filters. They identify the provider and tool operation recorded by
 the runtime; they do not index raw request/response bodies or promise one search
