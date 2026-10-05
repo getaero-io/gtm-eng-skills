@@ -216,6 +216,7 @@ while True:
 | `POST` | `/api/v2/plays/run` | `startPlayRun`<br />`startPlayRunFromBundle`<br />`runPlay` | Start a saved, prebuilt, or artifact-backed play run. | `apps/deepline-api/src/app/api/v2/plays/run/route.ts` |
 | `GET` | `/api/v2/runs` | `runs.list`<br />`listRuns` | List runs with filters such as play name and status. | `apps/deepline-api/src/app/api/v2/runs/route.ts` |
 | `GET` | `/api/v2/runs/:runId` | `runs.get`<br />`runs.watch`<br />`getRunStatus`<br />`getPlayStatus` | Read canonical status, result, outputs, and run package, including Runs identified by ctx.runPlayAsync. | `apps/deepline-api/src/app/api/v2/runs/[runId]/route.ts` |
+| `GET` | `/api/v2/runs/:runId/children` | `runs.children`<br />`runs children` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/children/route.ts`<br />`apps/deepline-api/src/lib/plays/run-route-handlers.ts` |
 | `GET` | `/api/v2/runs/:runId/input` | `runs.input`<br />`getRunInput` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/input/route.ts` |
 | `GET` | `/api/v2/runs/:runId/logs` | `runs.logs`<br />`getRunLogs` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/[runId]/logs/route.ts` |
 | `POST` | `/api/v2/runs/:runId/receipts/results` | `runs.getReceipts`<br />`getRunReceipts` | Read a batch of retained tool responses by receipt key, scoped to the authenticated workspace and run. Never executes tools. | `apps/deepline-api/src/app/api/v2/runs/[runId]/receipts/results/route.ts`<br />`apps/deepline-api/src/lib/plays/tool-receipt-results.ts`<br />`apps/deepline-api/src/lib/plays/work-receipt-read-model.ts` |
@@ -679,6 +680,7 @@ Use `client.runs` (`/api/v2/runs`) to watch, stop, read logs, and export durable
 |---|---|---:|---|
 | `getReceipts` | `( runId: string, options: { keys: string[] }, ) => Promise<import('./runs/receipts').RunToolReceiptsResponse>` | Yes | Read retained tool results associated with a run, in supplied key order. Never executes tools. |
 | `get` | `(runId: string, options?: RunsGetOptions) => Promise<PlayStatus>` | Yes | Get current run status by public run id. |
+| `children` | `( parentRunId: string, options: RunsChildrenOptions, ) => Promise<RunChildrenPage>` | Yes | Read one bounded page of direct children for an async launch. |
 | `status` | `(runId: string) => Promise<RunLifecycleStatus>` | Yes |  |
 | `input` | `(runId: string) => Promise<{ runId: string; input: Record<string, unknown> \| unknown[]; bytes: number; sha256: string \| null; replayedFromRunId: string \| null; }>` | Yes | Explicitly read the retained original input (may include customer data). |
 | `rerun` | `(runId: string, options?: RerunOptions) => Promise<RerunPlayRunResult>` | Yes | Start a fresh run from a prior run's retained input and pinned revision. |
