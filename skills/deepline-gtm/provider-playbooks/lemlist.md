@@ -37,7 +37,7 @@ deepline tools execute lemlist_delete_sequence_step --payload '{"sequence_id":"s
 ### Leads
 
 ```bash
-deepline tools execute lemlist_add_to_campaign --payload '{"campaign_id":"cam_abc","contacts":[{"email":"ada@example.com","first_name":"Ada","last_name":"Lovelace"}]}'
+deepline tools execute lemlist_add_to_campaign --payload '{"campaign_id":"cam_abc","contacts":[{"email":"ada@example.com","first_name":"Ada","last_name":"Lovelace","timezone":"America/Chicago"}]}'
 deepline tools execute lemlist_export_campaign_leads --payload '{"campaign_id":"cam_abc","state":"interested"}'
 deepline tools execute lemlist_pause_lead --payload '{"lead_id":"lea_abc"}'
 deepline tools execute lemlist_resume_lead --payload '{"lead_id":"lea_abc"}'
@@ -94,3 +94,6 @@ Deepline wraps all provider payloads in a standard result envelope: `{ data, met
 - **Inbox operations require user/mailbox IDs:** `send_email` needs `send_user_id`, `send_user_email`, and `send_user_mailbox_id`. List inbox first to discover these values.
 - **Sequence writes:** Prefer adding/updating sequence steps while campaigns are still draft/paused to avoid campaign-state edge cases.
 - **Lead deduplication:** Validation rejects duplicate emails and duplicate `linkedin_url` values within the same batch. Across batches, Lemlist can reject duplicates (for example 409 conflicts), which surface in `result.data.errors`.
+- **Lead timezone:** Set the native field with `contacts[].timezone` using an IANA name. `custom_fields.timezone` is a separate custom variable; if both use that key, the dedicated timezone takes precedence. Local-time sending also requires timezone-based scheduling on the campaign.
+- **Exact custom-field readback:** Lemlist HTML-escapes a bare `&` as `&amp;` in custom field values containing an HTML tag; plain-text values are stored exactly.
+- **Lead removal:** `lemlist_delete_lead` without `action: "remove"` unsubscribes the lead. Pass the action explicitly to remove it from the campaign.
