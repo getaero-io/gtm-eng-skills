@@ -51,8 +51,7 @@ deepline runs export <run-id> --dataset <returned-selector> --out rows.csv --jso
 These are alternatives for starting work, not instructions to run both forms.
 Match inputs to the Play contract: the CSV example supplies `input.csv`;
 `--input` accepts an inline JSON object or `@input.json`. Reserved `--file`
-selects Play source, not data. Run waits and shows progress by default;
-`--watch` and `--wait` are redundant compatibility aliases. Use `--no-wait`
+selects Play source, not data. Run waits and shows progress by default. Use `--no-wait`
 only to start and return immediately. `runs tail <run-id>` follows an existing
 run without starting work. See `deepline plays -h` and `deepline runs -h`,
 then the relevant subcommand's `-h`, for more commands and options.
@@ -163,7 +162,7 @@ commands to retrieve evidence, not evidence already fetched:
 ```bash
 # Only when failure evidence or an external-delivery question requires it:
 deepline runs logs <run-id> --failed --json
-deepline runs logs <run-id> --debug
+deepline runs logs <run-id> --log-level debug
 # Save the complete retained stream when a bounded log view is insufficient:
 deepline runs logs <run-id> --out run.log --json
 # Only when the overview/logs do not expose the needed diagnostic or cost:

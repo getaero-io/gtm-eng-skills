@@ -17,12 +17,12 @@ For execution authority, pilots, and retrieval, use
 
 Every migration targets a Deepline play. The shape differs by table:
 
-| Signal in Clay table                                                    | Target play shape                                                      |
-| ----------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Batch rows, no triggers, one-time or manual re-runs                     | CSV-input play: one `.withColumn(...)` per Clay action (this recipe)   |
+| Signal in Clay table                                                                                        | Target play shape                                                                                                                                                                                                                                                                                                      |
+| ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Batch rows, no triggers, one-time or manual re-runs                                                         | CSV-input play: one `.withColumn(...)` per Clay action (this recipe)                                                                                                                                                                                                                                                   |
 | **Function (subroutine) table**: a `f_subroutine_source` "Function inputs" field + a `write-to-cell` action | **Reusable play with a typed input contract:** input = the subroutine's declared parameter row (not a lead CSV), one `.withColumn(...)` per non-source field, output = the `write-to-cell` `data` map. Drop `write-to-cell`. See the Clay Functions section in [clay-extraction.md](../references/clay-extraction.md). |
-| Webhook trigger, row routing (`route-row`), CRM writes, campaign pushes | Custom play with triggers/orchestration → [deepline-plays.md](deepline-plays.md) |
-| Hybrid: batch enrichment + downstream push to CRM/campaign              | CSV-input play first, then a second play for the push                  |
+| Webhook trigger, row routing (`route-row`), CRM writes, campaign pushes                                     | Custom play with triggers/orchestration → [deepline-plays.md](deepline-plays.md)                                                                                                                                                                                                                                       |
+| Hybrid: batch enrichment + downstream push to CRM/campaign                                                  | CSV-input play first, then a second play for the push                                                                                                                                                                                                                                                                  |
 
 Most Clay tables are batch tables. This recipe covers that path end-to-end;
 for trigger/routing tables, **Extraction and Documentation still apply** — then
@@ -271,7 +271,7 @@ scaling. A small authorized supplied Play runs once, without a separate pilot:
 
 ```bash
 # Prepare pilot.csv with a CSV parser (quoted fields may contain newlines).
-deepline plays run --file <table>.play.ts --input '{"csv": "pilot.csv"}' --watch
+deepline plays run --file <table>.play.ts --input '{"csv": "pilot.csv"}'
 ```
 
 To skip rows a cheaper pass already answered, gate the expensive column with `runIf` so it only fires where the value is missing:
@@ -296,11 +296,11 @@ preparation and parity analysis of saved outputs.
 
 ### Common Failure Modes
 
-| Symptom                      | Cause                                          | Fix                                                    |
-| ----------------------------- | ------------------------------------------------ | --------------------------------------------------------- |
-| `{{col}}` empty in prompt    | Alias declared after the column that reads it  | Move the producing column earlier in the play          |
-| Interpolation renders blank  | Path does not exist on that row (`{{a.b.c}}`)  | Check a sample row's actual shape; fix the path        |
-| Unexpected re-charge         | Input value changed between runs               | Receipts key on tool + input; identical inputs reuse   |
+| Symptom                     | Cause                                         | Fix                                                  |
+| --------------------------- | --------------------------------------------- | ---------------------------------------------------- |
+| `{{col}}` empty in prompt   | Alias declared after the column that reads it | Move the producing column earlier in the play        |
+| Interpolation renders blank | Path does not exist on that row (`{{a.b.c}}`) | Check a sample row's actual shape; fix the path      |
+| Unexpected re-charge        | Input value changed between runs              | Receipts key on tool + input; identical inputs reuse |
 
 ---
 
@@ -511,8 +511,8 @@ scaling; do not repeat them solely to satisfy a full-run ritual:
 ```bash
 deepline plays check <table>.play.ts                                        # step 1: compile only, no spend
 # Prepare pilot.csv with a CSV parser; seed.csv below is the remaining scope.
-deepline plays run --file <table>.play.ts --input '{"csv": "pilot.csv"}' --watch   # step 2: 3 rows, real providers
-deepline plays run --file <table>.play.ts --input '{"csv": "seed.csv"}' --watch    # step 3: all rows
+deepline plays run --file <table>.play.ts --input '{"csv": "pilot.csv"}'   # step 2: 3 rows, real providers
+deepline plays run --file <table>.play.ts --input '{"csv": "seed.csv"}'    # step 3: all rows
 ```
 
 `plays check` compiles the play without spending credits. It still calls the Deepline compile API, so it needs auth and network — it is not an offline check.

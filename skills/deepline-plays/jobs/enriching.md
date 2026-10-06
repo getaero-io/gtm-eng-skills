@@ -41,17 +41,17 @@ deepline csv show <input.csv> --summary
 
 Route by the identifiers each row has:
 
-| You have                                                 | You need                    | Pattern category                                   | Discover with                                   |
-| -------------------------------------------------------- | --------------------------- | -------------------------------------------------- | ----------------------------------------------- |
-| `first_name`, `last_name`, `domain`                      | work email                  | name + domain → work email waterfall               | `deepline plays search email --json`            |
-| name + `company_name` (no domain), or `/sales/lead/` URL | work email                  | resolve domain first, then name + domain waterfall | discovery, then domain → email                  |
-| `/in/` LinkedIn URL + name                               | work email                  | linkedin profile → work email waterfall            | `deepline plays search email --json`            |
-| `email`                                                  | hydrated person + company   | reverse contact enrichment                         | `deepline plays search contact --json`          |
-| name + `domain` (+ optional email/linkedin)              | phone number                | identity → phone waterfall                         | `deepline plays search phone --json`            |
-| name + `company_name` (+ optional linkedin)              | job-change status           | job-change detection + verification                | `deepline plays search "job change" --json`     |
-| existing `email`                                         | validation status + verdict | email verifier                                     | `deepline tools search "email verifier"` |
-| name, optional company                                   | LinkedIn profile URL        | name → LinkedIn URL waterfall                      | `deepline plays search linkedin --json`         |
-| row + ICP description                                    | tier / fit classification   | structured AI column with `jsonSchema`             | (see AI research)                               |
+| You have                                                 | You need                    | Pattern category                                   | Discover with                               |
+| -------------------------------------------------------- | --------------------------- | -------------------------------------------------- | ------------------------------------------- |
+| `first_name`, `last_name`, `domain`                      | work email                  | name + domain → work email waterfall               | `deepline plays search email --json`        |
+| name + `company_name` (no domain), or `/sales/lead/` URL | work email                  | resolve domain first, then name + domain waterfall | discovery, then domain → email              |
+| `/in/` LinkedIn URL + name                               | work email                  | linkedin profile → work email waterfall            | `deepline plays search email --json`        |
+| `email`                                                  | hydrated person + company   | reverse contact enrichment                         | `deepline plays search contact --json`      |
+| name + `domain` (+ optional email/linkedin)              | phone number                | identity → phone waterfall                         | `deepline plays search phone --json`        |
+| name + `company_name` (+ optional linkedin)              | job-change status           | job-change detection + verification                | `deepline plays search "job change" --json` |
+| existing `email`                                         | validation status + verdict | email verifier                                     | `deepline tools search "email verifier"`    |
+| name, optional company                                   | LinkedIn profile URL        | name → LinkedIn URL waterfall                      | `deepline plays search linkedin --json`     |
+| row + ICP description                                    | tier / fit classification   | structured AI column with `jsonSchema`             | (see AI research)                           |
 
 ## When the primary route misses
 
@@ -80,8 +80,7 @@ When source headers do not match a play's canonical names, pass column aliases a
 
 ```bash
 deepline plays run <play-name> \
-  --input '{"csv":"leads.csv","columns":{"first_name":"First Name","last_name":"Last Name","domain":"Website"}}' \
-  --watch
+  --input '{"csv":"leads.csv","columns":{"first_name":"First Name","last_name":"Last Name","domain":"Website"}}'
 deepline runs export <run-id> --out leads_with_emails.csv
 ```
 

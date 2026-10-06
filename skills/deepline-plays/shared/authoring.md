@@ -25,7 +25,7 @@ Search before writing. Prebuilts encode provider order, validation rules, retry 
 ```bash
 deepline plays search email --json
 deepline plays describe <play-name-from-search> --json
-deepline plays run <play-name-from-search> --input '{"csv":"leads.csv"}' --watch
+deepline plays run <play-name-from-search> --input '{"csv":"leads.csv"}'
 ```
 
 If the input contract fits, invoke directly. If only CSV headers differ, pass column aliases rather than copying — `--csv leads.csv` means `input.csv`, `--columns.first_name "First Name"` means `input.columns.first_name`. Inspect the contract with `deepline plays describe <play> --json` before choosing `csv`, `file`, or another file input name.
@@ -50,9 +50,9 @@ deepline plays check ./my-play.play.ts
 - Run by file path while iterating; only `set-live` once stable.
 
 ```bash
-deepline plays run ./my-play.play.ts --csv leads.csv --watch
+deepline plays run ./my-play.play.ts --csv leads.csv
 deepline plays set-live ./my-play.play.ts
-deepline plays run my-play --csv leads.csv --watch
+deepline plays run my-play --csv leads.csv
 ```
 
 ## Iterate on one play file
@@ -62,10 +62,10 @@ Start the play early, while still discovering the workflow. A small scratchpad p
 ```bash
 deepline plays check ./my-play.play.ts
 head -2 leads.csv > pilot.csv
-deepline plays run ./my-play.play.ts --csv pilot.csv --watch
+deepline plays run ./my-play.play.ts --csv pilot.csv
 ```
 
-Move to 2 rows only when the second exercises a different branch you need to verify. Passing `--input '{"rows":"0:1"}'` does not filter a CSV unless the play code implements that option. Use `ctx.log(...)` for long stages — logs are visible through `--watch`, `runs watch`, and run history, so an agent can tell whether a play is searching, validating, retrying, or stuck.
+Move to 2 rows only when the second exercises a different branch you need to verify. Passing `--input '{"rows":"0:1"}'` does not filter a CSV unless the play code implements that option. Use `ctx.log(...)` for long stages — logs are visible during `plays run`, through `runs watch`, and in run history, so an agent can tell whether a play is searching, validating, retrying, or stuck.
 
 When a derived column is empty or a getter looks wrong, inspect retained
 results before a new provider probe. `tools describe` gives the contract, not

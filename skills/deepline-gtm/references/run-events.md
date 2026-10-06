@@ -10,7 +10,7 @@ These commands read existing evidence; they do not start a run or execute a prov
 
 Text logs: runs logs &lt;run-id&gt; returns the last 200 retained lines by default. --out writes the full retained stream to a local file. --log-level filters text severity; debug includes all retained levels. --failed reads only a terminal-failed run’s last 20 retained lines and reports retention limitations.
 
-Event search: omit the run ID, or add any of --since, --until, --play, --kind, --where, --payloads, --cursor, --runtime-namespace or --runtime-backend. A supplied run ID then narrows the search. --limit and --json alone do not switch a run’s text logs to event search. Text-only flags --out, --failed, --log-level, --logs and --debug cannot be combined with event search.
+Event search: omit the run ID, or add any of --since, --until, --play, --kind, --where, --payloads, --cursor, --runtime-namespace or --runtime-backend. A supplied run ID then narrows the search. --limit and --json alone do not switch a run’s text logs to event search. Text-only flags --out, --failed and --log-level cannot be combined with event search.
 
 Current status and returned output selectors: runs get &lt;run-id&gt; --json. Live observation: runs watch &lt;run-id&gt;. Dataset rows: runs export &lt;run-id&gt; --dataset &lt;returned-selector&gt; --out rows.csv. A referenced tool response: runs receipt &lt;run-id&gt; --key &lt;returned-receipt-key&gt; --json. Read each command’s --help for its options.
 
@@ -69,11 +69,23 @@ stepId/stepKind describe recorded step work; datasetId/phase describe dataset li
 
 context.&lt;key&gt; matches an authored flat scalar log field: string, number or boolean. Context cannot override event identity. Missing fields do not match. --where supports only $.field == literal predicates joined with &&, at most eight predicates and 512 bytes. No OR, ranges, wildcards, nested payload paths or text search. Time uses --since/--until; level and message are not --where fields.
 
+Wrap the entire predicate in single shell quotes so $ and && reach the CLI unchanged. Inside it, strings use double quotes; numbers and booleans are unquoted. Types must match: 2 differs from "2", false differs from "false". Examples use illustrative recorded values; use your own step IDs, dataset IDs, provider/operation names and authored context. The context examples assume ctx.log recorded companyId: "acme_123", attempt: 2 and cached: false.
+
 ```bash
+# Failed retained work with its stored error/result
 deepline runs logs --kind receipt.failed --where '$.status == "failed"' --payloads --json
+# Failure details for one named step
+deepline runs logs --kind step.failed --where '$.stepId == "company-lookup"' --payloads --json
+# Typed provider observations matching both fields
+deepline runs logs --kind activity.observed --where '$.provider == "apollo" && $.operation == "company_lookup"' --json
+# Failed lifecycle transitions for one dataset
+deepline runs logs --kind dataset.lifecycle --where '$.datasetId == "companies" && $.phase == "failed"' --payloads --json
+# Authored string context on log lines
+deepline runs logs --kind log.appended --where '$.context.companyId == "acme_123"' --json
+# Authored number and boolean context, both required to match
+deepline runs logs --kind log.appended --where '$.context.attempt == 2 && $.context.cached == false' --json
+# Known producer identity within one run
 deepline runs logs <run-id> --where '$.source == "worker" && $.producerAttempt == 1' --json
-deepline runs logs --kind activity.observed --where '$.provider == "<returned-provider>" && $.operation == "<returned-operation>"' --json
-deepline runs logs --kind log.appended --where '$.context.<authored-key> == "<recorded-value>"' --json
 ```
 
 ## What you get back

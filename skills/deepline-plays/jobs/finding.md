@@ -187,7 +187,7 @@ deepline tools search "company search funding headcount category hq"
 deepline tools describe <tool-id> --json
 deepline tools execute <tool-id> --payload '{"hq_country":"USA","funding_round":["Series A","Series B"],"employee_count":{"min":50,"max":500},"limit":1}' --json
 deepline plays check ./company-discovery.play.ts
-deepline plays run ./company-discovery.play.ts --input '{"target_count":25}' --watch
+deepline plays run ./company-discovery.play.ts --input '{"target_count":25}'
 ```
 
 Tools are the live provider catalog; plays are the workflow surface. One direct
@@ -265,7 +265,7 @@ deepline tools execute <tool-id> --payload '{"function":"Marketing","seniority":
 
 # People at a known company
 deepline plays search contact --json
-deepline plays run <play-name> --input '{"company_name":"Acme","domain":"acme.com","roles":"VP Marketing","seniority":"VP"}' --watch
+deepline plays run <play-name> --input '{"company_name":"Acme","domain":"acme.com","roles":"VP Marketing","seniority":"VP"}'
 ```
 
 For a company list → contacts, a small custom Play doing company-scoped people

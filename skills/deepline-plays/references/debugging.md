@@ -29,7 +29,7 @@ For referenced tool evidence, use [retained tool responses](#retained-tool-respo
 before a new probe. For runtime questions, use only the next read that answers
 the question: `runs watch <id>` to resume
 observation, `runs logs <id> --failed --json` for a terminal failure window,
-`runs logs <id> --debug` for retained delivery/runtime detail, or
+`runs logs <id> --log-level debug` for retained delivery/runtime detail, or
 `runs get <id> --full --json` for the **same overview plus diagnostics** and a
 retained result marked `available_in_full`. Dataset handles still need export.
 There is no mandatory debug/full/log sequence on every run. Logs can be sampled
