@@ -40,14 +40,15 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function raw(result: unknown): Record<string, unknown> {
-  const wrapped = asRecord(result);
-  return asRecord(
-    asRecord(wrapped.toolResponse).raw ??
-      asRecord(wrapped.tool_response).raw ??
-      wrapped.raw ??
-      result,
-  );
+function providerData(result: unknown): Record<string, unknown> {
+  const response = asRecord(asRecord(result).toolResponse);
+  if (!Object.prototype.hasOwnProperty.call(response, 'rawV2')) {
+    throw new Error(
+      'Tool response has no rawV2; upgrade the SDK and rebundle this Play.',
+    );
+  }
+  const canonical = asRecord(response.rawV2);
+  return response.view === 'data' ? asRecord(canonical.data) : canonical;
 }
 
 function stringValue(value: unknown): string | null {
@@ -101,7 +102,7 @@ function flattenValues(values: unknown[]): unknown[] {
 }
 
 function leadmagicEmails(result: unknown): string[] {
-  const data = raw(result);
+  const data = providerData(result);
   return emailsFromCandidates([
     data.personal_email,
     data.first_personal_email,
@@ -110,7 +111,7 @@ function leadmagicEmails(result: unknown): string[] {
 }
 
 function crustdataPersonalEmails(result: unknown): string[] {
-  const data = raw(result);
+  const data = providerData(result);
   const candidates = flattenValues(
     collectValuesByKey(data, /personal.*email|email.*personal/i),
   );
@@ -123,7 +124,7 @@ function crustdataPersonalEmails(result: unknown): string[] {
 }
 
 function contactoutPersonalEmails(result: unknown): string[] {
-  const data = raw(result);
+  const data = providerData(result);
   return emailsFromCandidates([
     data.personal_email,
     ...arrayValue(data.personal_email),
@@ -131,14 +132,14 @@ function contactoutPersonalEmails(result: unknown): string[] {
 }
 
 function datagmaPersonalEmails(result: unknown): string[] {
-  const data = raw(result);
+  const data = providerData(result);
   return emailsFromCandidates(
     flattenValues(collectValuesByKey(data, /personal.*email|email.*personal/i)),
   );
 }
 
 function enformionPersonalEmails(result: unknown): string[] {
-  const data = raw(result);
+  const data = providerData(result);
   const candidates: unknown[] = [];
   for (const person of arrayValue(data.persons)) {
     for (const email of arrayValue(objectValue(person).emailAddresses)) {
@@ -152,14 +153,14 @@ function enformionPersonalEmails(result: unknown): string[] {
 }
 
 function fullenrichPersonalEmails(result: unknown): string[] {
-  const data = raw(result);
+  const data = providerData(result);
   return emailsFromCandidates(
     flattenValues(collectValuesByKey(data, /personal.*email/i)),
   );
 }
 
 function lushaPersonalEmails(result: unknown): string[] {
-  const data = raw(result);
+  const data = providerData(result);
   const output: string[] = [];
   for (const item of [
     ...arrayValue(data.emails),
@@ -174,7 +175,7 @@ function lushaPersonalEmails(result: unknown): string[] {
 }
 
 function wizaPersonalEmails(result: unknown): string[] {
-  const data = raw(result);
+  const data = providerData(result);
   return emailsFromCandidates([
     data.personal_email,
     data.personal_email1,
@@ -288,7 +289,7 @@ function extractEmails(provider: ProviderName, result: unknown): string[] {
     return fullenrichPersonalEmails(result);
   }
   if (provider === 'limadata_find_personal_email') {
-    return emailsFromCandidates(arrayValue(raw(result).emails));
+    return emailsFromCandidates(arrayValue(providerData(result).emails));
   }
   if (provider === 'lusha_enrich_person') {
     return lushaPersonalEmails(result);

@@ -84,7 +84,10 @@ function chunkProfiles(profiles: string[]): string[][] {
     if (last.length < CONTACTOUT_MIN_BATCH) {
       const previous = chunks[chunks.length - 2];
       const needed = CONTACTOUT_MIN_BATCH - last.length;
-      chunks[chunks.length - 1] = [...previous.splice(previous.length - needed, needed), ...last];
+      chunks[chunks.length - 1] = [
+        ...previous.splice(previous.length - needed, needed),
+        ...last,
+      ];
     }
   }
   return chunks;
@@ -98,24 +101,23 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 /**
  * ctx.tools.execute returns a wrapper, not the provider body. The provider
- * response sits under toolResponse.raw. Reading the wrapper root returns
+ * response sits under toolResponse.rawV2. Inspect its declared view before selecting data. Reading the wrapper root returns
  * nothing, which would report zero hashes after a call that already spent
  * credits.
  */
-function raw(result: unknown): Record<string, unknown> {
-  const wrapped = asRecord(result);
-  return asRecord(
-    asRecord(wrapped.toolResponse).raw ??
-      asRecord(wrapped.tool_response).raw ??
-      asRecord(wrapped.toolOutput).raw ??
-      wrapped.raw ??
-      wrapped.data ??
-      result,
-  );
+function providerData(result: unknown): Record<string, unknown> {
+  const toolResponse = asRecord(asRecord(result).toolResponse);
+  if (!Object.prototype.hasOwnProperty.call(toolResponse, 'rawV2')) {
+    throw new Error(
+      'Tool response has no rawV2; upgrade the SDK and rebundle this Play.',
+    );
+  }
+  const response = asRecord(toolResponse.rawV2);
+  return toolResponse.view === 'data' ? asRecord(response.data) : response;
 }
 
 function readHashes(result: unknown): string[] {
-  const emails = asRecord(raw(result).matches).emails;
+  const emails = asRecord(providerData(result).matches).emails;
   if (!Array.isArray(emails)) return [];
   return emails
     .map((value) => normalizeSha256(value))
@@ -123,7 +125,7 @@ function readHashes(result: unknown): string[] {
 }
 
 function readMatchesFound(result: unknown): number {
-  const count = raw(result).matches_found;
+  const count = providerData(result).matches_found;
   return typeof count === 'number' && Number.isInteger(count) && count > 0
     ? count
     : 0;

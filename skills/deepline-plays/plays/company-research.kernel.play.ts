@@ -6,7 +6,12 @@ type InputRow = {
   domain_hint: string;
 };
 
-type SearchItem = { title?: string; link?: string; snippet?: string; date?: string };
+type SearchItem = {
+  title?: string;
+  link?: string;
+  snippet?: string;
+  date?: string;
+};
 type Extracted = {
   company_name?: string;
   what_they_sell?: string;
@@ -14,17 +19,43 @@ type Extracted = {
   primary_buyer?: string;
   primary_buyer_excerpt?: string;
 };
+type SupplementalResult = {
+  status: string;
+  query: string;
+  url: string;
+  extracted: Extracted;
+  title?: string;
+  error?: string;
+};
 
 const claims = ['canonical_domain', 'what_they_sell', 'primary_buyer'] as const;
 
-function rawPayload(result: any): any {
-  const raw = result?.toolResponse?.raw ?? {};
-  return raw?.data ?? raw;
+type ProviderPayload = {
+  data?: ProviderPayload;
+  json?: unknown;
+  organic?: SearchItem[];
+};
+type ProviderResult = {
+  toolResponse: { rawV2?: unknown; view?: 'data' | 'rawV2' };
+};
+
+function providerData(result: ProviderResult): ProviderPayload {
+  const response = result?.toolResponse;
+  if (!response || !Object.prototype.hasOwnProperty.call(response, 'rawV2')) {
+    throw new Error(
+      'Tool response has no rawV2; upgrade the SDK and rebundle this Play.',
+    );
+  }
+  const canonical = response.rawV2 as ProviderPayload | undefined;
+  const body = response.view === 'data' ? canonical?.data : canonical;
+  return body?.data ?? body ?? {};
 }
 
 function host(value: string): string {
   try {
-    return new URL(value.startsWith('http') ? value : `https://${value}`).hostname
+    return new URL(
+      value.startsWith('http') ? value : `https://${value}`,
+    ).hostname
       .toLowerCase()
       .replace(/^www\./, '');
   } catch {
@@ -32,22 +63,29 @@ function host(value: string): string {
   }
 }
 
-function officialCandidate(items: SearchItem[], row: InputRow): SearchItem | undefined {
+function officialCandidate(
+  items: SearchItem[],
+  row: InputRow,
+): SearchItem | undefined {
   const hint = host(row.domain_hint);
-  const tokens = row.company_name
-    .toLowerCase()
-    .replace(/\b(inc|llc|corp|corporation)\b/g, '')
-    .match(/[a-z0-9]+/g) ?? [];
-  return items.find((item) => host(item.link ?? '') === hint) ?? items.find((item) => {
-    const hay = `${item.title ?? ''} ${item.snippet ?? ''}`.toLowerCase();
-    return Boolean(item.link) && tokens.every((token) => hay.includes(token));
-  });
+  const tokens =
+    row.company_name
+      .toLowerCase()
+      .replace(/\b(inc|llc|corp|corporation)\b/g, '')
+      .match(/[a-z0-9]+/g) ?? [];
+  return (
+    items.find((item) => host(item.link ?? '') === hint) ??
+    items.find((item) => {
+      const hay = `${item.title ?? ''} ${item.snippet ?? ''}`.toLowerCase();
+      return Boolean(item.link) && tokens.every((token) => hay.includes(token));
+    })
+  );
 }
 
-function extractedJson(result: any): Extracted {
-  const payload = rawPayload(result);
+function extractedJson(result: ProviderResult): Extracted {
+  const payload = providerData(result);
   const value = payload?.json ?? payload?.data?.json ?? {};
-  if (typeof value !== 'string') return value;
+  if (typeof value !== 'string') return value as Extracted;
   try {
     return JSON.parse(value);
   } catch {
@@ -70,13 +108,13 @@ function evidenceId(
   return `ev_${(hash >>> 0).toString(16).padStart(8, '0')}`;
 }
 
-function scrapeInput(url: string): any {
+function scrapeInput(url: string) {
   return {
     url,
     onlyMainContent: true,
     formats: [
       {
-        type: 'json',
+        type: 'json' as const,
         prompt:
           'Using only this page, identify the company and extract concise, evidence-close statements for what it sells and its primary buyer. Copy one short exact page excerpt supporting each statement. Return an empty string when the page does not explicitly support a field.',
         schema: {
@@ -126,7 +164,7 @@ export default definePlay(
             input: { query, gl: 'us', hl: 'en', num: 5 },
             description: 'Find current official company web evidence.',
           });
-          const payload = rawPayload(result);
+          const payload = providerData(result);
           searchItems = Array.isArray(payload?.organic) ? payload.organic : [];
           if (!searchItems.length) searchStatus = 'no_result';
         } catch (error) {
@@ -134,7 +172,8 @@ export default definePlay(
           searchError = String(error);
         }
         const candidate = officialCandidate(searchItems, row);
-        const candidateUrl = candidate?.link ?? `https://${host(row.domain_hint)}/`;
+        const candidateUrl =
+          candidate?.link ?? `https://${host(row.domain_hint)}/`;
         let scrapeStatus = 'success';
         let scrapeError = '';
         let extracted: Extracted = {};
@@ -143,10 +182,12 @@ export default definePlay(
             id: 'broad_official_page',
             tool: 'firecrawl_scrape',
             input: scrapeInput(candidateUrl),
-            description: 'Read the candidate official page for product and buyer evidence.',
+            description:
+              'Read the candidate official page for product and buyer evidence.',
           });
           extracted = extractedJson(result);
-          if (!Object.values(extracted).some(Boolean)) scrapeStatus = 'no_result';
+          if (!Object.values(extracted).some(Boolean))
+            scrapeStatus = 'no_result';
         } catch (error) {
           scrapeStatus = 'provider_error';
           scrapeError = String(error);
@@ -164,18 +205,23 @@ export default definePlay(
           extracted,
         };
       })
-      .run({ key: 'account_id', description: 'Broad search plus official-page retrieval.' });
+      .run({
+        key: 'account_id',
+        description: 'Broad search plus official-page retrieval.',
+      });
 
     const broadRows = await broad.materialize(100);
-    const withBroad = broadRows.map((row: any) => {
+    const withBroad = broadRows.map((row) => {
       const result = row.broad_result;
       const supported = {
         canonical_domain: Boolean(result.candidate && result.canonicalDomain),
         what_they_sell: Boolean(
-          result.extracted?.what_they_sell && result.extracted?.what_they_sell_excerpt,
+          result.extracted?.what_they_sell &&
+          result.extracted?.what_they_sell_excerpt,
         ),
         primary_buyer: Boolean(
-          result.extracted?.primary_buyer && result.extracted?.primary_buyer_excerpt,
+          result.extracted?.primary_buyer &&
+          result.extracted?.primary_buyer_excerpt,
         ),
       };
       return {
@@ -187,60 +233,85 @@ export default definePlay(
 
     const finalRowsDs = await ctx
       .dataset('research_final', withBroad)
-      .withColumn('supplemental_result', async (row: any, rowCtx) => {
-        if (!row.broad_gaps.length) return { status: 'skipped', query: '', url: '', extracted: {} };
-        const query = `site:${row.broad_result.canonicalDomain || host(row.domain_hint)} \"${row.company_name}\" solutions industries customers`;
-        try {
-          const search = await rowCtx.tools.execute({
-            id: 'supplemental_recovered_search',
-            tool: 'serper_google_search',
-            input: { query, gl: 'us', hl: 'en', num: 5 },
-            description:
-              'Find a different official product, solution, or customer page for unresolved claims.',
-          });
-          const items: SearchItem[] = rawPayload(search)?.organic ?? [];
-          const targetHost = row.broad_result.canonicalDomain || host(row.domain_hint);
-          const page =
-            items.find(
-              (item) =>
-                host(item.link ?? '') === targetHost &&
-                host(item.link ?? '') !== '' &&
-                item.link !== row.broad_result.candidateUrl,
-            ) ?? items.find((item) => host(item.link ?? '') === targetHost);
-          if (!page?.link) return { status: 'no_result', query, url: '', extracted: {} };
-          const scrape = await rowCtx.tools.execute({
-            id: 'supplemental_official_page',
-            tool: 'firecrawl_scrape',
-            input: scrapeInput(page.link),
-            description: 'Read a distinct official page only for unresolved claims.',
-          });
-          const extracted = extractedJson(scrape);
-          return {
-            status: Object.values(extracted).some(Boolean) ? 'success' : 'no_result',
-            query,
-            url: page.link,
-            title: page.title ?? '',
-            extracted,
-          };
-        } catch (error) {
-          return { status: 'provider_error', query, url: '', extracted: {}, error: String(error) };
-        }
-      })
+      .withColumn(
+        'supplemental_result',
+        async (row, rowCtx): Promise<SupplementalResult> => {
+          if (!row.broad_gaps.length)
+            return { status: 'skipped', query: '', url: '', extracted: {} };
+          const query = `site:${row.broad_result.canonicalDomain || host(row.domain_hint)} \"${row.company_name}\" solutions industries customers`;
+          try {
+            const search = await rowCtx.tools.execute({
+              id: 'supplemental_recovered_search',
+              tool: 'serper_google_search',
+              input: { query, gl: 'us', hl: 'en', num: 5 },
+              description:
+                'Find a different official product, solution, or customer page for unresolved claims.',
+            });
+            const items: SearchItem[] = providerData(search)?.organic ?? [];
+            const targetHost =
+              row.broad_result.canonicalDomain || host(row.domain_hint);
+            const page =
+              items.find(
+                (item) =>
+                  host(item.link ?? '') === targetHost &&
+                  host(item.link ?? '') !== '' &&
+                  item.link !== row.broad_result.candidateUrl,
+              ) ?? items.find((item) => host(item.link ?? '') === targetHost);
+            if (!page?.link)
+              return { status: 'no_result', query, url: '', extracted: {} };
+            const scrape = await rowCtx.tools.execute({
+              id: 'supplemental_official_page',
+              tool: 'firecrawl_scrape',
+              input: scrapeInput(page.link),
+              description:
+                'Read a distinct official page only for unresolved claims.',
+            });
+            const extracted = extractedJson(scrape);
+            return {
+              status: Object.values(extracted).some(Boolean)
+                ? 'success'
+                : 'no_result',
+              query,
+              url: page.link,
+              title: page.title ?? '',
+              extracted,
+            };
+          } catch (error) {
+            return {
+              status: 'provider_error',
+              query,
+              url: '',
+              extracted: {},
+              error: String(error),
+            };
+          }
+        },
+      )
       .run({
         key: 'account_id',
-        description: 'One bounded, materially different pass for unresolved claims only.',
+        description:
+          'One bounded, materially different pass for unresolved claims only.',
       });
     const finalRows = await finalRowsDs.materialize(100);
 
-    const evidenceRows: any[] = [];
-    const claimRows: any[] = [];
-    const coverageRows: any[] = [];
-    const gapRows: any[] = [];
-    for (const row of finalRows as any[]) {
+    const evidenceRows: (Record<string, unknown> & {
+      account_id: string;
+      evidence_id: string;
+      phase: string;
+      mechanism_id: string;
+      url: string;
+      claim_key?: string;
+    })[] = [];
+    const claimRows: Record<string, unknown>[] = [];
+    const coverageRows: Record<string, unknown>[] = [];
+    const gapRows: Record<string, unknown>[] = [];
+    for (const row of finalRows) {
       const broadResult = row.broad_result;
       const supplemental = row.supplemental_result;
       const searchExcerpt = `${broadResult.candidate?.title ?? ''}${
-        broadResult.candidate?.snippet ? ` — ${broadResult.candidate.snippet}` : ''
+        broadResult.candidate?.snippet
+          ? ` — ${broadResult.candidate.snippet}`
+          : ''
       }`.trim();
       if (broadResult.candidate?.link && searchExcerpt) {
         evidenceRows.push({
@@ -278,7 +349,13 @@ export default definePlay(
         ] as const) {
           if (excerpt) {
             evidenceRows.push({
-              evidence_id: evidenceId(row.account_id, phase, 'firecrawl_scrape', url, excerpt),
+              evidence_id: evidenceId(
+                row.account_id,
+                phase,
+                'firecrawl_scrape',
+                url,
+                excerpt,
+              ),
               account_id: row.account_id,
               phase,
               mechanism_id: 'firecrawl_scrape',
@@ -313,11 +390,13 @@ export default definePlay(
           supplemental.status,
         );
       }
-      const uniqueEvidence = () => evidenceRows.filter((item) => item.account_id === row.account_id);
+      const uniqueEvidence = () =>
+        evidenceRows.filter((item) => item.account_id === row.account_id);
       for (const key of claims) {
         const broadSupported = row.broad_supported[key];
         let value = '';
-        if (key === 'canonical_domain') value = broadSupported ? broadResult.canonicalDomain : '';
+        if (key === 'canonical_domain')
+          value = broadSupported ? broadResult.canonicalDomain : '';
         else {
           value = broadSupported
             ? (broadResult.extracted?.[key] ?? '')
@@ -338,7 +417,8 @@ export default definePlay(
             .filter((item) =>
               broadSupported
                 ? item.phase === 'broad' &&
-                  (item.claim_key === key || item.mechanism_id === 'serper_google_search')
+                  (item.claim_key === key ||
+                    item.mechanism_id === 'serper_google_search')
                 : item.phase === 'supplemental' && item.claim_key === key,
             )
             .map((item) => item.evidence_id);
@@ -349,7 +429,8 @@ export default definePlay(
           claim_key: key,
           broad_status: broadSupported
             ? 'supported'
-            : broadResult.searchStatus === 'provider_error' || broadResult.scrapeStatus === 'provider_error'
+            : broadResult.searchStatus === 'provider_error' ||
+                broadResult.scrapeStatus === 'provider_error'
               ? 'provider_error'
               : 'gap',
           final_status: supported ? 'supported' : 'insufficient_evidence',
@@ -395,7 +476,9 @@ export default definePlay(
         mechanism_id: 'firecrawl_scrape',
         mechanism_class: 'page_fetch',
         provider_status: broadResult.scrapeStatus,
-        result_count: Object.values(broadResult.extracted ?? {}).some(Boolean) ? 1 : 0,
+        result_count: Object.values(broadResult.extracted ?? {}).some(Boolean)
+          ? 1
+          : 0,
         useful_evidence_count: [
           broadResult.extracted?.what_they_sell_excerpt,
           broadResult.extracted?.primary_buyer_excerpt,
@@ -429,12 +512,16 @@ export default definePlay(
       }
     }
     for (const row of evidenceRows) delete row.claim_key;
-    const researchClaims = await ctx
-      .dataset('research_claims', claimRows)
-      .run({ key: (row) => `${row.account_id}|${row.claim_key}`, description: 'One row per input and required claim.' });
+    const researchClaims = await ctx.dataset('research_claims', claimRows).run({
+      key: (row) => `${row.account_id}|${row.claim_key}`,
+      description: 'One row per input and required claim.',
+    });
     const researchEvidence = await ctx
       .dataset('research_evidence', evidenceRows)
-      .run({ key: 'evidence_id', description: 'Public evidence supporting claims.' });
+      .run({
+        key: 'evidence_id',
+        description: 'Public evidence supporting claims.',
+      });
     const sourceCoverage = await ctx
       .dataset('source_coverage', coverageRows)
       .run({
@@ -443,7 +530,10 @@ export default definePlay(
       });
     const supplementalGaps = await ctx
       .dataset('supplemental_gaps', gapRows)
-      .run({ key: 'gap_id', description: 'Bounded follow-up audit for every broad gap.' });
+      .run({
+        key: 'gap_id',
+        description: 'Bounded follow-up audit for every broad gap.',
+      });
     return {
       inputRows,
       broad,
@@ -455,7 +545,8 @@ export default definePlay(
     };
   },
   {
-    description: 'Evidence-backed company domain, offering, and primary-buyer research.',
+    description:
+      'Evidence-backed company domain, offering, and primary-buyer research.',
     billing: { maxCreditsPerRun: 2.9 },
   },
 );

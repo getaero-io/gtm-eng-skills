@@ -105,109 +105,18 @@ consumed buttons with a processing indicator. The Play can then replace the
 whole layout with `slack_api_call` / `chat.update` and re-arm the next decision.
 Legacy workflow callbacks retain their historical resolved-card rendering.
 
-## Managed phone-waterfall pattern (compatibility)
+## Managed phone-waterfall pattern
 
-The phone-recovery Play uses the same contract as any other multi-step review:
-post one managed HITL card, run the work after the click, then call
-`slack_message_with_hitl` again with the prior `message_ref`. The second call
-updates that same Slack timestamp and installs the next one-use callback. There
-is no second message and no connector-specific retry loop.
+Use `slack_wait_for_action` for a Play-owned review round, then update the
+same message using its returned `message_ref`. Keep a finite retry limit and
+an explicit terminal state for retry, stop, and timeout decisions.
 
-```ts
-const signalSeed = await ctx.step('phone-recovery-signal-seed', () =>
-  crypto.randomUUID(),
-);
-
-const first = await ctx.tools.execute({
-  id: 'phone-review',
-  tool: 'slack_message_with_hitl',
-  input: {
-    channel,
-    text: 'Phone recovery review. Choose an action in Slack.',
-    blocks: renderReviewCard(contact),
-    buttons: [
-      {
-        id: 'try_new_phone_number',
-        label: 'Try a new phone number',
-        style: 'primary',
-      },
-      { id: 'keep_current_phone', label: 'Keep current number' },
-    ],
-    timeout: '24h',
-    on_timeout_mode: 'continue',
-    post_interaction: {
-      disable_buttons: true,
-      replace_blocks: renderLoadingCard(contact),
-    },
-  },
-  description: 'Ask whether to retry phone recovery.',
-});
-
-const decision = first.toolResponse.raw as {
-  selected_option?: string;
-  timed_out?: boolean;
-  message_ref?: { channel?: string; ts?: string };
-};
-
-if (decision.timed_out) {
-  await ctx.tools.execute({
-    id: 'phone-review-expired',
-    tool: 'slack_update_message',
-    input: {
-      channel: decision.message_ref?.channel,
-      ts: decision.message_ref?.ts,
-      text: 'Phone recovery review expired.',
-      blocks: renderExpiredCard(contact),
-    },
-    description: 'Finalize the expired phone review.',
-  });
-  return;
-}
-
-const result = await ctx.runPlay(
-  'phone-waterfall-attempt-1',
-  'prebuilt/person-to-phone',
-  input,
-);
-const ref = decision.message_ref;
-if (!ref?.channel || !ref.ts)
-  throw new Error('HITL response did not include message_ref');
-
-await ctx.tools.execute({
-  id: 'phone-review-follow-up',
-  tool: 'slack_message_with_hitl',
-  input: {
-    channel: ref.channel,
-    message_ref: ref,
-    signal: `phone-recovery:${signalSeed}:1`,
-    text: 'Phone recovery finished. Choose what to do next.',
-    blocks: renderResultCard(contact, result),
-    buttons: [
-      {
-        id: 'try_new_phone_number',
-        label: 'Try a new phone number',
-        style: 'primary',
-      },
-      { id: 'keep_current_phone', label: 'Done — keep current number' },
-    ],
-    timeout: '24h',
-    on_timeout_mode: 'continue',
-    post_interaction: {
-      disable_buttons: true,
-      replace_blocks: renderLoadingCard(contact),
-    },
-  },
-  description: 'Keep phone recovery on the existing Slack card.',
-});
-```
-
-For a loop, keep the tool IDs stable and increment only the `signal` (for
-example, `phone-recovery:<run-id>:2`). If the child waterfall fails, catch the
-error, update the existing `message_ref` with an error/result card, and offer a
-new HITL wait from that same reference. This keeps a provider failure from
-leaving a loading card with no usable action. Use a real test identity for the
-waterfall; placeholder addresses such as `demo@example.com` can be rejected by
-the provider before the Slack interaction is meaningful.
+The native wait/resume boundary does not yet consistently attach
+`toolResponse.rawV2`. Do not assume the ordinary provider-response envelope
+for its action result or copy a provider extraction example into this path.
+Inspect an existing internal fixture and its declared contract before revising
+a deployed review Play. Canonical extraction examples can be added once this
+boundary supplies `rawV2` on live and resumed execution.
 
 ## Blocks for `slack_message_with_hitl` (Block Kit)
 

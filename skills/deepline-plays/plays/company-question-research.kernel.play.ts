@@ -6,11 +6,21 @@ type InputRow = {
   official_domain: string;
   question: string;
   query: string;
-  claim_mode: 'dated_event' | 'customer_list' | 'official_quote' | 'classification' | 'other';
+  claim_mode:
+    | 'dated_event'
+    | 'customer_list'
+    | 'official_quote'
+    | 'classification'
+    | 'other';
   required_pages: string;
 };
 
-type SearchItem = { title?: string; link?: string; snippet?: string; date?: string };
+type SearchItem = {
+  title?: string;
+  link?: string;
+  snippet?: string;
+  date?: string;
+};
 type PageFinding = {
   status?: 'answer' | 'abstain';
   answer?: string;
@@ -19,9 +29,25 @@ type PageFinding = {
   abstain_reason?: string;
 };
 
-function raw(result: any): any {
-  const value = result?.toolResponse?.raw ?? {};
-  return value?.data ?? value;
+type ProviderPayload = {
+  data?: ProviderPayload;
+  json?: unknown;
+  organic?: SearchItem[];
+};
+type ProviderResult = {
+  toolResponse: { rawV2?: unknown; view?: 'data' | 'rawV2' };
+};
+
+function providerData(result: ProviderResult): ProviderPayload {
+  const response = result?.toolResponse;
+  if (!response || !Object.prototype.hasOwnProperty.call(response, 'rawV2')) {
+    throw new Error(
+      'Tool response has no rawV2; upgrade the SDK and rebundle this Play.',
+    );
+  }
+  const canonical = response.rawV2 as ProviderPayload | undefined;
+  const body = response.view === 'data' ? canonical?.data : canonical;
+  return body?.data ?? body ?? {};
 }
 
 function host(url: string): string {
@@ -32,10 +58,10 @@ function host(url: string): string {
   }
 }
 
-function parseFinding(result: any): PageFinding {
-  const payload = raw(result);
+function parseFinding(result: ProviderResult): PageFinding {
+  const payload = providerData(result);
   const value = payload?.json ?? payload?.data?.json ?? {};
-  if (typeof value !== 'string') return value ?? {};
+  if (typeof value !== 'string') return (value ?? {}) as PageFinding;
   try {
     return JSON.parse(value);
   } catch {
@@ -50,13 +76,13 @@ function official(items: SearchItem[], domain: string): SearchItem[] {
   });
 }
 
-function scrapeInput(url: string, row: InputRow): any {
+function scrapeInput(url: string, row: InputRow) {
   return {
     url,
     onlyMainContent: true,
     formats: [
       {
-        type: 'json',
+        type: 'json' as const,
         prompt: `Research question: ${row.question}
 Claim mode: ${row.claim_mode}.
 Use only this official page. Return an answer only when this page explicitly
@@ -76,7 +102,13 @@ status=abstain and explain the bounded reason; silence never proves a negative.`
             confidence: { type: 'string' },
             abstain_reason: { type: 'string' },
           },
-          required: ['status', 'answer', 'evidence_excerpt', 'confidence', 'abstain_reason'],
+          required: [
+            'status',
+            'answer',
+            'evidence_excerpt',
+            'confidence',
+            'abstain_reason',
+          ],
         },
       },
     ],
@@ -117,10 +149,12 @@ export default definePlay(
             id: 'broad_search_index',
             tool: 'serper_google_search',
             input: { query: row.query, gl: 'us', hl: 'en', num: 10 },
-            description: 'Discover official first-party evidence for the research question.',
+            description:
+              'Discover official first-party evidence for the research question.',
           });
-          const items: SearchItem[] = Array.isArray(raw(result)?.organic)
-            ? raw(result).organic
+          const candidates = providerData(result).organic;
+          const items: SearchItem[] = Array.isArray(candidates)
+            ? candidates
             : [];
           return {
             status: items.length ? 'success' : 'no_result',
@@ -138,21 +172,35 @@ export default definePlay(
           };
         }
       })
-      .run({ key: 'id', description: 'Public discovery with official-domain filtering.' });
+      .run({
+        key: 'id',
+        description: 'Public discovery with official-domain filtering.',
+      });
 
     const fetched = await ctx
       .dataset('page_findings', searched)
-      .withColumn('research', async (row: any, rowCtx) => {
+      .withColumn('research', async (row, rowCtx) => {
         const limit = Math.max(1, Math.min(3, Number(row.required_pages) || 1));
-        const broadCandidates: SearchItem[] = row.search.official.slice(0, limit);
-        const broadPages: any[] = [];
+        const broadCandidates: SearchItem[] = row.search.official.slice(
+          0,
+          limit,
+        );
+        const broadPages: {
+          url: string;
+          title: string;
+          date?: string;
+          status: string;
+          finding?: PageFinding;
+          error?: string;
+        }[] = [];
         for (const candidate of broadCandidates) {
           try {
             const result = await rowCtx.tools.execute({
               id: 'broad_official_page',
               tool: 'firecrawl_scrape',
               input: scrapeInput(candidate.link ?? '', row),
-              description: 'Fetch a selected official page and extract evidence-close support.',
+              description:
+                'Fetch a selected official page and extract evidence-close support.',
             });
             broadPages.push({
               url: candidate.link ?? '',
@@ -173,10 +221,14 @@ export default definePlay(
         }
 
         const broadAnswered = broadPages.some(
-          (page) => page.finding?.status === 'answer' && page.finding?.evidence_excerpt,
+          (page) =>
+            page.finding?.status === 'answer' && page.finding?.evidence_excerpt,
         );
         if (broadAnswered) {
-          return { broadPages, supplemental: { status: 'skipped', query: '', page: null } };
+          return {
+            broadPages,
+            supplemental: { status: 'skipped', query: '', page: null },
+          };
         }
 
         const gapQuery = `site:${row.official_domain} ${row.question}`;
@@ -185,20 +237,33 @@ export default definePlay(
             id: 'gap_search_index',
             tool: 'serper_google_search',
             input: { query: gapQuery, gl: 'us', hl: 'en', num: 10 },
-            description: 'Make one gap-only official-page discovery pass for unresolved evidence.',
+            description:
+              'Make one gap-only official-page discovery pass for unresolved evidence.',
           });
-          const candidates = official(raw(search)?.organic ?? [], row.official_domain).filter(
-            (candidate) => !broadPages.some((page) => page.url === candidate.link),
+          const candidates = official(
+            providerData(search)?.organic ?? [],
+            row.official_domain,
+          ).filter(
+            (candidate) =>
+              !broadPages.some((page) => page.url === candidate.link),
           );
           const candidate = candidates[0];
           if (!candidate?.link) {
-            return { broadPages, supplemental: { status: 'no_result', query: gapQuery, page: null } };
+            return {
+              broadPages,
+              supplemental: {
+                status: 'no_result',
+                query: gapQuery,
+                page: null,
+              },
+            };
           }
           const page = await rowCtx.tools.execute({
             id: 'gap_official_page',
             tool: 'firecrawl_scrape',
             input: scrapeInput(candidate.link, row),
-            description: 'Fetch one distinct official page only for an unresolved claim.',
+            description:
+              'Fetch one distinct official page only for an unresolved claim.',
           });
           return {
             broadPages,
@@ -217,17 +282,29 @@ export default definePlay(
         } catch (error) {
           return {
             broadPages,
-            supplemental: { status: 'provider_error', query: gapQuery, page: null, error: String(error) },
+            supplemental: {
+              status: 'provider_error',
+              query: gapQuery,
+              page: null,
+              error: String(error),
+            },
           };
         }
       })
-      .run({ key: 'id', description: 'Official-page evidence plus one gap-only follow-up.' });
+      .run({
+        key: 'id',
+        description: 'Official-page evidence plus one gap-only follow-up.',
+      });
 
     const rows = await fetched.materialize(100);
-    const evidence: any[] = [];
-    const claims: any[] = [];
-    const coverage: any[] = [];
-    for (const row of rows as any[]) {
+    const evidence: (Record<string, unknown> & {
+      id: string;
+      evidence_id: string;
+      route: string;
+    })[] = [];
+    const claims: Record<string, unknown>[] = [];
+    const coverage: Record<string, unknown>[] = [];
+    for (const row of rows) {
       for (const item of row.search.official) {
         evidence.push({
           evidence_id: evidenceId(row.id, 'search_index', item.link ?? ''),
@@ -238,13 +315,22 @@ export default definePlay(
           excerpt: item.snippet ?? '',
           published_at: item.date ?? '',
           query: row.query,
-          supports: 'Discovery evidence; page evidence is required for a material answer.',
+          supports:
+            'Discovery evidence; page evidence is required for a material answer.',
         });
       }
       const pages = [
-        ...row.research.broadPages.map((page: any) => ({ route: 'official_page_fetch', page })),
+        ...row.research.broadPages.map((page) => ({
+          route: 'official_page_fetch',
+          page,
+        })),
         ...(row.research.supplemental.page
-          ? [{ route: 'gap_official_page', page: row.research.supplemental.page }]
+          ? [
+              {
+                route: 'gap_official_page',
+                page: row.research.supplemental.page,
+              },
+            ]
           : []),
       ];
       for (const { route, page } of pages) {
@@ -257,12 +343,18 @@ export default definePlay(
           title: page.title,
           excerpt: page.finding.evidence_excerpt,
           published_at: page.date ?? '',
-          query: route === 'gap_official_page' ? row.research.supplemental.query : row.query,
+          query:
+            route === 'gap_official_page'
+              ? row.research.supplemental.query
+              : row.query,
           supports: page.finding.answer || page.finding.abstain_reason || '',
         });
       }
       const answered = pages.filter(
-        ({ page }) => page.finding?.status === 'answer' && page.finding?.answer && page.finding?.evidence_excerpt,
+        ({ page }) =>
+          page.finding?.status === 'answer' &&
+          page.finding?.answer &&
+          page.finding?.evidence_excerpt,
       );
       const status = answered.length ? 'answer' : 'abstain';
       const answerEvidence = evidence.filter(
@@ -271,13 +363,21 @@ export default definePlay(
       claims.push({
         id: row.id,
         status,
-        answer: status === 'answer' ? answered.map(({ page }) => page.finding.answer).join(' | ') : '',
-        confidence: status === 'answer' ? answered[0].page.finding.confidence || 'medium' : 'medium',
+        answer:
+          status === 'answer'
+            ? answered.map(({ page }) => page.finding?.answer).join(' | ')
+            : '',
+        confidence:
+          status === 'answer'
+            ? answered[0].page.finding?.confidence || 'medium'
+            : 'medium',
         abstain_reason:
           status === 'abstain'
             ? 'No explicit first-party support after broad discovery and one bounded gap-only follow-up.'
             : '',
-        supporting_evidence_ids: answerEvidence.map((item) => item.evidence_id).join('|'),
+        supporting_evidence_ids: answerEvidence
+          .map((item) => item.evidence_id)
+          .join('|'),
       });
       coverage.push({
         id: row.id,
@@ -289,16 +389,28 @@ export default definePlay(
       });
     }
 
-    const researchClaims = await ctx
-      .dataset('research_claims', claims)
-      .run({ key: 'id', description: 'One answer or explicit abstention per research case.' });
+    const researchClaims = await ctx.dataset('research_claims', claims).run({
+      key: 'id',
+      description: 'One answer or explicit abstention per research case.',
+    });
     const researchEvidence = await ctx
       .dataset('research_evidence', evidence)
-      .run({ key: 'evidence_id', description: 'Search and official-page evidence.' });
-    const sourceCoverage = await ctx
-      .dataset('source_coverage', coverage)
-      .run({ key: 'id', description: 'Broad and gap-pass coverage by research case.' });
-    return { inputRows, searched, fetched, researchClaims, researchEvidence, sourceCoverage };
+      .run({
+        key: 'evidence_id',
+        description: 'Search and official-page evidence.',
+      });
+    const sourceCoverage = await ctx.dataset('source_coverage', coverage).run({
+      key: 'id',
+      description: 'Broad and gap-pass coverage by research case.',
+    });
+    return {
+      inputRows,
+      searched,
+      fetched,
+      researchClaims,
+      researchEvidence,
+      sourceCoverage,
+    };
   },
   {
     description: 'Evidence-backed official-web company questions.',

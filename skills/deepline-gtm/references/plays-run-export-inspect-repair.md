@@ -333,7 +333,7 @@ The returned `receipt_key` comes from the tool result's
 
 Retained tool responses preserve existing redactions and list previews; they
 are not guaranteed full HTTP wire captures. Stored and inline evidence can
-have different wrappers. Inspect `rawV2`/`raw` and the recorded view before
+have different wrappers. Inspect `rawV2` and the recorded view before
 comparing; do not rewrite originals or infer provider variation from wrapper
 differences. A skipped alternative has no provider result, a rejected candidate
 is not necessarily an execution failure, and missing evidence stays unknown.

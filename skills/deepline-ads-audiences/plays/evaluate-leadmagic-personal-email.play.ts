@@ -25,13 +25,19 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function raw(result: unknown): Record<string, unknown> {
-  const wrapped = asRecord(result);
-  return asRecord(asRecord(wrapped.toolResponse).raw ?? wrapped);
+function providerData(result: unknown): Record<string, unknown> {
+  const response = asRecord(asRecord(result).toolResponse);
+  if (!Object.prototype.hasOwnProperty.call(response, 'rawV2')) {
+    throw new Error(
+      'Tool response has no rawV2; upgrade the SDK and rebundle this Play.',
+    );
+  }
+  const canonical = asRecord(response.rawV2);
+  return response.view === 'data' ? asRecord(canonical.data) : canonical;
 }
 
 function extractPersonalEmails(result: unknown): string[] {
-  const data = raw(result);
+  const data = providerData(result);
   const candidates = [
     data.personal_email,
     data.first_personal_email,

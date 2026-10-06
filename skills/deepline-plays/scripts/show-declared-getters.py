@@ -111,7 +111,7 @@ def main() -> int:
                         for entry in contract["values"]
                     ],
                 },
-                "authoringRule": "Copy a listed playExpression into the same named response that made the call. For a list, await its .get() handle and project provider fields through list.keys; do not cast toolResponse.raw.",
+                "authoringRule": "Copy a listed playExpression into the same named response that made the call. For a list, await its .get() handle and project provider fields through list.keys; do not cast toolResponse.rawV2.",
             },
             indent=2,
         )

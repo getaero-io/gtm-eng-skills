@@ -54,7 +54,7 @@ export default definePlay(
           //   tool: 'described-tool-id', input: { described_input: row.scope }, description: 'First route.' });
           // const value = response.extractedValues.described_value?.get() ?? null;
           // Map list getters through `list.keys`; raw is evidence context, never first extraction.
-          // const raw = JSON.stringify(response.toolResponse.raw);
+          // const raw = JSON.stringify(response.toolResponse.rawV2);
           // `boundClaim` calls bindResearchEvidenceToSource: an unbound value is a candidate, not a claim.
           // const claim = boundClaim({ value, source: 'described-tool-id', independenceClass: 'terminal-corpus', excerpt: String(value), rawSourceText: raw });
           // return attempt({ totalCalls: 1, results: claim ? [found({ canonicalEntityKey: String(value), claims: { entity_identity: claim } })] : [] });

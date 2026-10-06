@@ -1,5 +1,9 @@
 import { definePlay } from 'deepline';
-import { normalizeEmail, normalizeSha256, sha256Hex } from './shared/audience-hash';
+import {
+  normalizeEmail,
+  normalizeSha256,
+  sha256Hex,
+} from './shared/audience-hash';
 
 /**
  * Personal-identifier waterfall for paid-ads audiences.
@@ -53,17 +57,16 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-/** ctx.tools.execute returns a wrapper; the provider body sits under toolResponse.raw. */
-function raw(result: unknown): Record<string, unknown> {
-  const wrapped = asRecord(result);
-  return asRecord(
-    asRecord(wrapped.toolResponse).raw ??
-      asRecord(wrapped.tool_response).raw ??
-      asRecord(wrapped.toolOutput).raw ??
-      wrapped.raw ??
-      wrapped.data ??
-      result,
-  );
+/** ctx.tools.execute returns a wrapper; the complete provider response sits under toolResponse.rawV2. */
+function providerData(result: unknown): Record<string, unknown> {
+  const toolResponse = asRecord(asRecord(result).toolResponse);
+  if (!Object.prototype.hasOwnProperty.call(toolResponse, 'rawV2')) {
+    throw new Error(
+      'Tool response has no rawV2; upgrade the SDK and rebundle this Play.',
+    );
+  }
+  const response = asRecord(toolResponse.rawV2);
+  return toolResponse.view === 'data' ? asRecord(response.data) : response;
 }
 
 /**
@@ -103,7 +106,9 @@ function readLinkedInUrl(row: SourceRow): string | null {
   if (!trimmed) return null;
   let parsed: URL;
   try {
-    parsed = new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`);
+    parsed = new URL(
+      trimmed.startsWith('http') ? trimmed : `https://${trimmed}`,
+    );
   } catch {
     return null;
   }
@@ -122,7 +127,7 @@ function readLinkedInUrl(row: SourceRow): string | null {
  * person with several personal addresses gets several chances to match.
  */
 function readProviderHashes(result: unknown): string[] {
-  const body = raw(result);
+  const body = providerData(result);
   const data = asRecord(body.data ?? body);
   const found: string[] = [];
   const push = (value: unknown) => {
@@ -164,7 +169,7 @@ function readProviderHash(result: unknown): string | null {
  * audience with an identifier the platform already failed to match.
  */
 function readPersonalEmailHashes(result: unknown): string[] {
-  const body = raw(result);
+  const body = providerData(result);
   const data = asRecord(body.data ?? body);
   const found: string[] = [];
   const push = (value: unknown) => {
@@ -303,7 +308,9 @@ export default definePlay(
             description: 'Find a raw personal email for one contact',
           }),
       })
-      .run({ description: 'Personal-identifier waterfall, cheapest layer first' });
+      .run({
+        description: 'Personal-identifier waterfall, cheapest layer first',
+      });
 
     const enrichedRows = await enriched.materialize();
 
@@ -369,7 +376,10 @@ export default definePlay(
       for (const row of rows) {
         const url = readLinkedInUrl(row);
         if (!url) continue;
-        if (!input.contactOutIncludeCoveredRows && row.hash_source === 'source_csv') {
+        if (
+          !input.contactOutIncludeCoveredRows &&
+          row.hash_source === 'source_csv'
+        ) {
           // Rows that arrived already hashed are the one cheap exclusion: they
           // were covered before this run started. Rows covered by a layer above
           // still go, because ContactOut often returns a second address for a
@@ -389,9 +399,10 @@ export default definePlay(
             id: 'contactout_hashes',
             tool: 'contactout_get_hashed_email_identifiers',
             input: { profiles: chunk } as never,
-            description: 'Hash a batch of LinkedIn profiles into email identifiers',
+            description:
+              'Hash a batch of LinkedIn profiles into email identifiers',
           });
-          const body = raw(result);
+          const body = providerData(result);
           const emails = asRecord(body.matches).emails;
           if (Array.isArray(emails)) {
             for (const value of emails) {
@@ -400,7 +411,11 @@ export default definePlay(
             }
           }
           const found = asRecord(body).matches_found;
-          if (typeof found === 'number' && Number.isInteger(found) && found > 0) {
+          if (
+            typeof found === 'number' &&
+            Number.isInteger(found) &&
+            found > 0
+          ) {
             contactOutMatched += found;
           }
         }

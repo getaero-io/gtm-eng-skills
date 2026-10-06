@@ -99,7 +99,7 @@ evidence under `_dl_meta` as execution proceeds. A single finder has stages;
 alternatives can use ordered attempts containing multiple validation stages.
 Derive this evidence from the selection logic itself; skipped work has no raw
 response. Keep the returned `result._metadata.execution.receiptKey` even when
-omitting a large payload, and name the captured `rawV2`/`raw` view. The authored
+omitting a large payload, and name the captured `rawV2` view. The authored
 tool-call `id` is a call-site name, not that receipt key; `job_id` is also
 separate. Missing evidence remains unknown. This is authored JSON, not automatic
 runtime lineage; it can be flattened into columns or unnested into rows later.

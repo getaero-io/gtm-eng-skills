@@ -91,6 +91,10 @@ Returns one channel-specific payload per tool:
 
 Enriches a person by LinkedIn URL (preferred), email, or name+company. Returns email array at `email`, `work_email`, `personal_email`.
 
+A matched profile is billable even when the requested email is absent. People Enrich consumes a search credit for the profile match, plus email or phone credits when those fields are returned. A 404 no-match is free. For email-only work with a known LinkedIn URL, use `contactout_linkedin_contact_info` with `email_type: "work"` or `"personal"`; that endpoint bills returned contact data only.
+
+Name and company context do not prove identity. Inspect response warnings and independently verify the returned person, LinkedIn URL, and company before using contact data or writing it back to a CRM. A current-company mismatch may reflect a past role or a different person. Missing requested contact fields remain explicit warnings alongside the retained profile and its billing.
+
 ```json
 {
   "linkedin_url": "https://www.linkedin.com/in/johndoe",
@@ -124,7 +128,7 @@ Search people by title, company, location, seniority. Set `reveal_info: true` to
 
 **This is never a free call.** Search bills 1 credit per returned profile, and `reveal_info: false` does not change that. It only gates the extra email/phone credits, so a `reveal_info: false` search is a full-price search, not a count or discovery mode. Use `contactout_count_people` when you want a count.
 
-ContactOut controls the page size and exposes no page-size parameter, so you cannot ask for fewer results. One call bills for every profile on the page even if you only need a handful. Narrow the filters to change *who* comes back; you cannot change *how many*. The number actually billed comes back as `metadata.page_size`.
+ContactOut controls the page size and exposes no page-size parameter, so you cannot ask for fewer results. One call bills for every profile on the page even if you only need a handful. Narrow the filters to change _who_ comes back; you cannot change _how many_. The number actually billed comes back as `metadata.page_size`.
 
 ```json
 {

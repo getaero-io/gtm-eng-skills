@@ -495,7 +495,7 @@ export async function extractEvidenceClaimsWithAi(input: {
   return applyEvidenceClaimExtractions({
     items: normalizedItems,
     claims: input.claims,
-    raw: response.toolResponse.raw,
+    raw: response.toolResponse.rawV2,
   });
 }
 

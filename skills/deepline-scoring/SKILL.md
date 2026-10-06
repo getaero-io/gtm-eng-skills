@@ -16,15 +16,15 @@ deepline -h
 
 Find evidence for the customer's decision. Use approved rules or a separately evaluated model for scoring. Phrase matches and prevalence ratios alone cannot supply scoring weights.
 
-| Task                            | Read                                                                                                               |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Find phrases and buyer language | [Keyword catalog](references/keyword-catalog.md), [buyer-language research](references/buyer-language-research.md) |
-| Build or audit a score          | [Scoring delivery](references/scoring-delivery.md)                                                                 |
-| Test rules or evaluate outcomes | [Testing and evaluation](references/testing-and-evaluation.md)                                                     |
-| Create an artifact-backed scorecard | [Scorecard creation pattern](references/scorecard-creation.md) |
-| Debug disputed features or routing | [Scoring diagnostics](references/scoring-diagnostics.md) |
-| Verify technology               | [Technology evidence](references/technology-evidence.md)                                                           |
-| Estimate staffing or demand     | [Capacity evidence](references/capacity-evidence.md)                                                               |
+| Task                                | Read                                                                                                               |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Find phrases and buyer language     | [Keyword catalog](references/keyword-catalog.md), [buyer-language research](references/buyer-language-research.md) |
+| Build or audit a score              | [Scoring delivery](references/scoring-delivery.md)                                                                 |
+| Test rules or evaluate outcomes     | [Testing and evaluation](references/testing-and-evaluation.md)                                                     |
+| Create an artifact-backed scorecard | [Scorecard creation pattern](references/scorecard-creation.md)                                                     |
+| Debug disputed features or routing  | [Scoring diagnostics](references/scoring-diagnostics.md)                                                           |
+| Verify technology                   | [Technology evidence](references/technology-evidence.md)                                                           |
+| Estimate staffing or demand         | [Capacity evidence](references/capacity-evidence.md)                                                               |
 
 Read `deepline-gtm` before collection and `deepline-plays` before authoring. Verify the workspace, current provider schema and price. Pilot one or two rows and pass the [quality gate](references/quality-gate.md) on the generated outputs before scaling within the approved budget. Keep exports and receipts in a persistent project directory. Reuse collected evidence when rescoring.
 
@@ -64,7 +64,7 @@ V2 returns `signals[]`, `statistics`, `method`, `config_sha256` and `scoring_eli
 
 ## Source adapters
 
-- Websites: `{"data":{"results":[{"url":"...","title":"...","text":"..."}]}}`, `pages`, direct text/markdown records and known `toolResponse.rawV2/raw` wrappers.
+- Websites: `{"data":{"results":[{"url":"...","title":"...","text":"..."}]}}`, `pages`, direct text/markdown records and known `toolResponse.rawV2` wrappers.
 - Jobs: `{"result":{"listings":[{"title":"...","description":"...","url":"..."}]}}`, `jobs[].job_details`, `job_listings` and JSON:API `data[].attributes`.
 - Preserve source IDs and dates. Add a fixture and adapter for each new shape. Unsupported or malformed payloads fail.
 - An empty jobs array means no returned records for that query; retain its filters and limits. An empty website scrape means unknown coverage. Neither establishes staffing, current vacancies or business-trait absence.

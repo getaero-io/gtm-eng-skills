@@ -188,7 +188,7 @@ python3 <skill-root>/scripts/show-declared-getters.py "$WORKDIR/<tool-id>.json" 
 `tools describe` is the authoring contract and can disagree with runtime: a
 declared getter has been absent, and a tool documenting one scalar has returned a
 full list. Bind a named declared `playExpression` and sentinel-probe one row
-before scaling. `toolResponse.raw` is for an exact source excerpt, debugging, or
+before scaling. `toolResponse.rawV2` is for an exact source excerpt, debugging, or
 an undeclared field after that probe — never a cast into an invented `Company[]`.
 
 Cover source classes before provider names — index, SERP, primary document,

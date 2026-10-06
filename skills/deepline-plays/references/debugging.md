@@ -84,8 +84,10 @@ goes to stdout. Missing keys exit 4 and incomplete/unavailable results exit 5;
 good peer results remain available. Empty input is an error. Preserve failures
 through pipes rather than treating a successful parser as a successful read.
 
-Stored responses retain redactions and list previews; they are not guaranteed
-full HTTP captures. Compare the recorded `rawV2`/`raw` view and field values,
+Current `rawV2` receipts retain complete parsed and scrubbed provider data.
+Inline list previews are separate and do not establish completeness; these
+responses are not original HTTP bytes or headers. Compare the recorded `rawV2`
+view and field values,
 not wrapper equality alone. Keep originals unchanged. Missing evidence or an
 unavailable command is a limitation to report, not authority to rerun or
 replace a deliberately pinned CLI.
@@ -140,8 +142,9 @@ overview's selector/export actions before resorting to storage diagnostics.
 Use a returned current-table query only with its mutable scope labeled; it is
 not a historical snapshot. Tool execution returns an envelope: declared
 semantic getters live under `extractedValues` / `extractedLists`, while raw
-provider nesting depends on the artifact's response contract (`rawV2` for new
-contracts, `raw` for legacy). A direct probe can have a different wrapper.
+provider responses live under `toolResponse.rawV2`. Inspect the retained
+response envelope; a direct probe can have a different wrapper. Upgrade and
+rebundle an older artifact if it does not expose `rawV2`.
 Use declared getters such as `result.extractedValues.email.get()` or
 `result.extractedLists.people.get()` when supported. Do not cast an invented
 shape or launch a new probe instead of inspecting existing evidence. With

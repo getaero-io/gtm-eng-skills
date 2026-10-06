@@ -74,7 +74,7 @@ for free; people-search is for when you already know the persona and need volume
   `row.icp_match.extracted_json.<field>`.
   A bare placeholder like `{{titles.output.titles}}` does NOT resolve, and a raw array
   placeholder breaks a JSON payload spec. Extract with `run_javascript` first.
-  Direct `deepline tools execute --json` uses the V2 envelope (`toolResponse.raw...`),
+  Direct `deepline tools execute --json` uses the V2 envelope (`toolResponse.rawV2...`),
   so do not copy direct execute paths into row-level JS without inspecting the persisted row.
   - Inside `run_javascript`, use the persisted row shape:
     `row.titles.output.titles` and

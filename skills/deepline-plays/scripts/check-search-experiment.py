@@ -247,7 +247,7 @@ def programs_using_raw_parser(code: str) -> list[int]:
     """
     alias = re.compile(
         r"\b(?:const|let)\s+(?P<name>[A-Za-z_$][\w$]*)\s*=\s*"
-        r"[A-Za-z_$][\w$]*\s*\.\s*toolResponse\s*\.\s*raw"
+        r"[A-Za-z_$][\w$]*\s*\.\s*toolResponse\s*\.\s*raw(?:V2)?\b"
         r"(?:\s+as\s+[^;\n]+)?\s*;"
     )
     raw_parsers: list[int] = []
@@ -315,11 +315,11 @@ def inspect(
         errors.append(
             "A tool-backed SearchProgram did not read a named declared getter for every tool call. "
             "Copy extractedValues.<name>.get() or extractedLists.<name>.get() "
-            "from tools describe; do not guess toolResponse.raw paths."
+            "from tools describe; do not guess toolResponse.rawV2 paths."
         )
     if raw_parser_programs:
         errors.append(
-            "A tool-backed SearchProgram parsed fields from toolResponse.raw. Read the named declared getter into the result value; raw may only remain evidence context for boundClaim."
+            "A tool-backed SearchProgram parsed fields from toolResponse.rawV2. Read the named declared getter into the result value; raw may only remain evidence context for boundClaim."
         )
     if require_live_company_discovery and has_hardcoded_company_cohort(code):
         errors.append(

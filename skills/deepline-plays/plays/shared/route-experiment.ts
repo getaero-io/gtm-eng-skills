@@ -957,9 +957,21 @@ function corroboration(item: RetrievedItem): number {
 
 function unwrapJudgeResult(raw: unknown): unknown {
   const envelope = record(raw);
-  const responseRaw = record(record(envelope.toolResponse).raw);
-  const outputRaw = record(record(envelope.toolOutput).raw);
-  const toolRaw = Object.keys(outputRaw).length ? outputRaw : responseRaw;
+  const response = record(envelope.toolResponse);
+  if (
+    envelope.toolResponse &&
+    !Object.prototype.hasOwnProperty.call(response, 'rawV2')
+  ) {
+    throw new Error(
+      'Judge response has no rawV2; upgrade the SDK and rebundle this Play.',
+    );
+  }
+  const canonical = record(response.rawV2);
+  const toolRaw = envelope.toolResponse
+    ? response.view === 'data'
+      ? record(canonical.data)
+      : canonical
+    : envelope;
   const result = record(toolRaw.result);
   return (
     toolRaw.extracted_json ??

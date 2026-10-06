@@ -1,4 +1,4 @@
-import { definePlay } from 'deepline';
+import { definePlay, type DeeplinePlayRuntimeContext } from 'deepline';
 import {
   bindSelection,
   createRouteExperiment,
@@ -58,9 +58,14 @@ const SENIORITY_TERMS = [
 ];
 
 const clean = (value: unknown): string =>
-  String(value ?? '').replace(/\s+/g, ' ').trim();
+  String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
 const normalized = (value: unknown): string =>
-  clean(value).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  clean(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
 const compactDomain = (domain: string): string =>
   normalized(domain.replace(/\.[^.]+$/, ''));
 
@@ -89,7 +94,10 @@ function hostClass(url: string): string {
 }
 
 function differentHost(left: string, right: string): boolean {
-  return hostClass(left) !== hostClass(right) && hostClass(right) !== 'public-host:unknown';
+  return (
+    hostClass(left) !== hostClass(right) &&
+    hostClass(right) !== 'public-host:unknown'
+  );
 }
 
 function publicResultText(result: PublicResult): string {
@@ -121,12 +129,29 @@ function verificationIdentifiesCandidate(
   if (!fullName || !resultText.includes(fullName)) return false;
   // A named title page for another RevOps person can list the candidate in a
   // related-people widget. It is not independent evidence for this candidate.
-  if (acceptedTitle(resultTitle) && !resultTitle.includes(fullName)) return false;
+  if (acceptedTitle(resultTitle) && !resultTitle.includes(fullName))
+    return false;
   return true;
 }
 
+function providerSearchPayload(response: {
+  toolResponse: { rawV2?: unknown; view?: 'data' | 'rawV2' };
+}): PublicPayload {
+  if (!Object.prototype.hasOwnProperty.call(response.toolResponse, 'rawV2')) {
+    throw new Error(
+      'Search response has no rawV2; upgrade the SDK and rebundle this Play.',
+    );
+  }
+  const rawV2 = response.toolResponse.rawV2 as PublicPayload & {
+    data?: PublicPayload;
+  };
+  return (
+    response.toolResponse.view === 'data' ? rawV2.data : rawV2
+  ) as PublicPayload;
+}
+
 async function publicCandidateSearch(
-  rowCtx: { tools: { execute: Function } },
+  rowCtx: Pick<DeeplinePlayRuntimeContext, 'tools'>,
   query: string,
 ): Promise<PublicResult[]> {
   const response = await rowCtx.tools.execute({
@@ -135,12 +160,12 @@ async function publicCandidateSearch(
     input: { query, gl: 'us', hl: 'en', page: 1, num: 8 },
     description: 'Find public candidate and current-role evidence.',
   });
-  const raw = response.toolResponse.raw as PublicPayload;
-  return Array.isArray(raw.organic) ? raw.organic : [];
+  const payload = providerSearchPayload(response);
+  return Array.isArray(payload.organic) ? payload.organic : [];
 }
 
 async function independentRoleSearch(
-  rowCtx: { tools: { execute: Function } },
+  rowCtx: Pick<DeeplinePlayRuntimeContext, 'tools'>,
   query: string,
 ): Promise<PublicResult[]> {
   const response = await rowCtx.tools.execute({
@@ -149,13 +174,13 @@ async function independentRoleSearch(
     input: { query, gl: 'us', hl: 'en', page: 1, num: 8 },
     description: 'Find independent public current-role evidence.',
   });
-  const raw = response.toolResponse.raw as PublicPayload;
-  return Array.isArray(raw.organic) ? raw.organic : [];
+  const payload = providerSearchPayload(response);
+  return Array.isArray(payload.organic) ? payload.organic : [];
 }
 
 async function independentCurrentRoleCheck(
   row: Account,
-  rowCtx: { tools: { execute: Function } },
+  rowCtx: Pick<DeeplinePlayRuntimeContext, 'tools'>,
   name: string,
   title: string,
   discoveryUrl: string,
@@ -248,7 +273,8 @@ const routes = [
     mechanismId: 'structured_company_people',
     mechanismClass: 'structured_lookup',
     sourceFamilies: ['structured-people-index', 'public-current-role-check'],
-    queryFamily: 'known domain plus broad role family, then independent public check',
+    queryFamily:
+      'known domain plus broad role family, then independent public check',
     estimatedCreditsPerRow: 0,
     maxItems: 1,
     retrieve: async ({ row, rowCtx }) => {
@@ -264,13 +290,17 @@ const routes = [
           },
           pagination: { page: 1, limit: 5 },
         },
-        description: 'Find a small company-scoped senior-person candidate pool.',
+        description:
+          'Find a small company-scoped senior-person candidate pool.',
       });
       const people = (await response.extractedLists.leads
         .get()
         .materialize(5)) as StructuredPerson[];
       const person = people.find((candidate) => {
-        const name = clean(candidate.fullName || `${candidate.firstName ?? ''} ${candidate.lastName ?? ''}`);
+        const name = clean(
+          candidate.fullName ||
+            `${candidate.firstName ?? ''} ${candidate.lastName ?? ''}`,
+        );
         return (
           Boolean(name) &&
           acceptedTitle(clean(candidate.title)) &&
@@ -281,10 +311,13 @@ const routes = [
         );
       });
       if (!person) return { items: [], sourceOutcome: 'no-results' as const };
-      const name = clean(person.fullName || `${person.firstName ?? ''} ${person.lastName ?? ''}`);
+      const name = clean(
+        person.fullName || `${person.firstName ?? ''} ${person.lastName ?? ''}`,
+      );
       const title = clean(person.title);
       const discoveryUrl = clean(person.linkedinUrl);
-      if (!discoveryUrl) return { items: [], sourceOutcome: 'partial' as const };
+      if (!discoveryUrl)
+        return { items: [], sourceOutcome: 'partial' as const };
       const verification = await independentCurrentRoleCheck(
         row,
         rowCtx,
@@ -292,7 +325,8 @@ const routes = [
         title,
         discoveryUrl,
       );
-      if (!verification) return { items: [], sourceOutcome: 'no-results' as const };
+      if (!verification)
+        return { items: [], sourceOutcome: 'no-results' as const };
       return [
         toRetrievedItem({
           row,
@@ -313,7 +347,8 @@ const routes = [
     mechanismId: 'public_serp_people',
     mechanismClass: 'public_search_and_extract',
     sourceFamilies: ['public-serp', 'independent-public-artifact'],
-    queryFamily: 'public candidate search plus a distinct-host current-role check',
+    queryFamily:
+      'public candidate search plus a distinct-host current-role check',
     estimatedCreditsPerRow: 0.16,
     maxItems: 1,
     retrieve: async ({ row, rowCtx }) => {
@@ -426,7 +461,9 @@ export default definePlay(
     const scoreRows = pilotRowsMeasured.flatMap((row, index) =>
       (row.route_results ?? []).map((result) => {
         const items = result.items ?? [];
-        const accepted = items.filter((item) => item.verification === 'eligible');
+        const accepted = items.filter(
+          (item) => item.verification === 'eligible',
+        );
         const score = selection.promotionEvidence.scorecard.find(
           (entry) => entry.route === result.route,
         );
@@ -439,7 +476,9 @@ export default definePlay(
           candidate_count: items.length,
           accepted_count: accepted.length,
           verified_count: accepted.length,
-          marginal_coverage: score?.relevantUnits.includes(String(index)) ? 1 : 0,
+          marginal_coverage: score?.relevantUnits.includes(String(index))
+            ? 1
+            : 0,
           marginal_credits: routes.find((route) => route.id === result.route)
             ?.estimatedCreditsPerRow,
           source_query: clean(accepted[0]?.attributes?.source_query),
@@ -474,7 +513,10 @@ export default definePlay(
         .withColumn('verification_url', () => '')
         .withColumn('evidence_excerpt', () => '')
         .withColumn('source_strategy', () => '')
-        .withColumn('miss_reason', () => 'No route earned promotion on the measured pilot.')
+        .withColumn(
+          'miss_reason',
+          () => 'No route earned promotion on the measured pilot.',
+        )
         .run({ key: 'account_id' });
       return { pilot, scorecard, selectionArtifact, selection, finalResults };
     }
@@ -496,26 +538,54 @@ export default definePlay(
       .withColumn('selected_item', exploitExperiment.selectedItem)
       .run({ key: exploitExperiment.rowKey });
     const selectedByAccount = new Map(
-      (await exploit.materialize(500)).map((row) => [row.account_id, row.selected_item]),
+      (await exploit.materialize(500)).map((row) => [
+        row.account_id,
+        row.selected_item,
+      ]),
     );
     const finalResults = await ctx
       .dataset('people_final_results', allRows)
-      .withColumn('name', (row) => clean(selectedByAccount.get(row.account_id)?.attributes?.name))
-      .withColumn('title', (row) => clean(selectedByAccount.get(row.account_id)?.attributes?.title))
+      .withColumn('name', (row) =>
+        clean(selectedByAccount.get(row.account_id)?.attributes?.name),
+      )
+      .withColumn('title', (row) =>
+        clean(selectedByAccount.get(row.account_id)?.attributes?.title),
+      )
       .withColumn('status', (row) =>
         selectedByAccount.get(row.account_id) ? 'found' : 'miss',
       )
-      .withColumn('discovery_url', (row) => clean(selectedByAccount.get(row.account_id)?.attributes?.discovery_url))
-      .withColumn('verification_url', (row) => clean(selectedByAccount.get(row.account_id)?.attributes?.verification_url))
-      .withColumn('evidence_excerpt', (row) => clean(selectedByAccount.get(row.account_id)?.attributes?.evidence_excerpt))
-      .withColumn('source_strategy', (row) => clean(selectedByAccount.get(row.account_id)?.attributes?.source_strategy))
+      .withColumn('discovery_url', (row) =>
+        clean(selectedByAccount.get(row.account_id)?.attributes?.discovery_url),
+      )
+      .withColumn('verification_url', (row) =>
+        clean(
+          selectedByAccount.get(row.account_id)?.attributes?.verification_url,
+        ),
+      )
+      .withColumn('evidence_excerpt', (row) =>
+        clean(
+          selectedByAccount.get(row.account_id)?.attributes?.evidence_excerpt,
+        ),
+      )
+      .withColumn('source_strategy', (row) =>
+        clean(
+          selectedByAccount.get(row.account_id)?.attributes?.source_strategy,
+        ),
+      )
       .withColumn('miss_reason', (row) =>
         selectedByAccount.get(row.account_id)
           ? ''
           : 'No candidate passed current-company, accepted-title, and independent-evidence gates.',
       )
       .run({ key: 'account_id' });
-    return { pilot, scorecard, selectionArtifact, selection, exploit, finalResults };
+    return {
+      pilot,
+      scorecard,
+      selectionArtifact,
+      selection,
+      exploit,
+      finalResults,
+    };
   },
   { description: 'Find one verified current person per named account' },
 );

@@ -239,11 +239,10 @@ later republish.
 The most common cell: a tool call. Column resolvers are positional
 `(row, rowCtx)`; call `rowCtx.tools.execute({ id, tool, input, description })`
 (all four required; `id` names the authored call site) and read the envelope —
-`result.status` or declared getters. For a newly admitted raw-v2 Play, read
-`result.toolResponse.rawV2` only when the full scrubbed provider response is
-genuinely required and no declared getter represents the needed field. A stored
-legacy artifact can expose only `toolResponse.raw`; keep that access until its
-response contract is deliberately migrated. For later retrieval, copy the
+`result.status` or declared getters. Read `result.toolResponse.rawV2` when no declared getter represents the needed
+field. Inspect the complete parsed and scrubbed response before selecting a
+nested path. If an old artifact does not expose `rawV2`, upgrade and rebundle it
+before adopting these examples. For later retrieval, copy the
 actual returned `result._metadata.execution.receiptKey` into authored evidence.
 It is not the call-site `id` or `job_id`; do not construct it from either.
 See [retained tool responses](../references/plays-run-export-inspect-repair.md#retrieve-retained-tool-responses)
