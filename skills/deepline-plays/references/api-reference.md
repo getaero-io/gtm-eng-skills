@@ -285,6 +285,7 @@ while True:
 | `POST` | `/api/v2/cli/send-session` | `sessions send` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/cli/send-session/route.ts` |
 | `POST` | `/api/v2/cli/send-session/chunk` | `sessions send` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/cli/send-session/chunk/route.ts` |
 | `POST` | `/api/v2/cli/send-session/finalize` | `sessions send` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/cli/send-session/finalize/route.ts` |
+| `GET` | `/api/v2/dashboard/runs-history` | `getRunsHistory`<br />`runs.history`<br />`runs history` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/dashboard/runs-history/route.ts` |
 | `POST` | `/api/v2/ingestion/repair` | `repairIngestionStorage` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/ingestion/repair/route.ts` |
 | `GET` | `/api/v2/models/describe` | `describeModel` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/models/describe/route.ts`<br />`apps/deepline-api/src/lib/deeplineagent/model-options.ts`<br />`packages/integrations/deeplineagent/generated/provider-options.ts` |
 | `GET` | `/api/v2/monitors/access` | `monitors status` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/monitors/access/route.ts` |
@@ -664,12 +665,13 @@ Result returned by `DeeplineClient.stopPlay`.
 | Name | Type | Required | Description |
 |---|---|---:|---|
 | `runId` | `string` | Yes | Public play-run identifier the stop request targeted. |
+| `state` | `'stopped' \| 'cancelling' \| 'failed'` | No | Typed stop outcome: `stopped` (terminal), `cancelling` (cancellation<br />durably queued; cleanup and the final run update are pending, not an<br />error), or `failed` (the stop was not confirmed). Absent on older servers. |
 | `stopped` | `boolean` | Yes | Whether the server confirmed the run was stopped. |
 | `cancelling` | `boolean` | No | True when the durable cancellation lane accepted the request and is draining. |
 | `hitlCancelledCount` | `number` | Yes | Number of run-scoped HITL waits cancelled by the stop request. |
 | `hitlCancellationPending` | `boolean` | No | True if HITL state or its same-message Slack card still needs retrying. |
-| `staleSchedulerState` | `boolean` | No | True when the scheduler state for the run was stale and the stop could<br />not be confirmed. Absent on older servers (treated as confirmed). |
-| `error` | `string` | No | Server-side error detail when the stop was not confirmed. |
+| `staleSchedulerState` | `boolean` | No | True only when the scheduler and the canonical run ledger disagree (for<br />example a terminal scheduler run whose ledger projection is pending), so<br />the stop could not be confirmed. Never set for a queued cancellation. |
+| `error` | `string` | No | Server-side error detail when the stop failed (`state: 'failed'`). |
 
 ### `RunsNamespace`
 
@@ -686,6 +688,7 @@ Use `client.runs` (`/api/v2/runs`) to watch, stop, read logs, and export durable
 | `rerun` | `(runId: string, options?: RerunOptions) => Promise<RerunPlayRunResult>` | Yes | Start a fresh run from a prior run's retained input and pinned revision. |
 | `list` | `(options: RunsListOptions) => Promise<PlayRunListItem[]>` | Yes | List runs for one play, optionally filtered by status. |
 | `listPage` | `(options: RunsListOptions) => Promise<RunsListPage>` | Yes | Read one run page with total, offset, limit and completeness metadata. |
+| `history` | `(options?: RunsHistoryOptions) => Promise<RunsHistoryPage>` | Yes | Search/page workspace run history newest first; follow empty continuing pages. |
 | `watch` | `(runId: string, options?: RunsWatchOptions) => Promise<PlayStatus>` | Yes | Poll run snapshots every two seconds until terminal status. |
 | `tail` | `(runId: string, options?: RunsTailOptions) => Promise<PlayStatus>` | Yes |  |
 | `logs` | `(runId: string, options?: RunsLogsOptions) => Promise<RunsLogsResult>` | Yes | Read a run's retained text tail, full stream (`all`) or terminal failure window (`failed`). For structured filters and payloads, see [run logs and events](run-events.md). |

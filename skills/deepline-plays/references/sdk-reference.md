@@ -1216,16 +1216,10 @@ Provides methods to run, inspect, list runs, and publish a play by name.
 
 ### `PlayJob`
 
-Handle to a running play execution.
-
-Provides methods to check status, stream logs, wait for completion,
-or cancel the execution.
-
-This handle is the SDK-context equivalent of `deepline plays run` and
-`POST /api/v2/plays/run`: every surface returns a run id first, then exposes
-the completed user output through `PlayJob.get()` or the status endpoint's
-`result` field. Runtime logs are available from `status().progress.logs` and
-are intentionally separate from the returned output object.
+Handle to a Play execution: inspect status, stream logs, await output, or cancel.
+Like `deepline plays run` and `POST /api/v2/plays/run`, it returns a run id first.
+Read completed output through `PlayJob.get()` or the status endpoint's `result` field;
+runtime logs in `status().progress.logs` are separate from that output.
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -1290,6 +1284,7 @@ Signature: `class DeeplineClient`
 | `getRunChildren` | method | Read one paginated, launch-scoped page of direct child Runs. | `parentRunId: string`<br />`options: RunsChildrenOptions` | `Promise<RunChildrenPage>` |
 | `getRunLifecycleStatus` | method | Fetch only the legacy scalar lifecycle status for a run. | `runId: string` | `Promise<RunLifecycleStatus>` |
 | `listRuns` | method | List play runs using the public runs resource model.<br /><br />This is the SDK equivalent of:<br /><br />```bash<br />deepline runs list --play <play-name> --status failed --json<br />``` | `options: RunsListOptions` | `Promise<PlayRunListItem[]>` |
+| `getRunsHistory` | method | The same tenant-scoped run history searched by the dashboard and CLI. | `options?: RunsHistoryOptions` | `Promise<RunsHistoryPage>` |
 | `listRunsPage` | method | Read one run page without discarding server pagination metadata. | `options: RunsListOptions` | `Promise<RunsListPage>` |
 | `getRunReceipts` | method | Read retained tool results without executing tools, preserving supplied key order and batching 100 keys per request. Obtain keys from exported evidence or execution metadata; each key must be nonempty, at most 2,048 characters and contain no CR, LF or NUL. Missing/expired results have an explicit per-key error. | `runId: string`<br />`options: { keys: string[] }` | `Promise<import('./runs/receipts').RunToolReceiptsResponse>` |
 | `getRunInput` | method | Get the exact original input retained for a run. This is intentionally separate from status. | `runId: string` | `Promise<{ runId: string; input: Record<string, unknown> \| unknown[]; bytes: number; sha256: string \| null; replayedFromRunId: string \| null; }>` |
@@ -1378,6 +1373,7 @@ Use `client.runs` (`/api/v2/runs`) to watch, stop, read logs, and export durable
 | `rerun` | `(runId: string, options?: RerunOptions) => Promise<RerunPlayRunResult>` | Yes | Start a fresh run from a prior run's retained input and pinned revision. |
 | `list` | `(options: RunsListOptions) => Promise<PlayRunListItem[]>` | Yes | List runs for one play, optionally filtered by status. |
 | `listPage` | `(options: RunsListOptions) => Promise<RunsListPage>` | Yes | Read one run page with total, offset, limit and completeness metadata. |
+| `history` | `(options?: RunsHistoryOptions) => Promise<RunsHistoryPage>` | Yes | Search/page workspace run history newest first; follow empty continuing pages. |
 | `watch` | `(runId: string, options?: RunsWatchOptions) => Promise<PlayStatus>` | Yes | Poll run snapshots every two seconds until terminal status. |
 | `tail` | `(runId: string, options?: RunsTailOptions) => Promise<PlayStatus>` | Yes |  |
 | `logs` | `(runId: string, options?: RunsLogsOptions) => Promise<RunsLogsResult>` | Yes | Read a run's retained text tail, full stream (`all`) or terminal failure window (`failed`). For structured filters and payloads, see [run logs and events](run-events.md). |

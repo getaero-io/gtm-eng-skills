@@ -8,14 +8,14 @@ Run `deepline runs logs --help` to discover this contract in the installed CLI.
 
 These commands read existing evidence; they do not start a run or execute a provider. Replace &lt;run-id&gt;, &lt;play-name&gt; and other angle-bracket values with identifiers returned by the CLI.
 
-Text logs: runs logs &lt;run-id&gt; returns the last 200 retained lines by default. --out writes the full retained stream to a local file. --log-level filters text severity; debug includes all retained levels. --failed reads only a terminal-failed run’s last 20 retained lines and reports retention limitations.
+Text logs: runs logs &lt;run-id&gt; returns the last 200 retained lines by default. When older lines exist, hasMore is true and nextCursor continues the next older page with --cursor. --out writes the full retained stream to a local file. --log-level filters text severity; debug includes all retained levels. --failed reads only a terminal-failed run’s last 20 retained lines and reports retention limitations.
 
-Event search: omit the run ID, or add any of --since, --until, --play, --kind, --where, --payloads, --cursor, --runtime-namespace or --runtime-backend. A supplied run ID then narrows the search. --limit and --json alone do not switch a run’s text logs to event search. Text-only flags --out, --failed and --log-level cannot be combined with event search.
+Event search: omit the run ID, or add any of --since, --until, --play, --kind, --where, --payloads, --runtime-namespace or --runtime-backend. A supplied run ID then narrows the search. --cursor continues event search unless it is a returned before:&lt;sequence&gt; text-log cursor. --limit and --json alone do not switch a run’s text logs to event search. Text-only flags --out, --failed and --log-level cannot be combined with event search.
 
 Current status and returned output selectors: runs get &lt;run-id&gt; --json. Live observation: runs watch &lt;run-id&gt;. Dataset rows: runs export &lt;run-id&gt; --dataset &lt;returned-selector&gt; --out rows.csv. A referenced tool response: runs receipt &lt;run-id&gt; --key &lt;returned-receipt-key&gt; --json. Read each command’s --help for its options.
 
 ```bash
-deepline runs logs <run-id> --json
+deepline runs logs <run-id> --cursor before:1201 --json
 deepline runs logs <run-id> --out run.log --json
 deepline runs logs --kind run.failed --json
 deepline runs logs --kind step.failed --payloads --json
