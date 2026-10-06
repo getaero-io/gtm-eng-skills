@@ -21,6 +21,30 @@ coverage, and job-change validation.
   confirm whether a contact is still at the same company.
 - Use `datagma_find_people` to source up to 10 people by title inside a target company.
 
+## Phone lookup pitfalls
+
+- `datagma_enrich_person` supports optional mobile lookup with `phoneFull=true`.
+  Read its flat `mobile_phone` field. Omitting the flag or setting it to false
+  preserves basic enrichment; adding email alone does not enable phone lookup.
+  Mobile lookup costs more: inspect the payload estimate before a batch. The
+  estimate includes one mobile lookup and is not a guaranteed maximum; final
+  pricing uses reported usage.
+- For an email or social profile URL, use `datagma_search_phone_numbers` and
+  read `person.phones`. Send both `email` and `username` when available.
+- For name plus company context without an email or social profile, use
+  `datagma_full_enrichment` with `phoneFull=true` and read `phoneFull.phones`.
+  The compatibility alias's flat `phone` / `mobile_phone` fields are not the
+  output paths for these operations.
+- Inspect a small sample's actual payload and phone fields before a bulk run.
+  An identity result without phones does not prove the provider has no phone
+  coverage when the request did not ask for phone lookup.
+- Extract candidates only from documented phone fields. Job IDs, timestamps,
+  and arbitrary numeric metadata are not phone numbers. When scanning flattened
+  output, inspect the field after the tool alias: an alias such as
+  `datagma_mobile` does not make its `job_id` field a phone.
+- Diagnose completed runs from their original request receipts. Editing a
+  configuration afterward does not change what the earlier run sent.
+
 ## Input strategy
 
 1. LinkedIn URL or company domain
