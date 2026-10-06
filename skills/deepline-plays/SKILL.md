@@ -75,14 +75,17 @@ deepline -h
   access/consent remains separate. A credit shortage doesn't block otherwise
   accessible retained results.
 
-**Search accepted runtime events:** use `deepline runs logs` for a run or across
-the active organization. Add `--play`, `--kind`, a UTC `--since`/`--until`, or
-`--where '$.status == "failed"'` to narrow results; `--where` is a bounded
-PostgreSQL JSONPath subset over documented fields, not arbitrary SQL. Add
-`--payloads` to hydrate matching receipt outputs in that same response (maximum
-10 events and 16 MiB). Search
-events are retained for seven days, while the authoritative receipt payload has
-its own retention. Use `deepline runs logs --help` for the current flags.
+**Read logs and events:** start with `deepline runs logs --help`. It bundles all
+known event kinds, who records them, payload fields, indexed filters and
+pagination. A plain run ID reads retained text; omitting it or adding any
+search flag selects the event index. Use `--kind run.failed`, `step.failed` or
+`receipt.failed` for the outcome you need; `status` is optional and is not
+inferred from a run/step event kind. `--payloads` includes canonical
+`eventPayload` or receipt `payload` (maximum 10 events and 16 MiB). Follow
+`next.logs` for the next page with the same UTC window. Search retention is
+seven days; retained receipt payloads have independent retention. These public
+CLI reads execute no providers and require no new pilot or internal endpoints.
+Read [Run logs and events](references/run-events.md) for the shared contract.
 
 **Write searchable customer logs:** use `ctx.log('Lookup finished', { context:
 { companyId: 'acme_123', rows: 12 } })`, then filter with
@@ -99,9 +102,9 @@ the runtime; they do not index raw request/response bodies or promise one search
 event per provider call.
 
 ```bash
-deepline runs logs --play company-lookup --since 2026-09-29T12:00:00Z --kind receipt.failed --json
-deepline runs logs --where '$.status == "failed"' --limit 10 --payloads --json
-deepline runs logs --kind activity.observed --where '$.provider == "apollo" && $.operation == "company_lookup"' --json
+deepline runs logs --kind run.failed --json
+deepline runs logs --kind step.failed --payloads --json
+deepline runs logs --kind receipt.failed --payloads --json
 ```
 
 Before the first Deepline fanout in a task, run `deepline preflight --json` as

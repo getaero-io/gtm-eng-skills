@@ -21,12 +21,12 @@ unanswered questions. Inspection does not authorize repair or another paid run.
 
 ## Choose The Task
 
-| Request | Execution boundary |
-| --- | --- |
-| Inspect an existing run | Read that run and its retained outputs; do not start another run. |
+| Request                                       | Execution boundary                                                                                                                                             |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Inspect an existing run                       | Read that run and its retained outputs; do not start another run.                                                                                              |
 | Run a supplied Play on a small, bounded input | Validate the input contract, execute once within the requested scope, and deliver all supplied rows including misses. No duplicate pilot or provider redesign. |
-| Design new work or scale an unproven route | Describe contracts and use an authorized bounded pilot where it resolves a concrete risk. |
-| Diagnose a failure | Gather retained evidence and explain the cause or evidence gap. Repair, refresh, fallback, and rerun require execution authority. |
+| Design new work or scale an unproven route    | Describe contracts and use an authorized bounded pilot where it resolves a concrete risk.                                                                      |
+| Diagnose a failure                            | Gather retained evidence and explain the cause or evidence gap. Repair, refresh, fallback, and rerun require execution authority.                              |
 
 Use the available CLI; install only if unavailable and authenticate only when
 needed. Before concurrent Deepline commands, finish one standalone
@@ -169,6 +169,14 @@ deepline runs logs <run-id> --out run.log --json
 # Only when the overview/logs do not expose the needed diagnostic or cost:
 deepline runs get <run-id> --full --json
 ```
+
+For typed history or cross-run failures, use `deepline runs logs --help`.
+It lists every known searchable kind, payload fields and recorded filter
+availability. `--kind step.failed --payloads` retrieves step failure details;
+`--kind receipt.failed --payloads` retrieves durable work outcomes. A lifecycle
+kind does not imply a `status` field. Continue with returned `next.logs`,
+preserving the UTC window. See [Run logs and events](run-events.md) for the
+shared catalog and text/search mode rules.
 
 `--failed` is a terminal-failed-run window; it is not a universal row-miss
 query. Logs can be sampled or truncated and do not replace durable output.
