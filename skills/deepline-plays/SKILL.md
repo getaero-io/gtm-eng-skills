@@ -75,17 +75,12 @@ deepline -h
   access/consent remains separate. A credit shortage doesn't block otherwise
   accessible retained results.
 
-**Read logs and events:** start with `deepline runs logs --help`. It bundles all
-known event kinds, who records them, payload fields, indexed filters and
-pagination. A plain run ID reads retained text; omitting it or adding any
-search flag selects the event index. Use `--kind run.failed`, `step.failed` or
-`receipt.failed` for the outcome you need; `status` is optional and is not
-inferred from a run/step event kind. `--payloads` includes canonical
-`eventPayload` or receipt `payload` (maximum 10 events and 16 MiB). Follow
-`next.logs` for the next page with the same UTC window. Search retention is
-seven days; retained receipt payloads have independent retention. These public
-CLI reads execute no providers and require no new pilot or internal endpoints.
-Read [Run logs and events](references/run-events.md) for the shared contract.
+**Read logs and events:** use `deepline runs logs --help` for all known kinds
+and filter examples. A run ID alone reads text logs; omit it or add a search
+flag to search events. Use `--kind` for run/step outcomes and `--payloads` for
+available details or saved results. Follow `next.logs` to page with the same
+UTC window. These reads execute no providers. Read
+[Run logs and events](references/run-events.md) for more recipes and SDK fields.
 
 **Write searchable customer logs:** use `ctx.log('Lookup finished', { context:
 { companyId: 'acme_123', rows: 12 } })`, then filter with
