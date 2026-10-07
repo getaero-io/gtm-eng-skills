@@ -20,10 +20,10 @@ Exact SDK signatures (`definePlay`, `ctx.*`, `PlayDataset`, tool-result shapes, 
 
 ## Start with prebuilts
 
-Search before writing. Prebuilts encode provider order, validation rules, retry behavior, and output conventions that are easy to lose in a rewrite. Use `plays search` first for workflow/outcome tasks (contact discovery, email waterfalls, phone enrichment, LinkedIn resolution, job-change detection, engagers, CSV enrichment); use `tools search` only after no play fits or when a custom play needs one atomic provider operation.
+Search before writing. Prebuilts encode provider order, validation rules, retry behavior, and output conventions that are easy to lose in a rewrite. Run `deepline search "<task>" --type tools,prebuilts` and prefer a prebuilt for workflow/outcome tasks (contact discovery, email waterfalls, phone enrichment, LinkedIn resolution, job-change detection, engagers, CSV enrichment); use a tool only when no play fits or when a custom play needs one atomic provider operation.
 
 ```bash
-deepline plays search email --json
+deepline search --type prebuilts email
 deepline plays describe <play-name-from-search> --json
 deepline plays run <play-name-from-search> --input '{"csv":"leads.csv"}'
 ```
@@ -35,7 +35,7 @@ If the input contract fits, invoke directly. If only CSV headers differ, pass co
 Copy a prebuilt only for a real semantic change: provider order, validation policy, derived columns, filtering, output shape, or an added stage. Do not copy to rename headers — use `columns`.
 
 ```bash
-deepline plays search <task> --json
+deepline search --type prebuilts <task>
 deepline plays describe <play-name-from-search> --json
 deepline plays get <play-name-from-search> --source --out ./my-play.play.ts
 deepline plays check ./my-play.play.ts

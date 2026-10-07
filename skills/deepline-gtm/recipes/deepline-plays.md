@@ -13,7 +13,7 @@ Read budget: normal tasks should use this recipe plus at most one plays referenc
 
 | If the task is...                                                               | Use instead                                                                                             |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| A single existing prebuilt exactly solves the request                           | `deepline plays search` -> `deepline plays describe` -> direct `deepline plays run`                     |
+| A single existing prebuilt exactly solves the request                           | `deepline search --type prebuilts` -> `deepline plays describe` -> direct `deepline plays run`          |
 | Ordinary row enrichment, waterfall columns, CSV processing, or per-row research | `enriching-and-researching.md` (prebuilt plays and their batch forms)                                   |
 | Company/contact/TAM sourcing strategy                                           | `finding-companies-and-contacts.md` and matching GTM recipe                                             |
 | Persisted webhook/cron-style automation, orchestration, or fanout               | Stay in this recipe and author a custom play with explicit inputs, idempotency, and run/export behavior |
@@ -22,7 +22,7 @@ Read budget: normal tasks should use this recipe plus at most one plays referenc
 ## Core Loop
 
 1. **Preflight:** when spend or cloud execution is likely, run `deepline preflight --json` as one standalone command and wait for it before launching any parallel Deepline commands.
-2. **Describe before spend:** for plays, `plays search` -> `plays describe`; for tools, `tools search` -> `tools describe`.
+2. **Describe before spend:** `deepline search --type tools,prebuilts` -> `plays describe` or `tools describe`.
 3. **Choose direct vs compose:** direct-run only when the described contract exactly matches input, output, export, freshness, and pricing. Otherwise bootstrap, wrap, or author a custom play.
 4. **Check before run:** `plays describe` gates prebuilts; `plays check <file>` is mandatory for local, bootstrapped, or forked plays.
 5. **Execute within authority:** a small supplied Play runs once, without a
@@ -36,7 +36,7 @@ Detailed execution, pilot/approval, cohort, and retrieval mechanics live in
 [run and result retrieval](../references/plays-run-export-inspect-repair.md).
 Do not rediscover providers or redesign a supplied Play just to run or inspect it.
 
-Safe planning-only commands: auth/health/balance, `plays search`, `plays describe`, `tools search`, `tools describe`, `plays check`, `plays bootstrap --help`, and local scaffolding. Do not call `plays run` or provider execution in planning-only mode.
+Safe planning-only commands: auth/health/balance, `deepline search`, `plays describe`, `tools describe`, `plays check`, `plays bootstrap --help`, and local scaffolding. Do not call `plays run` or provider execution in planning-only mode.
 
 ## Audit Existing Plays
 
@@ -74,22 +74,21 @@ Slack OAuth belongs in Dashboard → Integrations. This CLI only configures name
 
 ## Which Path
 
-| Situation                                                           | First commands                                                                                      | Gate                                                        |
-| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Existing play may fit exactly                                       | `deepline plays search "<job words>" --json`, then `deepline plays describe prebuilt/<name> --json` | Input/output/export/pricing/freshness match                 |
-| CSV needs aliases, validation, projection, or joins                 | inspect headers, describe candidate play, then `plays bootstrap` or author wrapper                  | `plays check` and pilot pass                                |
-| Custom multi-tool or multi-play orchestration                       | search/describe each tool/play contract, then author a `.play.ts`                                   | stable ids, durable datasets, and explicit final projection |
-| Webhook/cron-style automation or cloud workflow replacement         | author a custom play with explicit inputs, idempotency, and run/export behavior                     | `plays check`, small pilot, and clear trigger handoff       |
-| Company -> contacts -> email/phone fanout                           | use GTM sourcing docs first, then compose plays/tools only after the account/contact grain is clear | pilot proves account grain and contact identity             |
-| Billing, rerun, export, cached rows, failed rows, suspicious output | `runs get`, `runs export`, `runs logs`                                                              | no paid rerun until run metadata is understood              |
-| Existing Play may use deprecated APIs, tool IDs, or aliases         | inventory, `plays check`, then describe every referenced tool/Play                                  | report line-level findings before any edit, publish, or run |
+| Situation                                                           | First commands                                                                                          | Gate                                                        |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Existing play may fit exactly                                       | `deepline search --type prebuilts "<job words>"`, then `deepline plays describe prebuilt/<name> --json` | Input/output/export/pricing/freshness match                 |
+| CSV needs aliases, validation, projection, or joins                 | inspect headers, describe candidate play, then `plays bootstrap` or author wrapper                      | `plays check` and pilot pass                                |
+| Custom multi-tool or multi-play orchestration                       | search/describe each tool/play contract, then author a `.play.ts`                                       | stable ids, durable datasets, and explicit final projection |
+| Webhook/cron-style automation or cloud workflow replacement         | author a custom play with explicit inputs, idempotency, and run/export behavior                         | `plays check`, small pilot, and clear trigger handoff       |
+| Company -> contacts -> email/phone fanout                           | use GTM sourcing docs first, then compose plays/tools only after the account/contact grain is clear     | pilot proves account grain and contact identity             |
+| Billing, rerun, export, cached rows, failed rows, suspicious output | `runs get`, `runs export`, `runs logs`                                                                  | no paid rerun until run metadata is understood              |
+| Existing Play may use deprecated APIs, tool IDs, or aliases         | inventory, `plays check`, then describe every referenced tool/Play                                      | report line-level findings before any edit, publish, or run |
 
 Names in docs are hints. Live `search` and `describe` are the source of truth:
 
 ```bash
-deepline plays search "<job words>" --json
+deepline search "<job words>" --type tools,prebuilts
 deepline plays describe prebuilt/<candidate> --json
-deepline tools search "<provider need>" --categories <category>
 deepline tools describe <tool-id> --json
 ```
 

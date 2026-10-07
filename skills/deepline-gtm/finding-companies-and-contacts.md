@@ -27,9 +27,9 @@ Search-to-enrichment handoff rules:
 
 ## Tool discovery
 
-This doc does not rank providers. Run `deepline tools search` for the job at hand and choose from what it returns: results carry each tool's filters, cost, and availability, and they stay current when a provider is added, repriced, or down. Provide an intent query, or omit it only when `--categories` or `--search_terms` supplies the structured search; both filters accept comma-separated values. Always pass `--task` with the input you have and the result you need. Provider names belong in the query, not in a `--prefix` flag.
+This doc does not rank providers. Run `deepline search --type tools` for the job at hand and choose from what it returns: results carry each tool's filters, cost, and availability, and they stay current when a provider is added, repriced, or down. Provide an intent query, or omit it only when `--categories` or `--search_terms` supplies the structured search; both filters accept comma-separated values. Always pass `--task` with the input you have and the result you need. Provider names belong in the query, not in a `--prefix` flag.
 
-Syntax: `deepline tools search [query] [--categories <categories>]
+Syntax: `deepline search --type tools [query] [--categories <categories>]
 [--search_terms <terms>] [--json]`. Supply a query or at least one structured
 filter. Search 2-4 synonyms when the first query is ambiguous. Inspection of a
 supplied Play or existing run does not require new provider discovery.
@@ -37,8 +37,8 @@ supplied Play or existing run does not require new provider discovery.
 Prefer category-constrained searches. More search terms helps with recall. Then inspect the strongest candidates.
 
 ```bash
-deepline tools search --categories company_search --search_terms "structured filters,firmographics" --task "<input you have -> result you need>"
-deepline tools search --categories people_search --search_terms "title filters,location" --task "<input you have -> result you need>"
+deepline search --type tools --categories company_search --search_terms "structured filters,firmographics" --task "<input you have -> result you need>"
+deepline search --type tools --categories people_search --search_terms "title filters,location" --task "<input you have -> result you need>"
 deepline tools describe <tool_id>
 ```
 
@@ -55,14 +55,14 @@ When database-style tools return 0 (pre-revenue startups, niche verticals, non-U
 
 ## Discovery workflow
 
-| Step | What to do                                                 | Why                                             |
-| ---- | ---------------------------------------------------------- | ----------------------------------------------- |
-| 0    | Check if the data already exists or has a known source URL | Avoid unnecessary provider calls                |
-| 1    | Shortlist 1-2 tools from `deepline tools search` results   | Prevent random provider thrash                  |
-| 2    | Inspect the schema with `deepline tools describe`          | Avoid guessed field names and bad payloads      |
-| 3    | Validate enum-like values with autocomplete tools          | Prevent silent empty searches                   |
-| 4    | Execute a count-like or narrow first pass                  | Cheaply confirm fit before full pull            |
-| 5    | Prefer result-priced routes when coverage is uncertain     | Avoid paying per miss during exploratory fanout |
+| Step | What to do                                                      | Why                                             |
+| ---- | --------------------------------------------------------------- | ----------------------------------------------- |
+| 0    | Check if the data already exists or has a known source URL      | Avoid unnecessary provider calls                |
+| 1    | Shortlist 1-2 tools from `deepline search --type tools` results | Prevent random provider thrash                  |
+| 2    | Inspect the schema with `deepline tools describe`               | Avoid guessed field names and bad payloads      |
+| 3    | Validate enum-like values with autocomplete tools               | Prevent silent empty searches                   |
+| 4    | Execute a count-like or narrow first pass                       | Cheaply confirm fit before full pull            |
+| 5    | Prefer result-priced routes when coverage is uncertain          | Avoid paying per miss during exploratory fanout |
 
 Anti-patterns:
 
@@ -193,7 +193,7 @@ that row as unresolved and continue with every other named company.
 Recommended course of action:
 
 1. For nuanced roles or real titles at named companies, follow [`recipes/find-qualified-titles.md`](recipes/find-qualified-titles.md).
-2. Otherwise run `deepline tools search --categories people_search` with a `--task` that names the companies and roles, and pick a company-scoped tool from the results.
+2. Otherwise run `deepline search --type tools --categories people_search` with a `--task` that names the companies and roles, and pick a company-scoped tool from the results.
 3. Use broad function keywords plus seniority when no roster exists or the user wants broad audience sizing. Broad title filters can miss titles such as "Director, Mount Sinai AI Assurance Lab."
 4. Prefer company domains over company names when you know them.
 5. For startups under 50 people, database coverage is thin. Check each returned title for the correct company, and add batch, domain, or product context to disambiguate common names like "Ergo" or "Bloom".

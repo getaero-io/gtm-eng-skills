@@ -19,7 +19,7 @@ Run `deepline` when it is available. If the shell reports that command is missin
 
 Build high-quality ABM paid ads audiences from first-party customer or prospect lists. This skill is for paid ads audience upload and evaluation, not outbound.
 
-Names in this skill are starting hints. Run `deepline tools search audience` and `deepline tools describe <tool_id> --json` before executing because tool names and payload shapes can change. Tool search accepts an intent query or, for structured filtering, `--categories` and/or `--search_terms`; a filter-only search needs at least one of those flags. Use commas for multiple filter values, and put provider names in the query rather than using a `--prefix` flag.
+Names in this skill are starting hints. Run `deepline search --type tools audience` and `deepline tools describe <tool_id> --json` before executing because tool names and payload shapes can change. Tool search accepts an intent query or, for structured filtering, `--categories` and/or `--search_terms`; a filter-only search needs at least one of those flags. Use commas for multiple filter values, and put provider names in the query rather than using a `--prefix` flag.
 
 ## Before You Start
 
@@ -35,24 +35,24 @@ This skill is not for cold outbound, sequencing, or copywriting. Personal emails
 
 ## Decision Matrix
 
-| User says                                                                | Do this                                                            | Read                                                      |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------ | --------------------------------------------------------- |
-| "max coverage", "highest match rate", "keep increasing coverage"         | Run the explicit max-coverage ladder with budget gates.            | `recipes/max-coverage-audience.md`                        |
-| `/deepline-ads-audience`, "enrich and upload to FB/Google"               | Run the full paid ads audience recipe.                             | `recipes/enrich-and-upload-facebook-google.md`            |
-| "sample ABM segment", "do the example workflow"                          | Follow the reusable high-priority ABM segment recipe.              | `recipes/sample-abm-segment-example.md`                   |
-| "use ContactOut hashes", "hashed identifiers", "LinkedIn URLs to hashes" | Plan a bulk pass beside the ladder, not a waterfall step.          | `shared/contactout-hash-pool.md`                          |
-| "what is a hash", "why is my match rate low", first-time user            | Explain the mechanic before quoting a plan.                        | `shared/audience-basics.md`                               |
+| User says                                                                                                          | Do this                                                                      | Read                                                      |
+| ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- | --------------------------------------------------------- |
+| "max coverage", "highest match rate", "keep increasing coverage"                                                   | Run the explicit max-coverage ladder with budget gates.                      | `recipes/max-coverage-audience.md`                        |
+| `/deepline-ads-audience`, "enrich and upload to FB/Google"                                                         | Run the full paid ads audience recipe.                                       | `recipes/enrich-and-upload-facebook-google.md`            |
+| "sample ABM segment", "do the example workflow"                                                                    | Follow the reusable high-priority ABM segment recipe.                        | `recipes/sample-abm-segment-example.md`                   |
+| "use ContactOut hashes", "hashed identifiers", "LinkedIn URLs to hashes"                                           | Plan a bulk pass beside the ladder, not a waterfall step.                    | `shared/contactout-hash-pool.md`                          |
+| "what is a hash", "why is my match rate low", first-time user                                                      | Explain the mechanic before quoting a plan.                                  | `shared/audience-basics.md`                               |
 | encoded/internal-identifier LinkedIn URLs (`/in/ACwAA…`), "API rejected my LinkedIn URLs", "convert LinkedIn URLs" | Normalize `person_linkedin_url` before upload: drop encoded, recover vanity. | Step 4 → "Normalize LinkedIn URLs" (this file)            |
-| "Make sure hashes are not double hashed"                                 | Run the no-double-hash audit play before upload.                   | `plays/audit-no-double-hash.play.ts`                      |
-| "enrich this list", "buy personal emails/hashes", "run the ladder"       | Run the waterfall. Each layer only sees rows still missing a hash. | `plays/enrich-audience-waterfall.play.ts`                 |
-| "Compare enriched versus unenriched"                                     | Build both hash-only datasets and report lift.                     | `plays/enrich-audience-waterfall.play.ts`                 |
-| "include phone numbers", "add phones"                                    | Hash existing phones digits-only with country code.                | `shared/upload-failure-modes.md`                          |
-| "what was the match rate", "did it match"                                | Read `contactIdInfo.matchRatePercentage`, not the range enum.      | `shared/upload-failure-modes.md`                          |
-| "put it in a sheet", "customer will upload"                              | Publish the validated file to Sheets; verify by row count.         | `shared/upload-failure-modes.md`                          |
-| "connect Meta", "Meta not connected", "(#100)", "business_management"   | Connect Meta with a system user token; Meta login is not offered.  | `shared/meta-connection.md`                               |
-| "upload keeps failing", "422", "audience is locked"                      | Meta locks on write. Send the audience in one call.                | `shared/upload-failure-modes.md`                          |
-| "Upload to Google"                                                       | Validate hash-only rows, create Google audience, sync, readback.   | `plays/upload-google-hash-only-audience.play.ts`          |
-| "Upload to Facebook and Google", "upload to FB/Google", "Meta + GAds"    | Validate once, then upload to Google and Meta.                     | `plays/upload-facebook-google-hash-only-audience.play.ts` |
+| "Make sure hashes are not double hashed"                                                                           | Run the no-double-hash audit play before upload.                             | `plays/audit-no-double-hash.play.ts`                      |
+| "enrich this list", "buy personal emails/hashes", "run the ladder"                                                 | Run the waterfall. Each layer only sees rows still missing a hash.           | `plays/enrich-audience-waterfall.play.ts`                 |
+| "Compare enriched versus unenriched"                                                                               | Build both hash-only datasets and report lift.                               | `plays/enrich-audience-waterfall.play.ts`                 |
+| "include phone numbers", "add phones"                                                                              | Hash existing phones digits-only with country code.                          | `shared/upload-failure-modes.md`                          |
+| "what was the match rate", "did it match"                                                                          | Read `contactIdInfo.matchRatePercentage`, not the range enum.                | `shared/upload-failure-modes.md`                          |
+| "put it in a sheet", "customer will upload"                                                                        | Publish the validated file to Sheets; verify by row count.                   | `shared/upload-failure-modes.md`                          |
+| "connect Meta", "Meta not connected", "(#100)", "business_management"                                              | Connect Meta with a system user token; Meta login is not offered.            | `shared/meta-connection.md`                               |
+| "upload keeps failing", "422", "audience is locked"                                                                | Meta locks on write. Send the audience in one call.                          | `shared/upload-failure-modes.md`                          |
+| "Upload to Google"                                                                                                 | Validate hash-only rows, create Google audience, sync, readback.             | `plays/upload-google-hash-only-audience.play.ts`          |
+| "Upload to Facebook and Google", "upload to FB/Google", "Meta + GAds"                                              | Validate once, then upload to Google and Meta.                               | `plays/upload-facebook-google-hash-only-audience.play.ts` |
 
 ## Default Workflow
 
@@ -170,7 +170,7 @@ Use this discovery ladder:
 1. Search for live account tools:
 
 ```bash
-deepline tools search "ads audience account discovery google meta linkedin"
+deepline search --type tools "ads audience account discovery google meta linkedin"
 deepline tools list | grep -Ei "account|audience"
 ```
 

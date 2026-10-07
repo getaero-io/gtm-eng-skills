@@ -41,17 +41,17 @@ deepline csv show <input.csv> --summary
 
 Route by the identifiers each row has:
 
-| You have                                                 | You need                    | Pattern category                                   | Discover with                               |
-| -------------------------------------------------------- | --------------------------- | -------------------------------------------------- | ------------------------------------------- |
-| `first_name`, `last_name`, `domain`                      | work email                  | name + domain → work email waterfall               | `deepline plays search email --json`        |
-| name + `company_name` (no domain), or `/sales/lead/` URL | work email                  | resolve domain first, then name + domain waterfall | discovery, then domain → email              |
-| `/in/` LinkedIn URL + name                               | work email                  | linkedin profile → work email waterfall            | `deepline plays search email --json`        |
-| `email`                                                  | hydrated person + company   | reverse contact enrichment                         | `deepline plays search contact --json`      |
-| name + `domain` (+ optional email/linkedin)              | phone number                | identity → phone waterfall                         | `deepline plays search phone --json`        |
-| name + `company_name` (+ optional linkedin)              | job-change status           | job-change detection + verification                | `deepline plays search "job change" --json` |
-| existing `email`                                         | validation status + verdict | email verifier                                     | `deepline tools search "email verifier"`    |
-| name, optional company                                   | LinkedIn profile URL        | name → LinkedIn URL waterfall                      | `deepline plays search linkedin --json`     |
-| row + ICP description                                    | tier / fit classification   | structured AI column with `jsonSchema`             | (see AI research)                           |
+| You have                                                 | You need                    | Pattern category                                   | Discover with                                   |
+| -------------------------------------------------------- | --------------------------- | -------------------------------------------------- | ----------------------------------------------- |
+| `first_name`, `last_name`, `domain`                      | work email                  | name + domain → work email waterfall               | `deepline search --type prebuilts email`        |
+| name + `company_name` (no domain), or `/sales/lead/` URL | work email                  | resolve domain first, then name + domain waterfall | discovery, then domain → email                  |
+| `/in/` LinkedIn URL + name                               | work email                  | linkedin profile → work email waterfall            | `deepline search --type prebuilts email`        |
+| `email`                                                  | hydrated person + company   | reverse contact enrichment                         | `deepline search --type prebuilts contact`      |
+| name + `domain` (+ optional email/linkedin)              | phone number                | identity → phone waterfall                         | `deepline search --type prebuilts phone`        |
+| name + `company_name` (+ optional linkedin)              | job-change status           | job-change detection + verification                | `deepline search --type prebuilts "job change"` |
+| existing `email`                                         | validation status + verdict | email verifier                                     | `deepline search --type tools "email verifier"` |
+| name, optional company                                   | LinkedIn profile URL        | name → LinkedIn URL waterfall                      | `deepline search --type prebuilts linkedin`     |
+| row + ICP description                                    | tier / fit classification   | structured AI column with `jsonSchema`             | (see AI research)                               |
 
 ## When the primary route misses
 
@@ -70,7 +70,7 @@ A miss on one route is not a dead row — but a second route is a purchase, not 
 - **Emit every fact the evidence already paid for.** A registry or maps route that returned a verified phone while resolving the practice was already billed for it. One run held that phone in a local variable, never emitted it, and shipped nulls for a cohort where 19 of 43 were hospital-employed with no public mailbox. Add the column before concluding the ceiling.
 - **Recognize a structural ceiling — after the aggregator rung.** Some populations keep work emails behind directories few sources index, and their mail domains block SMTP validation, so correct pattern guesses can't be promoted to fills. Once waterfall, re-route, registry, and aggregator rungs are all measured, the right output is the validated fills, honest nulls with miss reasons, and a channel pivot the evidence already paid for (verified practice phone, mobile). Report the measured ceiling instead of buying the same misses again.
 
-After a phone is recovered, validate line type and activity with a phone validator (`deepline tools search phone`). A number that connects to the wrong person costs more than a missing number.
+After a phone is recovered, validate line type and activity with a phone validator (`deepline search --type tools phone`). A number that connects to the wrong person costs more than a missing number.
 
 **Cohort patches are not the method.** A domain blocklist, place-name stopwords, or a specialty regex tuned to one roster do not port to the next job. Three rules do: a URL must corroborate the name it is attached to (use `coherenceChecks`); consensus must be scoped to the relevant sub-population; and a derived contact needs independent verification. Carry those forward, not the lists.
 
@@ -128,7 +128,7 @@ Drop to `ctx.tools.execute(...)` only when you need one explicit provider call t
 ### Durable enrichment gotchas
 
 - **Sales Navigator URLs do not work in email waterfalls.** `linkedin.com/sales/lead/...` URLs are rejected by every provider that accepts a LinkedIn URL — they are scoped to a Sales Navigator session and have no public-profile equivalent. Feeding them into a waterfall returns zero matches everywhere, even though the same person's `/in/` URL would resolve. Detect the form (`/linkedin\.com\/sales\/lead\//`), resolve the company domain first, then use name + domain.
-- **Personal vs work email is a hard provider split.** "Personal emails" means Gmail/Hotmail/Yahoo/Outlook — the address that follows the person across jobs. Work-email providers (Hunter, LeadMagic) return `@company.com` regardless, because that is the only class they index. Routing a personal-email request to a work-email provider lands the campaign in someone's corporate inbox and burns deliverability. Find the personal-email play with `deepline plays search "personal email" --json`.
+- **Personal vs work email is a hard provider split.** "Personal emails" means Gmail/Hotmail/Yahoo/Outlook — the address that follows the person across jobs. Work-email providers (Hunter, LeadMagic) return `@company.com` regardless, because that is the only class they index. Routing a personal-email request to a work-email provider lands the campaign in someone's corporate inbox and burns deliverability. Find the personal-email play with `deepline search --type prebuilts "personal email"`.
 - **Email status is a normalized contract; catch-all means verify, not send.** Statuses: `valid`, `valid_catch_all`, `catch_all`, `unknown`, `invalid`, `do_not_mail`, `spamtrap`, `abuse`, `disposable`. Verdicts: `valid` → send; `valid_catch_all` → send with caution; `catch_all` → `verify_next` (domain accepts mail at any address, so the inbox is unproven — verify with a second independent finder, do not count it as a confirmed pattern hit inside a waterfall); `unknown` → hold; the rest → drop. A `catch_all` whose domain does not match the person's company domain is a strong wrong-person signal (often a previous employer) — flag rather than send.
 - **Validation follows candidate recovery but precedes claim completion.** Do not validate empty finder attempts, but do not let an unvalidated candidate close `work_email`. A separate `email_validation` dataset is safe only when its rejection reopens the experiment row; otherwise the helper optimizes raw finder coverage and cannot challenge invalid or catch-all results. In an adaptive experiment, make validators acceptance programs that consume candidate emails and produce the final accepted claim. Each physical dataset still needs a distinct key after normalization (`email_waterfall`, then `email_validation`) because reusing a key fails registration.
 - **Key candidate emails by normalized email, not by the lead row.** The input

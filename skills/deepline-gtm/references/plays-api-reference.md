@@ -198,7 +198,7 @@ while True:
 | `GET` | `/api/v2/integrations/list` | `searchTools` | Compatibility discovery route for integration/tool listing. | `apps/deepline-api/src/app/api/v2/integrations/list/route.ts` |
 | `GET` | `/api/v2/tools` | `listTools` | List callable provider/tool definitions. | `apps/deepline-api/src/app/api/v2/tools/route.ts` |
 | `GET` | `/api/v2/tools/providers` | `listProviders` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/tools/providers/route.ts` |
-| `GET` | `/api/v2/tools/search` | `searchTools` | Search callable provider/tool definitions with ranked metadata search. | `apps/deepline-api/src/app/api/v2/tools/search/route.ts` |
+| `GET` | `/api/v2/tools/search` | `searchTools` | Search callable provider/tool definitions with ranked metadata search. | `apps/deepline-api/src/app/api/v2/tools/search/route.ts`<br />`apps/deepline-api/src/lib/search/search-handler.ts` |
 
 ### Customer Data
 
@@ -344,6 +344,7 @@ while True:
 | `POST` | `/api/v2/plays/files/stage/mint` | `stagePlayFiles`<br />`mintStagedPlayFileUploads` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/files/stage/mint/route.ts` |
 | `GET` | `/api/v2/plays/settings/paths` | `listPlaySettingsPaths` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/settings/paths/route.ts` |
 | `GET` | `/api/v2/sdk/compat` | `compat check` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/sdk/compat/route.ts` |
+| `GET` | `/api/v2/search` | `search` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/search/route.ts`<br />`apps/deepline-api/src/lib/search/search-handler.ts` |
 | `GET` | `/api/v2/secrets` | `secrets list`<br />`secrets check`<br />`listSecrets` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/secrets/route.ts` |
 | `POST` | `/api/v2/secrets` | `secrets set`<br />`secrets set --note` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/secrets/route.ts` |
 | `DELETE` | `/api/v2/secrets/:id` | `secrets delete` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/secrets/[id]/route.ts` |
@@ -368,6 +369,7 @@ These entries come from the compatible SDK/API change ledger and explain additiv
 <!-- prettier-ignore -->
 | Change | Reason |
 |---|---|
+| `2026-10-unified-search` | Adds GET /api/v2/search, client.search(), the deepline search CLI command, and the deepline_search MCP tool: one ranked search over tools, monitor types, Deepline prebuilt plays, and the workspace’s own plays, narrowed with optional type... |
 | `2026-08-monitor-fleets-beta` | Adds the Monitor Fleets beta as an additive SDK/API/CLI namespace: canonical tagged-JSON fleet authoring helpers, client.monitors.fleets methods, the `deepline monitors fleets` CLI surface, and authenticated /api/v2/monitors/fleets route... |
 | `2026-08-play-catalog-metadata` | Adds POST /api/v2/plays/:name/pin plus the setPlayPinned SDK method and plays pin\|unpin CLI commands, and exposes derived canonical tool categories on Play catalog reads with an optional categories filter. These are additive catalog capa... |
 | `2026-08-play-run-input-replay` | Adds authenticated GET /api/v2/runs/:runId/input and POST /api/v2/runs/:runId/rerun routes, plus runs.input/getRunInput/runs.rerun/rerun SDK methods and deepline runs get --input / deepline runs rerun commands. These are additive capabil... |
@@ -375,7 +377,6 @@ These entries come from the compatible SDK/API change ledger and explain additiv
 | `2026-07-play-detached-runtime-progress` | Corrects the customer-visible status and CLI progress wording for a Play that is actively executing in a detached runtime receipt: it reports running rather than waiting, and identifies that execution state instead of incorrectly suggest... |
 | `2026-07-agent-led-cli-onboarding` | Adds setup, skills, and doctor CLI commands, folder-scoped browser-auth persistence, npm-based installation guidance, and scoped update and verification behavior while retiring the separate mutable SDK shell-installer route. This is comp... |
 | `2026-07-play-cost-estimates` | Adds an opt-in include_cost_estimates query parameter and optional costEstimate response field to GET /api/v2/plays, and adds the same optional field to GET /api/v2/plays/:name/live. This is additive and backward compatible: route paths,... |
-| `2026-07-sdk-enrich-direct-tool-runtime-context` | Makes newly published enrichment plays type their legacy direct-tool helper against the existing DeeplinePlayRuntimeContext tools capability instead of an incompatible hand-written execute signature. This is a compatible local generated-... |
 
 ## Public Types
 

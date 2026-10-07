@@ -168,11 +168,11 @@ Answer these **before writing the play** based on what Phase 1 revealed. Only an
 
 - [ ] **Has a provider waterfall** (several finders of the same kind chained by `conditionalRunFormulaText`) → ONE Deepline waterfall play, not one pass per provider
 - [ ] Has phone columns → use `prebuilt/person-to-phone`; confirm the input contract, it needs name + domain while many Clay finders take only a LinkedIn URL
-- [ ] Has person enrichment columns → verify with `deepline tools search "person enrichment linkedin"`. Check `inputsBinding` first: a column keyed `enrich-person` is often wired as a phone or email finder
+- [ ] Has person enrichment columns → verify with `deepline search --type tools "person enrichment linkedin"`. Check `inputsBinding` first: a column keyed `enrich-person` is often wired as a phone or email finder
 - [ ] Has email finding columns → use `name-and-domain-to-email-waterfall` as primary play
 - [ ] Has AI generation columns (use-ai, claygent, octave) → recover prompts verbatim (§2.5)
 - [ ] Has scoring/qualification columns → use ICP criteria verbatim from Clay config
-- [ ] Has campaign push / CRM update columns → verify with `deepline tools search "<platform> add leads"`
+- [ ] Has campaign push / CRM update columns → verify with `deepline search --type tools "<platform> add leads"`
 - [ ] Has cross-table lookups → export linked table to CSV first
 - [ ] **Is a company intelligence table** (source = Mixrank) → use `crustdata_v3_company_search`
 
@@ -315,7 +315,7 @@ For anything neither file maps, pull the action's real input schema from Clay's 
 ### Unknown Action Fallback
 
 ```bash
-deepline tools search "<what the action does>"   # search by intent
+deepline search --type tools "<what the action does>"   # search by intent
 deepline tools describe <candidate_tool_id>       # inspect candidate
 # if nothing found → deeplineagent fallback
 ```

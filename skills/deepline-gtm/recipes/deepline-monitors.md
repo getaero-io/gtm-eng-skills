@@ -208,10 +208,10 @@ not evidence that the monitor will fire.
 
 | Monitor is watching for…                             | Find a credible probe with…                                                 | Do not mistake this for…      |
 | ---------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------- |
-| Job postings                                         | `deepline tools search "job postings"`                               | A people or title search      |
-| A tracked contact changing jobs                      | `deepline tools search "job change"`                                 | The contact's current profile |
+| Job postings                                         | `deepline search --type tools "job postings"`                               | A people or title search      |
+| A tracked contact changing jobs                      | `deepline search --type tools "job change"`                                 | The contact's current profile |
 | A provider webhook, campaign event, or website visit | The connected provider's test event or a deliberate test visit after deploy | A separate provider REST read |
-| Any other signal                                     | `deepline tools search "<signal in plain English>"`                  | A loosely related enrichment  |
+| Any other signal                                     | `deepline search --type tools "<signal in plain English>"`                  | A loosely related enrichment  |
 
 Read the shortlisted tool's live contract and price. Only run a one-result or
 one-event probe after the customer approves its cost. Prefer the same provider
@@ -407,7 +407,7 @@ Browse them, then read one type's exact filters + stream columns:
 ```bash
 # Browse the monitor types you can deploy
 deepline tools list --categories monitors
-deepline tools search "company radar"
+deepline search --type tools "company radar"
 
 # Read one specific monitor variant's full contract
 deepline tools get deepline_native.company_job_openings

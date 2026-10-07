@@ -162,29 +162,29 @@ The skill prompts the agent to call `/api/v2/pre-research/plan`, inspect the ret
 ### 4. Search For Deepline Candidate Tools
 
 Run several focused searches, usually in parallel after the standalone
-preflight. `deepline tools search` accepts an optional
+preflight. `deepline search --type tools` accepts an optional
 intent query, but requires either that query or one of `--categories` /
 `--search_terms`; those filters accept comma-separated values. Use `--json` for
 machine-readable output. There is no `--prefix` flag, so put a provider name in
 the query instead.
 
 ```bash
-deepline tools search "web search news source discovery" --categories research --search_terms "web search,news,recency,source discovery"
-deepline tools search "social posts reddit x twitter youtube tiktok instagram" --categories research --search_terms "social posts,reddit,x twitter,youtube,tiktok,instagram"
-deepline tools search scrapecreators
-deepline tools search "facebook profile email scrapecreators"
-deepline tools search "instagram profile bio links scrapecreators"
-deepline tools search "company dataset firmographics funding technographics jobs" --categories company_search --search_terms "company dataset,firmographics,funding,technographics,jobs"
-deepline tools search "crm warehouse workflow session usage" --categories admin --search_terms "crm,warehouse,workflow,session,usage"
+deepline search --type tools "web search news source discovery" --categories research --search_terms "web search,news,recency,source discovery"
+deepline search --type tools "social posts reddit x twitter youtube tiktok instagram" --categories research --search_terms "social posts,reddit,x twitter,youtube,tiktok,instagram"
+deepline search --type tools scrapecreators
+deepline search --type tools "facebook profile email scrapecreators"
+deepline search --type tools "instagram profile bio links scrapecreators"
+deepline search --type tools "company dataset firmographics funding technographics jobs" --categories company_search --search_terms "company dataset,firmographics,funding,technographics,jobs"
+deepline search --type tools "crm warehouse workflow session usage" --categories admin --search_terms "crm,warehouse,workflow,session,usage"
 ```
 
 For CRM/private data, also search by provider name when relevant:
 
 ```bash
-deepline tools search salesforce
-deepline tools search hubspot
-deepline tools search attio
-deepline tools search snowflake
+deepline search --type tools salesforce
+deepline search --type tools hubspot
+deepline search --type tools attio
+deepline search --type tools snowflake
 ```
 
 ### 4.25. Design Queries Before Running Tools

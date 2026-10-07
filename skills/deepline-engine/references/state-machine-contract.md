@@ -43,7 +43,7 @@ When a transition is nonterminal, its output supplies the next state's input. Us
 Treat each state transformation as a callable Play, not a helper function hidden inside the engine. Before writing one:
 
 ```bash
-deepline plays search "<transition outcome>" --all --json
+deepline search --type plays "<transition outcome>"
 deepline plays describe <owned-or-prebuilt-candidate> --json
 ```
 

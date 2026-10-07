@@ -473,7 +473,7 @@ def build_report(corpus: Path = DEFAULT_CORPUS) -> tuple[str, dict[str, object]]
         "## Conclusion",
         "",
         "- Coverage is broader than the saved `last30days` GTM pattern at the contract level because it keeps the same public/community fanout and adds CRM, warehouse, workflow, provider-cost, custom-language, and activation requirements.",
-        "- Live retrieval parity still depends on Deepline catalog support. The skill must mark Reddit comments, X, TikTok, Instagram, YouTube transcripts, HN, Polymarket, Bluesky, and Truth Social as `native`, `generic route`, or `gap` after `deepline tools search`/`describe`.",
+        "- Live retrieval parity still depends on Deepline catalog support. The skill must mark Reddit comments, X, TikTok, Instagram, YouTube transcripts, HN, Polymarket, Bluesky, and Truth Social as `native`, `generic route`, or `gap` after `deepline search --type tools`/`describe`.",
         "- The most important implementation requirement is to keep the two-phase fanout from `last30days`: broad parallel source search first, then supplemental searches from discovered handles, subreddits, domains, datasets, CRM ids, account lists, and persona language.",
         "- The consolidation contract should be considered better than `last30days` only when the implementation preserves text/URL dedupe and adds identity joins, source provenance, join keys, cost basis, and evidence clusters.",
         "",

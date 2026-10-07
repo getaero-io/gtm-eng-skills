@@ -42,7 +42,7 @@ deepline plays run prebuilt/name-and-domain-to-email-waterfall-batch \
   --input '{"csv":"leads.csv","columns":{"first_name":"fname","last_name":"lname","domain":"company_domain"}}'
 ```
 
-Discover plays with `deepline plays search <query>`; use
+Discover plays with `deepline search --type prebuilts <query>`; use
 `deepline plays list --show-cost` for available cost estimates and
 `deepline plays describe <name>` for contracts. The same `--show-cost` option
 on `plays share publish` or `plays share update` controls public-page cost
@@ -295,8 +295,8 @@ Category searches:
 Search examples:
 
 ```bash
-deepline tools search --categories people_search --search_terms "title filters,linkedin"
-deepline tools search --categories company_search --search_terms "structured filters,firmographics"
+deepline search --type tools --categories people_search --search_terms "title filters,linkedin"
+deepline search --type tools --categories company_search --search_terms "structured filters,firmographics"
 ```
 
 Example:
@@ -498,7 +498,7 @@ do not expose them in reports or Play output.
 1. If the user supplies an actor ID, name, or URL, use that actor within the
    authorized scope; do not substitute another actor silently.
 2. Otherwise inspect `deepline tools describe apify_run_actor_sync` for actor
-   guidance, or use `deepline tools search`. If no suitable actor is listed,
+   guidance, or use `deepline search --type tools`. If no suitable actor is listed,
    search the actor store and inspect the candidate's input schema.
 3. Avoid rental-priced actors. If the supplied actor requires a rental, surface
    the pricing conflict and obtain approval before incurring it.

@@ -23,7 +23,7 @@ enrichment command or its flags.
 2. Search for a maintained Play and inspect its input and output contract:
 
    ```bash
-   deepline plays search email --json
+   deepline search email --type prebuilts
    deepline plays describe prebuilt/<play-from-search> --json
    ```
 
@@ -43,7 +43,7 @@ Inspect the file and choose a batch Play whose input schema matches its
 columns. Run a representative pilot before the full file:
 
 ```bash
-deepline plays search email --json
+deepline search email --type prebuilts
 deepline plays describe prebuilt/<batch-play-from-search> --json
 deepline plays check prebuilt/<batch-play-from-search> --json
 WORKDIR="deepline/data/quickstart-pilot" && mkdir -p "$WORKDIR"

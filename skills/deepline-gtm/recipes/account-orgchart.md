@@ -81,7 +81,7 @@ Typical run: 150-250 people found, 3-8 minutes. When the user asks about spend, 
 **Before running any paid source:** check your CRM for contacts already at this company. If HubSpot, Salesforce, or another CRM is connected, discover the live CRM tool contract first instead of guessing operation names:
 
 ```bash
-deepline tools search --categories crm --search_terms "contacts,account,company"
+deepline search --type tools --categories crm --search_terms "contacts,account,company"
 deepline tools describe TOOL_ID_FROM_SEARCH
 ```
 
