@@ -211,6 +211,7 @@ function providerInput(
         row.full_name ||
         [row.first_name, row.last_name].filter(Boolean).join(' '),
       company: row.account_name || row.domain,
+      phoneFull: false,
     };
   }
   if (provider === 'enformion_person_search') {

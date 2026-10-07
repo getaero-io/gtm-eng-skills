@@ -39,6 +39,16 @@ Optional flags:
 - `reveal_phones: true` — include phone numbers (default: true)
 - `signals: true` — include intent signal data
 
+For an email-only lookup, always pass `reveal_phones: false`. Lusha reveals phones by default and charges 5 Lusha credits per revealed phone versus 1 per email, so omitting the flag pays for phones you did not ask for:
+
+```json
+{
+  "linkedin_url": "https://www.linkedin.com/in/johndoe",
+  "reveal_emails": true,
+  "reveal_phones": false
+}
+```
+
 ### lusha_enrich_company
 
 Enriches a company from domain, name, or Lusha company ID. Returns size, revenue, industry, technologies.
