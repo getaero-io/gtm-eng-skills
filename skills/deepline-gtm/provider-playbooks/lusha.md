@@ -4,6 +4,8 @@
 
 Lusha for B2B email + direct dial enrichment. Strong North American and European coverage with intent signal data. Good for sales prospecting workflows where direct dials matter. Cost-competitive per enriched contact.
 
+Connect the workspace's own Lusha API key in Dashboard → Integrations before calling a Lusha tool. Lusha bills the connected account; Deepline does not charge credits for these calls.
+
 **Key strength**: Direct dials (not just HQ numbers). Lusha often surfaces mobile and desk direct numbers that other providers miss.
 
 ## Provider characteristics
