@@ -70,12 +70,12 @@ Move to 2 rows only when the second exercises a different branch you need to ver
 When a derived column is empty or a getter looks wrong, inspect retained
 results before a new provider probe. `tools describe` gives the contract, not
 proof of what this run returned. Export the selected dataset and inspect its
-authored evidence; retrieve referenced tool receipts for unanswered questions:
+authored evidence; read saved tool results for unanswered questions:
 
 ```bash
 deepline runs get <run-id> --json
 deepline runs export <run-id> --dataset <returned-selector> --format json --out rows.json
-deepline runs receipt <run-id> --key '<returned-receipt-key>'
+deepline runs logs <run-id> --kind receipt.completed --payloads --json
 ```
 
 Scalar returned values live in `runs get`'s `result`; `--full` resolves a result

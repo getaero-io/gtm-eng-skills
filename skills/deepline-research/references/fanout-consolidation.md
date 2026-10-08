@@ -25,7 +25,7 @@ Extract objective, entity scope, time window, public sources, private sources, d
 
 Search in parallel across public sources first:
 
-- social/community: Reddit threads, Reddit comments, X/Twitter, YouTube, TikTok, Instagram, HN, Polymarket, Bluesky, Truth Social
+- social/community: Reddit threads, Reddit comments, X/Twitter, YouTube, TikTok, Instagram, HN, Bluesky, Truth Social
 - web/source discovery: web, news, docs, blogs, GitHub, directories, app stores, reviews
 - public and niche datasets: public records, registries, licenses, inspections, permits, government datasets, open CSVs/APIs, professional directories, association/member lists, accreditation databases
 - GTM public signals: company/account, people/contact, jobs, hiring, technographics, funding, review volume, ads and public activity

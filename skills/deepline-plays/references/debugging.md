@@ -56,33 +56,12 @@ resolution-based schema, ordinary fields are convenience copies; `_dl_meta`
 holds intermediate evidence. A nonempty value is not validation, a skipped
 alternative is not a miss, and a rejected candidate need not be a failed call.
 
-If a stage records a `receipt_key`, use `deepline runs receipt -h` and retrieve
-that retained response. This requires the originating run's workspace auth;
-the key must belong to work produced or reused by that run. It never executes
-a provider. The runtime's returned `_metadata.execution.receiptKey` is the key,
-not an authored call-site `id`/`call_key` or `job_id`.
-
-```bash
-deepline runs receipt <run-id> --key '<returned-receipt-key>'
-deepline runs receipt <run-id> --keys receipt-keys.txt --out responses.json
-```
-
-`--keys -` also accepts newline-separated keys from stdin. For example, if the
-actual row schema has `email_result._dl_meta.attempts[].stages[]`:
-
-```bash
-set -o pipefail
-jq -r '.[].email_result._dl_meta.attempts[].stages[]? | .receipt_key // empty' "$WORKDIR/rows.json" \
-  | deepline runs receipt "$RUN_ID" --keys - --out "$WORKDIR/responses.json"
-```
-
-Adapt the field path to the exported schema; a single finder may have stages
-directly, without attempts. Missing/skipped stages do not invent receipt keys.
-The response has `runId` and ordered `receipts`, each with `result` or `error`.
-Read `result.toolResponse`. `--out` creates a new private file; otherwise JSON
-goes to stdout. Missing keys exit 4 and incomplete/unavailable results exit 5;
-good peer results remain available. Empty input is an error. Preserve failures
-through pipes rather than treating a successful parser as a successful read.
+Use `deepline runs logs <run-id> --kind receipt.completed --payloads --json`
+for saved tool results, or `--kind receipt.failed` for recorded failures. Keep
+the original run's workspace and UTC window. Select one returned `eventId`
+with `--where` to retrieve its exact details; follow `next.logs` for more.
+Read the returned `payload.output`. Missing details stay unknown and do not
+justify a new provider call. Check `runs logs --help` for current filters.
 
 Current `rawV2` receipts retain complete parsed and scrubbed provider data.
 Inline list previews are separate and do not establish completeness; these

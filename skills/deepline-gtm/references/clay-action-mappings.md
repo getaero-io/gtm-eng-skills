@@ -41,7 +41,7 @@ deepline search --type tools "<action intent>"     # find current options
 deepline tools describe <candidate_tool_id> # verify it exists + see payload schema
 ```
 
-**Why this matters:** Deepline may add a native `octave_qualify_person`, `instantly_send_email`, or other integration at any time. Searching first means your script gets the better tool automatically — instead of being locked into a `deeplineagent` approximation.
+**Why this matters:** Deepline may add a native tool for a Clay action at any time. Searching first means your script gets the better tool automatically — instead of being locked into a `deeplineagent` approximation.
 
 ---
 
@@ -83,8 +83,8 @@ deepline tools describe <candidate_tool_id> # verify it exists + see payload sch
 | `octave-run-sequence-runner`                                | Pass 1: `deeplineagent` (signals) → Pass 2: `deeplineagent` (email)                                                                                                                                                                                                                                                                                | Always 2 passes                                                                               |
 | `social-posts-get-post-activity-posts-and-shares`           | `harvestapi_get_profile_posts`                                                                                                                                                                                                                                                                                                                     | Run-as-button in Clay — omit unless user needs posts                                          |
 | `score-your-data` (unconfigured)                            | `run_javascript` keyword scoring                                                                                                                                                                                                                                                                                                                   | See Scoring section                                                                           |
-| `add-lead-to-campaign` (Smartlead)                          | `smartlead_add_leads_to_campaign`                                                                                                                                                                                                                                                                                                                  |                                                                                               |
-| `add-lead-to-campaign` (Instantly)                          | `instantly_add_contacts_to_campaign`                                                                                                                                                                                                                                                                                                               |                                                                                               |
+| `add-lead-to-campaign` (Smartlead)                          | `smartlead_push_to_campaign`                                                                                                                                                                                                                                                                                                                       |                                                                                               |
+| `add-lead-to-campaign` (Instantly)                          | `instantly_add_to_campaign`                                                                                                                                                                                                                                                                                                                        |                                                                                               |
 | `exa_search` (Clay native)                                  | `exa_search`                                                                                                                                                                                                                                                                                                                                       | Direct equivalent                                                                             |
 
 ---
@@ -155,7 +155,7 @@ The entire Clay waterfall group collapses to one native play. Pick based on avai
 
 ```
 
-Compiles to: `dropleads_email_finder → hunter_email_finder → leadmagic_email_finder → deepline_native_enrich_contact → crustdata_v3_person_enrich → peopledatalabs_enrich_contact`
+Compiles to: `dropleads_email_finder → hunter_email_finder → leadmagic_email_finder → enrich_contact → crustdata_v3_person_enrich → peopledatalabs_enrich_contact`
 
 **Have name + company only**:
 
@@ -171,7 +171,7 @@ Compiles to: `dropleads_email_finder → hunter_email_finder → leadmagic_email
 
 ```
 
-Compiles to: `leadmagic_email_validation (first.last@, firstlast@, first_last@) → dropleads_email_finder → hunter_email_finder → leadmagic_email_finder → deepline_native_enrich_contact → peopledatalabs_enrich_contact`
+Compiles to: `leadmagic_email_validation (first.last@, firstlast@, first_last@) → dropleads_email_finder → hunter_email_finder → leadmagic_email_finder → enrich_contact → peopledatalabs_enrich_contact`
 
 **Alternative individual providers** (use `deepline search --type tools "email"` to see current list):
 
@@ -422,7 +422,7 @@ deepline search --type tools "octave"
 deepline search --type tools "sequence runner email"
 ```
 
-If a native tool exists (e.g. `octave_qualify_person`, `octave_sequence_runner`), use it directly — it will be faster and more accurate than the `deeplineagent` fallbacks below. The patterns below are **fallbacks for when no native tool is available**.
+If search finds a native tool for the action, use it directly — it will be faster and more accurate than the `deeplineagent` fallbacks below. The patterns below are **fallbacks for when no native tool is available**.
 
 ### `octave-qualify-person`
 
@@ -511,36 +511,33 @@ Clay ships 27 HubSpot actions plus a Salesforce package, and this file does not 
 
 ### `add-lead-to-campaign` (Smartlead)
 
-`smartlead_add_leads_to_campaign` does **not** exist. Use `smartlead_api_request` to POST to the leads endpoint:
+Use `smartlead_push_to_campaign`:
 
 ```bash
-deepline tools execute smartlead_api_request --payload '{
-  "method": "POST",
-  "path": "/v1/campaigns/<campaign_id>/leads",
-  "body": {
-    "lead_list": [
-      {
-        "email": "{{final_email}}",
-        "first_name": "{{first_name}}",
-        "last_name": "{{last_name}}",
-        "company_name": "{{company_name}}",
-        "linkedin_url": "{{linkedin_url}}"
-      }
-    ]
-  }
+deepline tools execute smartlead_push_to_campaign --payload '{
+  "campaign_id": "<campaign_id>",
+  "lead_list": [
+    {
+      "email": "{{final_email}}",
+      "first_name": "{{first_name}}",
+      "last_name": "{{last_name}}",
+      "company_name": "{{company_name}}",
+      "linkedin_profile": "{{linkedin_url}}"
+    }
+  ]
 }'
 ```
 
 Or as a play column:
 
 ```ts
-.withColumn('campaign_push', 'smartlead_api_request', { method: 'POST', path: '/v1/campaigns/<campaign_id>/leads', body: { lead_list: [{ email: '{{final_email}}', first_name: '{{first_name}}', last_name: '{{last_name}}', company_name: '{{company_name}}' }] }, })
+.withColumn('campaign_push', 'smartlead_push_to_campaign', { campaign_id: '<campaign_id>', lead_list: [{ email: '{{final_email}}', first_name: '{{first_name}}', last_name: '{{last_name}}', company_name: '{{company_name}}' }] })
 
 ```
 
 ### `add-lead-to-campaign` (Instantly)
 
-Correct tool name is `instantly_add_to_campaign` (not `instantly_add_contacts_to_campaign`):
+Use `instantly_add_to_campaign`:
 
 ```bash
 deepline tools execute instantly_add_to_campaign --payload '{
@@ -551,11 +548,11 @@ deepline tools execute instantly_add_to_campaign --payload '{
 
 ### Other campaign platforms
 
-| Platform                       | Tool                                            | Notes                       |
-| ------------------------------ | ----------------------------------------------- | --------------------------- |
-| HeyReach (LinkedIn sequences)  | `heyreach_add_to_campaign`                      | LinkedIn outreach sequences |
-| Lemlist                        | `lemlist_add_to_campaign`                       | Multi-channel sequences     |
-| Smartlead (verify tool schema) | `deepline tools describe smartlead_api_request` | Use API request endpoint    |
+| Platform                      | Tool                         | Notes                       |
+| ----------------------------- | ---------------------------- | --------------------------- |
+| HeyReach (LinkedIn sequences) | `heyreach_add_to_campaign`   | LinkedIn outreach sequences |
+| Lemlist                       | `lemlist_add_to_campaign`    | Multi-channel sequences     |
+| Smartlead                     | `smartlead_push_to_campaign` | Email sequences             |
 
 ---
 

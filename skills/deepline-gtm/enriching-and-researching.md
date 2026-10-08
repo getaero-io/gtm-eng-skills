@@ -93,11 +93,11 @@ Every play named in this table runs via `deepline plays run prebuilt/<name>`
 | Generate copy after research                             | The research column already exists and you now need messaging, first lines, scoring copy, or sequence text | `writing-outreach.md`                                     | Copywriting should route to the outreach doc, usually with `deeplineagent` once the research column exists               |
 | LinkedIn post URL -> list of engagers                    | You have a LinkedIn post URL and want all reactors/commenters                                              | `linkedin_post_to_engagers`                               | Scrape all reactors/commenters from a LinkedIn post. Returns structured engager list.                                    |
 | List of people with name + position -> ICP qualification | You have person rows with name and headline and need tier classification                                   | `engagers_to_icp_qualification`                           | Classify leads against ICP using headline/position via deeplineagent                                                     |
-| **Personal email discovery**                             | User explicitly asks for personal emails (Gmail, Hotmail, etc.) - NOT work emails                          | `Personal email discovery`                                | Use Fullenrich or BetterContact. Do not substitute work-email providers.                                                 |
+| **Personal email discovery**                             | User explicitly asks for personal emails (Gmail, Hotmail, etc.) - NOT work emails                          | `prebuilt/personal-email`                                 | Personal-email waterfall; `prebuilt/personal-email-batch` for a CSV. Do not substitute work-email finders.               |
 
 ## Notes
 
-- **Personal vs work emails:** When the user asks for personal emails, they mean Gmail/Hotmail/Yahoo, not work emails. Use Fullenrich (`contact.personal_emails`) or BetterContact; do not substitute Hunter, LeadMagic, or other work-email providers.
+- **Personal vs work emails:** When the user asks for personal emails, they mean Gmail/Hotmail/Yahoo, not work emails. Run `prebuilt/personal-email` (`prebuilt/personal-email-batch` for a CSV); do not substitute a work-email finder.
 - Direct provider tools are preferred for mechanical fields when no play exists.
 - When multiple providers recover the same mechanical field, prefer the route that bills on returned results or successful hits. Use request-priced, page-priced, or broad AI passes only after a tiny pilot proves they return usable rows.
 - `run_javascript` is for deterministic transforms, normalization, coalescing, templating, and cheap row-level glue logic.
@@ -181,7 +181,7 @@ deepline runs export <run-id> --out contacts_with_emails.csv
 
 ### Email -> person/company context
 
-Play tool: `deepline_native_enrich_contact`
+Play tool: `enrich_contact`
 
 Why this play:
 
@@ -191,7 +191,7 @@ Why this play:
 Example:
 
 ```bash
-deepline tools execute deepline_native_enrich_contact --input '{"email":"ada@acme.com"}'
+deepline tools execute enrich_contact --input '{"email":"ada@acme.com"}'
 ```
 
 For a CSV of inbound emails, author a one-column custom play calling the same tool per row ([recipes/deepline-plays.md](recipes/deepline-plays.md)).

@@ -176,7 +176,7 @@ High-priority because repeated GTM logs used them:
 - Apify actors: pragmatic route for LinkedIn, social scraping, and odd public web datasets when native providers are missing.
 - Public records/government/open-data: vertical-specific GTM alpha.
 - CRM/warehouse/product/workflow data: private truth layer for scoring and activation.
-- Contact/enrichment/verification stack: Apollo, Dropleads, Hunter, LeadMagic, BetterContact, Icypeas, RocketReach, ContactOut, Wiza, PDL, ZeroBounce-style validation, and LinkedIn scraping.
+- Contact/enrichment/verification stack: Apollo, Dropleads, Hunter, LeadMagic, BetterContact, Icypeas, ContactOut, Wiza, PDL, ZeroBounce-style validation, and LinkedIn scraping.
 - Campaign activation: Lemlist, Smartlead, Instantly, HeyReach, Marketo, HubSpot/Salesforce actions where relevant.
 
 ## Add To Every GTM Pre-Research Plan

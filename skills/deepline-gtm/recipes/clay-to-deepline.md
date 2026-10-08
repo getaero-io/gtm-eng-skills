@@ -330,17 +330,17 @@ deepline tools describe <candidate_tool_id>       # inspect candidate
 
 ### Summary Table
 
-| Clay action                                   | Deepline tool                                                                    |
-| --------------------------------------------- | -------------------------------------------------------------------------------- |
-| Email waterfall + `validate-email`            | `name-and-domain-to-email-waterfall` + `perm_fln` + `leadmagic_email_validation` |
-| `enrich-person-with-mixrank-v2`               | `leadmagic_profile_search` → `crustdata_v3_person_enrich`                        |
-| `chat-gpt-schema-mapper`                      | `deeplineagent` with `jsonSchema`                                                |
-| `use-ai` (no web)                             | `deeplineagent`                                                                  |
-| `use-ai` (claygent + web)                     | Binary search optimizer — see §5                                                 |
-| `octave-qualify-person`                       | `deeplineagent` + `jsonSchema` ICP scorer                                        |
-| `add-lead-to-campaign`                        | `instantly_add_to_campaign` or `smartlead_api_request`                           |
-| `route-row`                                   | **Not replicable.** Produce filtered output CSV per destination.                 |
-| `find-lists-of-companies-with-mixrank-source` | `crustdata_v3_company_search` + optional `prospeo_enrich_company`                |
+| Clay action                                   | Deepline tool                                                       |
+| --------------------------------------------- | ------------------------------------------------------------------- |
+| Email waterfall + `validate-email`            | `name-and-domain-to-email-waterfall` + `leadmagic_email_validation` |
+| `enrich-person-with-mixrank-v2`               | `leadmagic_profile_search` → `crustdata_v3_person_enrich`           |
+| `chat-gpt-schema-mapper`                      | `deeplineagent` with `jsonSchema`                                   |
+| `use-ai` (no web)                             | `deeplineagent`                                                     |
+| `use-ai` (claygent + web)                     | Binary search optimizer — see §5                                    |
+| `octave-qualify-person`                       | `deeplineagent` + `jsonSchema` ICP scorer                           |
+| `add-lead-to-campaign`                        | `instantly_add_to_campaign` or `smartlead_push_to_campaign`         |
+| `route-row`                                   | **Not replicable.** Produce filtered output CSV per destination.    |
+| `find-lists-of-companies-with-mixrank-source` | `crustdata_v3_company_search` + optional `prospeo_enrich_company`   |
 
 ---
 

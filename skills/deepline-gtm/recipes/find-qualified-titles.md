@@ -48,7 +48,7 @@ for free; people-search is for when you already know the persona and need volume
 | 1b   | Flatten nested titles -> scalar column    | `run_javascript`                                 | 0                       |
 | 2    | LLM filters roster to ICP-matching titles | `deeplineagent`                                  | cheap (1 small call/co) |
 | 2b   | Flatten `matched_titles` -> scalar column | `run_javascript`                                 | 0                       |
-| 3    | Find holders of the matched titles        | `deepline_native_search_contact` (`title_lists`) | LinkedIn-only tier      |
+| 3    | Find holders of the matched titles        | `search_contact` (`title_lists`) | LinkedIn-only tier      |
 | 4    | (optional) reveal email / phone           | `enrich_contact` / `enrich_phone`                | only on kept rows       |
 
 ## Why this shape (non-obvious rules, all verified live)
@@ -97,7 +97,7 @@ probes: run the same tool via `deepline tools execute`):
 2. `titles_flat` — `run_javascript`: `const t = row.titles?.output?.titles || row.titles?.result?.data?.output?.titles || []; return JSON.stringify(t);`
 3. `icp_match` — `deeplineagent`, model `openai/gpt-5.4-mini`, prompt: `ICP: <describe the buying-power roles, e.g. Marketing Ops, Sales Ops, RevOps, Salesforce admin/architect; senior IC and above; exclude recruiters/finance/support/plain reps>. From this exact title list return ONLY matching titles as exact strings: ${row.titles_flat}. Return JSON.` with `jsonSchema {matched_titles: string[], reasoning: string}`.
 4. `matched_titles` — `run_javascript`: `const match = row.icp_match || {}; const t = match?.extracted_json?.matched_titles || match?.result?.object?.matched_titles || match?.object?.matched_titles || []; return JSON.stringify(t.slice(0,100));`
-5. `contacts` — `deepline_native_search_contact` with `{"domain": row.domain, "title_lists":[{"name":"icp","titles": <matched_titles array>}], "page_size": 50}`. Returns holders of each title plus some near-matches (LinkedIn only — no email/phone); re-check `title`; raise `page_size` when many titles matched.
+5. `contacts` — `search_contact` with `{"domain": row.domain, "title_lists":[{"name":"icp","titles": <matched_titles array>}], "page_size": 50}`. Returns holders of each title plus some near-matches (LinkedIn only — no email/phone); re-check `title`; raise `page_size` when many titles matched.
 
 Contacts land at `contacts.output.persons[]` (legacy rows may use
 `contacts.result.data.output.persons[]`) with name, title, `linkedin_url`, seniority,

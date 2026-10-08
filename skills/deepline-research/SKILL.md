@@ -38,7 +38,7 @@ Portions of the query-design, public-source fanout, and consolidation approach a
 - Treat private data sources as first-class: CRM, warehouse, workflow runs, product analytics, support/calls, sheets, and customer-owned datasets.
 - Treat custom language as a first-class workflow: buyer words, objections, category language, competitor framing, community slang, sales-call phrasing, and support-ticket pain belong in the source plan.
 - Use tiny probes to learn coverage. Scale only after observed coverage, cost basis, and evidence quality are legible.
-- If the user asks for ScrapeCreators, X.com, Reddit comments, TikTok, Instagram, YouTube transcripts, Bluesky, Truth Social, HN, or Polymarket, include a current support/gap assessment instead of pretending every source is native.
+- If the user asks for ScrapeCreators, X.com, Reddit comments, TikTok, Instagram, YouTube transcripts, Bluesky, Truth Social, or HN, include a current support/gap assessment instead of pretending every source is native.
 - Do not depend on `/last30days` at runtime. Reference it only as a design benchmark for source breadth and synthesis discipline.
 - Public registries and niche datasets that do not have native Deepline tools are still valid sources through generic web/search/extraction routes. For example, the NPI registry for healthcare provider taxonomy can be discovered and pulled through generic web/API search and extraction even when no native `npi` tool exists. Classify this as `available through generic route`, not as an unusable gap.
 - Every recommended source must be classified as `native`, `available through generic route`, `private connector`, or `missing provider to add`.
@@ -109,7 +109,7 @@ Before provider routing, run a `last30days`-style public discovery pass. The goa
 
 Search across:
 
-- community/social: Reddit threads/comments, X/Twitter, LinkedIn posts if available, YouTube, TikTok, Instagram, HN, Bluesky, Polymarket when relevant
+- community/social: Reddit threads/comments, X/Twitter, LinkedIn posts if available, YouTube, TikTok, Instagram, HN, Bluesky
 - web/source discovery: news, blogs, docs, review sites, directories, associations, forums, GitHub, public data inventories
 - public records and niche datasets: registries, licenses, inspections, permits, government datasets, open CSVs/APIs, professional directories, accreditation/member lists
 - market-language sources: reviews, comments, clinic/business websites, job posts, competitor pages, support/community language
@@ -333,7 +333,7 @@ Use the same output discipline as `last30days` agent mode. The report should fee
 ```markdown
 ## Research Report: <topic>
 
-Generated: <date> | Sources: Reddit, X, YouTube, TikTok, Instagram, HN, Polymarket, Web, Public registries, Deepline catalog
+Generated: <date> | Sources: Reddit, X, YouTube, TikTok, Instagram, HN, Web, Public registries, Deepline catalog
 
 ### Key Findings
 

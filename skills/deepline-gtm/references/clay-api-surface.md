@@ -116,7 +116,7 @@ If a migration needs to know "what population did this table source", `/v3/sourc
 | `enrich-company`, `*-enrich-company`, `crunchbase-enrich-*` (22 keys)                                                               | company enrichment   | `prospeo_enrich_company` or `crustdata_v3_company_search`                                                               |
 | `use-ai`, claygent variants                                                                                                         | AI generation        | `deeplineagent` with a `jsonSchema`                                                                                     |
 | `find-lists-of-*-with-mixrank`, `search-person`                                                                                     | sourcing a new list  | `crustdata_v3_company_search`, `dropleads_search_people`, or `prebuilt/company-to-contact`                              |
-| `add-lead-to-campaign`, sequencer keys                                                                                              | campaign push        | `instantly_add_to_campaign`, `smartlead_api_request`                                                                    |
+| `add-lead-to-campaign`, sequencer keys                                                                                              | campaign push        | `instantly_add_to_campaign`, `smartlead_push_to_campaign`                                                               |
 
 Keys ending `-validate-auth` are Clay's connection health checks. They are not data columns - ignore them during migration.
 

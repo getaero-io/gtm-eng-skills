@@ -66,7 +66,7 @@ That means:
 | Step | What                       | Source                                                              | Spend posture                  |
 | ---- | -------------------------- | ------------------------------------------------------------------- | ------------------------------ |
 | 1    | Resolve target             | `leadmagic_profile_search` or `prebuilt/person-linkedin-to-email`   | Metered Deepline action        |
-| 2a   | Deepline Native search     | `deepline_native_search_contact` (4 title tiers)                    | Metered Deepline action        |
+| 2a   | Deepline Native search     | `search_contact` (4 title tiers)                    | Metered Deepline action        |
 | 2b   | Dropleads search           | `dropleads_search_people`                                           | Free or bundled when available |
 | 2c   | HarvestAPI employee search | `harvestapi_search_leads` filtered by current company               | Metered Deepline action        |
 | 2d   | Icypeas people search      | `icypeas_find_people`                                               | Metered Deepline action        |
@@ -135,7 +135,7 @@ Use this instead of the company-wide waterfall when the request centers on one i
    - **+2 (director):** two tiers up, same function.
    - **−1 (reports):** one tier down, same team + a shared specialty signal if you have one (e.g. same sub-discipline).
 
-   Use `dropleads_search_people` (free when available) and `deepline_native_search_contact` with title filters first; fall back to `exa_search` / Google-style queries for enterprises that index poorly. Keep each search scoped. You want ~3-8 candidates per tier, not hundreds.
+   Use `dropleads_search_people` (free when available) and `search_contact` with title filters first; fall back to `exa_search` / Google-style queries for enterprises that index poorly. Keep each search scoped. You want ~3-8 candidates per tier, not hundreds.
 
    **Resolving a candidate's LinkedIn URL from a name:** don't reach for `leadmagic_profile_search` because it is for the reverse direction, hydrating a profile when you already have the URL. For name to LinkedIn URL, use the **Serper to HarvestAPI validate** pattern from the sibling [`linkedin-url-lookup`](linkedin-url-lookup.md) recipe: `serper_google_search` with a `site:linkedin.com/in` query, then validate the top hit with `harvestapi_get_profile` and a mandatory name-match gate. Or call `prebuilt/person-to-linkedin-harvestapi`, which wraps this maintained route without changing the older `prebuilt/person-to-linkedin` compatibility play.
 
@@ -175,7 +175,7 @@ Need exact tier control the play's contract doesn't expose (custom title
 filters, more tiers)? Call the underlying tool directly:
 
 ```bash
-deepline tools execute deepline_native_search_contact --input '{"domain": "'"$DOMAIN"'", "title_filters": [{"name": "dir", "filter": "Head OR Director OR Senior Director"}, {"name": "mgr", "filter": "Manager OR Senior Manager"}]}'
+deepline tools execute search_contact --input '{"domain": "'"$DOMAIN"'", "title_filters": [{"name": "dir", "filter": "Head OR Director OR Senior Director"}, {"name": "mgr", "filter": "Manager OR Senior Manager"}]}'
 ```
 
 Expected: ~25-35 people.

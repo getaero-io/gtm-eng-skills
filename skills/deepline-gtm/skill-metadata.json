@@ -73,6 +73,12 @@
       "tags": ["reference", "plays"],
       "providers": []
     },
+    "references/run-events.md": {
+      "kind": "reference",
+      "title": "Run Logs and Events",
+      "tags": ["cli", "logs", "debugging"],
+      "providers": []
+    },
     "references/plays-sdk-reference.md": {
       "kind": "reference",
       "title": "Plays SDK Reference",

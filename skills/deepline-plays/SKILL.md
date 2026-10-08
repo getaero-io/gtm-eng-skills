@@ -62,12 +62,11 @@ deepline -h
   use field selection or summaries. Preserve complete responses, separate
   stderr from JSON, and check exit status (`pipefail` for pipelines).
 - **Evidence:** previews aren't complete results; completed runs can contain
-  failures; nulls don't explain misses. Inspect affected rows, then referenced
-  tool responses with `runs receipt <run-id> --key '<receipt-key>'`. Take keys
-  from row evidence first, then run logs if missing; receipt reads don't rerun
-  tools. Investigate unresolved requested conditions and stop once supported;
-  repeating a provider check isn't independent corroboration. Use full diagnostics
-  or logs for remaining questions. See [debugging](references/debugging.md).
+  failures; nulls don't explain misses. Inspect affected rows, then use
+  `runs logs <run-id> --kind receipt.completed --payloads --json` for saved
+  tool results. Select an exact result by its returned `eventId` with `--where`.
+  Logs reads don't execute tools. Investigate unresolved requested conditions
+  and stop once supported. See [debugging](references/debugging.md).
 - **Save/scope:** keep deliverables in a durable project directory, preserve
   source files and every supplied identity, including misses and failed rows.
   Planning/inspection authorizes no paid execution; returned actions don't

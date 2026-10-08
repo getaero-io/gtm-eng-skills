@@ -292,44 +292,19 @@ provider failure and absent evidence are different outcomes.
 
 ## Retrieve Retained Tool Responses
 
-Use receipts when an exported row's mapped result or inline evidence does not
-answer the question. They read previously stored tool results without another
-provider call. Do not fetch every receipt routinely or launch a replacement
-probe when retained evidence is missing. Check `deepline runs receipt -h` for
-the installed command; if unavailable, report the version/deployment gap rather
-than reinstalling a pinned environment or rerunning the Play.
+Read saved results when an exported row's mapped result or inline evidence
+leaves a question unanswered. Use the original run's workspace and UTC window:
 
 ```bash
-deepline runs receipt <run-id> --key '<returned-receipt-key>'
-# Or newline-separated keys from a file; --keys - reads stdin.
-deepline runs receipt <run-id> --keys receipt-keys.txt --out responses.json
+deepline runs logs <run-id> --kind receipt.completed --payloads --json
 ```
 
-For an authored result whose alternatives contain stages, this is a possible
-pipe. Inspect the actual schema first: `email_result` is an example, not a
-required field on every Play. A single-finder result may have `_dl_meta.stages`
-directly instead. `[]?` skips absent stage arrays, not failed commands.
-
-```bash
-set -o pipefail
-jq -r '.[].email_result._dl_meta.attempts[].stages[]? | .receipt_key // empty' "$WORKDIR/rows.json" \
-  | deepline runs receipt "$RUN_ID" --keys - --out "$WORKDIR/responses.json"
-```
-
-The JSON response contains `runId` and `receipts`, one result or error per key
-in requested order, including duplicates. Successful entries expose
-`result.toolResponse`; internal credentials and provider spend are excluded.
-`--out` creates a new private JSON file and prints file metadata; it refuses to
-overwrite. Without `--out`, the full response goes to stdout. Missing keys
-return exit 4; incomplete/unavailable results return exit 5, preserving good
-results alongside per-key errors. An empty list is an input error, not proof of
-no tool activity. Long lists are batched, not silently truncated.
-
-Use the original run ID and its authenticated workspace. The reader checks that
-a receipt was produced or reused by that run; a bare key is not authorization.
-The returned `receipt_key` comes from the tool result's
-`_metadata.execution.receiptKey`. An authored call-site `id`/`call_key` and a
-`job_id` are different identifiers, not interchangeable lookup keys.
+Select one returned `eventId` with `--where` for its exact saved details;
+read `payload.output`. New failed-call details also use `receipt.completed`;
+filter `$.context.callStatus == "failed"` to find them. Use `step.failed` for
+causal step failures and follow `next.logs` to page. Check `runs logs --help` for filters. These reads
+never execute tools. Missing evidence is a limitation to report, not permission
+to rerun the Play or replace a deliberately pinned CLI.
 
 Retained tool responses preserve existing redactions and list previews; they
 are not guaranteed full HTTP wire captures. Stored and inline evidence can
