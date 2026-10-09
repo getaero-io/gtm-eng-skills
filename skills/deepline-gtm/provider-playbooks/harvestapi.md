@@ -9,3 +9,5 @@ For profile posts, `postedLimit` may return posts outside the requested duration
 Use `harvestapi_get_profile` with `main: "true"` when the smaller main-profile response is sufficient. Set `findEmail: "true"` only when email discovery is needed because it costs more. Set `skipSmtp: "true"` only when a non-SMTP email lookup is acceptable.
 
 HarvestAPI plan limits are concurrent-request limits, not per-minute quotas. Deepline uses its Business subscription's 40-request concurrency limit and applies shared retry/backoff handling for transient failures.
+
+An empty response can still consume managed Deepline credits. Paginated tools are priced per requested page, not per returned record. A successful `elements: []` response is charged when HarvestAPI reports billable usage; if that empty list reports no billable usage or omits usage, Deepline charges zero credits. Recognized missing-profile and missing-ad outcomes marked `no_result` are unbilled. Empty lists can have status `completed`; a completed status, null record, or body-level error alone does not guarantee a free call. Check the returned Deepline billing details for the actual charge.
