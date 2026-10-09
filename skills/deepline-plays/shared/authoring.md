@@ -83,6 +83,34 @@ marked `available_in_full`. Dataset handles require row export. Use a returned
 table query only when necessary and label its mutable scope. With repair
 authority, edit extraction from the observed evidence, not a guessed shape.
 
+### Tool results: getters first, then inspect rawV2
+
+`tools describe <tool-id> --json` (also `tools get`) lists the exact declared
+getter names. Use `result.extractedValues.<name>.get()` for normalized values
+and `result.extractedLists.<name>.get()` for row datasets. For example,
+BounceBan's `email_status` getter returns an EmailStatus object; PDL company
+enrichment declares `company_name` and `company_domain`; ContactOut person
+enrichment declares `email` and `personal_email`. Confirm names on the selected
+tool rather than copying getters between actions.
+
+For other fields, inspect `result.toolResponse.rawV2`. This is the complete
+parsed and scrubbed provider/tool adapter response, with its nesting preserved.
+The useful payload can be at `rawV2`, `rawV2.data`, or `rawV2.data.data`.
+The response view is pinned to the published Play artifact. A CLI upgrade does
+not change an existing run's shape. Once an envelope correction is released,
+republish deliberately to adopt it; retained runs and replay keep their old pin.
+`view: "data"` does not flatten it. BounceBan completed Play responses can
+place the verdict at `rawV2.data.data.result`; unwrapping once reads an envelope
+and can silently hold every lead. Do not apply a generic unwrap loop: provider
+records can themselves contain meaningful `data` fields.
+
+Inspect an existing receipt from the same Play first. A direct CLI probe can
+have a different adapter wrapper. Validate the exact required field and type
+on the pilot before processing the cohort. An unexpected shape is a contract
+error; do not turn it into a provider miss, invalid email, or a business hold.
+`outputSchema` and `details.rawToolOutputPaths` describe normalized output and
+compatibility extractor provenance; neither establishes a canonical rawV2 path.
+
 ## Design result columns and evidence
 
 For new or explicitly revised schemas, author a result object with final

@@ -1,5 +1,24 @@
 Use People Data Labs when you need explicit, auditable structured filters.
 
+## Reading results
+
+Use the exact declared getters from `tools describe <tool-id> --json` or
+`tools get`: company enrichment declares `company_name` and `company_domain`;
+contact enrichment declares contact getters; search actions declare list
+getters. Do not invent getters for other profile fields.
+
+`toolResponse.rawV2` preserves the complete parsed and scrubbed provider/tool
+adapter envelope. The checked-in company enrichment sample is
+`{ data: { status: 200, data: { name, website, ... } } }`, so that sample's
+company is at `rawV2.data.data`. Other responses or execution surfaces can have
+a different wrapper. Inspect the original retained response, then assert the
+exact field path and type before bulk execution. Missing an expected profile
+field at a guessed path is an extraction error, not proof PDL returned no data.
+`view: "data"` does not flatten rawV2; schema and extractor provenance do not
+establish its observed nesting.
+
+## Choosing and calling tools
+
 - Normalize noisy input first with clean helpers before running expensive search/enrich operations.
 - Use autocomplete and narrow incrementally to avoid over-constraining initial queries.
 - Treat Person Search `size` as a spend cap: every returned profile is billed. Start with `size: 1`, inspect `total` and field coverage, then request only the number of profiles the user can use.

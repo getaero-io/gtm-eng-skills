@@ -153,9 +153,21 @@ Enriches company data (size, industry, funding, HQ) from a domain name.
 
 ## Output shape
 
-`contactout_enrich_person` returns a flat profile object. Email at `email[0]`, `work_email[0]`, or `personal_email[0]`. No nested envelope.
+These shapes describe the normalized payload, not the full execution envelope.
+Use the declared `email` and `personal_email` getters from `tools describe` for
+the corresponding normalized values. Confirm the getters on the exact action.
 
-`contactout_linkedin_contact_info` returns the same flat profile object, but profile-only responses with no email or phone data are treated as no-result for billing and waterfall control.
+`contactout_enrich_person` has a profile payload with email arrays at `email`,
+`work_email`, and `personal_email`. The canonical response is
+`toolResponse.rawV2`; it preserves the adapter wrapper. The checked-in person
+enrichment sample has the profile under `data`, so its email array is at
+`rawV2.data.email`. Inspect the retained Play response before selecting a field;
+do not assume every ContactOut action or execution surface uses that same path.
+
+`contactout_linkedin_contact_info` has the same profile payload fields, but
+profile-only responses with no email or phone data are treated as no-result for
+billing and waterfall control. Payload field names do not imply an unwrapped
+rawV2 response.
 
 `contactout_search_people` returns `{ profiles: [...], metadata: { total_results: N } }`.
 
