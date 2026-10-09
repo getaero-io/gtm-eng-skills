@@ -217,9 +217,11 @@ Read its printed `next` list: it carries the four seams, `tools: [...]`,
 `--input-csv` also writes a stratified `fixture.csv`. Iterate route code against
 that; use the full cohort only for a scored run.
 
-Keep the top-level `definePlay` description short and concrete. The UI shows it
-below the Play identifier. Catalog categories are derived from the registered
-tools used by the Play; do not author category metadata on the Play itself.
+Give `definePlay` a short, readable `displayName` when its identifier is unclear;
+the UI uses it as the title and derives a name from the identifier when absent.
+Keep the separate top-level `description` short and concrete about the Play's
+purpose. Catalog categories are derived from the registered tools used by the
+Play; do not author category metadata on the Play itself.
 
 ```bash
 deepline billing balance --json

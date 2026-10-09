@@ -230,6 +230,7 @@ New artifacts pin authoring contract edition 8. Check, publish, and run use the 
 <!-- prettier-ignore -->
 | Field | Type | Required | Contract |
 |---|---|---:|---|
+| `displayName` | `string` | No | Optional human-readable Play name; empty uses the derived identifier. |
 | `description` | `string` | No | Optional non-empty human-readable summary of the Play. |
 | `compatibility.toolErrorSchemaVersion` | `0 \| 1` | No | Artifact-pinned tool error behavior, either 0 or 1. |
 | `compatibility.toolResponseReceiptRevision` | `string` | No | Explicit durable-receipt revision for a response transformation; bump only when serialized tool output changes. |
