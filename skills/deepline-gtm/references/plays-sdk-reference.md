@@ -1362,7 +1362,7 @@ Signature: `class DeeplineClient`
 
 ### `client.runs`
 
-Use `client.runs` (`/api/v2/runs`) to watch, stop, read logs, and export durable dataset rows.
+Use `client.runs` to watch, stop, query logs/events, and export durable dataset rows.
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -1376,7 +1376,8 @@ Use `client.runs` (`/api/v2/runs`) to watch, stop, read logs, and export durable
 | `listPage` | `(options: RunsListOptions) => Promise<RunsListPage>` | Yes | Read one run page with total, offset, limit and completeness metadata. |
 | `history` | `(options?: RunsHistoryOptions) => Promise<RunsHistoryPage>` | Yes | Search/page workspace run history newest first; follow empty continuing pages. |
 | `watch` | `(runId: string, options?: RunsWatchOptions) => Promise<PlayStatus>` | Yes | Poll run snapshots every two seconds until terminal status. |
-| `logs` | `(runId: string, options?: RunsLogsOptions) => Promise<RunsLogsResult>` | Yes | Read a run's retained text tail, full stream (`all`) or terminal failure window (`failed`). For structured filters and payloads, see [run logs and events](run-events.md). |
+| `logs` | `RunsLogsNamespace` | Yes | Call for the retained text tail, full stream (`all`) or terminal failure window (`failed`). Use `logs.query/count/summarize/fields` for structured filters and exact aggregates; see [run logs and events](run-events.md). |
+| `events` | `RunsEventsNamespace` | Yes | Use `events.list/count/summarize/fields` for lifecycle, receipt and organization-wide events; see [run logs and events](run-events.md). |
 | `searchEvents` | `( options?: RunsEventSearchOptions, ) => Promise<RunsEventSearchResult>` | Yes | Search existing events across the active organization; default last hour, up to 200 events per page (ten with payloads). See [run logs and events](run-events.md) for the catalog, query fields and response types. |
 | `exportDatasetRows` | `(input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; rowMode?: 'output' \| 'all' \| 'live'; signal?: AbortSignal; }) => Promise<PlaySheetRowsResult>` | Yes | Export persisted rows for a runtime-sheet dataset/table namespace. |
 | `stop` | `( runId: string, options?: { reason?: string }, ) => Promise<StopPlayRunResult>` | Yes | Stop a running/waiting run. |
@@ -1408,13 +1409,9 @@ history.
 
 ### `client.monitors`
 
-Public monitors namespace exposed as `client.monitors`.
-
-Mirrors the /api/v2/monitors resource family so the monitors CLI and
-programmatic callers share one product surface — every `deepline monitors`
-verb maps to a method here. Monitors are fully expressible as SDK code: author
-a definition with `defineMonitor`, then check/deploy/list/get/update/
-delete/reactivate through this namespace.
+Use `client.monitors` for the /api/v2/monitors resource family.
+Every `deepline monitors` verb maps here. Author a definition with `defineMonitor`,
+then check/deploy/list/get/update/delete/reactivate through this namespace.
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |

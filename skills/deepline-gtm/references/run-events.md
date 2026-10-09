@@ -4,11 +4,46 @@
 
 Read existing run logs, find failures and filter events. These commands do not execute tools.
 
+## Query retained logs
+
+`--step`, `--level`, `--query`, `--count`, `--sum` or `--group-by` select structured logs for one run; accompanying bounds and `--where` apply to log records. `--step` matches the recorded authored step; `--level warn` includes warn and error. `--query` searches the full retained message literally, including percent signs and underscores. `runs events` applies these operations to lifecycle, receipt and organization-wide events.
+
+Structured reads default to the last hour and 50 records or groups per page (maximum 200). Records are newest first; summary groups use ascending group keys. `--count` returns an exact retained count and cannot combine with `--limit`, `--cursor` or `--payloads`. `--group-by` pages all matching groups; `--sum` totals numeric fields, or returns an ungrouped count and sum without `--group-by`. Numeric sums reject strings and booleans; missing values and null form distinct groups. Sampling and expired history cannot be reconstructed.
+
+`--fields` discovers fields, types and operators. `where` accepts scalar equality, `{ eq, ne, gt, gte, lt, lte, in, exists }`, nested `context: { key: ... }` or flat `"context.key"`, and `{ and: [...] }` / `{ or: [...] }`. String predicates accept equality, inequality, ranges, `in`, `exists`, `&&`, `||` and parentheses; `$.field` is accepted. Quote strings with JSON double quotes; numbers, booleans and null stay unquoted. Missing fields do not match comparisons; use `exists false`. Filters allow 64 comparisons and 8 KiB; custom context fields must be recorded scalars, not nested payload data.
+
+```bash
+deepline runs logs '<run-id>' --step company-lookup --level warn --since 1h --where 'context.attempt >= 2 && context.cached == false' --json
+deepline runs logs '<run-id>' --query 'timeout %_MARKER' --count --json
+deepline runs logs '<run-id>' --group-by stepId --sum context.durationMs --json
+deepline runs logs --fields --json
+deepline runs events --kind step.failed --since 1h --json
+```
+
+`client.runs.logs(runId, options)` remains the callable text reader. Use `logs.query/count/summarize/fields` for structured logs, or `client.runs.events.list/count/summarize/fields` for events; omit `runId` for organization-wide reads. Each method makes one request per page or aggregate.
+
+```ts
+import { DeeplineClient } from 'deepline';
+const client = new DeeplineClient();
+const runId = '<run-id>';
+const page = await client.runs.logs.query(runId, {
+  since: '1h',
+  stepId: 'company-lookup',
+  minLevel: 'warn',
+  where: { context: { cached: false, attempt: { gte: 2 } } },
+});
+const count = await client.runs.logs.count(runId, page.query);
+```
+
+Lists return flat `logs` or `events`, `page: { returnedCount, hasMore, nextCursor }`, frozen `query` criteria and `retention: { retainedSince, retentionDays }`. Relative bounds resolve once; `since` is inclusive and `until` exclusive. Frozen criteria fix the window, not a snapshot: newly available events may change later pages or aggregates. Start a fresh list to catch late arrivals ahead of its cursor. Follow `next.page`, or reuse `query` with `cursor: page.nextCursor` when `hasMore`. Criteria exclude page options and the positional log run ID, retain an event run ID, and preserve SDK Preview selection. Recorded step, level, source, attempt and context stay together; absent historical fields stay absent.
+
+Counts return `matchedCount` and `exact: true`. Summaries return `groups`, `groupBy`, `measures` and an independent `page`; groups contain `keys` and named numeric `measures`. Missing keys use `{ "missing": true }`, distinct from null or `"<missing>"`.
+
+HTTP uses `POST /api/v2/runs/events` with a flat body: `operation: "list" | "count" | "summarize" | "fields"`, `resource: "logs" | "events"`, `runId`, criteria and options. Log list/count/summary requests require `runId`; fields does not. Summaries require `groupBy` (`[]` for an ungrouped aggregate) and accept `measures: [{ op: "count" }, { op: "sum", field: "context.durationMs", as: "durationMs" }]`. SDK, HTTP and CLI share filter validation. Existing GET and text-log contracts remain available below.
+
 ## Read logs or search events
 
-A run ID alone reads text logs. Use the returned nextCursor with --cursor for older lines. Omit the run ID or add a search flag to search events; a supplied run ID narrows the search. --out, --failed and --log-level cannot be combined with event search.
-
-Search defaults to the last hour, newest first; maximum lookback is seven days. Follow the returned next.logs command for the next page. --payloads adds available event details or saved work results, not dataset rows.
+A run ID alone reads text logs. Use the returned nextCursor with --cursor for older lines. Omit the run ID or add a search flag to search events; a supplied run ID narrows the search. --out, --failed and --log-level cannot be combined with event search. Search defaults to the last hour, newest first; maximum lookback is seven days. Follow the returned next.logs command for the next page. --payloads adds available event details or saved work results, not dataset rows. Text logs default to 200 lines; compatibility event search defaults to 100 (maximum 200), or 10 with payloads and 16 MiB. Check retention warnings; --out saves all available log lines.
 
 ```bash
 deepline runs logs '<run-id>'
@@ -16,8 +51,6 @@ deepline runs logs '<run-id>' --out run.log
 deepline runs logs --kind run.failed --json
 deepline runs logs --play my-play --since 2026-10-06T00:00:00Z --until 2026-10-06T01:00:00Z --json
 ```
-
-Text logs default to 200 lines. Event search defaults to 100 events (maximum 200); with `--payloads`, the limit is 10 events and 16 MiB. Check returned retention warnings; `--out` saves all available log lines.
 
 ## Known event kinds
 
@@ -45,53 +78,35 @@ Text logs default to 200 lines. Event search defaults to 100 events (maximum 200
 | `receipt.skipped` | Saved work result: skipped. |
 | `runtime.event` | Other event. |
 
-## Filter with --where
+## Compatibility event search with --where
 
-String fields: eventId, orgId, runId, playName, runtimeScope, kind, status, source, level, stepId, stepKind, datasetId, phase, provider, operation. producerAttempt is a positive integer; context.&lt;key&gt; accepts flat string, number or boolean log fields.
+String fields: eventId, orgId, runId, playName, runtimeScope, kind, status, source, level, stepId, stepKind, datasetId, phase, provider, operation. producerAttempt is a positive integer; context.&lt;key&gt; accepts flat string, number or boolean log fields. Use $.field == value joined with &&, at most eight predicates and 512 bytes. Wrap the filter in single shell quotes; strings use double quotes, numbers and booleans are unquoted. Missing fields do not match. No OR, ranges, wildcards or text/payload search. Use --kind for run/step outcomes; status is not inferred from kind. provider/operation match activity.observed where recorded, not every provider call. Replace example values with values from your events.
 
-Use $.field == value joined with &&, at most eight predicates and 512 bytes. Wrap the filter in single shell quotes; strings use double quotes, numbers and booleans are unquoted. Missing fields do not match. No OR, ranges, wildcards or text/payload search.
-
-Use --kind for run/step outcomes; status is not inferred from kind. provider/operation match activity.observed where recorded, not every provider call. Replace example values with values from your events.
-
-The context examples use `ctx.log("Lookup finished", { context: { companyId: "acme_123", attempt: 2, cached: false } })`.
+Bare `runs logs --where`, `--since` and `--kind` keep this equality grammar; text `--failed`, `--out` and `--log-level` keep their established behavior. Context examples use `ctx.log("Lookup finished", { context: { companyId: "acme_123", attempt: 2, cached: false } })`.
 
 ```bash
-# Failed work with saved details
 deepline runs logs --kind receipt.failed --where '$.status == "failed"' --payloads --json
-# One failed step
 deepline runs logs --kind step.failed --where '$.stepId == "company-lookup"' --payloads --json
-# Provider and operation
 deepline runs logs --kind activity.observed --where '$.provider == "apollo" && $.operation == "company_lookup"' --json
-# Failed dataset
 deepline runs logs --kind dataset.lifecycle --where '$.datasetId == "companies" && $.phase == "failed"' --payloads --json
-# String log context
 deepline runs logs --kind log.appended --where '$.context.companyId == "acme_123"' --json
-# Number and boolean log context
 deepline runs logs --kind log.appended --where '$.context.attempt == 2 && $.context.cached == false' --json
-# One run and step
 deepline runs logs '<run-id>' --where '$.stepId == "company-lookup"' --json
-# Error logs for one step
 deepline runs logs --kind log.appended --where '$.level == "error" && $.stepId == "company-lookup"' --payloads --json
 ```
 
 ## Retrieve results
 
-`--payloads` adds `eventPayload` for event details or `payload` for saved work results. To read one exact saved result, filter by the `eventId` returned by a previous search. Missing or unavailable details are explicit; reads never execute tools.
+`--payloads` adds `eventPayload` details or saved `payload` results; unavailable details are explicit. Select an exact returned `eventId` with its original `--since`/`--until` window. Events retain seven days; details may differ. Redirecting JSON saves one page: follow `next.logs` for compatibility search or `next.page` for structured reads. Use `--out run.log` for all text or `runs export --format json --out results.json` for dataset rows.
 
 ```bash
 deepline runs logs '<run-id>' --kind receipt.completed --payloads --json
 deepline runs logs --where '$.eventId == "receipt:5a32ee1a-46cf-4853-b72b-5f1d782ffab4"' --payloads --json
 ```
 
-Use the original `--since` and `--until` window when retrieving a previously found event. Event search retains seven days; details may have a different retention period. For dataset rows use `runs export`.
-
 New tool results retain sanitized input under `payload.output.meta.callEvidence.input` and output under `payload.output.toolResponse.rawV2`. `callEvidence.providerRequests` contains observed HTTP requests, response status and failed response bodies; successful output is retained once in `toolResponse.rawV2`. Credentials and provider billing fields are removed. Multipart, binary, streaming, oversized or unobserved evidence reports an unavailable reason. Older results may have no input evidence.
 
-Find saved failed calls with `--kind receipt.completed --where '$.context.callStatus == "failed" && $.context.callKey == "lookup"' --payloads`. This context applies to new saved failed-call records.
-
-Saved failed-call details have `payload.output.kind: "tool_call_evidence"`, `status: "failed"`, `callEvidence` and the original error. Their `receipt.completed` event means the diagnostic record was saved; it does not mean the tool succeeded. Use `step.failed` for the causal step failure.
-
-Redirecting `--payloads --json` saves only that page. Follow `next.logs` for further pages. Use `--out run.log` for all available text logs, or `runs export --format json --out results.json` for full dataset rows.
+Find new saved failed-call records with `--kind receipt.completed --where '$.context.callStatus == "failed" && $.context.callKey == "lookup"' --payloads`. Details have `payload.output.kind: "tool_call_evidence"`, `status: "failed"`, `callEvidence` and the original error. `receipt.completed` means the diagnostic was saved; use `step.failed` for the causal failure.
 
 ## SDK and HTTP field contract
 

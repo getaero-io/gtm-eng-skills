@@ -226,6 +226,7 @@ while True:
 | `POST` | `/api/v2/runs/:runId/stop` | `runs.stop`<br />`stopRun`<br />`cancelPlay`<br />`stopPlay` | Stop a running or waiting play run. | `apps/deepline-api/src/app/api/v2/runs/[runId]/stop/route.ts` |
 | `GET` | `/api/v2/runs/:runId/tail` | `legacy SDK watch fallback` | Stream canonical run events over SSE. | `apps/deepline-api/src/app/api/v2/runs/[runId]/tail/route.ts` |
 | `GET` | `/api/v2/runs/events` | `runs.searchEvents`<br />`searchRunEvents`<br />`runs logs` | Search accepted run events, log lines and receipt outcomes; see the run logs and events reference for kinds, filters, payloads and pagination. | `apps/deepline-api/src/app/api/v2/runs/events/route.ts`<br />`apps/deepline-api/src/lib/plays/runtime-event-reader.ts` |
+| `POST` | `/api/v2/runs/events` | `runs.logs.query`<br />`runs.logs.count`<br />`runs.logs.summarize`<br />`runs.logs.fields`<br />`runs.events.list`<br />`runs.events.count`<br />`runs.events.summarize`<br />`runs.events.fields`<br />`runs logs`<br />`runs events` | Search accepted run events, log lines and receipt outcomes; see the run logs and events reference for kinds, filters, payloads and pagination. | `apps/deepline-api/src/app/api/v2/runs/events/route.ts`<br />`apps/deepline-api/src/lib/plays/runtime-event-reader.ts`<br />`packages/play-runtime/run-event-query.ts`<br />`packages/play-runtime/scheduler-backends/runtime-event-search.ts` |
 | `POST` | `/api/v2/runs/stop-all` | `runs.stopAll`<br />`stopAllRuns` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/runs/stop-all/route.ts` |
 
 ### Play Definitions
@@ -679,7 +680,7 @@ Result returned by `DeeplineClient.stopPlay`.
 
 ### `RunsNamespace`
 
-Use `client.runs` (`/api/v2/runs`) to watch, stop, read logs, and export durable dataset rows.
+Use `client.runs` to watch, stop, query logs/events, and export durable dataset rows.
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -693,7 +694,8 @@ Use `client.runs` (`/api/v2/runs`) to watch, stop, read logs, and export durable
 | `listPage` | `(options: RunsListOptions) => Promise<RunsListPage>` | Yes | Read one run page with total, offset, limit and completeness metadata. |
 | `history` | `(options?: RunsHistoryOptions) => Promise<RunsHistoryPage>` | Yes | Search/page workspace run history newest first; follow empty continuing pages. |
 | `watch` | `(runId: string, options?: RunsWatchOptions) => Promise<PlayStatus>` | Yes | Poll run snapshots every two seconds until terminal status. |
-| `logs` | `(runId: string, options?: RunsLogsOptions) => Promise<RunsLogsResult>` | Yes | Read a run's retained text tail, full stream (`all`) or terminal failure window (`failed`). For structured filters and payloads, see [run logs and events](run-events.md). |
+| `logs` | `RunsLogsNamespace` | Yes | Call for the retained text tail, full stream (`all`) or terminal failure window (`failed`). Use `logs.query/count/summarize/fields` for structured filters and exact aggregates; see [run logs and events](run-events.md). |
+| `events` | `RunsEventsNamespace` | Yes | Use `events.list/count/summarize/fields` for lifecycle, receipt and organization-wide events; see [run logs and events](run-events.md). |
 | `searchEvents` | `( options?: RunsEventSearchOptions, ) => Promise<RunsEventSearchResult>` | Yes | Search existing events across the active organization; default last hour, up to 200 events per page (ten with payloads). See [run logs and events](run-events.md) for the catalog, query fields and response types. |
 | `exportDatasetRows` | `(input: { playName: string; tableNamespace: string; runId?: string; limit?: number; offset?: number; rowMode?: 'output' \| 'all' \| 'live'; signal?: AbortSignal; }) => Promise<PlaySheetRowsResult>` | Yes | Export persisted rows for a runtime-sheet dataset/table namespace. |
 | `stop` | `( runId: string, options?: { reason?: string }, ) => Promise<StopPlayRunResult>` | Yes | Stop a running/waiting run. |
