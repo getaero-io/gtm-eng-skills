@@ -37,6 +37,14 @@ deepline -h
   deepline runs get <run-id> --json run.id,datasets.storage,actions
   ```
 
+  Check `deepline runs get --help` before using field selection. Older CLIs
+  offer only bare `--json`; use it without a field list, or update the CLI.
+  Save a tool contract with `deepline tools describe <tool-id> --json > contract.json`;
+  `tools describe` does not accept `--out`.
+  In Windows PowerShell 5.1, use
+  `cmd /d /c "deepline tools describe <tool-id> --json > contract.json"`
+  to keep the file UTF-8; direct PowerShell redirection writes UTF-16.
+
   Use the returned schema/table for `<returned-table>` (for example,
   `"storage"."contact_email_waterfall_email_rows"`). Copy the run-membership
   predicate from the suggested SQL into `<returned-run-filter>` (for example,
