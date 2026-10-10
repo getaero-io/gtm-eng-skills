@@ -92,7 +92,24 @@ One row per failure class. The row is usually the whole fix; the three deep-dive
 | Route scorecard shows `deepline_credits` empty, `cost_basis=catalog_upper_bound`                                             | No attempt carried a cost receipt, so the column can only hold a catalog bound                                                                                                                                      | Declare `tools: [...]` on each program and read the COST RECEIPT from `scripts/cost-receipt.py`, which joins the run's billing breakdown onto those ids                                                                                                                                                                                                                           |
 | A registered route reports zero results but you never saw it run                                                             | It was never reached: `maxFallbacks` bounds the dependency-closed waterfall                                                                                                                                         | Check `reachability` in the scorecard. `never_reached` is not a source miss and not a coverage ceiling                                                                                                                                                                                                                                                                            |
 
+## Fetch timeout and write outcome
+
+Durable `ctx.fetch` calls reuse completed response records. Failed requests do
+not publish completed cache entries. A headers timeout leaves an upstream
+write's outcome unknown and does not establish whether its body was sent. The
+transport does not automatically retry that timed-out write, but a later
+invocation can execute it again. For mutating requests, verify provider support
+for idempotency and retain the same `Idempotency-Key` across retries and replay.
+Do not infer that the write failed from the timeout alone. Fetch deadlines are
+platform-controlled; callers may cancel through `init.signal`.
+
 ## What a run cost
+
+For terminal row accounting, inspect `runs get <id> --json rowOutcomes`.
+Its successes, failures and superseded rows are disjoint; superseded rows belong
+to a newer write's latest view. Active runs omit this terminal summary. A
+completed lifecycle alone does not establish that every input produced a visible
+successful row.
 
 Investigate cost when asked or needed for a spending decision. Follow the
 overview's billing action: CLI `runs get <id> --full --json` exposes billing at

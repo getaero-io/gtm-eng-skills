@@ -147,7 +147,7 @@ Drop to `ctx.tools.execute(...)` only when you need one explicit provider call t
 - **Validate the person before trusting a recovered LinkedIn URL.** Searched-recovered URLs (from name + company) carry a substantial false-positive rate without a name gate: null out URLs where last name does not match exactly or as a substring, or first name does not match exactly / by 3+ char prefix / by a known nickname. Full treatment in the sibling `linkedin-url-lookup` skill.
 - **Email domain ≠ company domain.** After recovery, compare each row's email domain against the company domain it should belong to. Mismatches are often previous-employer or wrong-person matches; more than ~20% mismatch means the contact-finding step needs re-running with better company disambiguation.
 
-Inside a play, tool results serialize like `deepline tools execute --json`: execution metadata is top-level, raw provider data is `toolResponse.rawV2`, tool metadata is `toolResponse.meta`, semantic extractions are `extractedValues` / `extractedLists`.
+Inside a play, tool results serialize like `deepline tools execute <tool-id> --json`: execution metadata is top-level, raw provider data is `toolResponse.rawV2`, tool metadata is `toolResponse.meta`, semantic extractions are `extractedValues` / `extractedLists`.
 
 ## Compare first, then build the waterfall
 

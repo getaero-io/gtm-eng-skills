@@ -595,7 +595,7 @@ Poll this until `status` reaches a terminal state:
 | `recovery` | `{ mode: 'replayed' \| 'forced' \| 'recovered' \| 'joined'; sourceRunId?: string; }` | No |  |
 | `progress` | `PlayProgressStatus` | No | Execution progress with logs and error details. |
 | `result` | `unknown` | No | Partial or final result. Available once the play returns. |
-| `rowOutcomes` | `{ completedRows: number; failedRows: number; totalRows: number; hasRowFailures: boolean; }` | No | Terminal row outcome truth. A completed run may still contain failed rows<br />when row-level failure isolation persisted those rows for retry. |
+| `rowOutcomes` | `{ completedRows: number; failedRows: number; totalRows: number; hasRowFailures: boolean; supersededRows?: number; }` | No | Terminal row outcome truth. A completed run may still contain failed rows<br />when row-level failure isolation persisted those rows for retry. |
 | `package` | `PlayRunPackage` | No | Compact typed run package returned by current run status endpoints. |
 | `outputs` | `PlayRunPackage['outputs']` | No | Compact typed output summaries, mirrored from the run package when present. |
 | `run` | `{ id?: string; startTime?: string \| null; closeTime?: string \| null; [key: string]: unknown; } \| null` | No | Scheduler-backed run metadata when returned by the status endpoint. |
@@ -614,11 +614,8 @@ Poll this until `status` reaches a terminal state:
 
 ### `PlayRunPackage`
 
-Compact canonical package for an inspected play run.
-
-This object is designed for SDK/CLI/API consumers that need stable run
-metadata, output handles, and follow-up actions without reading dashboard
-internals.
+Compact canonical run package for SDK/CLI consumers: stable metadata,
+output handles and follow-up actions without dashboard internals.
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
@@ -630,6 +627,7 @@ internals.
 | `source` | `{ ledgerNextSeq: number \| null }` | No | Ledger position of the detailed snapshot, when provided by this server. |
 | `overview` | `RunLifecycleStatus` | No | Legacy status evidence returned by older servers. |
 | `runStatus` | `RunGetStatus` | No | Optional bounded live evidence from the existing run status projection. |
+| `rowOutcomes` | `PlayStatus['rowOutcomes']` | No | Terminal scalar row outcomes shared with full status and watch snapshots. |
 | `run` | `{ id: string; revisionId?: string; playName: string; status: string; dashboardUrl?: string; acceptedAt?: number \| null; updatedAt?: number \| null; startedAt?: number \| null; finishedAt?: number \| null; durationMs?: number \| null; outcome?: PlayRunOutcome; recovery?: { mode: 'replayed' \| 'forced' \| 'recovered' \| 'joined'; sourceRunId?: string; }; error?: string; activity?: PlayRunActivityProjection \| null; }` | Yes | Run identity, status, timing, and dashboard metadata. |
 | `warnings` | `string[]` | No | Bounded customer-safe warnings about output projection or availability. |
 | `steps` | `Array<Record<string, unknown>>` | Yes | Step-level summaries emitted by the runtime. |

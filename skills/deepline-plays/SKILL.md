@@ -109,6 +109,12 @@ deepline runs logs --kind step.failed --payloads --json
 deepline runs logs --kind receipt.failed --payloads --json
 ```
 
+Use the installed command's `--help` before an unfamiliar flag. Skills can
+refresh independently of the CLI binary; an unsupported flag is a grammar or
+version mismatch, not evidence that the cloud operation failed. Follow an
+update hint when compatibility identifies a newer command, then rerun preflight
+before using the refreshed instructions.
+
 Before the first Deepline fanout in a task, run `deepline preflight --json` as
 one standalone command and wait for it to finish. Never submit preflight beside
 another Deepline command. After it succeeds, prefix every Deepline command that

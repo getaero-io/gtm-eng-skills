@@ -307,7 +307,7 @@ New artifacts pin authoring contract edition 8. Check, publish, and run use the 
 | `ctx.sleep.ms` | `number` | Yes | Non-negative whole-number sleep duration in milliseconds. |
 | `ctx.fetch.url` | `string` | Yes | HTTP request URL. Secret authentication requires HTTPS. |
 | `ctx.fetch.init.method` | `string` | No | HTTP method. Mutating methods require an Idempotency-Key. |
-| `ctx.fetch.init.headers.Idempotency-Key` | `string` | No | Required for mutating HTTP methods to make replay safe. |
+| `ctx.fetch.init.headers.Idempotency-Key` | `string` | No | Required for mutating HTTP methods. The provider must support idempotency, and the same key must be retained across retries and replay. |
 
 ### Durable call keys are static
 
@@ -730,7 +730,7 @@ Signature: `export type ToolExecutionRequest = PlayToolExecutionRequest;`
 
 ### `ctx.fetch(key, url, init)`
 
-Execute a guarded HTTP request. By default it is durable and replay-safe; `staleAfterSeconds` governs only that completed call receipt, never dataset/request identity. Pass `{ transient: true }` for short-lived credential exchanges or other response data that must not be retained in a receipt or checkpoint. Edition 5+ throws `CtxFetchHttpError` for non-2xx; catch it only when the Play intentionally recovers, otherwise let it fail the Play. Editions 1–4 retain their previous response projections.
+Execute a guarded HTTP request. By default, completed responses are durably reused; `staleAfterSeconds` governs only that completed call receipt, never dataset/request identity. Failed requests do not publish completed cache entries. A headers timeout leaves an upstream write's outcome unknown and does not establish whether its body was sent. The transport does not automatically retry that timed-out write, but a later invocation can execute it again. Mutating requests require provider-supported idempotency with the same key retained across retries and replay. Deadlines are platform-controlled; callers may cancel through `init.signal`. Pass `{ transient: true }` for short-lived credential exchanges or other response data that must not be retained in a receipt or checkpoint. Edition 5+ throws `CtxFetchHttpError` for non-2xx; catch it only when the Play intentionally recovers, otherwise let it fail the Play. Editions 1–4 retain their previous response projections.
 
 Signature: `fetch( key: string, url: string | URL, init?: SecretAwareRequestInit, options?: FetchOptions, ): Promise<PlayFetchResponse>;`
 
