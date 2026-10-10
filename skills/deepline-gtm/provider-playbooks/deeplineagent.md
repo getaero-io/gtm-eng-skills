@@ -6,6 +6,14 @@ Deepline default is `openai/gpt-5.6-luna`. The `tools describe` CLI also shows
 the selected model metadata and provider option schema:
 `deepline tools describe ai_inference --model openai/gpt-5.6-luna --json`.
 
+Use `jsonSchema` for a structured result. Deepline guides the model to emit
+complete, compact JSON while preserving an explicit `maxOutputTokens` limit.
+Do not apply a small token cap indiscriminately to research or long free-text
+fields. For a small budget, ask for brief values; leave enough headroom for
+every required field and any model reasoning. Inspect `tools describe` for
+the current model and operation contract. Incomplete JSON remains a failure,
+not a partial successful result.
+
 For inference and `deeplineagent`, read `toolResponse.rawV2.result.text` for
 text, `toolResponse.rawV2.result.object` for optional structured data, and
 `toolResponse.rawV2.extracted_json` for the compatibility JSON field. For
