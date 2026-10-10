@@ -660,6 +660,7 @@ Summary of a single play run, returned by `DeeplineClient.listPlayRuns`.
 | `executionTime` | `string \| null` | Yes | Duration string (e.g. `'2.5s'`). |
 | `billingTotalCredits` | `number` | No | Total Deepline credits charged for the run, when available. |
 | `billingMaxCreditsPerRun` | `number \| null` | No | Configured per-run Deepline credit cap, when available. |
+| `nodeObservation` | `{ attempt: number; status: 'completed' \| 'failed'; inputs: Record<string, unknown> \| null; outputs: Record<string, unknown> \| null; error: string \| null; inputsTruncated: boolean; outputsTruncated: boolean; } \| null` | No | Latest settled Mermaid-node invocation when `runs.list` is filtered by `node`. |
 | `memo` | `{ orgId: string; playName: string; userId: string \| null; }` | Yes | Metadata attached to the workflow. |
 
 ### `StopPlayRunResult`

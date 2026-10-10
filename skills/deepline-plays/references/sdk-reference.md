@@ -2,8 +2,7 @@
 
 ## Runtime Model
 
-The Deepline SDK is a runtime SDK. Your TypeScript defines durable play code and typed run contracts; Deepline executes that code in the cloud runtime, records provider/tool calls, persists dataset rows, and exposes run state through SDK handles and HTTP APIs.
-Use `definePlay(...)` for code that runs inside a Deepline play. Inside that function, `ctx.*` is the runtime boundary: `ctx.tools.execute` calls managed providers, `ctx.dataset` records row-level work, `ctx.step` checkpoints scalar work, `ctx.fetch` records external HTTP, and `ctx.runPlay` composes registered or prebuilt plays.
+Use `definePlay(...)` to define durable TypeScript code and typed run contracts executed in the cloud. Inside that function, `ctx.*` records and persists work: `ctx.tools.execute` calls managed providers, `ctx.dataset` records rows, `ctx.step` checkpoints scalar work, `ctx.fetch` records external HTTP, and `ctx.runPlay` composes registered or prebuilt plays.
 Use `Deepline.connect()` and `DeeplineClient` from regular Node/TypeScript services, scripts, schedulers, or tests. Those APIs discover tools and plays, start runs, stream/poll status, stop runs, and inspect durable output without requiring a local play file. For logs, the complete event catalog, filters and payload retrieval, use `deepline runs logs --help` or [Run logs and events](run-events.md).
 
 ## Detail Policy
