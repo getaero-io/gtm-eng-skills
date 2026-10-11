@@ -95,8 +95,8 @@ confirm their contracts before first use:
 ```bash
 deepline search --type tools "Google Workspace dataset export"
 deepline search --type tools "Google Workspace API request"
-deepline tools describe google_workspace_export_dataset --json
-deepline tools describe google_workspace_request --json
+deepline tools describe google_workspace_export_dataset
+deepline tools describe google_workspace_request
 ```
 
 ## Run and review

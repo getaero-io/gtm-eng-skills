@@ -184,7 +184,7 @@ When a database comes up thin, change where the fact lives:
 
 ```bash
 deepline search --type tools "company search funding headcount category hq"
-deepline tools describe <tool-id> --json
+deepline tools describe <tool-id>
 deepline tools execute <tool-id> --payload '{"hq_country":"USA","funding_round":["Series A","Series B"],"employee_count":{"min":50,"max":500},"limit":1}' --json
 deepline plays check ./company-discovery.play.ts
 deepline plays run ./company-discovery.play.ts --input '{"target_count":25}'

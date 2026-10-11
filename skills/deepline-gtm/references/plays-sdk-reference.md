@@ -224,7 +224,7 @@ export default definePlay(
 
 ## Play Authoring Contract
 
-New artifacts pin authoring contract edition 8. Check, publish, and run use the same admitted snapshot.
+New artifacts pin authoring contract edition 10. Check, publish, and run use the same admitted snapshot.
 
 <!-- prettier-ignore -->
 | Field | Type | Required | Contract |
@@ -490,7 +490,7 @@ Signature: `export type CsvOptions = CsvOptions;`
 
 Create a persisted row dataset and define durable output columns.
 
-Signature: `dataset<TSource extends PlayDatasetInput<object>>( key: string, items: TSource, ): DatasetBuilder< PlayDatasetRow<TSource> & object, PlayDatasetRow<TSource> & object, PlayAuthoringRuntimeContext >;`
+Signature: `dataset<TSource extends PlayDatasetInput<object>>( key: string, items: TSource, ): DatasetBuilder< PlayDatasetRow<TSource> & object, PlayDatasetRow<TSource> & object, DeeplinePlayRuntimeContext >;`
 
 #### Parameters
 
@@ -502,7 +502,7 @@ Signature: `dataset<TSource extends PlayDatasetInput<object>>( key: string, item
 
 #### Returns
 
-`DatasetBuilder< PlayDatasetRow<TSource> & object, PlayDatasetRow<TSource> & object, PlayAuthoringRuntimeContext >`
+`DatasetBuilder< PlayDatasetRow<TSource> & object, PlayDatasetRow<TSource> & object, DeeplinePlayRuntimeContext >`
 
 ### `.dataset(...).withColumn(name, resolver).run(options)`
 
@@ -705,7 +705,7 @@ Signature: `export type AsyncPlayRunRef = Readonly<{ runId: PlayRunId; }>;`
 
 Execute a provider tool through the terminal-result cache contract.
 
-Signature: `execute<TOutput = PlayLooseObject>( request: PlayToolExecutionRequest, ): Promise<ToolExecuteResult<TOutput>>;`
+Signature: `execute<TOutput = PlayLooseObject>( request: PlayToolExecutionRequest, ): Promise< ToolExecuteResult<TOutput> >;`
 
 #### Parameters
 
@@ -716,7 +716,7 @@ Signature: `execute<TOutput = PlayLooseObject>( request: PlayToolExecutionReques
 
 #### Returns
 
-`Promise<ToolExecuteResult<TOutput>>` — see [`ToolExecuteResult`](#toolexecuteresult)
+`Promise< ToolExecuteResult<TOutput> >` — see [`ToolExecuteResult`](#toolexecuteresult)
 
 ### `ToolExecutionRequest`
 
@@ -873,14 +873,14 @@ Signature: `class CtxFetchHttpError extends Error`
 
 Execute one reusable step program against a scalar input.
 
-Signature: `runSteps<TInput extends Record<string, unknown>, TOutput>( program: PlayAuthoringRunnableStepProgram< TOutput, PlayAuthoringRuntimeContext > & { readonly __inputType?: (input: TInput) => void }, input: TInput, options?: PlayAuthoringRunStepsOptions, ): Promise<TOutput>;`
+Signature: `runSteps<TInput extends Record<string, unknown>, TOutput>( program: PlayAuthoringRunnableStepProgram< TOutput, DeeplinePlayRuntimeContext > & { readonly __inputType?: (input: TInput) => void }, input: TInput, options?: PlayAuthoringRunStepsOptions, ): Promise<TOutput>;`
 
 #### Parameters
 
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
-| `program` | `PlayAuthoringRunnableStepProgram< TOutput, PlayAuthoringRuntimeContext > & { readonly __inputType?: (input: TInput) => void }` | Yes |  |
+| `program` | `PlayAuthoringRunnableStepProgram< TOutput, DeeplinePlayRuntimeContext > & { readonly __inputType?: (input: TInput) => void }` | Yes |  |
 | `input` | `TInput` | Yes |  |
 | `options` | `PlayAuthoringRunStepsOptions` | No |  |
 
@@ -918,17 +918,16 @@ these hide loading costs or make behavior depend on row residency.
 
 Canonical result returned by Deepline tool execution.
 
-The top-level object is Deepline-owned execution metadata and semantic
-extraction state. The canonical provider response lives under
-`toolResponse.rawV2`. Response metadata lives under `toolResponse.meta`. Semantic single-value
-getters live under `extractedValues.<name>.get()`, and list getters live
-under `extractedLists.<name>.get()`.
+Provider data: `toolResponse.rawV2`; metadata: `toolResponse.meta`.
+Single-value getters: `extractedValues.<name>.get()`; lists: `extractedLists.<name>.get()`.
 
-Use extractors first when a tool contract exposes them. Use list getters for
-row-shaped data. Use `toolResponse.rawV2` for provider-specific fields or
-debugging. Inspect the observed response before selecting a nested field;
-provider envelopes are preserved, including pagination and sibling resources.
-This is parsed, scrubbed data, not the original HTTP bytes or headers.<br />
+Prefer declared getters. New Plays (edition 10) receive ordinary arrays from
+list `.get()` synchronously; persist explicitly with ctx.dataset. Lazy or
+incomplete lists throw: use readList(result, path) for explicit dataset access.
+Provider pagination requires a separate request; getters never fetch it.
+Historical editions 1–9 retain PlayDataset getters and async materialize/peek;
+missing getters never mean empty results. Inspect rawV2 for debugging: parsed,
+scrubbed envelopes, pagination and siblings, not HTTP bytes or headers.<br />
 Signature: `export type ToolExecuteResult< TResult = unknown, TMeta = Record<string, unknown>, TExtracted extends Record<string, unknown> = Partial<DeeplineGetterValueMap>, TLists extends Record<string, Record<string, unknown>> = Record< string, Record<string, unknown> >, > = ToolExecuteResultBase<TResult, TMeta> & ToolExecuteResultAccessors<TExtracted, TLists>;`
 
 ## Errors And Provider Fallthrough

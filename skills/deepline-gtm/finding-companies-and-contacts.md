@@ -30,7 +30,7 @@ Search-to-enrichment handoff rules:
 This doc does not rank providers. Run `deepline search --type tools` for the job at hand and choose from what it returns: results carry each tool's filters, cost, and availability, and they stay current when a provider is added, repriced, or down. Provide an intent query, or omit it only when `--categories` or `--search_terms` supplies the structured search; both filters accept comma-separated values. Always pass `--task` with the input you have and the result you need. Provider names belong in the query, not in a `--prefix` flag.
 
 Syntax: `deepline search --type tools [query] [--categories <categories>]
-[--search_terms <terms>] [--json]`. Supply a query or at least one structured
+[--search_terms <terms>]`. Read the default output without `--json`. Supply a query or at least one structured
 filter. Search 2-4 synonyms when the first query is ambiguous. Inspection of a
 supplied Play or existing run does not require new provider discovery.
 

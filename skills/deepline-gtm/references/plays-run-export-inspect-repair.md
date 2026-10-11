@@ -72,6 +72,15 @@ If waiting times out or the CLI disconnects, retrieve the existing run with
 `runs get` or resume observation with `runs tail <run-id>`. A wait timeout does
 not cancel execution. Do not resubmit just to get its results.
 
+Use the public ID returned by your launch: `plays run` and `runs get` expose
+`run.id`; `runs list` exposes `runs[].id`. Export receipts and an explicitly
+requested `--run-id-file` use `runId` because they reference a run. List fields
+`runId` and `workflowId` remain compatibility aliases; `temporalRunId` is a
+backend identifier, not a target for run commands. Do not recover your own
+execution by blindly choosing the latest list entry: another invocation may
+have started concurrently. Use a new run-ID file path for each intended new
+execution; an old file does not establish that a later command submitted work.
+
 Do not pipe live CLI output through `head` or `tail`: the discarded section
 may contain validity, warnings or failures. Use supported field selection, or
 save complete stdout and stderr separately, check the CLI's exit status, then
@@ -305,6 +314,25 @@ filter `$.context.callStatus == "failed"` to find them. Use `step.failed` for
 causal step failures and follow `next.logs` to page. Check `runs logs --help` for filters. These reads
 never execute tools. Missing evidence is a limitation to report, not permission
 to rerun the Play or replace a deliberately pinned CLI.
+
+When a row already records a receipt key, inspect that result directly with
+`deepline runs receipt <run-id> --key '<returned-receipt-key>'`. Check
+`runs receipt -h` for the installed command; if unavailable, use the retained
+log events above rather than reinstalling a pinned environment or rerunning.
+The key is `_metadata.execution.receiptKey`, not a call-site ID or job ID.
+
+```bash
+# Newline-separated keys; --keys - reads stdin.
+deepline runs receipt <run-id> --keys receipt-keys.txt --out responses.json
+```
+
+Successful entries expose `result.toolResponse`; errors remain per-key.
+Requested order and duplicates are preserved. Without `--out`, JSON goes to
+stdout; with it, a new private file is written without overwriting. Missing
+keys return exit 4; incomplete/unavailable results return exit 5, retaining
+successful entries alongside errors. Reads require the original run's workspace
+and do not execute providers. Inspect the actual row schema before extracting
+keys; do not assume any particular nested field or array layout.
 
 Retained tool responses preserve existing redactions and list previews; they
 are not guaranteed full HTTP wire captures. Stored and inline evidence can

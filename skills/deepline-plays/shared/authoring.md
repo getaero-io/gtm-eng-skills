@@ -404,7 +404,18 @@ seed[("Seed rows")]        # the label names the thing; the pill carries the cou
 
 That is a real case: a play defaulting to 8,000 rows, run at 10,000, showing "8k seed rows" under a "10,000 rows" pill. Name what the node IS — `"Seed rows"`, `"Probed rows"`, `"Qualified accounts"` — and let the runtime say how many. `plays check` warns `docflow_label_counts_rows` when a label carries a magnitude (`8k`, `10,000 rows`, `500 leads`); a digit that is part of a name (`"SOC 2 signals"`, `"Series B companies"`) is fine and is not flagged. The same rule applies to the play's `description`: describe what it does, not the size of one run's input.
 
-Use human labels (`"Score fit"`, `"Probe attempt B"`), not `step2`. Reading dataset rows back into JS — to chain a second dataset, filter, or tally — is `await ds.materialize()` (or `.peek(n)` for a bounded preview); the `PlayDataset` handle is lazy, so `.rows`/`.toArray()`/array methods on it fail `plays check`.
+Use human labels (`"Score fit"`, `"Probe attempt B"`), not `step2`.
+
+**New Plays: getters return plain data.** A declared list getter returns an ordinary array from this provider response; use array methods directly. Creating a persisted dataset is a separate, explicit operation:
+
+```ts
+const items = result.extractedLists.items.get(); // Use a declared getter from tools describe.
+const items_ds = await ctx.dataset('items', items).run();
+```
+
+Scalar/object getters remain plain values. A valid empty list returns `[]`; a missing getter is not an empty result. Neither getter fetches additional provider pages. A lazy database list or incomplete retained preview cannot provide a complete synchronous array and throws; use `readList(result, declaredPath)` explicitly for its dataset-backed read.
+
+Existing published Plays retain their admitted getter semantics: editions 1–9 return dataset handles. Use `first()`, async iteration, or await `materialize()` for those handles; `peek(n)` and `materialize(n)` are prefixes, not provider pagination. Do not turn an unexpected handle into `[]` with an `Array.isArray` fallback.
 
 ## Common authoring traps
 

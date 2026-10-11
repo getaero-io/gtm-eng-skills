@@ -164,8 +164,8 @@ The skill prompts the agent to call `/api/v2/pre-research/plan`, inspect the ret
 Run several focused searches, usually in parallel after the standalone
 preflight. `deepline search --type tools` accepts an optional
 intent query, but requires either that query or one of `--categories` /
-`--search_terms`; those filters accept comma-separated values. Use `--json` for
-machine-readable output. There is no `--prefix` flag, so put a provider name in
+`--search_terms`; those filters accept comma-separated values. Read the default
+search output without `--json`. There is no `--prefix` flag, so put a provider name in
 the query instead.
 
 ```bash
@@ -299,7 +299,7 @@ python3 "$SKILL_ROOT/scripts/evaluate_public_private_corpus.py" \
 For every candidate, inspect the live contract:
 
 ```bash
-deepline tools describe <tool-id> --json
+deepline tools describe <tool-id>
 ```
 
 Record:

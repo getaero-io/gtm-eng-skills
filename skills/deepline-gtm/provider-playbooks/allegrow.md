@@ -4,18 +4,19 @@ Allegrow specialises in B2B catch-all domain resolution and primary-email identi
 
 ## Status Interpretation
 
-| `result.status`    | Meaning                                              | Action             |
-|--------------------|------------------------------------------------------|--------------------|
-| `safe`             | Valid, safe to send                                  | **Send**           |
-| `do_not_mail_abuse`| Valid address but high spam-report risk              | Skip email; use LinkedIn/phone instead |
-| `some_risk`        | Inconclusive, risk factors identified                | Hold 30 days; re-validate before next send |
-| `block_bounce_risk`| Invalid; will hard-bounce                            | Remove from list   |
-| `dead_email`       | Invalid account on a catch-all host (won't bounce)  | Use other channels; remove from active send list |
-| `spamtrap`         | Spamtrap or trap-like mailbox                        | Remove from list   |
-| `more_time_required`| Validation still processing                         | Poll later         |
-| `missing_email`    | Request did not include an email                     | Fix input          |
+| `result.status`      | Meaning                                            | Action                                           |
+| -------------------- | -------------------------------------------------- | ------------------------------------------------ |
+| `safe`               | Valid, safe to send                                | **Send**                                         |
+| `do_not_mail_abuse`  | Valid address but high spam-report risk            | Skip email; use LinkedIn/phone instead           |
+| `some_risk`          | Inconclusive, risk factors identified              | Hold 30 days; re-validate before next send       |
+| `block_bounce_risk`  | Invalid; will hard-bounce                          | Remove from list                                 |
+| `dead_email`         | Invalid account on a catch-all host (won't bounce) | Use other channels; remove from active send list |
+| `spamtrap`           | Spamtrap or trap-like mailbox                      | Remove from list                                 |
+| `more_time_required` | Validation still processing                        | Poll later                                       |
+| `missing_email`      | Request did not include an email                   | Fix input                                        |
 
 `result.subStatus`:
+
 - `primary`: Allegrow identified this as the contact's **main email**. Especially useful for execs and senior decision-makers who have multiple valid addresses.
 - `null`: No additional context.
 
@@ -34,7 +35,7 @@ contract with `deepline plays describe <play-ref> --json`. Confirm operation
 hints using `deepline tools describe <tool-id> --json`, then call them inside
 the Play via `ctx.tools.execute({ id, tool, input, description })`.
 For a custom CSV Play that reads `ctx.csv(input.csv)`, check it with
-`deepline plays check validate-email.play.ts --json` and run the authorized input
+`deepline plays check validate-email.play.ts` and run the authorized input
 with `deepline plays run --file validate-email.play.ts --csv contacts.csv --watch`.
 Pilot only for larger or uncertain authorized work; do not require an extra run
 or repeated approval for a small supplied Play. Inspect retained results with

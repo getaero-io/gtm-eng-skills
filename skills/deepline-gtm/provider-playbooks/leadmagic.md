@@ -29,8 +29,11 @@ import { definePlay } from 'deepline';
 export default definePlay(
   'email-verify',
   async (ctx, input: { csv: string }) => {
-    const contacts = await ctx.csv(input.csv, { required: ['email_1', 'email_2'] });
-    const rows = await ctx.dataset('contacts', contacts)
+    const contacts = await ctx.csv(input.csv, {
+      required: ['email_1', 'email_2'],
+    });
+    const rows = await ctx
+      .dataset('contacts', contacts)
       .withColumn('email_verification', async (row, rowCtx) => {
         const attempts = [];
         for (const [id, email] of [
@@ -45,11 +48,18 @@ export default definePlay(
             description: 'Verify this candidate email before accepting it.',
           });
           if (!['completed', 'no_result'].includes(result.status)) {
-            throw new Error(`Email verification did not complete: ${result.status}`);
+            throw new Error(
+              `Email verification did not complete: ${result.status}`,
+            );
           }
           const verdict = result.extractedValues.email_status?.get();
           const emailStatus = verdict?.status ?? null;
-          attempts.push({ email, emailStatus, verdict, response: result.toolResponse });
+          attempts.push({
+            email,
+            emailStatus,
+            verdict,
+            response: result.toolResponse,
+          });
           if (emailStatus === 'valid') return { email, attempts };
         }
         return { email: null, attempts };
@@ -62,7 +72,7 @@ export default definePlay(
 ```
 
 ```bash
-deepline plays check email-verify.play.ts --json
+deepline plays check email-verify.play.ts
 deepline plays run --file email-verify.play.ts --csv contacts.csv --watch
 ```
 

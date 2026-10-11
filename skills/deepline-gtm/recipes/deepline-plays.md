@@ -44,7 +44,7 @@ Treat “audit my Plays,” “check whether these Plays are outdated,” and �
 
 1. Establish whether the scope is local `*.play.ts` files, saved non-archived workspace Plays, or both. Inventory local Plays with hidden and gitignored files included while excluding dependency/build directories. Inventory saved Plays with `deepline plays list --json`; do not claim completeness if the owned result page is capped or the user requested archived Plays that the CLI cannot enumerate.
 2. For saved Plays, check every applicable live and dirty working revision. Fetch each revision's complete source bundle into a unique temporary directory outside the repository, preserve its entry file, and remove the exact temporary directory after the audit.
-3. Run `deepline plays check <entry-file> --json` for every in-scope local or materialized saved revision. Checking is read-only and spends no provider credits. A named check is not a substitute for checking the revision's source bundle.
+3. Run `deepline plays check <entry-file>` for every in-scope local or materialized saved revision. Checking is read-only and spends no provider credits. A named check is not a substitute for checking the revision's source bundle.
 4. Report `issues` as the remediation queue. When repairs are authorized, fix
    blocking `error` issues before migration `warning` issues. Use each issue's
    `path`, `hint`, `validOptions`, and `docsHint`; do not guess replacements.
@@ -89,7 +89,7 @@ Names in docs are hints. Live `search` and `describe` are the source of truth:
 ```bash
 deepline search "<job words>" --type tools,prebuilts
 deepline plays describe prebuilt/<candidate> --json
-deepline tools describe <tool-id> --json
+deepline tools describe <tool-id>
 ```
 
 ## Direct Prebuilt Run

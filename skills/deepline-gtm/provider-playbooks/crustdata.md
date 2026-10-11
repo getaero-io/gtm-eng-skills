@@ -54,7 +54,17 @@ execution example). It combines recall-first software-industry matching with an
 exact US HQ filter. Resolve current V3 field/value equivalents through discovery:
 
 ```json
-{"filters":[{"filter_type":"linkedin_industries","type":"(.)","value":"software"},{"filter_type":"hq_country","type":"=","value":"USA"}],"limit":5}
+{
+  "filters": [
+    {
+      "filter_type": "linkedin_industries",
+      "type": "(.)",
+      "value": "software"
+    },
+    { "filter_type": "hq_country", "type": "=", "value": "USA" }
+  ],
+  "limit": 5
+}
 ```
 
 For CSV company-name lookup, use a supplied Play if it fits. Otherwise discover
@@ -72,13 +82,16 @@ export default definePlay(
   'company-lookup',
   async (ctx, input: { csv: string }) => {
     const accounts = await ctx.csv(input.csv, { required: ['Company'] });
-    const rows = await ctx.dataset('accounts', accounts)
-      .withColumn('company_lookup', (row, rowCtx) => rowCtx.tools.execute({
-        id: 'company_lookup',
-        tool: 'crustdata_v3_company_search_autocomplete',
-        input: { field: 'basic_info.name', query: row.Company, limit: 1 },
-        description: 'Look up the canonical company-name candidate.',
-      }))
+    const rows = await ctx
+      .dataset('accounts', accounts)
+      .withColumn('company_lookup', (row, rowCtx) =>
+        rowCtx.tools.execute({
+          id: 'company_lookup',
+          tool: 'crustdata_v3_company_search_autocomplete',
+          input: { field: 'basic_info.name', query: row.Company, limit: 1 },
+          description: 'Look up the canonical company-name candidate.',
+        }),
+      )
       .run({});
     return { rows };
   },
@@ -87,7 +100,7 @@ export default definePlay(
 ```
 
 ```bash
-deepline plays check company-lookup.play.ts --json
+deepline plays check company-lookup.play.ts
 deepline plays run --file company-lookup.play.ts --csv accounts.csv --watch
 ```
 

@@ -57,9 +57,6 @@ prebuilt/<name> --source --out ./<name>.play.ts`, then `plays check`) or
   [recipes/deepline-plays.md](recipes/deepline-plays.md)
 - you are testing a niche provider path → direct `deepline tools execute`
 
-`deepline enrich` is deprecated; do not reach for it — the sections below are
-all plays.
-
 Billing recovery: if `deepline billing balance` or any paid Deepline command
 reports zero credits, `no_billing`, or an insufficient-credits failure, stop
 paid work and ask the user whether they want to add Deepline credits. If the
@@ -71,7 +68,7 @@ explicitly approves.
 ## Scenario table
 
 Every play named in this table runs via `deepline plays run prebuilt/<name>`
-(batch: `prebuilt/<name>-batch`) — never through `enrich --with`.
+(batch: `prebuilt/<name>-batch`).
 
 | Scenario                                                 | Use when                                                                                                   | Default play/tool                                         | Why                                                                                                                      |
 | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |

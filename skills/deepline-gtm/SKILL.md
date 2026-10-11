@@ -22,6 +22,18 @@ Ask one concise question with a recommendation only when a missing requirement
 materially changes the result or external action. Otherwise state a reasonable
 assumption and proceed. User-specified values override workflow defaults.
 
+### Plays and Tools
+
+- **Tool:** one operation, such as looking up a profile or validating an email.
+  Use direct tool calls for isolated spot checks.
+- **Play:** TypeScript that expresses GTM work as code. Combine tools with custom
+  logic—transformations, conditions and fallbacks—and process batches of data.
+  Deepline handles provider rate limits and retries, persists progress and
+  results, and supports recovery after failures.
+- **For workflows or batches:** use a supplied Play, reuse or adapt a suitable
+  prebuilt, or author one when none fits. Don't process batches by looping direct
+  tool calls in scripts or repeated agent calls.
+
 ### Domain guides
 
 Read the relevant guide before new provider work; do not load unrelated guides
@@ -46,9 +58,9 @@ for more recipes and SDK fields.
 
 ### Discover Plays and tools
 
-For new work, look for a suitable prebuilt Play before assembling a custom
-workflow. Search for the information needed and relevant controls, not only a
-provider name; describe the selected capability to confirm inputs, outputs and
+For new work, look for a suitable prebuilt Play to reuse or adapt before authoring
+one from scratch. Search for the information needed and relevant controls, not
+only a provider name; describe the selected capability to confirm inputs, outputs and
 pricing. Names in guides are starting hints, not substitutes for the live
 contract.
 
@@ -62,20 +74,8 @@ extraction mismatch is not a provider miss, invalid email, or business hold.
 ```bash
 deepline search "<information needed and controls>" --type tools,prebuilts --task "<input you have -> result you need>"
 deepline plays describe <play-name> --json
-deepline tools describe <tool-id> --json
+deepline tools describe <tool-id>
 ```
-
-Read search's default readable output. Choose from its current filters,
-cost and availability rather than a fixed provider ranking. If ranked tool search misses the capability, use
-`deepline tools grep <substring> --json` or
-`deepline tools list <returned-category> --json`. Read the relevant
-provider playbook below for payload conventions, pricing and caveats. Different
-vendors can expose the same underlying source; they are not automatically
-independent corroboration.
-
-Use a supplied Play or already-selected capability directly when suitable;
-don't rediscover or replace it unnecessarily. For an existing run, skip
-discovery and inspect its results.
 
 ### Specialized recipes
 
@@ -91,37 +91,9 @@ discovery and inspect its results.
 | [Portfolio prospecting](recipes/portfolio-prospecting.md) | Investor-backed companies, then contacts and personalized outbound. |
 | [Small-business prospecting](recipes/small-business-prospecting.md) | Local/storefront/service-area businesses using Maps-style search. |
 
-### Domain decisions to preserve
-
-- **Companies before people:** when company criteria drive the task, establish
-  the company set first, then find people there.
-- **Names are enough to start:** recover canonical company domains from official
-  evidence; don't ask the user to supply recoverable identifiers. Carry that
-  evidence forward and surface genuine identity ambiguity.
-- **Nuanced roles:** use the real `company_titles` roster, qualify exact titles,
-  then `search_contact` with `title_lists`. Search for other people-search
-  tools to fill public-profile gaps or size a market broadly.
-- **LinkedIn:** prefer a native tool or prebuilt Play for profiles, employees,
-  posts and engagers; use a general scraping tool only when none covers the
-  surface.
-- **Provider routing:** direct structured search first for discovery; AI research
-  for synthesis/ambiguity. Use deterministic transforms for non-AI work,
-  `ai_inference` for classification and `deeplineagent` for context/research.
-  Confirm current tools rather than guessing fields.
-- **Quality:** consult [contact accuracy](references/contact-accuracy.md) before
-  activation. Verification starts with a dedicated email validator, then
-  corroboration; high-value outreach needs more than a single provider claim.
-  Phone recovery follows the enrichment guide.
-- **Population:** preserve every supplied contact/account, including misses.
-  For a fungible “find N” discovery job, source extra candidates within budget
-  (roughly 1.4×N as an initial heuristic), then select the best qualified N.
-  Don't apply that drop-incomplete-rows tactic to a fixed input cohort.
-
-
 ## 2. Build, run and retrieve
 
-- **Build:** reuse a suitable prebuilt or author a Play for workflows and batches;
-  direct tools are for spot checks. Follow [Play authoring](recipes/deepline-plays.md)
+- **Build:** follow [Play authoring](recipes/deepline-plays.md)
   and the [SDK reference](references/plays-sdk-reference.md). Preserve supplied
   Plays unless a material mismatch needs a decision.
 - **Check:** inspect input headers and mappings; run `deepline plays check <file>`
@@ -174,15 +146,15 @@ discovery and inspect its results.
   delivery, `--format json` for nested evidence. The response is a file
   receipt—read the file. Use `csv show <file> --summary` for local CSV summaries.
 - **CLI hygiene:** use `-h`; run `deepline preflight --json` as a standalone command
-  and wait before parallel Deepline work. After preflight, prefix each concurrent
-  command with `DEEPLINE_SKIP_SELF_UPDATE=1`. Prefer field selection or summaries
+  and wait before parallel Deepline work. Prefer field selection or summaries
   when inspecting structured results. Preserve complete evidence responses,
   separate stderr from JSON, and check exit status (`pipefail` for pipelines).
 - **Evidence:** previews aren't complete results; completed runs can contain
   failed rows; nulls don't explain misses. Inspect affected rows, then use
-  `runs logs <run-id> --kind receipt.completed --payloads --json` for saved
-  tool results. Select an exact result by its returned `eventId` with `--where`.
-  Logs reads don't execute tools. Investigate unresolved requested conditions
+  `runs receipt <run-id> --key '<receipt-key>'` for a key retained in the row.
+  Otherwise use `runs logs <run-id> --kind receipt.completed --payloads --json`
+  and select a returned `eventId` with `--where`. These reads don't execute tools.
+  Inspect the actual evidence shape. Investigate unresolved requested conditions
   and stop once supported; repeating a provider isn't independent corroboration.
 - **Save:** keep deliverables in a durable project directory, not system temp;
   preserve source files, input identities and evidence.

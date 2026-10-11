@@ -19,7 +19,7 @@ Run `deepline` when it is available. If the shell reports that command is missin
 
 Build high-quality ABM paid ads audiences from first-party customer or prospect lists. This skill is for paid ads audience upload and evaluation, not outbound.
 
-Names in this skill are starting hints. Run `deepline search --type tools audience` and `deepline tools describe <tool_id> --json` before executing because tool names and payload shapes can change. Tool search accepts an intent query or, for structured filtering, `--categories` and/or `--search_terms`; a filter-only search needs at least one of those flags. Use commas for multiple filter values, and put provider names in the query rather than using a `--prefix` flag.
+Names in this skill are starting hints. Run `deepline search --type tools audience` and `deepline tools describe <tool_id>` before executing because tool names and payload shapes can change. Tool search accepts an intent query or, for structured filtering, `--categories` and/or `--search_terms`; a filter-only search needs at least one of those flags. Use commas for multiple filter values, and put provider names in the query rather than using a `--prefix` flag.
 
 ## Before You Start
 
@@ -255,7 +255,7 @@ Run the cheapest per-call provider first so it absorbs the easy hits. A low hit
 rate on the remainder means the pool is exhausted: LeadMagic cost 4.76 USD to
 establish that, where a per-call provider bills the same for the same answer.
 
-Stop after the hash providers by default. Report attempted rows, row hits, unique hashes added, contacts still missing personal hashes, and Deepline spend. Then ask whether the user wants to spend more on broader raw personal-email providers, quoting the current per-contact cost from `deepline tools describe <tool_id> --json` rather than a remembered figure. Rates change, and a stale quote in an approval gate is how users end up agreeing to a number that no longer holds.
+Stop after the hash providers by default. Report attempted rows, row hits, unique hashes added, contacts still missing personal hashes, and Deepline spend. Then ask whether the user wants to spend more on broader raw personal-email providers, quoting the current per-contact cost from `deepline tools describe <tool_id>` rather than a remembered figure. Rates change, and a stale quote in an approval gate is how users end up agreeing to a number that no longer holds.
 
 Only run the expanded coverage pass after explicit approval. In that pass, try providers such as LeadMagic, ContactOut, Wiza, Datagma, Crustdata, Prospeo, FullEnrich, PDL, or Deepline native personal-email waterfalls on rows still missing personal hashes. Normalize and SHA-256 hash raw personal emails exactly once, record provider-level lift and Deepline spend, and keep the default upload payload hash-only.
 

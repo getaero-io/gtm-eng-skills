@@ -182,7 +182,7 @@ eligible when a later row exposes its stratum again.
 
 ## Custom AI research and qualification
 
-Deterministic logic — normalization, coalescing, templating, parsing, formatting — is plain TypeScript in the play body or a `withColumn` resolver. There is no `run_javascript` tool inside plays; the runtime rejects it. `deeplineagent` is for synthesis: research, classification, scoring, structured generation. Reach for the deterministic option first. Use `jsonSchema` for any structured output a downstream step reads, and confirm the live model menu with `deepline tools describe deeplineagent --json`.
+Deterministic logic — normalization, coalescing, templating, parsing, formatting — is plain TypeScript in the play body or a `withColumn` resolver. There is no `run_javascript` tool inside plays; the runtime rejects it. `deeplineagent` is for synthesis: research, classification, scoring, structured generation. Reach for the deterministic option first. Use `jsonSchema` for any structured output a downstream step reads, and confirm the live model menu with `deepline tools describe deeplineagent`.
 
 For company or market research, read `researching.md` first. Retrieve and
 persist attributable public evidence before synthesis. A single

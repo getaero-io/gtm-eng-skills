@@ -26,15 +26,15 @@ So it runs as a bulk pass beside the ladder. The only levers are which rows you 
 Look the price up before quoting it. Rates change, and a number written here will be wrong eventually:
 
 ```bash
-deepline tools describe contactout_get_hashed_email_identifiers --json
+deepline tools describe contactout_get_hashed_email_identifiers
 ```
 
 What does not change is the billing shape, and it is what makes cost comparisons across these providers misleading:
 
-| Billed on | Providers | Consequence |
-| --- | --- | --- |
-| Each matched profile | ContactOut hashed identifiers | Misses in a batch cost nothing, so the effective cost per row sent falls as match rate falls |
-| Each call, hit or miss | The per-row hash providers such as Aviato and LimaData | Every row costs the same whether or not it returns a hash |
+| Billed on              | Providers                                              | Consequence                                                                                  |
+| ---------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| Each matched profile   | ContactOut hashed identifiers                          | Misses in a batch cost nothing, so the effective cost per row sent falls as match rate falls |
+| Each call, hit or miss | The per-row hash providers such as Aviato and LimaData | Every row costs the same whether or not it returns a hash                                    |
 
 So a per-row price comparison flatters ContactOut on a low-match list and penalises it on a high-match one. To compare like for like, multiply ContactOut's per-match price by the match rate you actually observe, then compare that against a per-call provider's price.
 
@@ -50,10 +50,10 @@ Excluding rows that already carry a hash is the only pre-call saving. On pool si
 
 Roughly a quarter to a third of what ContactOut returns is a second or third address for a person it already matched. Measured on two independent samples: 228 matched profiles returned 313 hashes (27% extra), and a separate 100-profile batch returned 111 hashes for 84 matched profiles (24% extra). Excluding a row because it holds an Aviato or LimaData hash forfeits any different address ContactOut would have found for that same person.
 
-| Mode | Send already-hashed rows? | Why |
-| --- | --- | --- |
-| `cost_effective` | No | A second address for an already-covered person is the least valuable hash available |
-| `max_coverage` | Yes | More addresses per person means more chances a platform matches them, and the spend is already approved |
+| Mode             | Send already-hashed rows? | Why                                                                                                     |
+| ---------------- | ------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `cost_effective` | No                        | A second address for an already-covered person is the least valuable hash available                     |
+| `max_coverage`   | Yes                       | More addresses per person means more chances a platform matches them, and the spend is already approved |
 
 The hash-pool play defaults to excluding and takes `includeRowsWithExistingHash` for the max-coverage case.
 
@@ -63,10 +63,10 @@ Read the coverage columns the other layers actually write. The hash providers he
 
 From the same production run, two audiences differing only by ContactOut's contribution:
 
-| Audience | Rows | Matched | Match rate |
-| --- | --- | --- | --- |
-| Baseline only | 9,670 | 2,800-3,300 | 31.5% |
-| Baseline plus ContactOut | 10,382 | 3,000-3,600 | 31.8% |
+| Audience                 | Rows   | Matched     | Match rate |
+| ------------------------ | ------ | ----------- | ---------- |
+| Baseline only            | 9,670  | 2,800-3,300 | 31.5%      |
+| Baseline plus ContactOut | 10,382 | 3,000-3,600 | 31.8%      |
 
 The 712 rows it added brought roughly 250 matched people, an incremental match rate near 35% against an audience averaging 31.5%. The rows it contributes match better than the list as a whole.
 
@@ -76,13 +76,13 @@ Note that the overall percentage moved only 31.5% to 31.8% while 250 more real p
 
 Decide on inputs known before the call:
 
-| Situation | Do |
-| --- | --- |
-| Many rows have a verified LinkedIn URL and no personal hash | Send those rows. Best case, lowest overlap. |
-| Most rows already carry a hash, `cost_effective` | Send only the rows still missing one. |
-| Most rows already carry a hash, `max_coverage` | Send them anyway, for the additional addresses. |
-| Few rows have a verified LinkedIn URL | Skip it, or run LinkedIn repair first. A LinkedIn URL is the only accepted input. |
-| Strict cost control on a small list | Skip it. Per-row providers give attributable spend; this one does not. |
+| Situation                                                   | Do                                                                                |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Many rows have a verified LinkedIn URL and no personal hash | Send those rows. Best case, lowest overlap.                                       |
+| Most rows already carry a hash, `cost_effective`            | Send only the rows still missing one.                                             |
+| Most rows already carry a hash, `max_coverage`              | Send them anyway, for the additional addresses.                                   |
+| Few rows have a verified LinkedIn URL                       | Skip it, or run LinkedIn repair first. A LinkedIn URL is the only accepted input. |
+| Strict cost control on a small list                         | Skip it. Per-row providers give attributable spend; this one does not.            |
 
 ## Contract details
 

@@ -175,7 +175,7 @@ provider call, with the following steps:
    contacts; stop the row on a malformed or invented match.
 3. **`contacts` / `deepline_native_search_contact`**: only when matches are
    nonempty, pass `{ domain: row.domain, title_lists: [{ name: 'icp', titles:
-   matchedTitles }], page_size: 50, page_number: 1 }`. Keep `matchedTitles` as a
+matchedTitles }], page_size: 50, page_number: 1 }`. Keep `matchedTitles` as a
    real string array. Page with `page_number` until the requested holders are
    retrieved or the authorized scope is reached; report any partial coverage.
    This is the exact-title route, not a change to the Dropleads-first default.
@@ -209,7 +209,7 @@ guess new response paths from the historical CSV wrappers above.
 After authoring and checking the selected contracts:
 
 ```bash
-deepline plays check qualified-titles.play.ts --json
+deepline plays check qualified-titles.play.ts
 deepline plays run --file qualified-titles.play.ts --csv companies.csv --watch
 ```
 
@@ -302,7 +302,7 @@ Confirm the tool with `deepline tools describe deepline_native_job_change --json
 Read the source with `ctx.csv(input.csv, { required: ['domain', 'email'] })`, keep
 the original columns and job-change evidence, and return the dataset handle from
 the Play. Save it as `job-change.play.ts` with a top-level description, then use
-`deepline plays check job-change.play.ts --json` and
+`deepline plays check job-change.play.ts` and
 `deepline plays run --file job-change.play.ts --csv contacts.csv --watch` for the
 authorized run. Use that run's export command to save `contacts.csv.out.csv`;
 do not launch another run merely to retrieve the result.

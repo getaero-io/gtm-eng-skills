@@ -45,7 +45,7 @@ columns. Run a representative pilot before the full file:
 ```bash
 deepline search email --type prebuilts
 deepline plays describe prebuilt/<batch-play-from-search> --json
-deepline plays check prebuilt/<batch-play-from-search> --json
+deepline plays check prebuilt/<batch-play-from-search>
 WORKDIR="deepline/data/quickstart-pilot" && mkdir -p "$WORKDIR"
 head -n 4 leads.csv > "$WORKDIR/leads-pilot.csv"
 deepline plays run prebuilt/<batch-play-from-search> --csv "$WORKDIR/leads-pilot.csv"

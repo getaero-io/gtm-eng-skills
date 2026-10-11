@@ -15,8 +15,22 @@ deepline -h
 
 ## Build, run and inspect
 
+### Plays and Tools
+
+- **Tool:** one operation, such as looking up a profile or validating an email.
+  Use direct tool calls for isolated spot checks.
+- **Play:** TypeScript that expresses GTM work as code. Combine tools with custom
+  logic—transformations, conditions and fallbacks—and process batches of data.
+  Deepline handles provider rate limits and retries, persists progress and
+  results, and supports recovery after failures.
+- **For workflows or batches:** use a supplied Play, reuse or adapt a suitable
+  prebuilt, or author one when none fits. Don't process batches by looping direct
+  tool calls in scripts or repeated agent calls.
+
+### Workflow
+
 - **Discover/build:** search and describe relevant Plays/tools; reuse a suitable
-  prebuilt. Use Plays for workflows and batches, direct tools for spot checks.
+  prebuilt or adapt it.
   See [authoring](shared/authoring.md) and the [SDK reference](references/sdk-reference.md).
 - **Check/pilot:** inspect input mappings and run `deepline plays check <file>`
   before local-source execution. Pilot costly or unproven work within the agreed
@@ -117,9 +131,7 @@ before using the refreshed instructions.
 
 Before the first Deepline fanout in a task, run `deepline preflight --json` as
 one standalone command and wait for it to finish. Never submit preflight beside
-another Deepline command. After it succeeds, prefix every Deepline command that
-may run concurrently with `DEEPLINE_SKIP_SELF_UPDATE=1`; serial commands may
-stay bare.
+another Deepline command.
 
 The experiment methodology below applies when designing or comparing new work,
 not to execution-only or existing-run inspection requests.
@@ -189,11 +201,16 @@ only when every program produces the same complete final row from the same seam.
 
 ## Catalog
 
+Use search commands without `--json`. Read the full default `tools describe`
+output before authoring; use JSON only when feeding a structured-data helper.
+
 ```bash
 deepline search --type tools "<information role and controls>"
-deepline tools grep "<substring>" --json   # ranked search has returned the same
+deepline tools grep "<substring>"   # ranked search has returned the same
                                            # irrelevant hits for three different queries
 deepline tools list <returned-category> --json
+deepline tools describe <tool-id>
+# Optional: extract declared getters programmatically after reading the contract.
 deepline tools describe <tool-id> --json | python3 <skill-root>/scripts/show-declared-getters.py
 python3 <skill-root>/scripts/show-declared-getters.py "$WORKDIR/<tool-id>.json"   # saved contract
 ```

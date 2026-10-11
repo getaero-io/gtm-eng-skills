@@ -7,7 +7,7 @@ Every Clay action maps to a specific Deepline CLI tool or native play. Use actua
 The string-form `.withColumn(alias, tool, payload)` snippets below retain
 historical payloads, prompts, field paths, provider order, and validation
 semantics. They are **not** current callback-based Play examples. Do not paste
-them into a Play or revive `deepline enrich`, `--with`, or waterfall flags.
+them into a Play.
 Translate a selected recipe using [Play authoring](../recipes/deepline-plays.md):
 `withColumn(alias, async (row, rowCtx) => ...)`, `rowCtx.tools.execute` with
 stable `id`, `tool`, typed `input`, and `description`, or `rowCtx.runPlay` for a

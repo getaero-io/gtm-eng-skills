@@ -293,9 +293,8 @@ const routes = [
         description:
           'Find a small company-scoped senior-person candidate pool.',
       });
-      const people = (await response.extractedLists.leads
-        .get()
-        .materialize(5)) as StructuredPerson[];
+      const candidates = response.extractedLists.leads.get();
+      const people = candidates.slice(0, 5) as StructuredPerson[];
       const person = people.find((candidate) => {
         const name = clean(
           candidate.fullName ||

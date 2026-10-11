@@ -138,14 +138,19 @@ import { definePlay } from 'deepline';
 export default definePlay(
   'job-change',
   async (ctx, input: { csv: string }) => {
-    const contacts = await ctx.csv(input.csv, { required: ['domain', 'email'] });
-    const rows = await ctx.dataset('contacts', contacts)
-      .withColumn('job_change', (row, rowCtx) => rowCtx.tools.execute({
-        id: 'job_change',
-        tool: 'deepline_native_job_change',
-        input: { company_domain: row.domain, professional_email: row.email },
-        description: 'Check whether this contact changed employers.',
-      }))
+    const contacts = await ctx.csv(input.csv, {
+      required: ['domain', 'email'],
+    });
+    const rows = await ctx
+      .dataset('contacts', contacts)
+      .withColumn('job_change', (row, rowCtx) =>
+        rowCtx.tools.execute({
+          id: 'job_change',
+          tool: 'deepline_native_job_change',
+          input: { company_domain: row.domain, professional_email: row.email },
+          description: 'Check whether this contact changed employers.',
+        }),
+      )
       .run({});
     return { rows };
   },
@@ -154,7 +159,7 @@ export default definePlay(
 ```
 
 ```bash
-deepline plays check job-change.play.ts --json
+deepline plays check job-change.play.ts
 deepline plays run --file job-change.play.ts --csv contacts.csv --watch
 ```
 
