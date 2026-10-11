@@ -1,0 +1,12 @@
+{
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Account Org Chart Builder",
+      "tags": [
+        "recipe"
+      ],
+      "providers": []
+    }
+  }
+}
