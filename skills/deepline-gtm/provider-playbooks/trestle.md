@@ -64,11 +64,12 @@ This causes the waterfall to continue to the next phone provider, ensuring you o
 
 - Both endpoints are post-deduct — you only pay on success.
 
-The normalized response uses dotted keys at `data`, for example
-the observed phone-data object under `toolResponse.rawV2` in CLI JSON output
-with bracket notation: `["phone.is_valid"]` and `["phone.activity_score"]`. These keys
-are literal property names; do not try to read them as nested
-`phone.is_valid` objects.
+The Real Contact response uses dotted keys at the top level of the result, for
+example `toolResponse.raw["phone.is_valid"]` and
+`toolResponse.raw["phone.activity_score"]` in CLI JSON and Play results
+(`toolResponse.rawV2` is the same object). These keys are literal property
+names; do not try to read them as nested `phone.is_valid` objects. Phone Intel
+fields are also top level, for example `toolResponse.raw.line_type`.
 
 ### Output compatibility
 
