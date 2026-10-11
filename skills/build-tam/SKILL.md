@@ -1,6 +1,6 @@
 ---
 name: build-tam
-description: "Build a Total Addressable Market list by sourcing accounts and contacts from providers like Crustdata, Dropleads, and PDL."
+description: "Build a Total Addressable Market list: size the audience, source companies from ICP filters, then find contacts at those companies at scale."
 ---
 
 # Provider-Led Account And Contact Sourcing

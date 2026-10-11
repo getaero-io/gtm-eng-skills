@@ -102,13 +102,13 @@ Every play named in this table runs via `deepline plays run prebuilt/<name>`
 - When multiple providers recover the same mechanical field, prefer the route that bills on returned results or successful hits. Use request-priced, page-priced, or broad AI passes only after a tiny pilot proves they return usable rows.
 - `run_javascript` is for deterministic transforms, normalization, coalescing, templating, and cheap row-level glue logic.
 - `deeplineagent` is the default AI path for research, synthesis, custom signals, and classification when JS is not enough.
-- Domain lookup / homepage recovery is mechanical. Use `exa_search` with rich context or `serper_google_search`, not `deeplineagent`.
-- For local SMB or restaurant contact emails, do not start with name + domain work-email waterfalls unless you have a named person. Prefer the small-business prospecting recipe first: Maps identity, website/contact extraction, then optional Facebook/Instagram profile contact fields when the row or pilot suggests social profiles are the best public source. ScrapeCreators profile tools are candidate routes, not required steps.
+- Domain lookup / homepage recovery is mechanical. Use a web-search tool found with `deepline search`, not `deeplineagent`.
+- For local SMB or restaurant contact emails, do not start with name + domain work-email waterfalls unless you have a named person. Prefer the small-business prospecting recipe first: Maps identity, website/contact extraction, then optional Facebook/Instagram profile contact fields when the row or pilot suggests social profiles are the best public source. Social profile tools are candidate routes, not required steps.
 - Persona lookup means "find candidate contacts at a company for a target role or seniority." Use the dedicated play, not generic research.
 - Validate after recovery or coalescing, not during each waterfall step.
 - For contact-to-email work, route by your strongest identifiers: name + domain -> `Name + domain -> work email` (or `First + last + domain -> work email`); name + company only (no domain) OR Sales Navigator contacts -> resolve domain first, then `name-and-domain-to-email-waterfall`; standard `/in/` LinkedIn URL + name -> `LinkedIn URL -> work email` (domain optional).
-- **Sales Navigator exports**: `linkedin_url` values in `/sales/lead/` format are rejected by every provider (dropleads, crustdata, deepline_native, PDL). Do not pass them directly to any email waterfall. Resolve the company domain first, then use `name-and-domain-to-email-waterfall`.
-- Contacts from a people search (e.g. dropleads_search_people) with **standard `/in/`** URLs -> `person-linkedin-to-email` (`domain` optional). Does NOT apply to SN `/sales/lead/` URLs.
+- **Sales Navigator exports**: `linkedin_url` values in `/sales/lead/` format are rejected by every provider. Do not pass them directly to any email waterfall. Resolve the company domain first, then use `name-and-domain-to-email-waterfall`.
+- Contacts from a people search with **standard `/in/`** URLs -> `person-linkedin-to-email` (`domain` optional). Does NOT apply to SN `/sales/lead/` URLs.
 - Validation interpretation: `valid` is deliverable, `catch_all` is usable but riskier, `invalid` should be dropped, and `unknown` is unresolved.
 - Phone recovery usually comes later in the pipeline than email or LinkedIn recovery.
 - Prefer inline code for short `run_javascript` transforms. Only move code into files when the logic is long, reused, or too awkward to keep inline.
@@ -130,7 +130,7 @@ Play tool: `name-and-domain-to-email-waterfall`
 | name + company_name (no domain) or SN `/sales/lead/` URLs | Resolve domain first (below), then use the play   |
 | standard `/in/` LinkedIn URL + name                       | Skip this play — use `LinkedIn URL -> work email` |
 
-**Play internals.** Runs common validated patterns first; only `valid` hits count. Falls through to `dropleads_email_finder -> hunter_email_finder -> leadmagic_email_finder -> crustdata_v3_person_search -> peopledatalabs_enrich_contact`. `catch_all` is usable for outreach but not an automatic win inside the play.
+**Play internals.** Runs common validated patterns first; only `valid` hits count. Then falls through an ordered list of email finders; the play owns that order. `catch_all` is usable for outreach but not an automatic win inside the play.
 
 **Example:**
 
@@ -154,10 +154,10 @@ deliverable for a larger request.
 **Domain-first resolution** — when you only have `company_name` or a SN `/sales/lead/` URL, resolve domains before the email play. For a handful of companies, resolve each directly and patch the CSV:
 
 ```bash
-deepline tools execute exa_search --input '{"query":"Acme Corp official website","numResults":1}'
+deepline search "web search" --task "I have a company name and need its official website domain"
 ```
 
-For a list, author a two-column custom play per [recipes/deepline-plays.md](recipes/deepline-plays.md) — `exa_search` column, then a `run_javascript` column extracting the registrable domain — and feed its export to `prebuilt/name-and-domain-to-email-waterfall-batch`.
+For a list, author a two-column custom play per [recipes/deepline-plays.md](recipes/deepline-plays.md) — a web-search column, then a `run_javascript` column extracting the registrable domain — and feed its export to `prebuilt/name-and-domain-to-email-waterfall-batch`.
 
 ### LinkedIn URL -> work email
 
@@ -165,7 +165,7 @@ Play tool: `person-linkedin-to-email`
 
 **Required payload:** `linkedin_url`.
 
-Use when contacts have a **standard `/in/`** LinkedIn URL (e.g. from `dropleads_search_people`). The play works off the LinkedIn URL directly.
+Use when contacts have a **standard `/in/`** LinkedIn URL, for example from a people search. The play works off the LinkedIn URL directly.
 
 **Do NOT use for Sales Navigator `/sales/lead/` URLs** — providers reject them. Resolve the company domain first, then use the name+domain play above.
 
@@ -200,7 +200,7 @@ For a CSV of inbound emails, author a one-column custom play calling the same to
 
 Play tool: `personal-email-to-linkedin`. Required payload: `personal_email` only (name/company unknown, unlike the work-email plays).
 
-Use it when a signup list has only personal emails and you want to know who they are. Returns `linkedin_url`, `name`, `company`, `title`; a profile is often more recoverable and useful than a work email here. The play normalizes Gmail first, then waterfalls `deepline_native` -> `forager` -> `findymail` -> `peopledatalabs`, charging per hit.
+Use it when a signup list has only personal emails and you want to know who they are. Returns `linkedin_url`, `name`, `company`, `title`; a profile is often more recoverable and useful than a work email here. The play normalizes Gmail first, then waterfalls across providers in its own order, charging per hit.
 
 The same play runs two ways:
 
@@ -233,8 +233,7 @@ Play details:
 - Required inputs are `first_name`, `last_name`, and `domain`.
 - `email` and `linkedin_url` are optional hints that unlock additional provider paths.
 - The play handles the phone provider order internally. Treat the play as the source of truth for exact sequencing.
-- LeadMagic runs in two gated forms inside the play: LinkedIn-based when `linkedin_url` exists, and email-based when `email` exists.
-- Use async aggregators (BetterContact, FullEnrich) as manual enrichment steps outside the play when the native waterfall misses.
+- When the play misses, search for another phone-enrichment tool and run it as a manual step outside the play.
 
 Example:
 
@@ -265,11 +264,9 @@ Why this play:
 
 Provider behavior:
 
-- `dropleads` is strongest with exact title tokens.
-- `deepline_native` translates portable roles into provider-safe title filters, especially for leadership intent like `CEO`, `Founder`, `CTO`, `VP Marketing`, `Head of Security`, or `Director of Engineering`.
+- The play translates portable roles into provider-safe title filters, especially for leadership intent like `CEO`, `Founder`, `CTO`, `VP Marketing`, `Head of Security`, or `Director of Engineering`.
 - Exact-title provider search should not be the only source for founder/exec startup cases.
-- `icypeas` is a strong exact-profile fallback, especially for founders and startup operators.
-- `prospeo` and `crustdata` are structured fallbacks, not reasons to jump to `deeplineagent`.
+- When the play misses, a structured people search is the next step, not `deeplineagent`.
 - For a very specific persona with only a broad function, refine the role phrasing before adding providers.
 
 Persona matching:
@@ -285,7 +282,7 @@ Operational rule:
 - If you only have `company_name`, resolve the domain first, then run persona lookup.
 - Do not use `deeplineagent` as the first pass for persona lookup.
 - Use `deeplineagent` only as a fallback research pass when the play and direct providers miss.
-- If provider results are weak or sparse, first re-check the available people/company search tools with category searches, then use Apify if you need a broader employee list.
+- If provider results are weak or sparse, first re-check the available people/company search tools with category searches, then a general scraping tool if you need a broader employee list.
 
 Category searches:
 
@@ -318,20 +315,17 @@ deepline plays run prebuilt/company-domain-to-linkedin-employees-harvestapi \
   --input '{"domain":"openai.com","max_items":25}'
 ```
 
-Use the direct operations below only when you need a custom result shape:
+When you need a custom result shape, search for the LinkedIn company and employee tools and read their contracts first:
 
 ```bash
-deepline tools describe harvestapi_get_company --schema-only
-deepline tools execute harvestapi_get_company --input '{"url":"https://www.linkedin.com/company/openai/"}' --json
-deepline tools describe harvestapi_search_leads --schema-only
-deepline tools execute harvestapi_search_leads --input '{"currentCompanies":"https://www.linkedin.com/company/openai/","sessionId":"STABLE_RANDOM_SESSION_ID","page":1}' --out openai-employees.csv
+deepline search "linkedin company employees" --task "I have a LinkedIn company URL and need its current employees with titles"
 ```
 
-Generate the stable random `sessionId` before page 1 and reuse it on every page. Because HarvestAPI matches `currentCompanies` by company name, keep only results whose `currentPositions[].companyId` matches the target `element.id` returned by `harvestapi_get_company`.
+Check each returned person's current company against the target company; a name match alone can return employees of a similarly named company.
 
 ### LinkedIn post URL -> list of engagers
 
-Use the native HarvestAPI prebuilt. It fetches both reactors and commenters,
+Use the native prebuilt. It fetches both reactors and commenters,
 paginates each operation, unions their `elements` by actor identity, and returns
 the established engager-row schema:
 
@@ -341,14 +335,7 @@ deepline plays run prebuilt/linkedin-post-to-engagers-harvestapi \
   --input '{"post_url":"https://www.linkedin.com/posts/...","max_items":1000}'
 ```
 
-Call the native operations directly only when you need a custom result shape:
-
-```bash
-deepline tools describe harvestapi_get_post_reactions
-deepline tools describe harvestapi_get_post_comments
-deepline tools execute harvestapi_get_post_reactions --input '{"post":"https://www.linkedin.com/posts/...","page":1}' --out post-reactions.csv
-deepline tools execute harvestapi_get_post_comments --input '{"post":"https://www.linkedin.com/posts/...","page":1}' --out post-comments.csv
-```
+Call the underlying tools directly only when you need a custom result shape; find them with `deepline search "linkedin post reactions comments"`.
 
 ### List of people with name + position -> ICP qualification
 
@@ -370,7 +357,7 @@ Problem category: domain lookup / homepage recovery.
 Input profile: `company_name` plus any contextual hints you already have.  
 Output target: canonical `domain` or homepage for downstream plays.
 
-Default tools: `exa_search` or `serper_google_search`
+Default tools: a web-search tool, found with `deepline search "web search"`
 
 Why this play:
 
@@ -380,14 +367,14 @@ Why this play:
 
 Routing rule:
 
-1. Resolve domain/homepage with `exa_search` or `serper_google_search`.
+1. Resolve domain/homepage with a web-search tool.
 2. Run the downstream play using the recovered domain.
 3. Only use `deeplineagent` if provider/search outputs still do not cover the factual need and you need tool-backed reasoning to resolve the ambiguity.
 
 Example:
 
 ```bash
-deepline tools execute serper_google_search --input '{"query":"\"Acme Corp\" official site","num":5}'
+deepline search "web search" --task "I have a company name and need its official website domain"
 ```
 
 For a list of companies, author a two-column custom play (search + extract) per [recipes/deepline-plays.md](recipes/deepline-plays.md).
@@ -488,42 +475,24 @@ Read the overview and export before investigating a specific column. Change
 prompts/providers or run again only within repair authority; a miss does not
 itself authorize another paid attempt. See the canonical execution reference.
 
-## Apify actor selection
+## Sources no native tool covers
 
-For sites requiring authentication, do not use Apify. Ask the user to use
+For sites requiring authentication, do not scrape. Ask the user to use
 Claude in Chrome or guide them through Inspect Element to obtain an authorized
 curl request with the needed headers. Treat cookies and headers as credentials;
 do not expose them in reports or Play output.
 
-1. If the user supplies an actor ID, name, or URL, use that actor within the
-   authorized scope; do not substitute another actor silently.
-2. Otherwise inspect `deepline tools describe apify_run_actor_sync` for actor
-   guidance, or use `deepline search --type tools`. If no suitable actor is listed,
-   search the actor store and inspect the candidate's input schema.
-3. Avoid rental-priced actors. If the supplied actor requires a rental, surface
+1. Search for a native tool first: `deepline search "<source and data you need>"`.
+2. If none fits, search for a general scraping tool and read its contract with
+   `deepline tools describe <tool>`, including any guidance on choosing a
+   scraper for the source.
+3. If the user supplies a specific scraper, use it within the authorized
+   scope; do not substitute another silently.
+4. Avoid rental-priced scrapers. If the supplied one requires a rental, surface
    the pricing conflict and obtain approval before incurring it.
-4. Prefer native HarvestAPI for LinkedIn profiles, employees, posts, comments,
-   reactions, and engagers. Inspect the required operation with
-   `deepline tools describe <operation> --schema-only`; broad search can be
-   noisy. For posts/engagers, starting hints are `harvestapi_search_posts`,
-   `harvestapi_get_post`, `harvestapi_get_post_reactions`, and
-   `harvestapi_get_post_comments`. Use `supreme_coder/linkedin-post` only when
-   the native provider lacks the required shape. Avoid
-   `silentflow/linkedin-posts-scraper-ppr` and
-   `alizarin_refrigerator-owner/linkedin-post-scraper` unless explicitly requested.
-5. Prefer high ratings and high usage/run counts; break ties with evidence
-   quality and price. Honor `operatorNotes` over public ratings when they
-   conflict.
 
-Example discovery payloads (inspect current tool contracts before execution):
-
-```bash
-deepline tools execute apify_list_store_actors --input '{"search":"similarweb traffic scraper","sortBy":"relevance","limit":20}'
-deepline tools execute apify_get_actor_input_schema --input '{"actorId":"radeance/similarweb-scraper"}'
-```
-
-Store discovery and schema lookup are not permission to execute an actor or
-start a rental. For repeated row work, call the selected tool inside a Play.
+Discovery and schema lookup are not permission to execute a scraper or start a
+rental. For repeated row work, call the selected tool inside a Play.
 
 ## Working directory (guardrail)
 

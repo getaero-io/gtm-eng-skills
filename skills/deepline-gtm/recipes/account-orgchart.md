@@ -52,25 +52,21 @@ Label every edge as `inferred`, `sourced`, or `manual`, with its basis and quali
 
 ## Quick reference
 
-| Step | What                       | Source                                                              | Spend posture                  |
-| ---- | -------------------------- | ------------------------------------------------------------------- | ------------------------------ |
-| 1    | Resolve target             | `leadmagic_profile_search` or `prebuilt/person-linkedin-to-email`   | Metered Deepline action        |
-| 2a   | Deepline Native search     | `search_contact` (4 title tiers)                    | Metered Deepline action        |
-| 2b   | Dropleads search           | `dropleads_search_people`                                           | Free or bundled when available |
-| 2c   | HarvestAPI employee search | `harvestapi_search_leads` filtered by current company               | Metered Deepline action        |
-| 2d   | Icypeas people search      | `icypeas_find_people`                                               | Metered Deepline action        |
-| 2e   | PDL gap-fill (optional)    | `peopledatalabs_person_search` CXO+VP only                          | Metered Deepline action        |
-| 3    | Classify + infer           | Title-based seniority + tenure + recency signals + Claude reasoning | No provider action             |
-| 4    | Generate output            | HTML org chart file                                                 | No provider action             |
+| Step | What             | Source                                                              |
+| ---- | ---------------- | ------------------------------------------------------------------- |
+| 1    | Resolve target   | A profile lookup tool, found with `deepline search`                 |
+| 2    | Find employees   | `prebuilt/company-to-contact`, then people-search tools from search |
+| 3    | Classify + infer | Title-based seniority + tenure + recency signals + Claude reasoning |
+| 4    | Generate output  | HTML org chart file                                                 |
 
 When the user asks about spend, show only Deepline-facing credits or estimates from the tool catalog. Do not discuss supplier-side cost structure.
 
-**Spend-safe order:** CRM first, then bundled/free sources, then broad paid sources, then surgical paid gap-fill for missing senior people only. Each step deduplicates against prior results so you do not pay to rediscover data the customer already owns.
+**Spend-safe order:** CRM first, then free sources, then broad paid sources, then surgical paid gap-fill for missing senior people only. Each step deduplicates against prior results so you do not pay to rediscover data the customer already owns. `deepline tools describe <tool> --pricing-only` shows what each tool costs.
 
 **Before running any paid source:** check your CRM for contacts already at this company. If HubSpot, Salesforce, or another CRM is connected, discover the live CRM tool contract first instead of guessing operation names:
 
 ```bash
-deepline search --type tools --categories crm --search_terms "contacts,account,company"
+deepline search --categories crm --search_terms "contacts,account,company"
 deepline tools describe TOOL_ID_FROM_SEARCH
 ```
 
@@ -94,48 +90,42 @@ rerunning this weekly? Author the pipeline once as a custom play
 ([deepline-plays.md](deepline-plays.md)) — each step below becomes one column,
 and the tier pulls become `ctx.runPlay('prebuilt/company-to-contact', ...)`.
 
-**If LinkedIn URL given:**
+**If LinkedIn URL given:** find a profile lookup tool and read the target's
+identity off its result, using the getters `tools describe` documents:
 
 ```bash
-deepline tools execute leadmagic_profile_search --input '{"profile_url": "'"$LINKEDIN_URL"'"}'
+deepline search "linkedin profile" --task "I have a person's LinkedIn profile URL and need their name, title, company and location"
 ```
 
-Read the target's identity off the result (prefer the documented getters from
-`deepline tools describe leadmagic_profile_search`): name = `first_name` +
-`last_name`, title = `current_position` falling back to `headline`, company =
-`current_company`, plus `location`. These four drive every matching signal
-downstream.
-
-Then resolve domain if missing:
-
-```bash
-deepline tools execute exa_search --input '{"query": "'"$COMPANY"' official website", "numResults": 1}'
-```
+Name, title, company, and location drive every matching signal downstream. If
+the company domain is missing, resolve it with a search for the company's
+website, and prefer the domain a later enrichment result reports over one you
+inferred.
 
 Verify the candidate is the official company website before taking its domain; the first search result alone is not identity evidence.
 
-**If name + company given:** resolve the LinkedIn URL first with
-`prebuilt/person-to-linkedin-harvestapi` (see §2-person step 2), or go straight
-to the company-wide waterfall with the domain.
+**If name + company given:** resolve the LinkedIn URL first
+(`deepline search "linkedin url from name"` lists the prebuilt for it), or
+go straight to the company-wide search with the domain.
 
 ### §2-person. Person-centric flow (2-up / 2-down around one person)
 
-Use this instead of the company-wide waterfall when the request centers on one individual. The goal is a tight neighborhood, not a roster.
+Use this instead of the company-wide search when the request centers on one individual. The goal is a tight neighborhood, not a roster.
 
-1. **Resolve and verify the anchor.** Confirm the person currently works where the request claims with `harvestapi_get_profile` and read the returned `element.currentPosition` array (the key is singular). This live-verification step catches stale data. Capture their exact team/sub-function, title, location, and tenure; these are the matching signals for the rest of the flow.
+1. **Resolve and verify the anchor.** Confirm the person currently works where the request claims by fetching their live profile and reading the current position. This live-verification step catches stale data. Capture their exact team/sub-function, title, location, and tenure; these are the matching signals for the rest of the flow.
 
 2. **Find ±1 / ±2 candidates by constrained search, not full-company scrape.** Search for people at the same company filtered to the anchor's function + location + the adjacent title tiers:
    - **+1 (manager):** one tier up, same team, same metro. e.g. anchor is "Principal Engineer, Austin" then search "Engineering Manager" / "Senior Manager Engineering" at that company in Austin.
    - **+2 (director):** two tiers up, same function.
    - **−1 (reports):** one tier down, same team + a shared specialty signal if you have one (e.g. same sub-discipline).
 
-   Use `dropleads_search_people` (free when available) and `search_contact` with title filters first; fall back to `exa_search` / Google-style queries for enterprises that index poorly. Keep each search scoped. You want ~3-8 candidates per tier, not hundreds.
+   Use people-search tools with title filters, free ones first; fall back to web search for enterprises that index poorly. Keep each search scoped. You want ~3-8 candidates per tier, not hundreds.
 
-   **Resolving a candidate's LinkedIn URL from a name:** don't reach for `leadmagic_profile_search` because it is for the reverse direction, hydrating a profile when you already have the URL. For name to LinkedIn URL, use the **Serper to HarvestAPI validate** pattern from the sibling [`linkedin-url-lookup`](linkedin-url-lookup.md) recipe: `serper_google_search` with a `site:linkedin.com/in` query, then validate the top hit with `harvestapi_get_profile` and a mandatory name-match gate. Or call `prebuilt/person-to-linkedin-harvestapi`, which wraps this maintained route without changing the older `prebuilt/person-to-linkedin` compatibility play.
+   **Resolving a candidate's LinkedIn URL from a name:** a profile lookup tool goes the other way (URL to profile). For name to URL, search for a LinkedIn URL lookup and check that the name on the returned profile matches before using it.
 
 3. **Rank the inferred edges, don't assert them.** For each candidate, rank the manager/report candidates using the Manager prediction scoring table below (seniority gap + team match + geo + experience delta + tenure overlap). Surface the top 1-2 per tier _with the ranking score separate from evidence confidence_. When several same-title managers tie (common at big enterprises), show them as parallel candidates rather than picking one. The rep can disambiguate.
 
-4. **Enrich the neighborhood when requested.** Run emails/phones only on the approved final shortlist via the `prebuilt/person-linkedin-to-email` play, using verified providers like Prospeo. Watch for non-obvious corporate domains (e.g. a company named "Acme Corporation" may use `@acme.io`, not `@acmecorporation.com`); take the domain from the enrichment result, don't assume it.
+4. **Enrich the neighborhood when requested.** Run emails/phones only on the approved final shortlist via the `prebuilt/person-linkedin-to-email` play. Watch for non-obvious corporate domains (e.g. a company named "Acme Corporation" may use `@acme.io`, not `@acmecorporation.com`); take the domain from the enrichment result, don't assume it.
 
 5. **Render** the same HTML chart as §4, but centered on the anchor with the inferred edges badged by confidence and the §"hard truth" disclaimer shown prominently.
 
@@ -143,7 +133,7 @@ Use this instead of the company-wide waterfall when the request centers on one i
 
 ### 2. Find people within the agreed scope
 
-> Company-wide mode only. For a single-person 2-up/2-down, use **§2-person** above instead. Running this full waterfall on a 100k-employee company buries the one neighborhood you care about.
+> Company-wide mode only. For a single-person 2-up/2-down, use **§2-person** above instead. Running this full search on a 100k-employee company buries the one neighborhood you care about.
 
 Run sources cheapest-first. Each step deduplicates against prior results - only net-new people advance.
 
@@ -156,73 +146,24 @@ echo "company_domain,company_name" > "$WORK_DIR/accounts.csv"
 echo "\"$DOMAIN\",\"$COMPANY\"" >> "$WORK_DIR/accounts.csv"
 ```
 
-**Source 1: role-targeted contact discovery**
-
-The prebuilt covers this step — one call per seniority tier:
+**Source 1: role-targeted contact discovery.** The prebuilt covers this step, one call per seniority tier:
 
 ```bash
 deepline plays run prebuilt/company-to-contact --input '{"domain": "'"$DOMAIN"'", "roles": ["CEO", "CTO", "CFO", "COO", "CMO", "CRO", "Founder"], "seniority": "C-Level"}'
 deepline plays run prebuilt/company-to-contact --input '{"domain": "'"$DOMAIN"'", "roles": ["VP", "SVP"], "seniority": "VP"}'
 ```
 
-Need exact tier control the play's contract doesn't expose (custom title
-filters, more tiers)? Call the underlying tool directly:
-
-```bash
-deepline tools execute search_contact --input '{"domain": "'"$DOMAIN"'", "title_filters": [{"name": "dir", "filter": "Head OR Director OR Senior Director"}, {"name": "mgr", "filter": "Manager OR Senior Manager"}]}'
-```
-
 Expected: ~25-35 people.
 
-**Source 2: Dropleads (confirm current Deepline credits)**
+**Source 2: the wider roster.** Find the people-search and employee-list tools and prebuilts for a company, and confirm each one's current Deepline credits before running it:
 
 ```bash
-deepline tools execute dropleads_search_people --input '{"filters": {"companyDomains": ["'"$DOMAIN"'"]}, "pagination": {"page": 1, "limit": 100}}'
+deepline search "company employees" --task "I have a company domain and need the people who work there, with titles and LinkedIn URLs"
 ```
 
-Expected: +60-80 net new.
+Each tool's `tools describe` output carries its paging and billing notes; read them before requesting large pages.
 
-**Source 3: LinkedIn employee scrape**
-
-Prefer the maintained native prebuilt for repeatable roster enrichment:
-
-```bash
-deepline plays describe prebuilt/company-domain-to-linkedin-employees-harvestapi
-deepline plays run prebuilt/company-domain-to-linkedin-employees-harvestapi \
-  --input '{"domain":"acme.com","max_items":250}'
-```
-
-Use the underlying tools directly only when the prebuilt's stable employee-row
-shape does not fit the workflow. Resolve the company's LinkedIn page from the
-domain first, then search the native HarvestAPI provider after confirming the
-live contract:
-
-```bash
-deepline tools describe harvestapi_get_company
-deepline tools execute harvestapi_get_company --payload '{"url":"LINKEDIN_COMPANY_URL"}'
-deepline tools describe harvestapi_search_leads
-deepline tools execute harvestapi_search_leads --payload '{"currentCompanies":"LINKEDIN_COMPANY_URL","sessionId":"STABLE_RANDOM_SESSION_ID","page":1}'
-```
-
-Generate one random `sessionId` before page 1 and pass that same value on every later page so the result set stays pinned to one upstream resource. HarvestAPI matches `currentCompanies` by company name even when given a URL or ID, so retain only rows whose `currentPositions[].companyId` equals the target `element.id` returned by `harvestapi_get_company`. Then deduplicate and write the final roster into `"$WORK_DIR/li-employees.csv"` or add it as an enrichment pass. Use Apify only if the native HarvestAPI search contract cannot express the requested roster.
-
-**Source 4: Icypeas people search**
-
-```bash
-deepline tools execute icypeas_find_people --payload '{"query":{"currentCompanyWebsite":{"include":["DOMAIN"]}},"pagination":{"size":100}}'
-```
-
-Expected: +80-100 net new.
-
-**Source 5: PDL surgical gap-fill - ONLY for missing senior people**
-
-After building initial hierarchy, identify gaps (e.g., "5 Sales Directors but no VP Sales"):
-
-```bash
-deepline tools execute peopledatalabs_person_search --payload '{"size":5,"query":{"bool":{"filter":[{"term":{"job_company_website":"DOMAIN"}},{"terms":{"job_title_levels":["cxo","vp"]}},{"exists":{"field":"linkedin_url"}}]}}}'
-```
-
-Pull at most five CXO+VP profiles, then dedupe. Fetch another small page only if the specific hierarchy gap remains. PDL bills every returned profile, so a broad page followed by deduplication still spends credits on duplicates.
+**Source 3: surgical gap-fill, ONLY for missing senior people.** After building the initial hierarchy, identify gaps (e.g., "5 Sales Directors but no VP Sales") and search for that seniority at that company with a small limit. Fetch another small page only if the specific gap remains: a broad page followed by deduplication still spends credits on duplicates.
 
 Merge by stable provider ID within a provider, then canonical LinkedIn URL across providers. Name plus employer is only a candidate match: retain same-name people separately until another signal confirms identity. Keep all merged source IDs and field provenance.
 
@@ -523,5 +464,5 @@ Use this score only to order candidates, never as a probability or automatic edg
 
 ## When NOT to use
 
-- User already has a CSV and wants enrichment -> use enriching-and-researching.md
+- User already has a CSV and wants enrichment -> run the matching prebuilt play from `deepline search`
 - User needs email/phone for outreach -> this recipe maps orgs, use enrichment recipes for contact info after

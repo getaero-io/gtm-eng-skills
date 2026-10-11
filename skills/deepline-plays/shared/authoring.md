@@ -87,11 +87,10 @@ authority, edit extraction from the observed evidence, not a guessed shape.
 
 `tools describe <tool-id> --json` (also `tools get`) lists the exact declared
 getter names. Use `result.extractedValues.<name>.get()` for normalized values
-and `result.extractedLists.<name>.get()` for row datasets. For example,
-BounceBan's `email_status` getter returns an EmailStatus object; PDL company
-enrichment declares `company_name` and `company_domain`; ContactOut person
-enrichment declares `email` and `personal_email`. Confirm names on the selected
-tool rather than copying getters between actions.
+and `result.extractedLists.<name>.get()` for row datasets. A getter can return
+an object rather than a scalar, and two tools that return the same kind of
+data declare different getter names. Confirm names on the selected tool
+rather than copying getters between actions.
 
 For other fields, inspect `result.toolResponse.rawV2`. This is the complete
 parsed and scrubbed provider/tool adapter response, with its nesting preserved.
@@ -99,7 +98,7 @@ The useful payload can be at `rawV2`, `rawV2.data`, or `rawV2.data.data`.
 The response view is pinned to the published Play artifact. A CLI upgrade does
 not change an existing run's shape. Once an envelope correction is released,
 republish deliberately to adopt it; retained runs and replay keep their old pin.
-`view: "data"` does not flatten it. BounceBan completed Play responses can
+`view: "data"` does not flatten it. A completed Play response can
 place the verdict at `rawV2.data.data.result`; unwrapping once reads an envelope
 and can silently hold every lead. Do not apply a generic unwrap loop: provider
 records can themselves contain meaningful `data` fields.
@@ -355,13 +354,13 @@ Anything else errors `docflow_dataset_column_undrawn`, naming the column, the co
 
 - **Say which arm the condition leads to** with `arm:"run"` on the node that arm points at (`// @mermaid-node tierOne out:"priority_tier" arm:"run"`). Your edge labels are prose — `"fit 65 or better"`, `"nicht gefunden"` — so without this the run trace reads the arms by draw order and marks the guess with a `*`. Annotate one arm only: a conditional is boolean, so the sibling resolves to `else` on its own. Optional, and a play without it is unaffected.
 
-**Every box binds a statement, or says no statement runs it.** A diagram is a claim about the code: click a box and it answers with the tool it called, the columns it wrote, what this run did there. A box bound to nothing cannot answer, and the canvas cannot tell the two apart — so it renders a box plainly labelled `Hunter` as "this node has nothing configured".
+**Every box binds a statement, or says no statement runs it.** A diagram is a claim about the code: click a box and it answers with the tool it called, the columns it wrote, what this run did there. A box bound to nothing cannot answer, and the canvas cannot tell the two apart — so it renders a box plainly labelled `Email finder` as "this node has nothing configured".
 
 When the work genuinely has no statement to point at — the legs live in another module, the providers are a list a loop walks, the box is the outcome of a branch rather than a step — declare it:
 
 ```
  * cascade --> answer(["Return the email and how it was found"])
- * class hunter,prospeo,answer sketch
+ * class first_finder,second_finder,answer sketch
 ```
 
 `class <ids> sketch` is mermaid's own class statement, so the block stays a diagram any renderer can draw. A sketched box keeps its `type:` — a sketched decision is still a diamond — and loses only the promise that there is something to click into: it draws dashed and its panel says no statement in this play runs it. `plays check` fails on a box that is neither bound nor declared, and names both exits.
@@ -382,8 +381,8 @@ To show the attempts, draw them. A `subgraph` whose members are legs is a **wate
 
 ```
 subgraph cascade["Try each source until one returns a mobile"]
-  dropleads["Dropleads · from LinkedIn"] --> forager["Forager · from email"]
-  forager --> leadmagic["LeadMagic · from LinkedIn"]
+  first["First source · from LinkedIn"] --> second["Second source · from email"]
+  second --> third["Third source · from LinkedIn"]
 end
 ```
 

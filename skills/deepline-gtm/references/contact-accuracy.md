@@ -57,7 +57,7 @@ People move. On older lists, a job-changer's listed email is often on their old 
 
 ## 4. Email validation: never trust a single provider's status
 
-Provider "verified"/"valid" flags are the provider grading its own homework. Independently validate every email with a dedicated validator. ZeroBounce and LeadMagic are current starting hints; confirm live tools with `deepline search --type tools "email validation"` and `describe`.
+Provider "verified"/"valid" flags are the provider grading its own homework. Independently validate every email with a dedicated validator. Find the live tools with `deepline search --type tools "email validation"` and `describe`.
 
 - **valid:** deliverable, ship.
 - **catch-all:** the domain accepts everything; ship only when a second independent finder returned the exact same address.
@@ -78,15 +78,15 @@ The point is role-agnostic: resolve the current title, then keep the rows whose 
 
 ## 6. Lineage: every field names its source
 
-A reviewer (and you, later) must be able to see **where each value came from**. Per the export contract, carry `source`, `status`, and `miss_reason`, and for accuracy-critical lists, go further: tag the source _per field_, not just per row. Useful columns: `title_source`, `email_source`, `identity_confirmation` (how you confirmed the person works there: `crustdata_domain` / `linkedin_experience` / `email_domain_match` / `NONE`), `email_validation` (`zerobounce:valid` / `leadmagic:valid` / `catch-all:2-provider`), and `still_at_company`. When you coalesce multiple sources, record which source won each field. This is what lets the user trust 460 rows without re-checking each one, and lets you debug the wrong ones.
+A reviewer (and you, later) must be able to see **where each value came from**. Per the export contract, carry `source`, `status`, and `miss_reason`, and for accuracy-critical lists, go further: tag the source _per field_, not just per row. Useful columns: `title_source`, `email_source`, `identity_confirmation` (how you confirmed the person works there: `company_domain_search` / `linkedin_experience` / `email_domain_match` / `NONE`), `email_validation` (`<validator>:valid` / `catch-all:2-provider`), and `still_at_company`. When you coalesce multiple sources, record which source won each field. This is what lets the user trust 460 rows without re-checking each one, and lets you debug the wrong ones.
 
 ## 7. Golden record: one authoritative value per field, all signals kept
 
-When you've pulled the same field from several sources (a LinkedIn scrape, Crustdata, PDL, the original list), the deliverable should not make the user guess which to believe. Produce a **golden record**: for each field, one chosen value plus an explicit **source-of-truth** and **confidence**, with every upstream signal preserved in its own column. The golden columns are the answer; the upstream columns are the evidence. Where the golden disagrees with an upstream value, that's intentional, and visible.
+When you've pulled the same field from several sources (a LinkedIn scrape, one or two people databases, the original list), the deliverable should not make the user guess which to believe. Produce a **golden record**: for each field, one chosen value plus an explicit **source-of-truth** and **confidence**, with every upstream signal preserved in its own column. The golden columns are the answer; the upstream columns are the evidence. Where the golden disagrees with an upstream value, that's intentional, and visible.
 
 Build it deterministically:
 
-- **Precedence, not averaging.** Define an explicit order and take the first source that has a value, e.g. for a _current title_: fresh LinkedIn scrape (active-work-role logic) -> PDL (only when the scrape failed) -> original list (unverified, last resort). Record which one won in `<field>_source_of_truth`.
+- **Precedence, not averaging.** Define an explicit order and take the first source that has a value, e.g. for a _current title_: fresh LinkedIn scrape (active-work-role logic) -> a people database (only when the scrape failed) -> original list (unverified, last resort). Record which one won in `<field>_source_of_truth`.
 - **Confidence tier per row**, derived from the winning source + the gates it passed: `HIGH` (fresh first-party source, all gates passed), `MEDIUM` (fallback source, or catch-all email, or current-role not flagged still-working), `LOW` (only an unverified/original value survived), `HOLD` (failed a gate: board/charity-only, identity mismatch, audit-flagged). The user reads this column to decide what to send vs. review.
 - **Keep upstream signals as columns, not overwritten.** Name them by source: `src_*` (original list), `li_scrape_*`, `pdl_*`, `disc_*` (domain-anchored discovery), `gap_*` (recovery waterfall), `audit_*`, `history_*`. This is what makes a wrong golden value debuggable and lets a human override with full context.
 - **Surface disagreement.** A `sources_disagree` flag (golden title/company conflicts with another source that also had data) points the reviewer straight at the rows most worth a look. Don't hide conflicts behind the golden value.
@@ -102,7 +102,7 @@ This matters most when the list is stale or title-anchored. In stale-account aud
 The pattern, in durable terms:
 
 - **Input contract:** company name + domain (+ optional tier).
-- **Discovery:** domain-anchored people search filtered to the **target role**, across multiple providers in a waterfall: Crustdata by company-domain and a search/finder provider as fallback. Pass the role as a title filter (the user's target function, not hardcoded to finance). Each provider is blind to the others; take the first that returns a current role-holder at that domain. Find the live tool/play names with `deepline search --type prebuilts "company contacts"` and `deepline search --type tools "people search domain"`; confirm input shape with `describe` before running, because provider field names rot.
+- **Discovery:** domain-anchored people search filtered to the **target role**, across multiple providers in a waterfall: a company-domain people search first and a search/finder tool as fallback. Pass the role as a title filter (the user's target function, not hardcoded to finance). Each provider is blind to the others; take the first that returns a current role-holder at that domain. Find the live tool/play names with `deepline search --type prebuilts "company contacts"` and `deepline search --type tools "people search domain"`; confirm input shape with `describe` before running, because provider field names rot.
 - **Verify the discovered person, but don't name-gate them.** The §2 name-match check does not apply: you _want_ a different name than the one on your stale list, so requiring the names to match would reject the successor you came to find. What you owe instead is (a) §1's current-role logic on the returned person, to confirm the company is their _current_ employer and not a role they already left, and (b) that the company genuinely appears as their current/recent employer (the domain anchor gives you this for free). Confirm those two, and the discovered name is the answer.
 - **Coalesce with any name-first data you also have.** When you run both pipelines (company-first discovery + a name-first refresh of the original contact), record per field which pipeline won, and flag where they disagree: that disagreement is exactly the "the original person left, here's the successor" signal worth surfacing.
 
@@ -155,7 +155,7 @@ Two failure modes that look like success:
 
 **Don't promise deliverability you can't guarantee.** Email validity is point-in-time: a mailbox valid at validation can bounce a week later, and a catch-all domain never confirms the specific mailbox at all (§4). A list that's been gated through §1–§10 is _as accurate as the current data allows_, which is the honest claim. Stating it that way, rather than "zero mistakes" or "100% deliverable", sets the right expectation and is what the user actually relies on. Overclaiming erodes trust the first time a verified row bounces.
 
-**A provider that returns _a_ person isn't a provider that returns the _right_ person.** Name+domain lookups (PDL and similar) for contacts with no LinkedIn will confidently return a same-name human who isn't your target: the §2 decoy problem, just from a structured provider instead of a search. These are not safe to ship as confident rows; they need the same name+company-in-history gate, and when the gate can't confirm, they belong in HOLD/`VERIFY`, not in `SEND`. "The provider returned something" is not confirmation; "the returned person's history contains the target company" is.
+**A provider that returns _a_ person isn't a provider that returns the _right_ person.** Name+domain lookups in a people database for contacts with no LinkedIn will confidently return a same-name human who isn't your target: the §2 decoy problem, just from a structured provider instead of a search. These are not safe to ship as confident rows; they need the same name+company-in-history gate, and when the gate can't confirm, they belong in HOLD/`VERIFY`, not in `SEND`. "The provider returned something" is not confirmation; "the returned person's history contains the target company" is.
 
 ## Putting it together (recommended order)
 
@@ -163,9 +163,9 @@ For a contact list you will send:
 
 1. **Source company-first when you can** (§8). For known accounts, anchor on company + domain and discover the current role-holder. Verify by current role, not by name match, because a successor may be the correct answer. See also `recipes/account-orgchart.md`.
 2. **Resolve the current role** with `select-current-role.py` (§1): latest active work role, board/charity excluded, company-name-in-title fixed.
-3. **Identity gate the names you _brought in_** (§2): name match + company-in-history. This is for verifying a name you already have (a scrape or a name-first refresh) and applies to structured-provider results too (PDL by name+domain), not just searches (§11). It does _not_ apply to company-first discoveries from step 1.
+3. **Identity gate the names you _brought in_** (§2): name match + company-in-history. This is for verifying a name you already have (a scrape or a name-first refresh) and applies to structured-provider results too (a name+domain lookup), not just searches (§11). It does _not_ apply to company-first discoveries from step 1.
 4. **Freshness** (§3): flag job-changers; re-find at the current domain or hold.
-5. **Find + validate email** (§4): waterfall to find, ZeroBounce/LeadMagic to confirm, catch-all needs corroboration.
+5. **Find + validate email** (§4): waterfall to find, a dedicated validator to confirm, catch-all needs corroboration.
 6. **ICP filter** (§5): keep rows whose current title matches the user's target role (+ SMB owners); hold off-ICP/adjacent-function rows.
 7. **Emit lineage** (§6): per-field source, validation, identity confirmation, still_at_company.
 8. **Build the golden record** (§7): one chosen value per field with source-of-truth + confidence, upstream signals kept as columns, plus a data dictionary so the file is self-describing.

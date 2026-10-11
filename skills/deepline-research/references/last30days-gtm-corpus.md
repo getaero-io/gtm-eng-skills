@@ -152,7 +152,7 @@ A Codex session captured the strongest GTM lesson:
 - `/last30days` found an open government mining-safety dataset via a Reddit post.
 - It found a predictive mine-safety research paper via X.
 - It found a government-agency post pointing to roughly 3M violation records.
-- The agent built a risk model, scored 6,537 mines, found safety decision makers, validated emails/LinkedIn URLs, and wrote Lemlist campaigns.
+- The agent built a risk model, scored 6,537 mines, found safety decision makers, validated emails/LinkedIn URLs, and wrote outbound campaigns.
 
 This should become the canonical `/deepline-research` mental model:
 
@@ -172,12 +172,12 @@ High-priority because repeated GTM logs used them:
 - X/Twitter: current practitioner tactics, dataset/paper pointers, named operators.
 - YouTube/TikTok/Instagram transcripts and captions: phrasing, examples, demos, creator framing, objections, and hooks.
 - Web/news/docs/GitHub: official docs, repos, public data inventories, pricing pages, API docs.
-- ScrapeCreators-style social data: Reddit comments plus TikTok/Instagram captions are useful enough to justify native support or a strong generic provider route.
-- Apify actors: pragmatic route for LinkedIn, social scraping, and odd public web datasets when native providers are missing.
+- Social data: Reddit comments plus TikTok/Instagram captions are useful enough to justify native support or a strong generic route.
+- General scraping actors: pragmatic route for LinkedIn, social scraping, and odd public web datasets when native tools are missing.
 - Public records/government/open-data: vertical-specific GTM alpha.
 - CRM/warehouse/product/workflow data: private truth layer for scoring and activation.
-- Contact/enrichment/verification stack: Apollo, Dropleads, Hunter, LeadMagic, BetterContact, Icypeas, ContactOut, Wiza, PDL, ZeroBounce-style validation, and LinkedIn scraping.
-- Campaign activation: Lemlist, Smartlead, Instantly, HeyReach, Marketo, HubSpot/Salesforce actions where relevant.
+- Contact, enrichment, and verification tools, and LinkedIn data.
+- Campaign activation: sequencer, marketing-automation, and CRM actions where relevant.
 
 ## Add To Every GTM Pre-Research Plan
 

@@ -13,36 +13,40 @@ Every major VC and accelerator publishes their portfolio online. **Do NOT waste 
 
 ## What NOT to do
 
-Tested and failed: provider-side investor filtering on generic prospecting databases (irrelevant results), people-first then verify investor (~7-9% hit rate, wastes 60-80% of turns), Crustdata `crunchbase_investors` (inconsistent), `deeplineagent` per-row investor verification (~5-10s/row, unacceptable at scale)
+Tested and failed: provider-side investor filtering on generic prospecting databases (irrelevant results), people-first then verify investor (~7-9% hit rate, wastes 60-80% of turns), `deeplineagent` per-row investor verification (~5-10s/row, unacceptable at scale)
 
 ## Proven approach
 
 **Step 1: Get the company list from the VC's public portfolio.** Common URLs: YC (`ycombinator.com/companies`), a16z (`a16z.com/portfolio`), Sequoia (`sequoiacap.com/our-companies`), Greylock/Benchmark (`/portfolio`).
 
 ```bash
-# Fetch YC companies page (or use parallel_extract if JS-rendered)
 curl -sS "https://www.ycombinator.com/companies" -H "Accept: text/html" -o $WORKDIR/yc_page.html
+```
 
-deepline tools execute parallel_extract --payload '{"urls":["https://www.ycombinator.com/companies?batch=W26"],"objective":"Extract all company names, website domains, and one-line descriptions from this YC batch directory page","full_content":true}'
+If the page is JavaScript-rendered, find a page-extraction tool and give it the URL and what to extract:
+
+```bash
+deepline search "extract web page" --task "I need company names and website domains from a JavaScript-rendered portfolio page"
 ```
 
 **Step 2: Filter to companies hiring your target role (optional).**
 
-```bash
-deepline tools execute exa_search --input '{"query":"GTM Engineer site:ycombinator.com","numResults":50,"type":"auto"}'
-```
+Search the accelerator's job board for the role with a web search tool
+(`deepline search "web search"`), for example `GTM Engineer site:ycombinator.com`.
 
 For per-company filtering across the whole list, add this as a column in a custom play ([deepline-plays.md](deepline-plays.md)).
 
 **Step 3: Find contacts at each company.**
 
-Use guidance in [enriching-and-researching.md](../enriching-and-researching.md) for this
+Put the companies in a CSV and run `prebuilt/company-to-contact-batch` over it for the
+target role; `deepline plays describe prebuilt/company-to-contact-batch` shows its columns.
 
 **Step 4: Find emails via waterfall.**
 
-Use guidance in [enriching-and-researching.md](../enriching-and-researching.md) for this
+Run `prebuilt/person-to-email-batch` over the contacts: each row tries its LinkedIn profile
+first, then name and company domain. See [enriching-and-researching.md](../enriching-and-researching.md).
 
-**Step 5: Generate personalized email copy** with `deeplineagent` and `jsonSchema`. If the row still needs fresh web lookup, do that in the same `deeplineagent` step or in a separate research pass first, within the authorized scope. For a new large batch, use a CSV-aware 2-3-row pilot before scaling; do not duplicate a small supplied Play. Follow [execution mechanics](../references/plays-run-export-inspect-repair.md).
+**Step 5: Generate personalized email copy** with `deeplineagent` and `jsonSchema`. If the row still needs fresh web lookup, do that in the same `deeplineagent` step or in a separate research pass first, within the authorized scope. For a new large batch, use a CSV-aware 2-3-row pilot before scaling; do not duplicate a small supplied Play.
 
 Use guidance in [writing-outreach.md](../writing-outreach.md)
 
@@ -53,4 +57,3 @@ Use guidance in [writing-outreach.md](../writing-outreach.md)
 | Trying to discover portfolio companies via Deepline tools     | Wastes 60-80% of turn budget on company discovery                       | Fetch the public portfolio page directly                |
 | Using old `json_mode` fields from retired local AI docs       | New AI tools ignore that contract and structured output drifts or fails | Pass a `jsonSchema` object to `deeplineagent`           |
 | Searching with strict titles at small startups                | 0 results — person hasn't been hired yet                                | Remove title filter, get broader roles, pick best match |
-| Using Hunter as primary email finder for <50 person companies | 0/25 fill rate                                                          | Use LeadMagic first — better small-company coverage     |

@@ -2,34 +2,22 @@
 
 Use this for local SMB discovery like dentists, plumbers, med spas, agencies, or nearby storefronts.
 
-1. Start with `serper_google_maps_search` when you need fast recall, loose discovery, or broad geo coverage.
-2. Use `openwebninja_localbusiness_search` when you want structured Google Maps business rows with phone, address, rating, website, and optional `extract_emails_and_contacts=true`.
-3. If the target area is map-bounded, prefer `openwebninja_localbusiness_search_in_area` or `openwebninja_localbusiness_search_nearby`.
-4. Use Enformion for US business-registry depth: `enformion_business_search` for structured business records (ownership, addresses, registrations), `enformion_person_search` / `enformion_contact_enrich` to reach the owner or principal behind a storefront, and `enformion_workplace_search` to connect people to businesses. Strongest when Maps gives you the storefront but you need the legal entity or the owner's direct contact.
-5. If you need broader non-maps company sourcing, `forager_organization_search` can be a useful complement, but it is not the primary local-business tool.
+Each step says what to get. Find the tool or prebuilt play for it with `deepline search`, passing what you have and what you need as `--task`, then read its inputs and price with `deepline tools describe <tool>` or `deepline plays describe <play>`.
 
-Default pattern:
+1. **Discover businesses with a Maps-style local search.** Search by category and place, such as "dentists in Austin, TX". Run one query with a small limit, read the rows, and tune the query before widening. When the target is a map boundary or a radius around a point, use a search that takes an area or coordinates instead of a place name.
+2. **Keep one structured row per business:** name, address, phone, website, rating, and the Maps listing URL or id. Overlapping queries return the same business twice; dedupe on the listing id, or on phone plus address.
+3. **Resolve the owner and legal entity when the storefront is not enough.** For US businesses, business-registry records give the registered entity, its addresses, and the owner or principal, and a person lookup then reaches that owner directly. Skip this step when the storefront phone or a shared inbox is all the campaign needs.
+4. **Recover a contact email.**
+   - Start with the business website and its contact page when the row has a normal homepage.
+   - Treat Facebook and Instagram profiles as optional sources, not required steps. Use them when the row's only website is a social profile, the official site is missing or thin, or a sample shows the emails sit in Facebook About blocks, Instagram contact fields, bios, link-in-bio pages, or recent posts. Test a profile tool on a few rows before scaling.
+   - Write what you find to audit columns such as `facebook_url`, `instagram_url`, `social_email`, `social_email_source`, `social_identity_evidence`, and `social_contact_confidence` instead of overwriting the canonical email.
+   - Accept contact data from a social profile only when the profile matches the business on at least two of: name, address, phone, website or booking link, Maps listing.
+5. **Scale it as a play.** Once each step works on a sample, run the list through a play so every row keeps its source columns and the run can be exported.
 
-- Serper Maps for discovery and query tuning.
-- OpenWebNinja Local Business for the structured list you will enrich or export.
-- Enformion to resolve the owner/principal and legal entity behind the storefront.
-
-Contact-email recovery pattern:
-
-- Start with Maps identity and the business website/contact page when the row has a normal homepage.
-- Treat Facebook and Instagram profiles as optional candidate sources, not mandatory steps. Consider them when the row's only website is a social profile, the official site is missing/thin, or a pilot/ground-truth sample suggests contact emails are in Facebook About blocks, Instagram profile contact fields, bios, link-in-bio pages, or recent posts.
-- Search ScrapeCreators without over-constraining to a category if profile tools are not showing up in the first pass:
+Deepline has prebuilt plays for parts of steps 3 and 4. `deepline search "smb owner"` and `deepline search "business email"` list them; read each one's inputs with `deepline plays describe` before choosing it over a tool.
 
 ```bash
-deepline search --type tools "facebook profile email scrapecreators"
-deepline search --type tools "instagram profile bio email scrapecreators"
-deepline search --type tools scrapecreators
+deepline search "local business search" --task "I have a business category and a city and need each business's name, phone, address and website"
+deepline search "business registry owner" --task "I have a US storefront's name and address and need its legal entity and owner"
+deepline search "facebook page contact details" --task "I have a business's Facebook page URL and need its public email and phone"
 ```
-
-- If available, test `scrapecreators_facebook_profile`, `scrapecreators_facebook_profile_posts`, `scrapecreators_instagram_profile`, and `scrapecreators_instagram_user_posts` on a tiny sample before scaling. Fall back to Serper/Firecrawl/Apify or direct website extraction when no managed profile route fits.
-- Add audit columns such as `facebook_url`, `instagram_url`, `social_email`, `social_email_source`, `social_identity_evidence`, and `social_contact_confidence` instead of overwriting the canonical email directly.
-- Accept social profile contact data only when the profile identity matches at least two of business name, address, phone, website/menu/booking link, or Maps profile.
-
-For new discovery, use one authorized query with a small limit before scaling.
-Do not add a duplicate pilot to a small supplied Play; follow
-[execution mechanics](../references/plays-run-export-inspect-repair.md).

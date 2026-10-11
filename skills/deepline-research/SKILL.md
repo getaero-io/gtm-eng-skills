@@ -30,7 +30,7 @@ Portions of the query-design, public-source fanout, and consolidation approach a
 ## Non-Negotiables
 
 - Use Deepline's live tool catalog before naming provider actions. Do not rely on memory.
-- **Run live web search. Do not answer public-source discovery from model memory.** Every run MUST execute real searches (`serper`/`exa`, or the equivalent web-search tool) during the public-source fanout. If a run names public datasets without having searched for them this session, it has failed the fanout — no exceptions for "obvious" verticals. Naming a source family from memory is a draft, not a finding; the finding is the exact artifact the search returns. (Eval evidence: runs that skipped web search lost or tied on exactly the prompts where a competitor searched and surfaced concrete artifacts.)
+- **Run live web search. Do not answer public-source discovery from model memory.** Every run MUST execute real searches with a web-search tool during the public-source fanout. If a run names public datasets without having searched for them this session, it has failed the fanout — no exceptions for "obvious" verticals. Naming a source family from memory is a draft, not a finding; the finding is the exact artifact the search returns. (Eval evidence: runs that skipped web search lost or tied on exactly the prompts where a competitor searched and surfaced concrete artifacts.)
 - **Resolve every materializable dataset to its exact artifact, not its family.** For each public dataset/registry you recommend, the fanout must return and record: (1) the **exact file/endpoint name** (e.g. `IA_FIRM_SEC_Feed_YYYY_MM_DD.xml.gz`, not "the ADV bulk feed"); (2) the **canonical download/API URL**; (3) any **mirror** (e.g. data.gov catalog copy) that is easier to pull; (4) an existing **open-source parser or GitHub repo** that already structures it, when one exists (search `"<dataset> parser github"`); (5) the **government statistical registry** for the vertical when one exists (BLS QCEW + NAICS codes, Census County Business Patterns, etc.) for free establishment counts and sizing. "Source family named" is not done. "Exact file + URL + mirror + parser + NAICS code recorded" is done. See the Artifact Resolution Gate (§4.55).
 - Public-source discovery comes before provider routing. First find the best public registries, datasets, communities, discussions, reviews, directories, papers, repos, and source leads. Then use Deepline routes to materialize, validate, enrich, and activate them.
 - Quote only customer-visible Deepline credits/USD. Never expose provider spend.
@@ -38,7 +38,7 @@ Portions of the query-design, public-source fanout, and consolidation approach a
 - Treat private data sources as first-class: CRM, warehouse, workflow runs, product analytics, support/calls, sheets, and customer-owned datasets.
 - Treat custom language as a first-class workflow: buyer words, objections, category language, competitor framing, community slang, sales-call phrasing, and support-ticket pain belong in the source plan.
 - Use tiny probes to learn coverage. Scale only after observed coverage, cost basis, and evidence quality are legible.
-- If the user asks for ScrapeCreators, X.com, Reddit comments, TikTok, Instagram, YouTube transcripts, Bluesky, Truth Social, or HN, include a current support/gap assessment instead of pretending every source is native.
+- If the user asks for a named provider, X.com, Reddit comments, TikTok, Instagram, YouTube transcripts, Bluesky, Truth Social, or HN, include a current support/gap assessment instead of pretending every source is native.
 - Do not depend on `/last30days` at runtime. Reference it only as a design benchmark for source breadth and synthesis discipline.
 - Public registries and niche datasets that do not have native Deepline tools are still valid sources through generic web/search/extraction routes. For example, the NPI registry for healthcare provider taxonomy can be discovered and pulled through generic web/API search and extraction even when no native `npi` tool exists. Classify this as `available through generic route`, not as an unusable gap.
 - Every recommended source must be classified as `native`, `available through generic route`, `private connector`, or `missing provider to add`.
@@ -88,18 +88,18 @@ Tell the user the parsed scope before provider calls.
 
 Do not default to browser scraping, raw x.com scraping, or unvetted actors. Prefer managed external APIs and private connectors:
 
-| Source family                         | Preferred provider                     | Credential needed                                                              | Notes                                                                                                                                                                                                       |
-| ------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Reddit threads/comments               | `scrapecreators`                       | Deepline integration API key                                                   | Required for managed Reddit comments/thread coverage.                                                                                                                                                       |
-| TikTok / Instagram / YouTube fallback | `scrapecreators`                       | Deepline integration API key                                                   | Preferred managed API for captions, engagement, and transcript fallback. Search ScrapeCreators unfiltered when profile/contact tools matter; some profile tools are categorized as `admin`, not `research`. |
-| X/Twitter                             | `twitterapi`                           | Deepline integration API key                                                   | Managed X/Twitter search; avoids scraping x.com.                                                                                                                                                            |
-| Web/news/docs                         | `serper`                               | Deepline integration API key or `SERPER_API_KEY` for server-owned dev/prod use | Search API, not search-page scraping.                                                                                                                                                                       |
-| Web extraction fallback               | `firecrawl` or `exa`                   | Deepline integration API key                                                   | Use after URL discovery; do not use for blind scrape-at-scale.                                                                                                                                              |
-| Hacker News                           | `hackernews`                           | none                                                                           | Public Algolia API.                                                                                                                                                                                         |
-| Bluesky                               | `bluesky`                              | none                                                                           | Public AppView API.                                                                                                                                                                                         |
-| CRM/private                           | Salesforce, HubSpot, Attio             | Deepline OAuth/private connector                                               | Query customer-authorized APIs, not UI scraping.                                                                                                                                                            |
-| Warehouse/product/workflow            | Snowflake/customer DB/workflow runtime | Deepline private connector                                                     | Use scoped warehouse/runtime access.                                                                                                                                                                        |
-| Last-resort social actor fallback     | `apify`                                | Deepline integration API key                                                   | Optional fallback only after explicit approval and provider gap status.                                                                                                                                     |
+| Source family                         | Preferred route                                        | Credential needed                | Notes                                                                                                                                                                                                       |
+| ------------------------------------- | ------------------------------------------------------ | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reddit threads/comments               | managed social-data tool, found with `deepline search` | Deepline integration API key     | Required for managed Reddit comments/thread coverage.                                                                                                                                                       |
+| TikTok / Instagram / YouTube fallback | managed social-data tool, found with `deepline search` | Deepline integration API key     | Preferred managed API for captions, engagement, and transcript fallback. Search ScrapeCreators unfiltered when profile/contact tools matter; some profile tools are categorized as `admin`, not `research`. |
+| X/Twitter                             | managed X/Twitter tool, found with `deepline search`   | Deepline integration API key     | Managed X/Twitter search; avoids scraping x.com.                                                                                                                                                            |
+| Web/news/docs                         | web-search tool, found with `deepline search`          | Deepline integration API key     | Search API, not search-page scraping.                                                                                                                                                                       |
+| Web extraction fallback               | page-extraction tool, found with `deepline search`     | Deepline integration API key     | Use after URL discovery; do not use for blind scrape-at-scale.                                                                                                                                              |
+| Hacker News                           | Hacker News tool, found with `deepline search`         | none                             | Public Algolia API.                                                                                                                                                                                         |
+| Bluesky                               | Bluesky tool, found with `deepline search`             | none                             | Public AppView API.                                                                                                                                                                                         |
+| CRM/private                           | the workspace's connected CRM                          | Deepline OAuth/private connector | Query customer-authorized APIs, not UI scraping.                                                                                                                                                            |
+| Warehouse/product/workflow            | Snowflake/customer DB/workflow runtime                 | Deepline private connector       | Use scoped warehouse/runtime access.                                                                                                                                                                        |
+| Last-resort scraping fallback         | general scraping tool, found with `deepline search`    | Deepline integration API key     | Optional fallback only after explicit approval and provider gap status.                                                                                                                                     |
 
 Treat any route not covered by a described Deepline tool contract, key/auth plan, test endpoint, and Deepline-facing pricing as unapproved until after the public research synthesis is complete.
 
@@ -129,7 +129,7 @@ For each useful source lead, record:
 - stable join keys such as NPI, CRD, USDOT#, NAICS, domain, address, phone, license id, provider id, LinkedIn URL, or CRM account id
 - extraction risks and likely false-positive patterns
 
-Do not stop at "Serper can search this." Search tools are routes; the deliverable is the public source or dataset discovered through them. If you find yourself writing a dataset name you did not just see in a search result, stop and search for it.
+Do not stop at "a search tool can find this." Search tools are routes; the deliverable is the public source or dataset discovered through them. If you find yourself writing a dataset name you did not just see in a search result, stop and search for it.
 
 ### 3.5. Use The Research Planning API After Public Synthesis
 
@@ -171,9 +171,8 @@ the query instead.
 ```bash
 deepline search --type tools "web search news source discovery" --categories research --search_terms "web search,news,recency,source discovery"
 deepline search --type tools "social posts reddit x twitter youtube tiktok instagram" --categories research --search_terms "social posts,reddit,x twitter,youtube,tiktok,instagram"
-deepline search --type tools scrapecreators
-deepline search --type tools "facebook profile email scrapecreators"
-deepline search --type tools "instagram profile bio links scrapecreators"
+deepline search --type tools "facebook profile email"
+deepline search --type tools "instagram profile bio links"
 deepline search --type tools "company dataset firmographics funding technographics jobs" --categories company_search --search_terms "company dataset,firmographics,funding,technographics,jobs"
 deepline search --type tools "crm warehouse workflow session usage" --categories admin --search_terms "crm,warehouse,workflow,session,usage"
 ```
@@ -234,7 +233,7 @@ Before recommending a plan, check every required source family in `references/so
 For each family, mark one of:
 
 - `native`: a Deepline tool/play exists and can be described
-- `generic route`: use `apify`, `serper`, `exa`, `parallel`, `firecrawl`, or `deeplineagent`
+- `generic route`: use a web-search, page-extraction or general scraping tool, or `deeplineagent`
 - `private connector`: use CRM, warehouse, workflow, or customer dataset access
 - `gap`: provider/action should be added before Deepline can replicate that part well
 

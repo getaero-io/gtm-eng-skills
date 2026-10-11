@@ -131,21 +131,20 @@ Rule: if you have the URL, scrape it directly. Use search only to find the URL w
 Source-type routing:
 
 - **Static HTML pages, registries, official filings** → `curl` or `WebFetch` (free).
-- **JS-rendered portfolios, directories, job boards** → `parallel_extract` (~1 cr).
-- **LinkedIn profiles, employees, posts, and reactions** → Native HarvestAPI operations. Search and describe the relevant `harvestapi_*` tool before execution.
-- **Reddit, X, Similarweb, or a LinkedIn surface HarvestAPI does not expose** → Apify actors. See [`portfolio-prospecting.md`](recipes/portfolio-prospecting.md) for investor/accelerator flow.
+- **JS-rendered portfolios, directories, job boards** → a page-extraction tool, found with `deepline search "extract web page"`.
+- **LinkedIn profiles, employees, posts, and reactions** → native LinkedIn tools and prebuilt Plays. Search for the one you need and describe it before execution.
+- **Reddit, X, traffic data, or a LinkedIn surface no native tool exposes** → a native social-data tool if search returns one, otherwise a general scraping tool. See [`portfolio-prospecting.md`](recipes/portfolio-prospecting.md) for investor/accelerator flow.
 
 Direct extraction example:
 
 ```bash
-deepline tools execute parallel_extract --payload '{"urls":["https://www.ycombinator.com/companies?batch=W26"],"objective":"Extract all company names, domains, and one-line descriptions from this page","full_content":true}'
+deepline search "extract web page" --task "I need company names, domains and one-line descriptions from a JavaScript-rendered portfolio page"
 ```
 
-For LinkedIn, prefer the native HarvestAPI provider: `harvestapi_get_profile` for one profile, `harvestapi_search_leads` for company employees, `harvestapi_get_profile_posts` for a profile's posts, and both `harvestapi_get_post_reactions` and `harvestapi_get_post_comments` for post engagers. Treat these names as starting hints. Tool search is broad and can be noisy, so confirm the exact operation with `deepline tools describe <operation> --schema-only` before execution.
+For LinkedIn, search for the operation you need: one profile, a company's employees, a profile's posts, or a post's reactions and comments. Tool search is broad and can be noisy, so confirm the exact operation with `deepline tools describe <operation> --schema-only` before execution.
 
 ```bash
-deepline tools describe harvestapi_get_profile --schema-only
-deepline tools execute harvestapi_get_profile --payload '{"url":"https://www.linkedin.com/in/someone/"}' --json
+deepline search "linkedin profile" --task "I have a LinkedIn profile URL and need the person's current position"
 ```
 
 Use `--json` for single-object operations such as profile, company, and post
@@ -155,7 +154,7 @@ select an unrelated nested list for CSV preview. For post discovery, prefer a
 known `company`, `companyId`, `profile`, or `profileId` filter when available;
 broad keyword `search` is fuzzy and can include similarly named terms.
 
-Use Apify for source-specific scraping that HarvestAPI does not cover. Known non-HarvestAPI actors include `supreme_coder/linkedin-post` and `radeance/similarweb-scraper`; discover and inspect the current actor contract before execution.
+Use a general scraping tool for sources no native tool covers; read its contract, and any scraper it suggests for the source, before execution.
 
 For LinkedIn URL recovery itself (not scraping after you have the URL), use `URL recovery` below.
 

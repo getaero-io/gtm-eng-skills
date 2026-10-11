@@ -30,8 +30,7 @@ whose `title` is not in your matched list before paying for enrichment.
 - Any time you would otherwise guess `title_filters` keyword patterns and miss real titles
   (e.g. "Revenue Architect" instead of "VP Sales", "GTM Systems" instead of "Sales Ops").
 
-Do **not** reach for paid people-search (`peopledatalabs_person_search`,
-`crustdata_v3_person_search`) for this. `company_titles` answers "what titles exist here"
+Do **not** reach for a paid people search for this. `company_titles` answers "what titles exist here"
 for free; people-search is for when you already know the persona and need volume.
 
 ## Inputs
@@ -136,16 +135,16 @@ broad boolean matching is acceptable and you want emails in one shot.
 
 Run supplemental providers only after the roster-qualified `search_contact` pass:
 
-- `exa_people_search` can find public web/profile entities missing from contact
-  databases. Verify the current employer and title before treating a result as a match.
-- `dropleads_search_people` can add database rows or contact data, but keep it
-  supplemental for nuanced titles. Its keyword filters can miss a real roster title
+- A public-profile search can find people missing from contact databases. Verify
+  the current employer and title before treating a result as a match.
+- A keyword people search can add database rows or contact data, but keep it
+  supplemental for nuanced titles. Keyword filters can miss a real roster title
   such as "Director, Mount Sinai AI Assurance Lab" when the guessed keywords do not
   occur in the title.
 
-For broad market sizing rather than named-company title qualification,
-`dropleads_get_lead_count` and `dropleads_search_people` remain appropriate primary
-tools.
+Find both with `deepline search`. For broad market sizing rather than
+named-company title qualification, a count tool and a keyword people search
+remain the right primary tools.
 
 ## Notes
 

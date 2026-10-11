@@ -24,13 +24,13 @@ Public documentation checked before catalog inspection; Deepline tools were sear
 
 | Route | Best use | Contract / cost boundary |
 | --- | --- | --- |
-| Native Firecrawl: `firecrawl_scrape` | First pass for page source, links and text | Request `rawHtml`, not only markdown or cleaned `html`; `onlyMainContent:false`. Live base price: 0.02 Deepline credits/page; options add cost. Declared Deepline output schema exposes html/markdown/metadata but omits rawHtml: inspect actual rawV2 in an approved pilot. Missing rawHtml is a connector gap, not an empty site. |
-| Native Browserbase: `browserbase_create_session` + custom Playwright collector | Runtime requests, injected widgets, frames | Session alone does not collect evidence. Connect an authorized CDP client; attach listeners before navigation, use bounded waits and close in finally. Runtime/bandwidth pricing is usage-based, not a quoted fixed price. Never persist connectUrl/signingKey. |
-| Native BuiltWith: `builtwith_domain_lookup` | Independent indexed technographics and detection history | Inspect Results -> Result.Paths -> Technologies, entity and LastDetected. Usage-based price unresolved until estimate/pilot. Free lookup provides category summaries, not vendor-level proof. Indexed current status is not a live browser test. |
+| A page-scrape tool | First pass for page source, links and text | Request raw HTML, not only markdown or cleaned HTML, and the full page rather than main content only. Check that the tool's output actually carries raw HTML in an approved pilot; a missing field is a connector gap, not an empty site. |
+| A hosted browser session + custom Playwright collector | Runtime requests, injected widgets, frames | Session alone does not collect evidence. Connect an authorized CDP client; attach listeners before navigation, use bounded waits and close in finally. Runtime/bandwidth pricing is usage-based, not a quoted fixed price. Never persist session connect URLs or signing keys. |
+| An indexed technology-detection tool | Independent indexed technographics and detection history | Inspect the technologies, entity and last-detected fields. Usage-based price unresolved until estimate/pilot. A free lookup gives category summaries, not vendor-level proof. Indexed current status is not a live browser test. |
 | Generic public HTTP / local Playwright | Static HTML baseline or self-managed runtime | Only where credentials, permitted access and runtime are available. No new service necessary just for parsing. Respect TLS, rate limits and access restrictions. |
 | Private customer systems | Actual usage, contracts, seats, support volumes | Separate owner-authorized source. No inference from a public portal replaces this. |
 
-Firecrawl raw HTML is not a network trace. Browserbase Fetch is not interchangeable with a fully instrumented browser session. A headless session may miss region-, consent-, interaction-, or identity-dependent tools. Do not evade access blocks. Disable automatic CAPTCHA solving and stealth escalation; stop at access restrictions. A failed page status can coexist with a successful scrape API response.
+Raw HTML from a scrape is not a network trace. A fetch-style call is not interchangeable with a fully instrumented browser session. A headless session may miss region-, consent-, interaction-, or identity-dependent tools. Do not evade access blocks. Disable automatic CAPTCHA solving and stealth escalation; stop at access restrictions. A failed page status can coexist with a successful scrape API response.
 
 Before scale, search/describe an existing technology-audit play. If none provides raw DOM + network evidence + provenance, record that mismatch and author the missing collection layer through the current plays workflow. Do not claim this reference is already an executable play.
 
@@ -55,4 +55,4 @@ Require no false confirmations on: vendor.com.evil.test; evilvendor.com; URL use
 
 Use a labeled, cross-vertical site set and known counterexamples before release. Report precision by evidence level, coverage by page/consent/region, unknown rate, source freshness, incremental recall over the static baseline, and credits per verified finding. Do not optimize for raw match count. Offline tests are not live collection validation.
 
-Sources: [Firecrawl formats and page status](https://docs.firecrawl.dev/features/scrape), [Browserbase sessions](https://docs.browserbase.com/platform/browser/getting-started/using-browser-session), [Playwright network events](https://playwright.dev/docs/network).
+Sources: each tool's contract from `deepline tools describe`, [Playwright network events](https://playwright.dev/docs/network).
