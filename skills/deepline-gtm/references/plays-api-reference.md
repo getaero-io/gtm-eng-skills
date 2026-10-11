@@ -342,6 +342,7 @@ while True:
 | `GET` | `/api/v2/plays/:name/triggers` | `getPlayTriggerConfig` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/triggers/route.ts` |
 | `PUT` | `/api/v2/plays/:name/triggers` | `updatePlayTriggerConfig` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/[name]/triggers/route.ts` |
 | `POST` | `/api/v2/plays/activity` | `getPlaysActivity` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/activity/route.ts` |
+| `POST` | `/api/v2/plays/artifacts/immutable` | `registerPlayArtifact` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/artifacts/immutable/route.ts` |
 | `POST` | `/api/v2/plays/files/stage/mint` | `stagePlayFiles`<br />`mintStagedPlayFileUploads` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/files/stage/mint/route.ts` |
 | `GET` | `/api/v2/plays/settings/paths` | `listPlaySettingsPaths` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/plays/settings/paths/route.ts` |
 | `GET` | `/api/v2/sdk/compat` | `compat check` | SDK-facing route. | `apps/deepline-api/src/app/api/v2/sdk/compat/route.ts` |
@@ -710,6 +711,7 @@ query and selected customer tables.
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
+| `operation` | `{ operation_key: string; completed_at_ms: number; source: 'executed' \| 'operation_recovery'; }` | No | Present for explicitly keyed SQL; recovery keeps the original completion time. |
 | `scope` | `{ kind: 'database'; mutability: 'current' }` | No | This query reads the current mutable customer database, not one run snapshot. |
 | `command` | `string` | Yes | Database command executed by the query endpoint. |
 | `row_count` | `number \| null` | Yes | Total affected row count when reported by the database. |
