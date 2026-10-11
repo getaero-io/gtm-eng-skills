@@ -176,6 +176,12 @@ deepline tools list | grep -Ei "account|audience"
 
 2. If a platform exposes a direct account discovery tool or endpoint, use it first. Record account name, account ID, platform, permission status, and whether customer list upload is supported.
 
+   Meta uses the new token-based connection: the customer's long-lived system-user access token is stored in Dashboard → Integrations → Meta Audiences and is used server-side for discovery and writes. Call `meta_audiences_list_ad_accounts` to discover live accounts through that saved token and confirm the account by `name`. Use a row with `enabled: true`; `is_default: true` marks the workspace default, and `custom_audience_terms_accepted: false` means creation will fail until someone accepts Meta's terms. Then either pass that row's `id` as `ad_account_id`, or omit `ad_account_id` to use the workspace default and read the account the call used back from `data.ad_account_id` in the create, list, status, or sync response. Never put the Meta token in a CLI payload or chat, and never grep old runs, CSVs, or notes for Meta account IDs: they can belong to customers.
+
+```bash
+deepline tools execute meta_audiences_list_ad_accounts --payload '{}' --json
+```
+
 3. If no direct discovery tool is exposed, ask the user for the account ID and name, then validate it before upload:
 
 ```bash
@@ -465,7 +471,7 @@ Final answer format:
 - Uploaded count.
 - Invalid count.
 - Request IDs or session IDs.
-- Current status. Note that match size and match-rate ranges may stay null while platforms process the audience.
+- Current status. Note that match size and match-rate ranges may stay null while platforms process the audience. For Meta, `approximate_count_is_minimum_bucket: true` means Meta is showing its 1,000-person floor: report "under about 1,000, not yet measurable", not 1,000 matched people.
 
 If upload fails, report the provider error category and request ID. Do not say the audience worked unless create, sync, and readback status all succeeded.
 
