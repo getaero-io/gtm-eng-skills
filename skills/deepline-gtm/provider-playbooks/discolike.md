@@ -23,6 +23,8 @@ If the sync wait times out, call `discolike_get_segment_status` with the returne
 
 `discolike_search_indexed_contacts` searches DiscoLike's indexed contact/persona data.
 
+To leave specific people out, pass `exclude_persona_ids` (up to 1,000 DiscoLike `persona_id` values, for example from earlier calls to this tool when paging through a market). DiscoLike exclusion lists accept only persona IDs and domains, so LinkedIn URLs, emails, or names cannot be excluded. Deepline creates a temporary exclusion list for that one search and deletes it afterwards; callers never manage lists. If DiscoLike does not confirm the deletion, the call fails as retryable and is not charged.
+
 `discolike_generate_candidate_contacts` is the ContaGen path: it submits `POST /contacts/discover/generate`, then polls DiscoGen status until terminal results are available or the caller's wait budget expires. Use it only when candidate open-web contact discovery is acceptable. Treat generated `email`, `linkedin_url`, phone, and identity fields as candidates until validated.
 
 `discolike_run_company_research` is the Claygent-like path: it submits `POST /discogen/process`, runs an arbitrary prompt against each company domain, and polls DiscoGen status for final results.
