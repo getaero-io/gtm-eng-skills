@@ -205,7 +205,7 @@ Use search commands without `--json`. Read the full default `tools describe`
 output before authoring; use JSON only when feeding a structured-data helper.
 
 ```bash
-deepline search --type tools "<information role and controls>"
+deepline search "<input you have -> result you need>" --type tools
 deepline tools grep "<substring>"   # ranked search has returned the same
                                            # irrelevant hits for three different queries
 deepline tools list <returned-category> --json

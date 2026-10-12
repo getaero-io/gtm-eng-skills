@@ -43,14 +43,14 @@ Route by the identifiers each row has:
 
 | You have                                                 | You need                    | Pattern category                                   | Discover with                                   |
 | -------------------------------------------------------- | --------------------------- | -------------------------------------------------- | ----------------------------------------------- |
-| `first_name`, `last_name`, `domain`                      | work email                  | name + domain → work email waterfall               | `deepline search --type prebuilts email`        |
+| `first_name`, `last_name`, `domain`                      | work email                  | name + domain → work email waterfall               | `deepline search "name and domain -> work email" --type prebuilts` |
 | name + `company_name` (no domain), or `/sales/lead/` URL | work email                  | resolve domain first, then name + domain waterfall | discovery, then domain → email                  |
-| `/in/` LinkedIn URL + name                               | work email                  | linkedin profile → work email waterfall            | `deepline search --type prebuilts email`        |
-| `email`                                                  | hydrated person + company   | reverse contact enrichment                         | `deepline search --type prebuilts contact`      |
-| name + `domain` (+ optional email/linkedin)              | phone number                | identity → phone waterfall                         | `deepline search --type prebuilts phone`        |
-| name + `company_name` (+ optional linkedin)              | job-change status           | job-change detection + verification                | `deepline search --type prebuilts "job change"` |
-| existing `email`                                         | validation status + verdict | email verifier                                     | `deepline search --type tools "email verifier"` |
-| name, optional company                                   | LinkedIn profile URL        | name → LinkedIn URL waterfall                      | `deepline search --type prebuilts linkedin`     |
+| `/in/` LinkedIn URL + name                               | work email                  | linkedin profile → work email waterfall            | `deepline search "LinkedIn URL and name -> work email" --type prebuilts` |
+| `email`                                                  | hydrated person + company   | reverse contact enrichment                         | `deepline search "email -> person and company" --type prebuilts`      |
+| name + `domain` (+ optional email/linkedin)              | phone number                | identity → phone waterfall                         | `deepline search "name and domain -> phone number" --type prebuilts`        |
+| name + `company_name` (+ optional linkedin)              | job-change status           | job-change detection + verification                | `deepline search "name and company -> job-change status" --type prebuilts` |
+| existing `email`                                         | validation status + verdict | email verifier                                     | `deepline search "email -> validation status" --type tools` |
+| name, optional company                                   | LinkedIn profile URL        | name → LinkedIn URL waterfall                      | `deepline search "name and company -> LinkedIn profile URL" --type prebuilts`     |
 | row + ICP description                                    | tier / fit classification   | structured AI column with `jsonSchema`             | (see AI research)                               |
 
 ## When the primary route misses
@@ -70,7 +70,7 @@ A miss on one route is not a dead row — but a second route is a purchase, not 
 - **Emit every fact the evidence already paid for.** A registry or maps route that returned a verified phone while resolving the practice was already billed for it. One run held that phone in a local variable, never emitted it, and shipped nulls for a cohort where 19 of 43 were hospital-employed with no public mailbox. Add the column before concluding the ceiling.
 - **Recognize a structural ceiling — after the aggregator rung.** Some populations keep work emails behind directories few sources index, and their mail domains block SMTP validation, so correct pattern guesses can't be promoted to fills. Once waterfall, re-route, registry, and aggregator rungs are all measured, the right output is the validated fills, honest nulls with miss reasons, and a channel pivot the evidence already paid for (verified practice phone, mobile). Report the measured ceiling instead of buying the same misses again.
 
-After a phone is recovered, validate line type and activity with a phone validator (`deepline search --type tools phone`). A number that connects to the wrong person costs more than a missing number.
+After a phone is recovered, validate line type and activity with a phone validator (`deepline search "phone number -> line type and activity" --type tools`). A number that connects to the wrong person costs more than a missing number.
 
 **Cohort patches are not the method.** A domain blocklist, place-name stopwords, or a specialty regex tuned to one roster do not port to the next job. Three rules do: a URL must corroborate the name it is attached to (use `coherenceChecks`); consensus must be scoped to the relevant sub-population; and a derived contact needs independent verification. Carry those forward, not the lists.
 

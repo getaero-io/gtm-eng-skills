@@ -26,13 +26,13 @@ curl -sS "https://www.ycombinator.com/companies" -H "Accept: text/html" -o $WORK
 If the page is JavaScript-rendered, find a page-extraction tool and give it the URL and what to extract:
 
 ```bash
-deepline search "extract web page" --task "I need company names and website domains from a JavaScript-rendered portfolio page"
+deepline search "JavaScript-rendered portfolio page URL -> company names and website domains"
 ```
 
 **Step 2: Filter to companies hiring your target role (optional).**
 
 Search the accelerator's job board for the role with a web search tool
-(`deepline search "web search"`), for example `GTM Engineer site:ycombinator.com`.
+(`deepline search "search query -> web results"`), for example `GTM Engineer site:ycombinator.com`.
 
 For per-company filtering across the whole list, add this as a column in a custom play ([deepline-plays.md](deepline-plays.md)).
 

@@ -16,7 +16,7 @@ Find LinkedIn profile URLs when you have a name, with or without company context
 
 ## Use the prebuilt first
 
-Deepline has a maintained play for this: it finds candidate profiles and checks the chosen one against the live profile. `deepline search "linkedin url from name"` lists it; read its inputs before running it.
+Deepline has a maintained play for this: it finds candidate profiles and checks the chosen one against the live profile. `deepline search "person name and company -> LinkedIn profile URL"` lists it; read its inputs before running it.
 
 ```bash
 deepline plays describe prebuilt/person-to-linkedin-harvestapi

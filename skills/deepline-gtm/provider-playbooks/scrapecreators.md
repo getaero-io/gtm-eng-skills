@@ -14,9 +14,8 @@ Good candidate tools:
 Tool discovery nuance: profile/contact endpoints are research candidates, but if an installed SDK still categorizes them outside `research`, run an unfiltered ScrapeCreators search as a fallback:
 
 ```bash
-deepline search --type tools "facebook profile email scrapecreators" --json
-deepline search --type tools "instagram profile bio email scrapecreators" --json
-deepline search --type tools scrapecreators --json
+deepline search "Facebook page URL -> profile and contact email" --type tools --json
+deepline search "Instagram handle -> profile bio and email" --type tools --json
 ```
 
 When using social profile data for SMB contact email recovery, require identity evidence before accepting the result: match at least two of business name, address, phone, website/menu/booking link, or Google Maps profile. Return the source platform, profile URL, extracted email/contact field, timestamp, and identity evidence columns so the result can be audited.

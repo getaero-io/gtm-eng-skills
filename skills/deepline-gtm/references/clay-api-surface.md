@@ -124,7 +124,7 @@ Keys ending `-validate-auth` are Clay's connection health checks. They are not d
 
 Expect providers with no Deepline equivalent (surfe, zeliq, smarte, lyne, bytemine, clearout all lack one). That is fine and is the reason to map by job: the waterfall covers the outcome with the providers Deepline does have.
 
-Those patterns cover about 85% of real-table action usage. The rest is genuine long tail - funding data (`intellizence-`, `harmonic-`, `dealroom-`, `cb-insights-`), web/traffic (`semrush-`, `similarweb-`, `capterra-scrape`), and one-off scrapers. For those, pull the schema from the catalog (below), then `deepline search --type tools "<what it does>"`. If nothing fits, `deeplineagent` with a `jsonSchema` is the fallback, and `generic_http_request` covers a provider Deepline does not wrap.
+Those patterns cover about 85% of real-table action usage. The rest is genuine long tail - funding data (`intellizence-`, `harmonic-`, `dealroom-`, `cb-insights-`), web/traffic (`semrush-`, `similarweb-`, `capterra-scrape`), and one-off scrapers. For those, pull the schema from the catalog (below), then `deepline search "<input you have -> result you need>" --type tools`. If nothing fits, `deeplineagent` with a `jsonSchema` is the fallback, and `generic_http_request` covers a provider Deepline does not wrap.
 
 ## Mapping an unknown Clay action
 
@@ -138,7 +138,7 @@ fetch('https://api.clay.com/v3/actions?workspaceId=' + WS, {credentials:'include
                       .map(a => ({key:a.key, inputs:a.inputParameterSchema})));
 ```
 
-Then find the Deepline equivalent with `deepline search --type tools "<what it does>"` and confirm with `deepline tools describe <tool_id>`.
+Then find the Deepline equivalent with `deepline search "<input you have -> result you need>" --type tools` and confirm with `deepline tools describe <tool_id>`.
 
 ## Re-mining when Clay changes
 

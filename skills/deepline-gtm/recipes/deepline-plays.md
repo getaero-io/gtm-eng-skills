@@ -76,7 +76,7 @@ Slack OAuth belongs in Dashboard → Integrations. This CLI only configures name
 
 | Situation                                                           | First commands                                                                                          | Gate                                                        |
 | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Existing play may fit exactly                                       | `deepline search --type prebuilts "<job words>"`, then `deepline plays describe prebuilt/<name> --json` | Input/output/export/pricing/freshness match                 |
+| Existing play may fit exactly                                       | `deepline search "<input you have -> result you need>" --type prebuilts`, then `deepline plays describe prebuilt/<name> --json` | Input/output/export/pricing/freshness match                 |
 | CSV needs aliases, validation, projection, or joins                 | inspect headers, describe candidate play, then `plays bootstrap` or author wrapper                      | `plays check` and pilot pass                                |
 | Custom multi-tool or multi-play orchestration                       | search/describe each tool/play contract, then author a `.play.ts`                                       | stable ids, durable datasets, and explicit final projection |
 | Webhook/cron-style automation or cloud workflow replacement         | author a custom play with explicit inputs, idempotency, and run/export behavior                         | `plays check`, small pilot, and clear trigger handoff       |
@@ -87,7 +87,7 @@ Slack OAuth belongs in Dashboard → Integrations. This CLI only configures name
 Names in docs are hints. Live `search` and `describe` are the source of truth:
 
 ```bash
-deepline search "<job words>" --type tools,prebuilts
+deepline search "<input you have -> result you need>" --type tools,prebuilts
 deepline plays describe prebuilt/<candidate> --json
 deepline tools describe <tool-id>
 ```

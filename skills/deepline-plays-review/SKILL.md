@@ -93,8 +93,8 @@ Names in this skill are starting hints. Discover the live Workspace tools and
 confirm their contracts before first use:
 
 ```bash
-deepline search --type tools "Google Workspace dataset export"
-deepline search --type tools "Google Workspace API request"
+deepline search "Play run dataset -> spreadsheet" --type tools
+deepline search "spreadsheet ID -> its rows and comments" --type tools
 deepline tools describe google_workspace_export_dataset
 deepline tools describe google_workspace_request
 ```

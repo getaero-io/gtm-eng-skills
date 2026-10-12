@@ -27,18 +27,17 @@ Search-to-enrichment handoff rules:
 
 ## Tool discovery
 
-This doc does not rank providers. Run `deepline search --type tools` for the job at hand and choose from what it returns: results carry each tool's filters, cost, and availability, and they stay current when a provider is added, repriced, or down. Provide an intent query, or omit it only when `--categories` or `--search_terms` supplies the structured search; both filters accept comma-separated values. Always pass `--task` with the input you have and the result you need. Provider names belong in the query, not in a `--prefix` flag.
+This doc does not rank providers. Run `deepline search --type tools` for the job at hand and choose from what it returns: results carry each tool's filters, cost, and availability, and they stay current when a provider is added, repriced, or down. Search with a task: one sentence stating the input you have -> the result you need, not keywords. `--categories` narrows it and accepts comma-separated values. There is no `--prefix` flag.
 
-Syntax: `deepline search --type tools [query] [--categories <categories>]
-[--search_terms <terms>]`. Read the default output without `--json`. Supply a query or at least one structured
-filter. Search 2-4 synonyms when the first query is ambiguous. Inspection of a
+Syntax: `deepline search "<task>" --type tools [--categories <categories>]`.
+Read the default output without `--json`. Search 2-4 synonyms when the first query is ambiguous. Inspection of a
 supplied Play or existing run does not require new provider discovery.
 
-Prefer category-constrained searches. More search terms helps with recall. Then inspect the strongest candidates.
+Prefer category-constrained searches. Then inspect the strongest candidates.
 
 ```bash
-deepline search --type tools --categories company_search --search_terms "structured filters,firmographics" --task "<input you have -> result you need>"
-deepline search --type tools --categories people_search --search_terms "title filters,location" --task "<input you have -> result you need>"
+deepline search "<input you have -> result you need>" --type tools --categories company_search
+deepline search "<input you have -> result you need>" --type tools --categories people_search
 deepline tools describe <tool_id>
 ```
 
@@ -131,20 +130,20 @@ Rule: if you have the URL, scrape it directly. Use search only to find the URL w
 Source-type routing:
 
 - **Static HTML pages, registries, official filings** → `curl` or `WebFetch` (free).
-- **JS-rendered portfolios, directories, job boards** → a page-extraction tool, found with `deepline search "extract web page"`.
+- **JS-rendered portfolios, directories, job boards** → a page-extraction tool, found with `deepline search "JavaScript-rendered page URL -> the records listed on it"`.
 - **LinkedIn profiles, employees, posts, and reactions** → native LinkedIn tools and prebuilt Plays. Search for the one you need and describe it before execution.
 - **Reddit, X, traffic data, or a LinkedIn surface no native tool exposes** → a native social-data tool if search returns one, otherwise a general scraping tool. See [`portfolio-prospecting.md`](recipes/portfolio-prospecting.md) for investor/accelerator flow.
 
 Direct extraction example:
 
 ```bash
-deepline search "extract web page" --task "I need company names, domains and one-line descriptions from a JavaScript-rendered portfolio page"
+deepline search "JavaScript-rendered portfolio page URL -> company names, domains and one-line descriptions"
 ```
 
 For LinkedIn, search for the operation you need: one profile, a company's employees, a profile's posts, or a post's reactions and comments. Tool search is broad and can be noisy, so confirm the exact operation with `deepline tools describe <operation> --schema-only` before execution.
 
 ```bash
-deepline search "linkedin profile" --task "I have a LinkedIn profile URL and need the person's current position"
+deepline search "a LinkedIn profile URL -> the person's current position"
 ```
 
 Use `--json` for single-object operations such as profile, company, and post
@@ -192,7 +191,7 @@ that row as unresolved and continue with every other named company.
 Recommended course of action:
 
 1. For nuanced roles or real titles at named companies, follow [`recipes/find-qualified-titles.md`](recipes/find-qualified-titles.md).
-2. Otherwise run `deepline search --type tools --categories people_search` with a `--task` that names the companies and roles, and pick a company-scoped tool from the results.
+2. Otherwise run `deepline search "<companies and roles you have -> people you need>" --type tools --categories people_search`, and pick a company-scoped tool from the results.
 3. Use broad function keywords plus seniority when no roster exists or the user wants broad audience sizing. Broad title filters can miss titles such as "Director, Mount Sinai AI Assurance Lab."
 4. Prefer company domains over company names when you know them.
 5. For startups under 50 people, database coverage is thin. Check each returned title for the correct company, and add batch, domain, or product context to disambiguate common names like "Ergo" or "Bloom".

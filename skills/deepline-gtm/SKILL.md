@@ -72,7 +72,7 @@ response and assert required fields on a pilot before bulk execution. An
 extraction mismatch is not a provider miss, invalid email, or business hold.
 
 ```bash
-deepline search "<information needed and controls>" --type tools,prebuilts --task "<input you have -> result you need>"
+deepline search "<input you have -> result you need>" --type tools,prebuilts
 deepline plays describe <play-name> --json
 deepline tools describe <tool-id>
 ```

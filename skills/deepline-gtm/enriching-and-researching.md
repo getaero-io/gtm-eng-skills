@@ -42,7 +42,7 @@ deepline plays run prebuilt/name-and-domain-to-email-waterfall-batch \
   --input '{"csv":"leads.csv","columns":{"first_name":"fname","last_name":"lname","domain":"company_domain"}}'
 ```
 
-Discover plays with `deepline search --type prebuilts <query>`; use
+Discover plays with `deepline search "<input you have -> result you need>" --type prebuilts`; use
 `deepline plays list --show-cost` for available cost estimates and
 `deepline plays describe <name>` for contracts. The same `--show-cost` option
 on `plays share publish` or `plays share update` controls public-page cost
@@ -151,7 +151,7 @@ deliverable for a larger request.
 **Domain-first resolution** — when you only have `company_name` or a SN `/sales/lead/` URL, resolve domains before the email play. For a handful of companies, resolve each directly and patch the CSV:
 
 ```bash
-deepline search "web search" --task "I have a company name and need its official website domain"
+deepline search "a company name -> its official website domain"
 ```
 
 For a list, author a two-column custom play per [recipes/deepline-plays.md](recipes/deepline-plays.md) — a web-search column, then a `run_javascript` column extracting the registrable domain — and feed its export to `prebuilt/name-and-domain-to-email-waterfall-batch`.
@@ -289,8 +289,8 @@ Category searches:
 Search examples:
 
 ```bash
-deepline search --type tools --categories people_search --search_terms "title filters,linkedin"
-deepline search --type tools --categories company_search --search_terms "structured filters,firmographics"
+deepline search "<input you have -> result you need>" --type tools --categories people_search
+deepline search "<input you have -> result you need>" --type tools --categories company_search
 ```
 
 Example:
@@ -315,7 +315,7 @@ deepline plays run prebuilt/company-domain-to-linkedin-employees-harvestapi \
 When you need a custom result shape, search for the LinkedIn company and employee tools and read their contracts first:
 
 ```bash
-deepline search "linkedin company employees" --task "I have a LinkedIn company URL and need its current employees with titles"
+deepline search "a LinkedIn company URL -> its current employees with titles"
 ```
 
 Check each returned person's current company against the target company; a name match alone can return employees of a similarly named company.
@@ -332,7 +332,7 @@ deepline plays run prebuilt/linkedin-post-to-engagers-harvestapi \
   --input '{"post_url":"https://www.linkedin.com/posts/...","max_items":1000}'
 ```
 
-Call the underlying tools directly only when you need a custom result shape; find them with `deepline search "linkedin post reactions comments"`.
+Call the underlying tools directly only when you need a custom result shape; find them with `deepline search "LinkedIn post URL -> people who reacted or commented"`.
 
 ### List of people with name + position -> ICP qualification
 
@@ -354,7 +354,7 @@ Problem category: domain lookup / homepage recovery.
 Input profile: `company_name` plus any contextual hints you already have.  
 Output target: canonical `domain` or homepage for downstream plays.
 
-Default tools: a web-search tool, found with `deepline search "web search"`
+Default tools: a web-search tool, found with `deepline search "search query -> web results"`
 
 Why this play:
 
@@ -371,7 +371,7 @@ Routing rule:
 Example:
 
 ```bash
-deepline search "web search" --task "I have a company name and need its official website domain"
+deepline search "a company name -> its official website domain"
 ```
 
 For a list of companies, author a two-column custom play (search + extract) per [recipes/deepline-plays.md](recipes/deepline-plays.md).
@@ -479,7 +479,7 @@ Claude in Chrome or guide them through Inspect Element to obtain an authorized
 curl request with the needed headers. Treat cookies and headers as credentials;
 do not expose them in reports or Play output.
 
-1. Search for a native tool first: `deepline search "<source and data you need>"`.
+1. Search for a native tool first: `deepline search "<source you have -> data you need>"`.
 2. If none fits, search for a general scraping tool and read its contract with
    `deepline tools describe <tool>`, including any guidance on choosing a
    scraper for the source.

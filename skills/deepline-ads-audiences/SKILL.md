@@ -19,7 +19,7 @@ Run `deepline` when it is available. If the shell reports that command is missin
 
 Build high-quality ABM paid ads audiences from first-party customer or prospect lists. This skill is for paid ads audience upload and evaluation, not outbound.
 
-Names in this skill are starting hints. Run `deepline search --type tools audience` and `deepline tools describe <tool_id>` before executing because tool names and payload shapes can change. Tool search accepts an intent query or, for structured filtering, `--categories` and/or `--search_terms`; a filter-only search needs at least one of those flags. Use commas for multiple filter values, and put provider names in the query rather than using a `--prefix` flag.
+Names in this skill are starting hints. Run `deepline search "contact list -> ad platform custom audience" --type tools` and `deepline tools describe <tool_id>` before executing because tool names and payload shapes can change. Tool search takes a task: one sentence stating the input you have -> the result you need, not keywords. There is no `--prefix` flag.
 
 ## Before You Start
 
@@ -170,7 +170,7 @@ Use this discovery ladder:
 1. Search for live account tools:
 
 ```bash
-deepline search --type tools "ads audience account discovery google meta linkedin"
+deepline search "connected ad platform logins -> ad account IDs" --type tools
 deepline tools list | grep -Ei "account|audience"
 ```
 

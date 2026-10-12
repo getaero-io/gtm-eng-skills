@@ -66,7 +66,7 @@ When the user asks about spend, show only Deepline-facing credits or estimates f
 **Before running any paid source:** check your CRM for contacts already at this company. If HubSpot, Salesforce, or another CRM is connected, discover the live CRM tool contract first instead of guessing operation names:
 
 ```bash
-deepline search --categories crm --search_terms "contacts,account,company"
+deepline search "company domain -> CRM account and its contacts" --categories crm
 deepline tools describe TOOL_ID_FROM_SEARCH
 ```
 
@@ -94,7 +94,7 @@ and the tier pulls become `ctx.runPlay('prebuilt/company-to-contact', ...)`.
 identity off its result, using the getters `tools describe` documents:
 
 ```bash
-deepline search "linkedin profile" --task "I have a person's LinkedIn profile URL and need their name, title, company and location"
+deepline search "a person's LinkedIn profile URL -> their name, title, company and location"
 ```
 
 Name, title, company, and location drive every matching signal downstream. If
@@ -105,7 +105,7 @@ inferred.
 Verify the candidate is the official company website before taking its domain; the first search result alone is not identity evidence.
 
 **If name + company given:** resolve the LinkedIn URL first
-(`deepline search "linkedin url from name"` lists the prebuilt for it), or
+(`deepline search "person name and company -> LinkedIn profile URL"` lists the prebuilt for it), or
 go straight to the company-wide search with the domain.
 
 ### §2-person. Person-centric flow (2-up / 2-down around one person)
@@ -158,7 +158,7 @@ Expected: ~25-35 people.
 **Source 2: the wider roster.** Find the people-search and employee-list tools and prebuilts for a company, and confirm each one's current Deepline credits before running it:
 
 ```bash
-deepline search "company employees" --task "I have a company domain and need the people who work there, with titles and LinkedIn URLs"
+deepline search "a company domain -> the people who work there, with titles and LinkedIn URLs"
 ```
 
 Each tool's `tools describe` output carries its paging and billing notes; read them before requesting large pages.

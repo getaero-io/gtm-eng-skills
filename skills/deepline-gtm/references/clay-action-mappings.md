@@ -31,13 +31,13 @@ authorize adding the fallback routes listed here.
 **For every Clay action, the selection order is:**
 
 1. **Native play first** — check if a native Deepline play covers the action (they're stable, multi-provider, and cost-optimized). Current native plays: `name-and-domain-to-email-waterfall`, `company-to-contact`, and `person-to-phone`.
-2. **Search for a dedicated tool** — `deepline search --type tools "<intent>"` before hardcoding any individual provider tool. New tools are added regularly. Examples: `deepline search --type tools "qualify person ICP"`, `deepline search --type tools "octave"`, `deepline search --type tools "email verify"`, `deepline search --type tools "add leads campaign"`.
+2. **Search for a dedicated tool** — `deepline search "<input you have -> result you need>" --type tools` before hardcoding any individual provider tool. New tools are added regularly. Examples: `deepline search "person profile -> ICP qualification" --type tools`, `deepline search "email -> validation status" --type tools`, `deepline search "lead list -> leads added to a campaign" --type tools`.
 3. **Verify the tool exists** - `deepline tools describe <tool_id>`. If it errors, the tool doesn't exist yet - use the `deeplineagent` fallback from this doc.
 4. **Use the mapping below as a fallback** — when no native play or dedicated tool exists.
 
 ```bash
 # Standard discovery pattern before writing any play column
-deepline search --type tools "<action intent>"     # find current options
+deepline search "<input you have -> result you need>" --type tools     # find current options
 deepline tools describe <candidate_tool_id> # verify it exists + see payload schema
 ```
 
@@ -173,7 +173,7 @@ Compiles to: `dropleads_email_finder → hunter_email_finder → leadmagic_email
 
 Compiles to: `leadmagic_email_validation (first.last@, firstlast@, first_last@) → dropleads_email_finder → hunter_email_finder → leadmagic_email_finder → enrich_contact → peopledatalabs_enrich_contact`
 
-**Alternative individual providers** (use `deepline search --type tools "email"` to see current list):
+**Alternative individual providers** (use `deepline search "name and company domain -> work email" --type tools` to see current list):
 
 - `icypeas_email_search` — 700M+ profiles, strong LinkedIn coverage; useful as a step if native play misses
 - `dropleads_email_finder` — included in native plays; available standalone too
@@ -213,7 +213,7 @@ Alternative — `dropleads_email_verifier` (cheapest option):
 .withColumn('email_valid', 'dropleads_email_verifier', { email: "{{work_email}}" })
 ```
 
-Run `deepline search --type tools "email validation"` to see all current options.
+Run `deepline search "email -> validation status" --type tools` to see all current options.
 
 ---
 
@@ -417,9 +417,8 @@ Reference structured output fields in downstream passes as `{{col_name.field}}`.
 Octave `ca_*` agents are proprietary Clay integrations. Before defaulting to `deeplineagent`, check whether Deepline has added a native equivalent:
 
 ```bash
-deepline search --type tools "qualify person ICP"
-deepline search --type tools "octave"
-deepline search --type tools "sequence runner email"
+deepline search "person profile -> ICP qualification" --type tools
+deepline search "prospect and messaging -> generated email sequence" --type tools
 ```
 
 If search finds a native tool for the action, use it directly — it will be faster and more accurate than the `deeplineagent` fallbacks below. The patterns below are **fallbacks for when no native tool is available**.
