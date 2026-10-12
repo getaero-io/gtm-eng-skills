@@ -3,6 +3,7 @@
 ## Runtime Model
 
 Use `definePlay(...)` to define durable TypeScript code and typed run contracts executed in the cloud. Inside that function, `ctx.*` records and persists work: `ctx.tools.execute` calls managed providers, `ctx.dataset` records rows, `ctx.step` checkpoints scalar work, `ctx.fetch` records external HTTP, and `ctx.runPlay` composes registered or prebuilt plays.
+For sequential pacing outside Dataset resolvers, `await ctx.sleep(ms)` waits at least `ms`. Waits of at most 10 seconds stay in the current execution when its remaining time permits; longer waits park and replay completed steps and sleeps. Scheduling and replay can delay continuation beyond the requested duration.
 Use `Deepline.connect()` and `DeeplineClient` from regular Node/TypeScript services, scripts, schedulers, or tests. Those APIs discover tools and plays, start runs, stream/poll status, stop runs, and inspect durable output without requiring a local play file. For logs, the complete event catalog, filters and payload retrieval, use `deepline runs logs --help` or [Run logs and events](run-events.md).
 
 ## Detail Policy
