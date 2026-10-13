@@ -26,7 +26,7 @@ so a 1,000-row OpenSOSData request must be split into at least two batches.
 Each row needs a business name and address; address-free name/state input is
 not a semantic drop-in for local-business matching. Batch results can include
 operator legal names, restaurants, and people, and provider billing applies
-to rows that return at least one person. The contracted provider price is $0.15
+to rows that return at least one person. The contracted provider price is $0.10
 per matched location; Deepline applies its standard customer markup on top of
 that provider amount. Search rows are $0.01 each and direct entity lookup is
 one $0.01 provider credit; no-result searches and documented not-found lookups
