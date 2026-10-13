@@ -81,7 +81,7 @@ deepline tools describe <candidate_tool_id> # verify it exists + see payload sch
 | `octave-qualify-person`                                     | `deeplineagent`, ICP scoring prompt, `jsonSchema`                                                                                                                                                                                                                                                                                                  | See Octave section                                                                            |
 | `octave-enrich-person`                                      | `exa_search` + `deeplineagent`                                                                                                                                                                                                                                                                                                                     |                                                                                               |
 | `octave-run-sequence-runner`                                | Pass 1: `deeplineagent` (signals) → Pass 2: `deeplineagent` (email)                                                                                                                                                                                                                                                                                | Always 2 passes                                                                               |
-| `social-posts-get-post-activity-posts-and-shares`           | `harvestapi_get_profile_posts`                                                                                                                                                                                                                                                                                                                     | Run-as-button in Clay — omit unless user needs posts                                          |
+| `social-posts-get-post-activity-posts-and-shares`           | User-provided post export                                                                                                                                                                                                                                                                                                                          | Run-as-button in Clay — omit unless user needs posts                                          |
 | `score-your-data` (unconfigured)                            | `run_javascript` keyword scoring                                                                                                                                                                                                                                                                                                                   | See Scoring section                                                                           |
 | `add-lead-to-campaign` (Smartlead)                          | `smartlead_push_to_campaign`                                                                                                                                                                                                                                                                                                                       |                                                                                               |
 | `add-lead-to-campaign` (Instantly)                          | `instantly_add_to_campaign`                                                                                                                                                                                                                                                                                                                        |                                                                                               |
@@ -109,12 +109,7 @@ Key output paths: `.output.body.full_name`, `.output.body.work_experience[0].com
 
 Key output paths: `.output.body.matches[0].person_data.basic_profile.name`, `.output.body.matches[0].person_data.contact.business_emails[0].email`, `.output.body.matches[0].person_data.experience.employment_details.current[0].company_website_domain`
 
-**Work history / posts** — native HarvestAPI:
-
-```bash
-deepline tools execute harvestapi_get_profile --payload '{"url":"<linkedin_url>"}' --json
-deepline tools execute harvestapi_get_profile_posts --payload '{"profile":"<linkedin_url>","page":1}' --out linkedin-posts.csv
-```
+For work history and posts, use an authorized source or a user-provided export. Do not collect private LinkedIn pages or saved searches without established source-platform permission.
 
 ---
 
@@ -461,17 +456,7 @@ Two passes:
 
 ### `social-posts-get-post-activity-posts-and-shares`
 
-Skip for automation unless explicitly needed (run-as-button in Clay). Two options when needed:
-
-**HarvestAPI (profile-URL-specific):**
-Use when you need posts for a specific person's profile URL. Run it per profile inside the owned Play:
-
-```bash
-deepline tools describe harvestapi_get_profile_posts --schema-only
-deepline tools execute harvestapi_get_profile_posts --payload '{"profile":"<linkedin_url>","page":1}' --out linkedin-posts.csv
-```
-
-There is no supported CrustData post-search replacement. Use `harvestapi_get_profile_posts` only when the target profile URL is known.
+Use a user-provided post export that the user is authorized to access and process. If one is unavailable, leave this step unresolved. Do not substitute a scraper or browser-session collection workflow.
 
 ---
 

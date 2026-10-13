@@ -281,7 +281,7 @@ This lets the user evaluate whether enrichment improved upload coverage without 
 
 When LinkedIn URLs are needed before personal-email/hash enrichment, use a measured query ladder instead of one exact-company query. In a high-priority ABM eval sample, exact account-name search recovered the known URL in the top five for `51.7%` of rows, while the account-or-LinkedIn-company query recovered `65.8%`. Quoted domain search was much worse (`5.8%`) and should not be a first-pass default.
 
-Start with `prebuilt/person-to-linkedin-harvestapi` when available. It searches with the supplied company name and domain, then validates candidates with native HarvestAPI. Normalize noisy company names before calling it, for example:
+Discover an available people-search or public-search API and inspect its contract. Validate candidates against authorized data or user-provided exports; leave ambiguous identities unresolved. Normalize noisy company names before searching, for example:
 
 - `RTX Corporation` → `RTX`
 - `Lockheed Martin Corporation` → `Lockheed Martin`
@@ -301,7 +301,7 @@ Then validate candidates before using them:
 1. Keep only `linkedin.com/in/` URLs and strip query params/trailing slashes.
 2. Reject search results where the profile title does not contain a first-name match and a last-name match. Allow common nicknames and meaningful first-name prefixes; do not accept single-letter last-name initials as validated.
 3. Use company/title evidence as supporting evidence, not as identity proof.
-4. For ambiguous candidates, retrieve the profile with `harvestapi_get_profile` and validate `element.firstName`, `element.lastName`, current company, and headline before merging. This catches snippet false positives such as a search result mentioning the target name in another person's experience section.
+4. For ambiguous candidates, validate first name, last name, current company, and headline against an authorized source or user-provided export before merging. If the evidence is insufficient, leave the identity unresolved.
 
 Use follow-up queries only after the first pass misses:
 

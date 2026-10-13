@@ -1,77 +1,8 @@
 # Wiza — Agent Guidance
 
-## When to use
+## Prospect search
 
-Wiza for LinkedIn → email/phone enrichment. Key advantage over ContactOut: **accepts Sales Navigator and LinkedIn Recruiter URLs** in addition to standard LinkedIn profile URLs. Strong for outbound teams with Sales Nav lists.
-
-Wiza is backed by the upstream OpenAPI contract. Prefer OpenAPI-native payloads
-for new work; Deepline still accepts older aliases and normalizes them before
-the provider request.
-
-## Provider characteristics
-
-- **Input required**: LinkedIn URL (including Sales Nav), email, or name+company
-- **Geographic coverage**: Global
-- **Cost profile**: profile-only is cheapest, email costs more, and phone is the most expensive; `full` combines email and phone and costs the most
-- **Enrichment levels**: `none` (profile only), `partial` (email), `phone` (phone numbers), `full` (email + phone)
-- **Async**: reveals are queued and processed — the handler polls until finished
-
-## Key operations
-
-### wiza_reveal_person
-
-Starts an async enrichment job and polls until finished. Accepts any LinkedIn URL type.
-
-```json
-{
-  "individual_reveal": {
-    "profile_url": "https://www.linkedin.com/in/johndoe"
-  },
-  "enrichment_level": "partial"
-}
-```
-
-For personal emails only:
-
-```json
-{
-  "individual_reveal": {
-    "profile_url": "https://www.linkedin.com/in/johndoe"
-  },
-  "enrichment_level": "partial",
-  "email_options": {
-    "accept_personal": true
-  }
-}
-```
-
-Wiza does not document an exact spend response header for reveals. The terminal GET result includes `credits.api_credits.total`; Deepline uses that exact result-body value when present. If a terminal result lacks Wiza's credits object, settlement falls back to returned contact fields, not just the requested enrichment level.
-
-For phones + emails:
-
-```json
-{
-  "individual_reveal": {
-    "profile_url": "https://www.linkedin.com/in/johndoe"
-  },
-  "enrichment_level": "full"
-}
-```
-
-Name + company fallback:
-
-```json
-{
-  "first_name": "John",
-  "last_name": "Doe",
-  "company_domain": "acme.com",
-  "enrichment_level": "partial"
-}
-```
-
-### wiza_search_prospects
-
-Discover prospects by job title, level, company, industry, location. **Free** — returns masked profiles without contact info. Returns up to 30 results per search.
+`wiza_search_prospects` discovers prospects by title, level, company, industry, and location. It returns masked profiles without contact information, with up to 30 results per search.
 
 ```json
 {
@@ -84,27 +15,16 @@ Discover prospects by job title, level, company, industry, location. **Free** �
 }
 ```
 
-Typical flow: search → get LinkedIn URLs → feed into `wiza_reveal_person` to enrich.
+The response is `{ prospects: [...], total: N }`. Do not expect more than 30 results per call. Use structured locations (`v`, `b`, `s`) for new payloads; older aliases remain accepted and normalized.
 
-## Output shape
+`wiza_get_individual_reveal` reads an existing reveal. `wiza_get_credits` reads account credits. Use these operations only for data the user is authorized to access.
 
-`wiza_reveal_person` returns a flat object. Email at `email`, phones at `phone_number1`, `mobile_phone1`. Status at `status` ("finished" | "failed").
+## MCP availability
 
-`wiza_search_prospects` returns `{ prospects: [...], total: N }`.
+`wiza_reveal_person` is unavailable through MCP pending source-platform authorization review. Search and existing-result reads remain available. Do not recommend profile collection, Sales Navigator saved-search scraping, or browser-session credential reuse.
 
-## Enrichment levels
+## SDK/API reveal contract
 
-| Level     | Returns                        |
-| --------- | ------------------------------ |
-| `none`    | Profile data only              |
-| `partial` | Emails only                    |
-| `phone`   | Phone numbers only             |
-| `full`    | Emails + phones                |
+The existing SDK/CLI/API reveal operation remains available. Its OpenAPI-native payload accepts `individual_reveal` plus `enrichment_level`; older aliases still normalize before dispatch. Reveals are queued and polled to a terminal state. The levels are `none` (profile), `partial` (email), `phone`, and `full` (email and phone).
 
-## Anti-patterns
-
-- Don't use `enrichment_level: "full"` on large lists without budgeting phone credits separately
-- Don't use Wiza defaults for a personal-email-only workflow; pass `email_options: "personal"` to avoid work/generic email lookup.
-- Don't skip polling — reveals are async, status starts as "queued"
-- Don't expect more than 30 results from search per call
-- Don't send a bare location string in new code; use `{ "v": "...", "b": "city|state|country", "s": "i" }`. Legacy `person_location: "New York"` remains accepted and becomes `{ "v": "New York, New York, United States", "b": "city", "s": "i" }`.
+A reveal returns a flat object with `email`, `phone_number1`, `mobile_phone1`, and `status` (`finished` or `failed`). The terminal result's `credits.api_credits.total`, when present, determines settlement. Without that credits object, settlement uses returned contact fields rather than the requested level. Budget email and phone work separately; no intermediary agreement establishes authorization from the source platform.

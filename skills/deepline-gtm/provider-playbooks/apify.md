@@ -1,59 +1,30 @@
-Use Apify when you need controlled web automation/scraping workflows.
+# Apify — Agent Guidance
 
-- Use `apify_list_store_actors` first when you do not know the actor id yet.
-- **Results are ranked by quality score by default.** The top result is the most reliable actor based on rating, review count, total runs, and 30-day success rate. Pick the #1 result unless you have a specific reason not to.
-- Each actor in the response includes `_qualityScore` (higher is better), `_baseQualityScore`, and `_successRate30d` (percentage). Prefer actors with `_deeplineVetted: true`, high usage/rating, and `_successRate30d >= 95%`.
-- Do not route HarvestAPI-owned LinkedIn workflows through Apify. Prefer the native `harvestapi_*` provider operations for profiles, company employees, posts, comments, and reactions. For a LinkedIn shape the native provider does not expose, prefer `supreme_coder/linkedin-post` for generic post scraping. Avoid actors returned with `_deeplineDownranked: true` unless the user explicitly asked for that actor.
-- Build `actorId` as `username/name` from store results.
-- Use `apify_get_actor_input_schema` to inspect required/optional fields before running.
-- Wrapper-level fields (`actorId`, `input`, `params`, `timeoutMs`) and runtime validation behavior can differ from actor-page docs.
-- Prefer `apify_run_actor_sync` as the default execution path when you want results in one call.
-- Use `apify_run_actor` only when you need non-blocking execution, then poll run status before fetching outputs.
-- Validate payload shape with a tiny run before scaling row counts.
-- Deepline limits an organization to four unresolved Apify actor jobs by
-  default. Additional calls receive a retryable Deepline capacity response
-  before another billable actor run is launched; an explicit organization
-  execution limit may override this guardrail.
-- A successful HTTP 200 with an empty dataset is reported as
-  `meta.resultOutcome.classification = "ambiguous_empty"`, not proof of a
-  genuine no-result. Apify currently does not identify whether the input was
-  attempted. Do not automatically retry that result: the first run remains
-  billable and a retry may create a second charge.
+## Existing outputs
 
-## Quality ranking
+Use Apify to read results from an existing, authorized run or dataset.
 
-Actors are ranked by:
-
-```
-score = rating * log2(reviews + 1) * log10(runs + 1) / 5
-```
-
-Actors with less than 80% 30-day success rate are penalized. Actors with 0 reviews but high usage get a reduced fallback score.
-
-To bypass quality ranking and use Apify's native sort, pass `rankBy: "relevance"`.
-
-## Examples
+- `apify_get_dataset_items` reads a dataset, with `limit` and `offset` pagination.
+- `apify_get_actor_run` and `apify_list_actor_runs` read run status and history.
+- `apify_get_log` reads a saved run's log.
+- `apify_get_kv_record` reads a stored key-value record.
+- `apify_check_credits` reads the account's available credits.
+- `apify_stop_actor_run` stops an existing actor run; confirm this mutation with the user.
 
 ```bash
-# Search for actors, ranked by quality (default)
-deepline tools execute apify_list_store_actors --payload '{"search":"google play reviews","limit":5}'
+deepline tools execute apify_get_dataset_items --payload '{"datasetId":"existing-authorized-dataset","limit":10,"offset":0}'
 ```
 
-```bash
-# Search with Apify's native relevance sort
-deepline tools execute apify_list_store_actors --payload '{"search":"google play reviews","sortBy":"relevance","rankBy":"relevance","limit":5}'
-```
+## MCP availability
 
-```bash
-# Inspect the actor's input schema page before execution
-deepline tools execute apify_get_actor_input_schema --payload '{"actorId":"neatrat/google-play-store-reviews-scraper"}'
-```
+Actor discovery, schema lookup, and launch are unavailable through MCP pending source-platform authorization review: `apify_list_store_actors`, `apify_get_actor`, `apify_get_actor_input_schema`, `apify_run_actor`, and `apify_run_actor_sync`. Confirmation does not override this restriction. Existing output and run operations above remain available.
 
-```bash
-# Run an actor synchronously
-deepline tools execute apify_run_actor_sync --payload '{"actorId":"neatrat/google-play-store-reviews-scraper","input":{"appIdOrUrl":"com.airbnb.android","sortBy":"newest","maxReviews":10},"timeoutMs":120000}'
-```
+## SDK/API actor execution
 
-```bash
-deepline tools execute apify_get_dataset_items --payload '{"datasetId":"EU1bcB5F9gY3J1Zq2","limit":10,"offset":0}'
-```
+SDK/CLI/API actor contracts remain available. Establish authorization from the source platform before designing collection; an actor listing or intermediary agreement does not establish that permission. Use only inputs and sources the user is authorized to process. Do not collect private profiles or saved searches through browser-session credentials.
+
+Actor wrapper fields (`actorId`, `input`, `params`, `timeoutMs`) and runtime validation can differ from actor-page docs. Inspect the current operation schema. Actor IDs use `username/name`. Store search quality ranking considers rating, review count, total runs, and 30-day success rate; `rankBy: "relevance"` selects Apify's native sort.
+
+Deepline permits four unresolved actor jobs per organization by default; an explicit execution limit can override this. Capacity refusals are retryable and occur before another billable launch.
+
+An HTTP 200 with an empty dataset is classified as `meta.resultOutcome.classification = "ambiguous_empty"`. It does not prove the input was attempted or that there was no result. Do not automatically retry: the first run remains billable and a retry may create a second charge.

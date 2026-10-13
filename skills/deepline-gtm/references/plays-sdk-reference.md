@@ -413,9 +413,7 @@ Signature: `export function definePlay<TInput, TOutput extends PlayReturnObject>
 |---|---|---:|---|
 | `config` | `DefinePlayConfig<TInput, TOutput>` | Yes | Object-form play config. |
 
-#### Returns
-
-`DefinedPlay<TInput, TOutput>`
+Returns: `DefinedPlay<TInput, TOutput>`
 
 #### Overload 2
 
@@ -428,9 +426,7 @@ Signature: `export function definePlay<TInput, TOutput extends PlayReturnObject>
 | `fn` | `THandler` | Yes | Play function. |
 | `bindings` | `PlayBindings<NoInfer<PlayHandlerInput<THandler>>>` | No | Play configuration, including runtime limits and triggers. |
 
-#### Returns
-
-`DefinedPlay<PlayHandlerInput<THandler>, PlayHandlerOutput<THandler>>`
+Returns: `DefinedPlay<PlayHandlerInput<THandler>, PlayHandlerOutput<THandler>>`
 
 ### `DefinePlayConfig`
 
@@ -478,9 +474,7 @@ Signature: `csv<T = Record<string, unknown>>( path: string | CsvInput<T & object
 | `path` | `string \| CsvInput<T & object>` | Yes |  |
 | `options` | [`CsvOptions`](#csvoptions) | No |  |
 
-#### Returns
-
-`Promise<PlayDataset<T>>` — see [`PlayDataset`](#playdataset)
+Returns: `Promise<PlayDataset<T>>` — see [`PlayDataset`](#playdataset)
 
 ### `CsvOptions`
 
@@ -501,9 +495,7 @@ Signature: `dataset<TSource extends PlayDatasetInput<object>>( key: string, item
 | `key` | `string` | Yes |  |
 | `items` | `TSource` | Yes |  |
 
-#### Returns
-
-`DatasetBuilder< PlayDatasetRow<TSource> & object, PlayDatasetRow<TSource> & object, DeeplinePlayRuntimeContext >`
+Returns: `DatasetBuilder< PlayDatasetRow<TSource> & object, PlayDatasetRow<TSource> & object, DeeplinePlayRuntimeContext >`
 
 ### `.dataset(...).withColumn(name, resolver).run(options)`
 
@@ -529,9 +521,7 @@ run( options?: DatasetRunOptions<InputRow>, ): Promise<PlayDataset<OutputRow>>;
 | `name` | `Name` | Yes |  |
 | `resolver` | `ColumnResolver<OutputRow, Value>` | Yes |  |
 
-#### Column Overload 1 Returns
-
-`DatasetBuilder< InputRow, OutputRow & Record<Name, Value> >`
+Column Overload 1 Returns: `DatasetBuilder< InputRow, OutputRow & Record<Name, Value> >`
 
 #### Column Overload 2 Parameters
 
@@ -541,9 +531,7 @@ run( options?: DatasetRunOptions<InputRow>, ): Promise<PlayDataset<OutputRow>>;
 | `name` | `Name` | Yes |  |
 | `definition` | `DatasetColumnDefinition< OutputRow, Value > & { readonly runIf: ( row: OutputRow, index: number, ) => boolean \| Promise<boolean>; }` | Yes |  |
 
-#### Column Overload 2 Returns
-
-`DatasetBuilder< InputRow, OutputRow & Record<Name, Value | null> >`
+Column Overload 2 Returns: `DatasetBuilder< InputRow, OutputRow & Record<Name, Value | null> >`
 
 #### Column Overload 3 Parameters
 
@@ -553,9 +541,7 @@ run( options?: DatasetRunOptions<InputRow>, ): Promise<PlayDataset<OutputRow>>;
 | `name` | `Name` | Yes |  |
 | `definition` | `DatasetColumnDefinition< OutputRow, Value >` | Yes |  |
 
-#### Column Overload 3 Returns
-
-`DatasetBuilder< InputRow, OutputRow & Record<Name, Value> >`
+Column Overload 3 Returns: `DatasetBuilder< InputRow, OutputRow & Record<Name, Value> >`
 
 #### Column Overload 4 Parameters
 
@@ -566,9 +552,7 @@ run( options?: DatasetRunOptions<InputRow>, ): Promise<PlayDataset<OutputRow>>;
 | `resolver` | `\| StepResolver<OutputRow, Value> \| RunnableStepProgram<unknown, Value>` | Yes |  |
 | `options` | `StepOptions<OutputRow, Value>` | Yes |  |
 
-#### Column Overload 4 Returns
-
-`DatasetBuilder< InputRow, OutputRow & Record<Name, Value | null> >`
+Column Overload 4 Returns: `DatasetBuilder< InputRow, OutputRow & Record<Name, Value | null> >`
 
 #### Run Parameters
 
@@ -577,9 +561,7 @@ run( options?: DatasetRunOptions<InputRow>, ): Promise<PlayDataset<OutputRow>>;
 |---|---|---:|---|
 | `options` | `DatasetRunOptions<InputRow>` | No |  |
 
-#### Run Returns
-
-`Promise<PlayDataset<OutputRow>>` — see [`PlayDataset`](#playdataset)
+Run Returns: `Promise<PlayDataset<OutputRow>>` — see [`PlayDataset`](#playdataset)
 
 Execute the row-column program and return a durable dataset handle.
 `upsert` preserves row-by-row enrichment. `net_new` admits and returns only
@@ -653,9 +635,7 @@ Signature: `step<T>( id: string, run: () => T | Promise<T>, options?: RuntimeSte
 | `run` | `() => T \| Promise<T>` | Yes |  |
 | `options` | `RuntimeStepOptions` | No |  |
 
-#### Returns
-
-`Promise<T>`
+Returns: `Promise<T>`
 
 ### `ctx.runPlay(key, playRef, input, options)`
 
@@ -673,9 +653,7 @@ Signature: `runPlay<TOutput = unknown>( key: string, playRef: string | PlayRefer
 | `input` | `Record<string, unknown>` | Yes |  |
 | `options` | `PlayCallOptions` | Yes |  |
 
-#### Returns
-
-`Promise<TOutput>`
+Returns: `Promise<TOutput>`
 
 ### `ctx.runPlayAsync(key, playRef, input, options)`
 
@@ -693,9 +671,7 @@ Signature: `runPlayAsync<TInput extends Record<string, unknown>>( key: string, p
 | `input` | `NoInfer<TInput>` | Yes |  |
 | `options` | `PlayAuthoringAsyncCallOptions` | Yes |  |
 
-#### Returns
-
-`Promise<AsyncPlayRunRef>` — see [`AsyncPlayRunRef`](#asyncplayrunref)
+Returns: `Promise<AsyncPlayRunRef>` — see [`AsyncPlayRunRef`](#asyncplayrunref)
 
 ### `AsyncPlayRunRef`
 
@@ -715,9 +691,7 @@ Signature: `execute<TOutput = PlayLooseObject>( request: PlayToolExecutionReques
 |---|---|---:|---|
 | `request` | `PlayToolExecutionRequest` | Yes |  |
 
-#### Returns
-
-`Promise< ToolExecuteResult<TOutput> >` — see [`ToolExecuteResult`](#toolexecuteresult)
+Returns: `Promise< ToolExecuteResult<TOutput> >` — see [`ToolExecuteResult`](#toolexecuteresult)
 
 ### `ToolExecutionRequest`
 
@@ -745,9 +719,7 @@ Signature: `fetch( key: string, url: string | URL, init?: SecretAwareRequestInit
 | `init` | [`SecretAwareRequestInit`](#secretawarerequestinit) | No |  |
 | `options` | `FetchOptions` | No |  |
 
-#### Returns
-
-`Promise<PlayFetchResponse>` — see [`PlayFetchResponse`](#playfetchresponse)
+Returns: `Promise<PlayFetchResponse>` — see [`PlayFetchResponse`](#playfetchresponse)
 
 ### `ctx.secrets.get(name)`
 
@@ -762,9 +734,7 @@ Signature: `get(name: string): PlaySecretPromise;`
 |---|---|---:|---|
 | `name` | `string` | Yes |  |
 
-#### Returns
-
-`PlaySecretPromise`
+Returns: `PlaySecretPromise`
 
 ### `ctx.secrets.bearer(secret)`
 
@@ -781,9 +751,7 @@ Signature: `bearer( secret: string | PlaySecretPromise | SecretHandle, ): Secret
 |---|---|---:|---|
 | `secret` | `string \| PlaySecretPromise \| SecretHandle` | Yes |  |
 
-#### Returns
-
-`SecretAuth` — see [`SecretAuth`](#secretauth)
+Returns: `SecretAuth` — see [`SecretAuth`](#secretauth)
 
 ### `ctx.secrets.header(header, secret)`
 
@@ -800,9 +768,7 @@ Signature: `header( header: string, secret: string | PlaySecretPromise | SecretH
 | `header` | `string` | Yes |  |
 | `secret` | `string \| PlaySecretPromise \| SecretHandle` | Yes |  |
 
-#### Returns
-
-`SecretAuth` — see [`SecretAuth`](#secretauth)
+Returns: `SecretAuth` — see [`SecretAuth`](#secretauth)
 
 ### `SecretAwareRequestInit`
 
@@ -870,6 +836,15 @@ Signature: `class CtxFetchHttpError extends Error`
 | `bodyText` | property | Complete secret-redacted response body. |  | `string` |
 | `json` | property | Eagerly parsed secret-redacted JSON, or null. |  | `unknown \| null` |
 
+### `ctx.billing.entitlements()`
+
+Read current workspace plan benefits. Execution rechecks admission;
+this read is fresh and is not a durable receipt.
+
+Signature: `entitlements(): Promise<BillingEntitlements>;`
+
+Returns: `Promise<BillingEntitlements>`
+
 ### `ctx.runSteps(program, input, options)`
 
 Execute one reusable step program against a scalar input.
@@ -885,9 +860,7 @@ Signature: `runSteps<TInput extends Record<string, unknown>, TOutput>( program: 
 | `input` | `TInput` | Yes |  |
 | `options` | `PlayAuthoringRunStepsOptions` | No |  |
 
-#### Returns
-
-`Promise<TOutput>`
+Returns: `Promise<TOutput>`
 
 ### `PlayDataset`
 
@@ -1392,6 +1365,7 @@ history.
 <!-- prettier-ignore -->
 | Name | Type | Required | Description |
 |---|---|---:|---|
+| `entitlements` | `() => Promise<BillingEntitlements>` | Yes | Current workspace provider benefits; discovery does not authorize a call. |
 | `topUp` | `(options: { credits: number; idempotencyKey?: string; }) => Promise<BillingTopUpResult>` | Yes | Charge the saved payment method and add Deepline credits to the active workspace. |
 | `topUpWithReceipt` | `(options: { credits: number; idempotencyKey?: string; }) => Promise<BillingTopUpReceipt>` | Yes | Request a durable pending or applied receipt for a saved-card top-up. |
 | `plans` | `() => Promise<BillingPlansResult>` | Yes | Published plans plus the plan you are on ("what plans exist and what am I on"). |

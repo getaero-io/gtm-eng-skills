@@ -474,10 +474,11 @@ itself authorize another paid attempt. See the canonical execution reference.
 
 ## Sources no native tool covers
 
-For sites requiring authentication, do not scrape. Ask the user to use
-Claude in Chrome or guide them through Inspect Element to obtain an authorized
-curl request with the needed headers. Treat cookies and headers as credentials;
-do not expose them in reports or Play output.
+For sites requiring authentication, use the source platform's documented API
+or a user-provided export that the user is authorized to access and process.
+Do not propose scraping private pages, reusing browser session cookies, or
+collecting saved-search results without established source-platform permission.
+An intermediary provider agreement does not establish that permission.
 
 1. Search for a native tool first: `deepline search "<source you have -> data you need>"`.
 2. If none fits, search for a general scraping tool and read its contract with
