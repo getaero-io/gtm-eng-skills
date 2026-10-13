@@ -23,8 +23,8 @@ Read budget: normal tasks should use this recipe plus at most one plays referenc
 
 1. **Preflight:** when spend or cloud execution is likely, run `deepline preflight --json` as one standalone command and wait for it before launching any parallel Deepline commands.
 2. **Describe before spend:** `deepline search --type tools,prebuilts` -> `plays describe` or `tools describe`.
-3. **Choose direct vs compose:** direct-run only when the described contract exactly matches input, output, export, freshness, and pricing. Otherwise bootstrap, wrap, or author a custom play.
-4. **Check before run:** `plays describe` gates prebuilts; `plays check <file>` is mandatory for local, bootstrapped, or forked plays.
+3. **Choose direct vs compose:** direct-run only when the described contract exactly matches input, output, export, freshness, and pricing. Otherwise fork the closest prebuilt or author a custom play.
+4. **Check before run:** `plays describe` gates prebuilts; `plays check <file>` is mandatory for local or forked plays.
 5. **Execute within authority:** a small supplied Play runs once, without a
    duplicate pilot. For new or larger unproven work, use an authorized small
    sample before scaling. Inspection alone authorizes no run or repair.
@@ -36,7 +36,7 @@ Detailed execution, pilot/approval, cohort, and retrieval mechanics live in
 [run and result retrieval](../references/plays-run-export-inspect-repair.md).
 Do not rediscover providers or redesign a supplied Play just to run or inspect it.
 
-Safe planning-only commands: auth/health/balance, `deepline search`, `plays describe`, `tools describe`, `plays check`, `plays bootstrap --help`, and local scaffolding. Do not call `plays run` or provider execution in planning-only mode.
+Safe planning-only commands: auth/health/balance, `deepline search`, `plays describe`, `tools describe`, `plays check`, `plays get --source`, and local editing. Do not call `plays run` or provider execution in planning-only mode.
 
 ## Audit Existing Plays
 
@@ -77,7 +77,7 @@ Slack OAuth belongs in Dashboard → Integrations. This CLI only configures name
 | Situation                                                           | First commands                                                                                          | Gate                                                        |
 | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
 | Existing play may fit exactly                                       | `deepline search "<input you have -> result you need>" --type prebuilts`, then `deepline plays describe prebuilt/<name> --json` | Input/output/export/pricing/freshness match                 |
-| CSV needs aliases, validation, projection, or joins                 | inspect headers, describe candidate play, then `plays bootstrap` or author wrapper                      | `plays check` and pilot pass                                |
+| CSV needs aliases, validation, projection, or joins                 | inspect headers, describe candidate play, then fork it with `plays get --source` and edit           | `plays check` and pilot pass                                |
 | Custom multi-tool or multi-play orchestration                       | search/describe each tool/play contract, then author a `.play.ts`                                       | stable ids, durable datasets, and explicit final projection |
 | Webhook/cron-style automation or cloud workflow replacement         | author a custom play with explicit inputs, idempotency, and run/export behavior                         | `plays check`, small pilot, and clear trigger handoff       |
 | Company -> contacts -> email/phone fanout                           | use GTM sourcing docs first, then compose plays/tools only after the account/contact grain is clear     | pilot proves account grain and contact identity             |
@@ -119,32 +119,29 @@ column selection for a focused view without changing the export; use
 See [retrieval and inspection](../references/plays-run-export-inspect-repair.md)
 for preview, receipt, scope and completeness distinctions.
 
-For CSV prebuilts, compare required headers to actual headers. If aliases are unsupported or output projection is custom, bootstrap a wrapper instead of editing the prebuilt.
+For CSV prebuilts, compare required headers to actual headers. If aliases are unsupported or output projection is custom, fork the prebuilt and edit the copy.
 
-## Bootstrap, Wrap, Fork
+## Fork A Prebuilt
 
-Bootstrap is the composition tool. It is not anti-prebuilt.
+When a prebuilt is close but not exact, get its source and edit the copy. Do
+not scaffold from scratch when a prebuilt already covers most of the work.
 
-Bootstrap or wrap when:
+Fork when:
 
 - CSV headers need mapping, validation, or projection
 - a prebuilt is a useful stage but not the whole answer
 - company rows need people/contact/channel fanout
-- provider source rows need durable row state
 - final output needs flat user-facing columns
-- row gates, fallback legs, miss reasons, or stale policy matter
-
-Fork only when internals need to change: provider/tool order, internal stale policy, getter metadata, billing stage, or native prebuilt logic. Do not fork for simple CSV aliases or final formatting.
+- row gates, fallback legs, miss reasons, provider order, or stale policy matter
 
 ```bash
-deepline plays bootstrap <family> --from <source> --using play:prebuilt/<candidate> --limit 5 --out workflow.play.ts
-deepline plays get prebuilt/<name> --source --out fork.play.ts
+deepline plays get prebuilt/<name> --source --out workflow.play.ts
+# rename the play, then edit the copy
 deepline plays check workflow.play.ts
 ```
 
-Route families: `people-list`, `company-list`, `people-email`, `people-phone`, `company-people`, `company-people-email`, `company-people-phone`.
-
-If bootstrap syntax fails, run `deepline plays bootstrap --help` or route help and retry with explicit stage flags such as `--people`, `--email`, or `--phone`.
+If `plays check` fails on a missing local import, the prebuilt is multi-file:
+author your own play and call the prebuilt as a stage with `ctx.runPlay`.
 
 ## Authoring Basics
 
@@ -166,7 +163,7 @@ export default definePlay(
 
 Authoring rules:
 
-- Prefer typed inline input. Import validators only if generated refs or bootstrap output prove they exist.
+- Prefer typed inline input. Import validators only if generated refs or the forked source prove they exist.
 - Use `ctx.csv`, `ctx.dataset`, `ctx.tools.execute`, `ctx.runPlay`, `ctx.step`, `ctx.fetch`, and `ctx.secrets`.
 - Do not use local `fs`, raw `fetch`, or shell commands anywhere in a Play, including inside `ctx.step`; route external I/O through the matching `ctx.*` API so retries remain safe. Put local nondeterministic computation such as `Date.now` or `Math.random` in a durable `ctx.step` callback. Always use `ctx.secrets` for credentials, never `process.env`, including inside a step — see External HTTP And Secrets below.
 - Use stable ids for paid work. Inspection is not permission to rename ids or

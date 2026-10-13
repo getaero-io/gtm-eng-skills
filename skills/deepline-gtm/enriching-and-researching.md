@@ -51,8 +51,8 @@ metrics. Do not hardcode a provider list a play already encodes.
 Use something else only when:
 
 - a prebuilt is close but not exact → fork it (`deepline plays get
-prebuilt/<name> --source --out ./<name>.play.ts`, then `plays check`) or
-  wrap it (`plays bootstrap ... --using play:prebuilt/<name>`)
+prebuilt/<name> --source --out ./<name>.play.ts`, edit the copy, then
+  `plays check`)
 - no play exists → author one per
   [recipes/deepline-plays.md](recipes/deepline-plays.md)
 - you are testing a niche provider path → direct `deepline tools execute`
@@ -391,7 +391,7 @@ deepline plays run --file ./email-waterfall.play.ts --input '{"first_name":"Ada"
 ```
 
 If `plays check` fails on a missing local import, that prebuilt is multi-file:
-wrap it with `plays bootstrap ... --using play:prebuilt/<name>` instead, or
+call it as a stage with `ctx.runPlay` from your own play instead, or
 author the waterfall fresh per
 [recipes/deepline-plays.md](recipes/deepline-plays.md) (a `steps()` cascade:
 sequential legs, stop on first valid hit, validation after recovery).
