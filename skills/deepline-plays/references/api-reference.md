@@ -372,6 +372,7 @@ These entries come from the compatible SDK/API change ledger and explain additiv
 <!-- prettier-ignore -->
 | Change | Reason |
 |---|---|
+| `2026-10-prebuilt-observed-cost` | Adds an optional observedCost field to prebuilt play results from GET /api/v2/search and to GET /api/v2/plays/:name?include=guidance for a prebuilt, and shows it in deepline search and deepline plays describe. It reports Deepline credits... |
 | `2026-10-unified-search` | Adds GET /api/v2/search, client.search(), the deepline search CLI command, and the deepline_search MCP tool: one ranked search over tools, monitor types, Deepline prebuilt plays, and the workspace’s own plays, narrowed with optional type... |
 | `2026-08-monitor-fleets-beta` | Adds the Monitor Fleets beta as an additive SDK/API/CLI namespace: canonical tagged-JSON fleet authoring helpers, client.monitors.fleets methods, the `deepline monitors fleets` CLI surface, and authenticated /api/v2/monitors/fleets route... |
 | `2026-08-play-catalog-metadata` | Adds POST /api/v2/plays/:name/pin plus the setPlayPinned SDK method and plays pin\|unpin CLI commands, and exposes derived canonical tool categories on Play catalog reads with an optional categories filter. These are additive catalog capa... |
@@ -379,7 +380,6 @@ These entries come from the compatible SDK/API change ledger and explain additiv
 | `2026-07-sdk-enrich-compiler-source-imports` | Resolves shared enrich-plan compiler imports through TypeScript source paths so server-side MCP callers can reuse the same compiler without relying on built JavaScript artifacts. This is an internal build-resolution change: installed CLI... |
 | `2026-07-play-detached-runtime-progress` | Corrects the customer-visible status and CLI progress wording for a Play that is actively executing in a detached runtime receipt: it reports running rather than waiting, and identifies that execution state instead of incorrectly suggest... |
 | `2026-07-agent-led-cli-onboarding` | Adds setup, skills, and doctor CLI commands, folder-scoped browser-auth persistence, npm-based installation guidance, and scoped update and verification behavior while retiring the separate mutable SDK shell-installer route. This is comp... |
-| `2026-07-play-cost-estimates` | Adds an opt-in include_cost_estimates query parameter and optional costEstimate response field to GET /api/v2/plays, and adds the same optional field to GET /api/v2/plays/:name/live. This is additive and backward compatible: route paths,... |
 
 ## Public Types
 
