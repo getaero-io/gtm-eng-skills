@@ -1,0 +1,58 @@
+{
+  "_comment": [
+    "The mapping for the shipped sample, deliberately left as the installer's FIRST attempt rather",
+    "than the corrected one. Four columns here are typed the way a reasonable person types them on",
+    "sight and not the way the data actually reads, so `loader_lib.py check` produces a real",
+    "coercion report out of the box instead of a clean one that teaches nothing.",
+    "See sample-dataset.md for what it reports and what to change."
+  ],
+
+  "company_ref_column": "company_id",
+
+  "row_key": {
+    "companies": { "column": "company_id" },
+    "contacts": { "column": "contact_id" }
+  },
+
+  "match_columns": {
+    "companies": { "domain": "website", "linkedin_url": "linkedin_company_url" },
+    "contacts": { "email": "work_email", "linkedin_url": "linkedin_url", "phone": "mobile_phone" }
+  },
+
+  "fields": {
+    "companies": {
+      "company_name":          { "type": "text",   "field_id": "org_name" },
+      "website":               { "type": "url",    "field_id": "domain" },
+      "linkedin_company_url":  { "type": "url",    "field_id": "linkedin_url" },
+      "hq_city":               { "type": "text",   "field_id": "location_city" },
+      "hq_country":            { "type": "text",   "field_id": "location_country" },
+      "employee_count":        { "type": "number", "field_id": "employee_count" },
+      "icp_tier":              { "type": "text",    "field_name": "TAM ICP tier" },
+      "fit_score":             { "type": "number",  "field_name": "TAM fit score" },
+      "why_now":               { "type": "text",    "field_name": "TAM why now" },
+      "buying_trigger":        { "type": "text",    "field_name": "TAM buying trigger" },
+      "tech_stack_detected":   { "type": "text",    "field_name": "TAM tech stack" },
+      "last_funding_stage":    { "type": "text",    "field_name": "TAM last funding stage" },
+      "last_funding_date":     { "type": "date",    "field_name": "TAM last funding date" },
+      "funding_raised_usd":    { "type": "number",  "field_name": "TAM funding raised" },
+      "net_new_arr_potential": { "type": "number",  "field_name": "TAM net new ARR potential" },
+      "expansion_signal":      { "type": "boolean", "field_name": "TAM expansion signal" }
+    },
+    "contacts": {
+      "full_name":          { "type": "text",    "field_id": "name" },
+      "first_name":         { "type": "text",    "field_id": "first_name" },
+      "last_name":          { "type": "text",    "field_id": "last_name" },
+      "work_email":         { "type": "email",   "field_id": "email" },
+      "linkedin_url":       { "type": "url",     "field_id": "linkedin_url" },
+      "job_title":          { "type": "text",    "field_id": "title" },
+      "seniority":          { "type": "text",    "field_id": "seniority" },
+      "department":         { "type": "text",    "field_id": "department" },
+      "persona":            { "type": "text",    "field_name": "TAM persona" },
+      "persona_confidence": { "type": "number",  "field_name": "TAM persona confidence" },
+      "outreach_angle":     { "type": "text",    "field_name": "TAM outreach angle" },
+      "years_in_role":      { "type": "number",  "field_name": "TAM years in role" },
+      "is_decision_maker":  { "type": "boolean", "field_name": "TAM is decision maker" },
+      "last_job_change":    { "type": "date",    "field_name": "TAM last job change" }
+    }
+  }
+}

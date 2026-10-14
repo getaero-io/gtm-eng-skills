@@ -1,0 +1,52 @@
+{
+  "entity": "contact",
+  "name": "Route-planning buyer fit (example)",
+  "version": 1,
+  "about": {
+    "we_sell": "Invented example. Route-planning software for companies that run their own delivery fleets.",
+    "buyer": "Invented example. Heads of operations, logistics and fleet at distributors; the COO signs, the dispatch or fleet manager champions it.",
+    "sources": ["invented for this example; a real rubric lists where each part came from"]
+  },
+  "inputs": {
+    "full_name": {"label": "Name", "required": true},
+    "title": {"label": "Job title", "required": true},
+    "headline": {"label": "Profile headline or summary", "max_chars": 1500},
+    "company_name": {"label": "Company"},
+    "account_tier": {"label": "Account tier (account scoring)"},
+    "started_role_on": {"label": "Started current role", "type": "date"}
+  },
+  "rules": [
+    {"id": "account_fit", "label": "Account fit", "kind": "lookup", "input": "account_tier",
+     "table": {"a": {"points": 30, "says": "at an A-tier account"},
+               "b": {"points": 20, "says": "at a B-tier account"},
+               "c": {"points": 8, "says": "at a C-tier account"}},
+     "miss_points": 0, "miss_says": "at a low-fit or unscored account"},
+    {"id": "new_in_role", "label": "New in role", "kind": "days_since", "input": "started_role_on",
+     "bands": [{"below": 120, "points": 10, "says": "started this role in the last 4 months"},
+               {"below": 365, "points": 5, "says": "in this role under a year"},
+               {"points": 0, "says": "in this role over a year"}]}
+  ],
+  "questions": [
+    {"id": "buying_role", "label": "Buying role", "kind": "choice", "reads": ["title", "headline"],
+     "instructions": "For software that plans delivery routes, which role would the person with job title `title` most likely play in the purchase?",
+     "options": {
+       "decision_maker": {"means": "Owns operations or logistics budget: COO, VP or Head of Operations, Logistics or Supply Chain.", "points": 30, "says": "likely decision maker"},
+       "champion": {"means": "Runs the fleet or dispatch day to day: fleet, dispatch, transportation or distribution manager.", "points": 25, "says": "likely champion"},
+       "influencer": {"means": "Consulted but does not own it: IT, finance, procurement.", "points": 10, "says": "an influencer"},
+       "not_involved": {"means": "Unrelated to operations or logistics: sales, marketing, HR, engineering and similar.", "points": 0, "says": "not involved in this purchase"}
+     }},
+    {"id": "seniority", "label": "Seniority", "kind": "score", "reads": ["title"],
+     "instructions": "How senior is the job title `title`?",
+     "levels": ["Individual contributor", "Manager or team lead", "Director or head of a function", "Vice president", "C-level or owner"],
+     "points": 15},
+    {"id": "not_a_buyer", "label": "Not a prospect", "kind": "noul", "reads": ["title", "headline"],
+     "instructions": "Is this person a recruiter, a student, a job seeker, or an outside consultant rather than an employee in an operating role?",
+     "criteria": {"true": "Recruiter, student, intern, job seeker, or external consultant or advisor.",
+                  "false": "An employee in an operating role at the company."},
+     "points": {"yes": 0, "no": 0}, "says_yes": "not a prospect (recruiter, student or outsider)",
+     "disqualify_at": 0.8}
+  ],
+  "tiers": [{"tier": "A", "min": 70}, {"tier": "B", "min": 45}, {"tier": "C", "min": 25}, {"tier": "D", "min": 0}],
+  "confidence_floor": 0.6,
+  "min_coverage": 0.5
+}
