@@ -26,7 +26,7 @@ So it runs as a bulk pass beside the ladder. The only levers are which rows you 
 Look the price up before quoting it. Rates change, and a number written here will be wrong eventually:
 
 ```bash
-deepline tools describe contactout_get_hashed_email_identifiers
+deepline describe contactout_get_hashed_email_identifiers
 ```
 
 What does not change is the billing shape, and it is what makes cost comparisons across these providers misleading:

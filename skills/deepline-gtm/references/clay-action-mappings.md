@@ -32,13 +32,13 @@ authorize adding the fallback routes listed here.
 
 1. **Native play first** — check if a native Deepline play covers the action (they're stable, multi-provider, and cost-optimized). Current native plays: `name-and-domain-to-email-waterfall`, `company-to-contact`, and `person-to-phone`.
 2. **Search for a dedicated tool** — `deepline search "<input you have -> result you need>" --type tools` before hardcoding any individual provider tool. New tools are added regularly. Examples: `deepline search "person profile -> ICP qualification" --type tools`, `deepline search "email -> validation status" --type tools`, `deepline search "lead list -> leads added to a campaign" --type tools`.
-3. **Verify the tool exists** - `deepline tools describe <tool_id>`. If it errors, the tool doesn't exist yet - use the `deeplineagent` fallback from this doc.
+3. **Verify the tool exists** - `deepline describe <tool_id>`. If it errors, the tool doesn't exist yet - use the `deeplineagent` fallback from this doc.
 4. **Use the mapping below as a fallback** — when no native play or dedicated tool exists.
 
 ```bash
 # Standard discovery pattern before writing any play column
 deepline search "<input you have -> result you need>" --type tools     # find current options
-deepline tools describe <candidate_tool_id> # verify it exists + see payload schema
+deepline describe <candidate_tool_id> # verify it exists + see payload schema
 ```
 
 **Why this matters:** Deepline may add a native tool for a Clay action at any time. Searching first means your script gets the better tool automatically — instead of being locked into a `deeplineagent` approximation.
@@ -172,7 +172,7 @@ Compiles to: `leadmagic_email_validation (first.last@, firstlast@, first_last@) 
 
 - `icypeas_email_search` — 700M+ profiles, strong LinkedIn coverage; useful as a step if native play misses
 - `dropleads_email_finder` — included in native plays; available standalone too
-- Run `deepline tools describe icypeas_email_search` to verify tool exists before using
+- Run `deepline describe icypeas_email_search` to verify tool exists before using
 
 **Final validation gate** (replaces all per-step Clay `validate-email` calls):
 

@@ -67,10 +67,10 @@ When the user asks about spend, show only Deepline-facing credits or estimates f
 
 ```bash
 deepline search "company domain -> CRM account and its contacts" --categories crm
-deepline tools describe TOOL_ID_FROM_SEARCH
+deepline describe TOOL_ID_FROM_SEARCH
 ```
 
-Then execute the discovered CRM contact/account query with the exact schema from `tools describe`. Pull name, title, email, phone, LinkedIn URL, account/company, owner, lifecycle or stage, and last activity when the CRM exposes them.
+Then execute the discovered CRM contact/account query with the exact schema from `deepline describe`. Pull name, title, email, phone, LinkedIn URL, account/company, owner, lifecycle or stage, and last activity when the CRM exposes them.
 
 Merge CRM results first. In the org chart, give CRM contacts a **CRM badge** and `+50` priority score, because you have verified data and a relationship. No need to re-enrich them. If no CRM is connected or no contact-search operation is available, skip this and start at Source 1.
 
@@ -91,7 +91,7 @@ rerunning this weekly? Author the pipeline once as a custom play
 and the tier pulls become `ctx.runPlay('prebuilt/company-to-contact', ...)`.
 
 **If LinkedIn URL given:** find a profile lookup tool and read the target's
-identity off its result, using the getters `tools describe` documents:
+identity off its result, using the getters `deepline describe` documents:
 
 ```bash
 deepline search "a person's LinkedIn profile URL -> their name, title, company and location"
@@ -161,7 +161,7 @@ Expected: ~25-35 people.
 deepline search "a company domain -> the people who work there, with titles and LinkedIn URLs"
 ```
 
-Each tool's `tools describe` output carries its paging and billing notes; read them before requesting large pages.
+Each tool's `deepline describe` output carries its paging and billing notes; read them before requesting large pages.
 
 **Source 3: surgical gap-fill, ONLY for missing senior people.** After building the initial hierarchy, identify gaps (e.g., "5 Sales Directors but no VP Sales") and search for that seniority at that company with a small limit. Fetch another small page only if the specific gap remains: a broad page followed by deduplication still spends credits on duplicates.
 

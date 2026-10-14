@@ -62,15 +62,14 @@ override defaults.
   and each result names its kind. When a prebuilt play fits the job, use it
   or adapt it before authoring one from scratch; otherwise use the tool.
 - Names in guides are starting hints. Confirm inputs, outputs and price on
-  the live contract: `deepline tools describe <tool-id>` or
-  `deepline plays describe <play>`.
+  the live contract: `deepline describe <name>`.
 - A tool is one operation and a play is GTM work as code: tools combined
   with your own logic over batches, with rate limits, retries, saved
   progress and recovery handled by Deepline. For a workflow or a batch, use
   a supplied play, reuse or adapt a prebuilt, or author one. Direct tool
   calls are for single spot checks; do not process a batch by looping tool
   calls in a script or in repeated agent calls.
-- Read tool results through the exact getters `deepline tools describe`
+- Read tool results through the exact getters `deepline describe`
   lists. Other fields live under `toolResponse.rawV2` with the provider's
   nesting kept: `.data` and `.data.data` are different. Check the fields you
   need on a pilot row before a bulk run. An extraction mismatch is not a

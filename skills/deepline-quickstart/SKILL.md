@@ -24,7 +24,7 @@ enrichment command or its flags.
 
    ```bash
    deepline search "<input you have -> result you need>" --type prebuilts
-   deepline plays describe prebuilt/<play-from-search> --json
+   deepline describe prebuilt/<play-from-search>
    ```
 
 3. Confirm the user wants to spend credits, then pilot one real record:
@@ -44,7 +44,7 @@ columns. Run a representative pilot before the full file:
 
 ```bash
 deepline search "<input you have -> result you need>" --type prebuilts
-deepline plays describe prebuilt/<batch-play-from-search> --json
+deepline describe prebuilt/<batch-play-from-search>
 deepline plays check prebuilt/<batch-play-from-search>
 WORKDIR="deepline/data/quickstart-pilot" && mkdir -p "$WORKDIR"
 head -n 4 leads.csv > "$WORKDIR/leads-pilot.csv"

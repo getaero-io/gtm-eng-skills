@@ -44,7 +44,7 @@ Treat each state transformation as a callable Play, not a helper function hidden
 
 ```bash
 deepline search "<transition input -> transition outcome>" --type plays
-deepline plays describe <owned-or-prebuilt-candidate> --json
+deepline describe <owned-or-prebuilt-candidate>
 ```
 
 `--all` includes Plays created in the user's workspace as well as prebuilts. Search by the transformation's outcome and input contract, not a guessed name. Prefer an exact owned or prebuilt contract over new code. Record why each candidate fits or fails; a similar title is not enough.
@@ -181,7 +181,7 @@ Inspect live Deepline balance and pricing before publishing paid code. Choose th
 
 Place the static `billing.maxCreditsPerRun` in the orchestrator source before checking or publishing it. A preliminary uncapped live revision creates an avoidable window for unbounded runs, especially if bindings are added later.
 
-Check the capped orchestrator against the live child contracts and publish it once. Verify each publication with `deepline plays get <name> --json`: inspect `play.liveRevision.version` and the static `billing.maxCreditsPerRun` in `play.liveRevision.sourceCode`, not a working revision. Reconcile that version with the publication result and `deepline plays versions --name <name> --json`. `plays describe` and revision summaries omit the billing limit, so they cannot verify a cap by themselves. Report the checked version, published version, live revision, every provider-backed Play's live cap, and any mismatch. Stop on a failed check, publish, or verification instead of publishing a dependent Play against an uncertain contract.
+Check the capped orchestrator against the live child contracts and publish it once. Verify each publication with `deepline plays get <name> --json`: inspect `play.liveRevision.version` and the static `billing.maxCreditsPerRun` in `play.liveRevision.sourceCode`, not a working revision. Reconcile that version with the publication result and `deepline plays versions --name <name> --json`. `deepline describe` and revision summaries omit the billing limit, so they cannot verify a cap by themselves. Report the checked version, published version, live revision, every provider-backed Play's live cap, and any mismatch. Stop on a failed check, publish, or verification instead of publishing a dependent Play against an uncertain contract.
 
 Calculate and disclose the aggregate pilot maximum as `(number of pilot top-level runs + one replay attempt) × billing.maxCreditsPerRun`. A per-run cap resets for each top-level run, so presenting it as the whole pilot bound understates exposure. Do not hardcode a credit-to-currency conversion. If credits are zero or unavailable, stop; quote any CLI-provided recovery commands exactly, but do not run them without approval.
 

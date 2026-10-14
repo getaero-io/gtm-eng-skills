@@ -7,7 +7,7 @@ description: 'Build a Total Addressable Market list: size the audience, source c
 
 Use this for requests like "build a TAM or list from ICP filters, then pull contacts at scale", "we sourced 935K leads and need the last 65K", or "we exhausted most strategies and need new lead-sourcing channels".
 
-Each step says what to get. Find the tool or prebuilt play for it with `deepline search "<input you have -> result you need>"`, then read its filters and price with `deepline tools describe <tool>` or `deepline plays describe <play>`.
+Each step says what to get. Find the tool or prebuilt play for it with `deepline search "<input you have -> result you need>"`, then read its filters and price with `deepline describe <tool>` or `deepline describe <play>`.
 
 1. **Write the ICP as filters.** Industry or category, headcount range, geography, funding stage, technology, hiring signal. Note the target count and which filters are hard requirements.
 2. **Check for a known source first.** When the companies are listed on a page you can name, such as a portfolio, a directory, a registry, or a conference site, extract that page instead of reconstructing it from searches.

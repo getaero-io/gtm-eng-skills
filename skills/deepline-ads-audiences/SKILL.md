@@ -19,7 +19,7 @@ Run `deepline` when it is available. If the shell reports that command is missin
 
 Build high-quality ABM paid ads audiences from first-party customer or prospect lists. This skill is for paid ads audience upload and evaluation, not outbound.
 
-Names in this skill are starting hints. Run `deepline search "contact list -> ad platform custom audience" --type tools` and `deepline tools describe <tool_id>` before executing because tool names and payload shapes can change. Tool search takes a task: one sentence stating the input you have -> the result you need, not keywords. There is no `--prefix` flag.
+Names in this skill are starting hints. Run `deepline search "contact list -> ad platform custom audience" --type tools` and `deepline describe <tool_id>` before executing because tool names and payload shapes can change. Tool search takes a task: one sentence stating the input you have -> the result you need, not keywords. There is no `--prefix` flag.
 
 ## Before You Start
 
@@ -196,7 +196,7 @@ Providers at similar prices bill differently on a miss:
 
 Run the cheapest per-call provider first so it absorbs the easy hits. A low hit rate on the remainder means the pool is exhausted, and a per-result provider is the cheap way to establish that.
 
-Stop after the hash providers by default. Report attempted rows, row hits, unique hashes added, contacts still missing personal hashes, and Deepline spend. Then ask whether the user wants to spend more on broader raw personal-email providers, quoting the current per-contact cost from `deepline tools describe <tool_id>` rather than a remembered figure.
+Stop after the hash providers by default. Report attempted rows, row hits, unique hashes added, contacts still missing personal hashes, and Deepline spend. Then ask whether the user wants to spend more on broader raw personal-email providers, quoting the current per-contact cost from `deepline describe <tool_id>` rather than a remembered figure.
 
 Only run the expanded coverage pass after explicit approval. In that pass, try providers such as LeadMagic, ContactOut, Wiza, Datagma, Crustdata, Prospeo, FullEnrich, PDL, or Deepline native personal-email waterfalls on rows still missing personal hashes. Normalize and SHA-256 hash raw personal emails exactly once, record provider-level lift and Deepline spend, and keep the default upload payload hash-only.
 

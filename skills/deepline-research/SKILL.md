@@ -219,7 +219,7 @@ python3 "$SKILL_ROOT/scripts/evaluate_public_private_corpus.py" \
 
 ### 5. Describe Before Pricing Or Execution
 
-For every candidate, inspect the live contract with `deepline tools describe <tool-id>` and record: input fields and required identifiers; output evidence fields and citations; pricing summary, billing basis, and whether BYOK changes Deepline credit cost; rate limits, async behavior, and sample payloads; extraction quality risks and identity-matching requirements.
+For every candidate, inspect the live contract with `deepline describe <tool-id>` and record: input fields and required identifiers; output evidence fields and citations; pricing summary, billing basis, and whether BYOK changes Deepline credit cost; rate limits, async behavior, and sample payloads; extraction quality risks and identity-matching requirements.
 
 If a source family is not present in Deepline, mark it as a provider gap and propose the integration path.
 

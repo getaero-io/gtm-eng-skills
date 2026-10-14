@@ -4,17 +4,17 @@ Reviewed 2026-09-09. These are collection and interpretation rules, not a deploy
 
 ## Collect these surfaces
 
-| Surface | Check | Interpretation / trap |
-| --- | --- | --- |
-| HTML | script src, iframe src, form action, meta generator, stylesheet hosts | An embedded reference is not proof of a successful load. |
-| Tags and snippets | Vendor-specific data attributes, widget initialization, structured configuration | Record a reviewed signature ID, not arbitrary script contents. Comments, samples, and unused config are not runtime evidence. |
-| Rendered DOM | Widgets inserted after page load, public scheduler/chat frames | Record route, viewport, consent state, and capture time. |
-| Network | Request hostname, resource type, response status, frame/initiator grouping | A completed 2xx response is stronger than a tag; still not proof of execution, a paid subscription, or organization-wide use. |
-| Public portals | Official-site links to customer, payment, booking, partner or competitor portals | A public link suggests a relationship. A generic vendor login does not establish a customer account. Do not attempt login or guess tenants. |
-| Official partner evidence | Named customer directory, certification, marketplace listing, case study | Match the legal entity/brand and date. Partner status is different from installed software. |
-| Public infrastructure | DNS CNAME for an already-discovered custom portal; observed redirects | Shared hosting/CDN/agency tags do not establish common ownership. No broad security scans. |
-| Historical changes | Same page and conditions across dated captures | Appearance/removal is a migration hypothesis; failed loads and consent changes are alternatives. |
-| Hiring/docs | Explicit role duties and system names | Separate candidate mentions, desired experience and planned migrations from current use. |
+| Surface                   | Check                                                                            | Interpretation / trap                                                                                                                       |
+| ------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| HTML                      | script src, iframe src, form action, meta generator, stylesheet hosts            | An embedded reference is not proof of a successful load.                                                                                    |
+| Tags and snippets         | Vendor-specific data attributes, widget initialization, structured configuration | Record a reviewed signature ID, not arbitrary script contents. Comments, samples, and unused config are not runtime evidence.               |
+| Rendered DOM              | Widgets inserted after page load, public scheduler/chat frames                   | Record route, viewport, consent state, and capture time.                                                                                    |
+| Network                   | Request hostname, resource type, response status, frame/initiator grouping       | A completed 2xx response is stronger than a tag; still not proof of execution, a paid subscription, or organization-wide use.               |
+| Public portals            | Official-site links to customer, payment, booking, partner or competitor portals | A public link suggests a relationship. A generic vendor login does not establish a customer account. Do not attempt login or guess tenants. |
+| Official partner evidence | Named customer directory, certification, marketplace listing, case study         | Match the legal entity/brand and date. Partner status is different from installed software.                                                 |
+| Public infrastructure     | DNS CNAME for an already-discovered custom portal; observed redirects            | Shared hosting/CDN/agency tags do not establish common ownership. No broad security scans.                                                  |
+| Historical changes        | Same page and conditions across dated captures                                   | Appearance/removal is a migration hypothesis; failed loads and consent changes are alternatives.                                            |
+| Hiring/docs               | Explicit role duties and system names                                            | Separate candidate mentions, desired experience and planned migrations from current use.                                                    |
 
 Start with the homepage and discovered booking, contact, customer-portal and careers pages. Set an explicit page/time budget. Do not infer absence from the homepage alone. Record unvisited and blocked pages.
 
@@ -22,13 +22,13 @@ Start with the homepage and discovered booking, contact, customer-portal and car
 
 Public documentation checked before catalog inspection; Deepline tools were searched and described on the review date. No paid retrieval pilot was run. Re-describe before execution; credentials shown as connected are not a guarantee of successful collection.
 
-| Route | Best use | Contract / cost boundary |
-| --- | --- | --- |
-| A page-scrape tool | First pass for page source, links and text | Request raw HTML, not only markdown or cleaned HTML, and the full page rather than main content only. Check that the tool's output actually carries raw HTML in an approved pilot; a missing field is a connector gap, not an empty site. |
-| A hosted browser session + custom Playwright collector | Runtime requests, injected widgets, frames | Session alone does not collect evidence. Connect an authorized CDP client; attach listeners before navigation, use bounded waits and close in finally. Runtime/bandwidth pricing is usage-based, not a quoted fixed price. Never persist session connect URLs or signing keys. |
-| An indexed technology-detection tool | Independent indexed technographics and detection history | Inspect the technologies, entity and last-detected fields. Usage-based price unresolved until estimate/pilot. A free lookup gives category summaries, not vendor-level proof. Indexed current status is not a live browser test. |
-| Generic public HTTP / local Playwright | Static HTML baseline or self-managed runtime | Only where credentials, permitted access and runtime are available. No new service necessary just for parsing. Respect TLS, rate limits and access restrictions. |
-| Private customer systems | Actual usage, contracts, seats, support volumes | Separate owner-authorized source. No inference from a public portal replaces this. |
+| Route                                                  | Best use                                                 | Contract / cost boundary                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A page-scrape tool                                     | First pass for page source, links and text               | Request raw HTML, not only markdown or cleaned HTML, and the full page rather than main content only. Check that the tool's output actually carries raw HTML in an approved pilot; a missing field is a connector gap, not an empty site.                                      |
+| A hosted browser session + custom Playwright collector | Runtime requests, injected widgets, frames               | Session alone does not collect evidence. Connect an authorized CDP client; attach listeners before navigation, use bounded waits and close in finally. Runtime/bandwidth pricing is usage-based, not a quoted fixed price. Never persist session connect URLs or signing keys. |
+| An indexed technology-detection tool                   | Independent indexed technographics and detection history | Inspect the technologies, entity and last-detected fields. Usage-based price unresolved until estimate/pilot. A free lookup gives category summaries, not vendor-level proof. Indexed current status is not a live browser test.                                               |
+| Generic public HTTP / local Playwright                 | Static HTML baseline or self-managed runtime             | Only where credentials, permitted access and runtime are available. No new service necessary just for parsing. Respect TLS, rate limits and access restrictions.                                                                                                               |
+| Private customer systems                               | Actual usage, contracts, seats, support volumes          | Separate owner-authorized source. No inference from a public portal replaces this.                                                                                                                                                                                             |
 
 Raw HTML from a scrape is not a network trace. A fetch-style call is not interchangeable with a fully instrumented browser session. A headless session may miss region-, consent-, interaction-, or identity-dependent tools. Do not evade access blocks. Disable automatic CAPTCHA solving and stealth escalation; stop at access restrictions. A failed page status can coexist with a successful scrape API response.
 
@@ -55,4 +55,4 @@ Require no false confirmations on: vendor.com.evil.test; evilvendor.com; URL use
 
 Use a labeled, cross-vertical site set and known counterexamples before release. Report precision by evidence level, coverage by page/consent/region, unknown rate, source freshness, incremental recall over the static baseline, and credits per verified finding. Do not optimize for raw match count. Offline tests are not live collection validation.
 
-Sources: each tool's contract from `deepline tools describe`, [Playwright network events](https://playwright.dev/docs/network).
+Sources: each tool's contract from `deepline describe`, [Playwright network events](https://playwright.dev/docs/network).

@@ -2,7 +2,7 @@
 
 Use this for local SMB discovery like dentists, plumbers, med spas, agencies, or nearby storefronts.
 
-Each step says what to get. Find the tool or prebuilt play for it with `deepline search "<what you have -> what you need>"`, then read its inputs and price with `deepline tools describe <tool>` or `deepline plays describe <play>`.
+Each step says what to get. Find the tool or prebuilt play for it with `deepline search "<what you have -> what you need>"`, then read its inputs and price with `deepline describe <tool>` or `deepline describe <play>`.
 
 1. **Discover businesses with a Maps-style local search.** Search by category and place, such as "dentists in Austin, TX". Run one query with a small limit, read the rows, and tune the query before widening. When the target is a map boundary or a radius around a point, use a search that takes an area or coordinates instead of a place name.
 2. **Keep one structured row per business:** name, address, phone, website, rating, and the Maps listing URL or id. Overlapping queries return the same business twice; dedupe on the listing id, or on phone plus address.
@@ -14,7 +14,7 @@ Each step says what to get. Find the tool or prebuilt play for it with `deepline
    - Accept contact data from a social profile only when the profile matches the business on at least two of: name, address, phone, website or booking link, Maps listing.
 5. **Scale it as a play.** Once each step works on a sample, run the list through a play so every row keeps its source columns and the run can be exported.
 
-Deepline has prebuilt plays for parts of steps 3 and 4. `deepline search "local business -> owner name" --type prebuilts` and `deepline search "local business -> contact email" --type prebuilts` list them; read each one's inputs with `deepline plays describe` before choosing it over a tool.
+Deepline has prebuilt plays for parts of steps 3 and 4. `deepline search "local business -> owner name" --type prebuilts` and `deepline search "local business -> contact email" --type prebuilts` list them; read each one's inputs with `deepline describe` before choosing it over a tool.
 
 ```bash
 deepline search "a business category and a city -> each business's name, phone, address and website"

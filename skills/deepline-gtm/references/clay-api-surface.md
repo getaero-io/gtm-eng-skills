@@ -80,7 +80,7 @@ If a migration needs to know "what population did this table source", `/v3/sourc
 
 ## CRM read and write
 
-`clay-action-mappings.md` covers enrichment actions. CRM actions live here. Clay ships 27 HubSpot actions plus a Salesforce package; these are the keys that show up in real tables. Confirm the Deepline side with `deepline tools describe <tool_id>` before writing a pass.
+`clay-action-mappings.md` covers enrichment actions. CRM actions live here. Clay ships 27 HubSpot actions plus a Salesforce package; these are the keys that show up in real tables. Confirm the Deepline side with `deepline describe <tool_id>` before writing a pass.
 
 | Clay action                                          | Deepline tool                          |
 | ---------------------------------------------------- | -------------------------------------- |
@@ -138,7 +138,7 @@ fetch('https://api.clay.com/v3/actions?workspaceId=' + WS, {credentials:'include
                       .map(a => ({key:a.key, inputs:a.inputParameterSchema})));
 ```
 
-Then find the Deepline equivalent with `deepline search "<input you have -> result you need>" --type tools` and confirm with `deepline tools describe <tool_id>`.
+Then find the Deepline equivalent with `deepline search "<input you have -> result you need>" --type tools` and confirm with `deepline describe <tool_id>`.
 
 ## Re-mining when Clay changes
 

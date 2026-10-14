@@ -39,7 +39,7 @@ For per-company filtering across the whole list, add this as a column in a custo
 **Step 3: Find contacts at each company.**
 
 Put the companies in a CSV and run `prebuilt/company-to-contact-batch` over it for the
-target role; `deepline plays describe prebuilt/company-to-contact-batch` shows its columns.
+target role; `deepline describe prebuilt/company-to-contact-batch` shows its columns.
 
 **Step 4: Find emails via waterfall.**
 

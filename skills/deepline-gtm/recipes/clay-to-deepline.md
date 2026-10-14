@@ -316,7 +316,7 @@ For anything neither file maps, pull the action's real input schema from Clay's 
 
 ```bash
 deepline search "<input you have -> result you need>" --type tools   # the action's input and output
-deepline tools describe <candidate_tool_id>       # inspect candidate
+deepline describe <candidate_tool_id>       # inspect candidate
 # if nothing found → deeplineagent fallback
 ```
 

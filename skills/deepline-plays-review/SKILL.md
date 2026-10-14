@@ -75,8 +75,8 @@ and confirm their contracts before first use:
 ```bash
 deepline search "Play run dataset -> spreadsheet" --type tools
 deepline search "spreadsheet ID -> its rows and comments" --type tools
-deepline tools describe google_workspace_export_dataset
-deepline tools describe google_workspace_request
+deepline describe google_workspace_export_dataset
+deepline describe google_workspace_request
 ```
 
 ## Run and review

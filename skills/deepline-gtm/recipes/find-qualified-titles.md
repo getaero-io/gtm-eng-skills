@@ -7,7 +7,7 @@ description: "Use when finding real role-holders at known company domains from a
 
 Given a list of companies and an ICP in plain English, find the people who hold the matching roles, starting from each company's real title roster instead of guessed keywords. The roster is free, the ICP match is one small AI call per company, and you spend on contacts only at the end.
 
-This recipe names Deepline's own tools because the method depends on two of them: `company_titles` returns a company's verbatim titles, and `search_contact` is the people search that accepts those titles as lists. Read both contracts with `deepline tools describe` before you build.
+This recipe names Deepline's own tools because the method depends on two of them: `company_titles` returns a company's verbatim titles, and `search_contact` is the people search that accepts those titles as lists. Read both contracts with `deepline describe` before you build.
 
 ## When to use
 
