@@ -3,7 +3,7 @@ name: find-qualified-titles
 description: "Use when finding real role-holders at known company domains from an ICP, especially prompts like 'find all job titles at these companies', 'find qualified titles', 'find RevOps or marketing-ops buyers', or when exact title discovery should precede paid people search."
 ---
 
-# Find Qualified Titles (company_titles -> ICP filter -> contacts)
+# Find Qualified Titles
 
 ## Quick Start
 

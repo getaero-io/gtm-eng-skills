@@ -6,12 +6,12 @@ description: 'Convert a Clay table configuration into local Deepline scripts. Ha
 # Clay → Deepline Migration
 
 Convert Clay tables to custom Plays: one callback-based `withColumn` per Clay
-column, per [deepline-plays.md](deepline-plays.md). Preserve the extraction,
+column, per `deepline plays --help`. Preserve the extraction,
 payload, prompt, dependency, and parity knowledge below. The linked
 [action mappings](../references/clay-action-mappings.md) retain explicitly
 marked legacy template notation; those blocks are not runnable Play syntax.
 For execution authority, pilots, and retrieval, use
-[execution mechanics](../references/plays-run-export-inspect-repair.md).
+[build, run and retrieve](../SKILL.md) in the GTM skill.
 
 ## Choosing your migration target
 
@@ -21,12 +21,12 @@ Every migration targets a Deepline play. The shape differs by table:
 | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Batch rows, no triggers, one-time or manual re-runs                                                         | CSV-input play: one `.withColumn(...)` per Clay action (this recipe)                                                                                                                                                                                                                                                   |
 | **Function (subroutine) table**: a `f_subroutine_source` "Function inputs" field + a `write-to-cell` action | **Reusable play with a typed input contract:** input = the subroutine's declared parameter row (not a lead CSV), one `.withColumn(...)` per non-source field, output = the `write-to-cell` `data` map. Drop `write-to-cell`. See the Clay Functions section in [clay-extraction.md](../references/clay-extraction.md). |
-| Webhook trigger, row routing (`route-row`), CRM writes, campaign pushes                                     | Custom play with triggers/orchestration → [deepline-plays.md](deepline-plays.md)                                                                                                                                                                                                                                       |
+| Webhook trigger, row routing (`route-row`), CRM writes, campaign pushes                                     | Custom play with triggers/orchestration → `deepline plays --help`                                                                                                                                                                                                                                                      |
 | Hybrid: batch enrichment + downstream push to CRM/campaign                                                  | CSV-input play first, then a second play for the push                                                                                                                                                                                                                                                                  |
 
 Most Clay tables are batch tables. This recipe covers that path end-to-end;
 for trigger/routing tables, **Extraction and Documentation still apply** — then
-follow [deepline-plays.md](deepline-plays.md) with the extracted config as the
+follow `deepline plays --help` with the extracted config as the
 source artifact.
 
 **Recognize a Clay Function before you plan the migration.** If the extract has a
@@ -230,7 +230,7 @@ clay_curl() {
 
 ### Play Shape and Column Order
 
-The migrated table is a play file: the body reads the seed CSV with `ctx.csv(...)`, chains one `.withColumn(alias, ...)` per Clay action in dependency order, and finishes with `.run({ key })`. Author it per [deepline-plays.md](deepline-plays.md); columns execute in declaration order, and each column can read any earlier alias.
+The migrated table is a play file: the body reads the seed CSV with `ctx.csv(...)`, chains one `.withColumn(alias, ...)` per Clay action in dependency order, and finishes with `.run({ key })`. Author it per `deepline plays --help`; columns execute in declaration order, and each column can read any earlier alias.
 
 Validate before spending credits:
 
@@ -405,7 +405,7 @@ Expected failure rate: ~15%.
 
 ## §6 Patterns and Antipatterns
 
-Clay-specific patterns. For general Deepline patterns (email plays, interpolation, deeplineagent, column shapes), follow `enriching-and-researching.md` from the deepline-gtm.
+Clay-specific patterns. For general Deepline patterns (email plays, interpolation, deeplineagent, column shapes), use the prebuilt plays and the steps in the deepline-gtm skill.
 
 ### Prompt Recovery
 
@@ -500,7 +500,7 @@ Use this mismatch process: check prompt parity → check model parity → check 
 5. **Check and pilot**: `deepline plays check` (no provider spend), then an authorized bounded pilot for larger unproven work; no duplicate small supplied run
 6. **Full run**: Complete the approved scope without redundant post-pilot approval; ask if scope, cost, or risk changes
 7. **Phase 3 (§7)**: `compare.py ground_truth.csv enriched.csv` — confirm thresholds pass
-8. **Trigger/routing migration** (optional): If table needs triggers/routing → [deepline-plays.md](deepline-plays.md)
+8. **Trigger/routing migration** (optional): If table needs triggers/routing → `deepline plays --help`
 
 ### Pilot Gate
 

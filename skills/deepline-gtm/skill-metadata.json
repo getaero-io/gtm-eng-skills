@@ -7,34 +7,10 @@
       "tags": ["gtm", "router"],
       "providers": []
     },
-    "finding-companies-and-contacts.md": {
-      "kind": "guide",
-      "title": "Finding Companies and Contacts",
-      "tags": ["prospecting", "search", "discovery"],
-      "providers": []
-    },
-    "enriching-and-researching.md": {
-      "kind": "guide",
-      "title": "Enriching and Researching",
-      "tags": ["enrichment", "waterfall", "signals"],
-      "providers": []
-    },
     "writing-outreach.md": {
       "kind": "guide",
       "title": "Writing Outreach",
       "tags": ["qualification", "email", "outreach"],
-      "providers": []
-    },
-    "agents/execution-plan-creator.md": {
-      "kind": "agent",
-      "title": "Execution Plan Creator",
-      "tags": ["agent", "planning"],
-      "providers": []
-    },
-    "agents/list-builder.md": {
-      "kind": "agent",
-      "title": "List Builder",
-      "tags": ["agent", "prospecting"],
       "providers": []
     },
     "references/clay-action-mappings.md": {
@@ -55,34 +31,10 @@
       "tags": ["reference", "clay"],
       "providers": []
     },
-    "references/contact-accuracy.md": {
-      "kind": "reference",
-      "title": "Contact Accuracy",
-      "tags": ["reference", "contacts"],
-      "providers": []
-    },
-    "references/plays-api-reference.md": {
-      "kind": "reference",
-      "title": "Plays API Reference",
-      "tags": ["reference", "plays"],
-      "providers": []
-    },
-    "references/plays-run-export-inspect-repair.md": {
-      "kind": "reference",
-      "title": "Plays Run Export Inspect Repair",
-      "tags": ["reference", "plays"],
-      "providers": []
-    },
     "references/run-events.md": {
       "kind": "reference",
       "title": "Run Logs and Events",
       "tags": ["cli", "logs", "debugging"],
-      "providers": []
-    },
-    "references/plays-sdk-reference.md": {
-      "kind": "reference",
-      "title": "Plays SDK Reference",
-      "tags": ["reference", "plays"],
       "providers": []
     },
     "references/monitor-contract-reference.md": {
@@ -93,18 +45,6 @@
     }
   },
   "prefixes": {
-    "agents/": {
-      "kind": "agent",
-      "title": "Agent",
-      "tags": ["agent"],
-      "providers": []
-    },
-    "provider-playbooks/": {
-      "kind": "provider-playbook",
-      "title": "Provider Playbook",
-      "tags": ["provider"],
-      "providers": []
-    },
     "references/": {
       "kind": "reference",
       "title": "Reference",

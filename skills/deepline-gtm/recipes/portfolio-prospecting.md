@@ -34,7 +34,7 @@ deepline search "JavaScript-rendered portfolio page URL -> company names and web
 Search the accelerator's job board for the role with a web search tool
 (`deepline search "search query -> web results"`), for example `GTM Engineer site:ycombinator.com`.
 
-For per-company filtering across the whole list, add this as a column in a custom play ([deepline-plays.md](deepline-plays.md)).
+For per-company filtering across the whole list, add this as a column in a custom play (`deepline plays --help`).
 
 **Step 3: Find contacts at each company.**
 
@@ -44,7 +44,7 @@ target role; `deepline plays describe prebuilt/company-to-contact-batch` shows i
 **Step 4: Find emails via waterfall.**
 
 Run `prebuilt/person-to-email-batch` over the contacts: each row tries its LinkedIn profile
-first, then name and company domain. See [enriching-and-researching.md](../enriching-and-researching.md).
+first, then name and company domain.
 
 **Step 5: Generate personalized email copy** with `deeplineagent` and `jsonSchema`. If the row still needs fresh web lookup, do that in the same `deeplineagent` step or in a separate research pass first, within the authorized scope. For a new large batch, use a CSV-aware 2-3-row pilot before scaling; do not duplicate a small supplied Play.
 
@@ -52,8 +52,8 @@ Use guidance in [writing-outreach.md](../writing-outreach.md)
 
 ## Common pitfalls
 
-| Pitfall                                                       | What happens                                                            | Fix                                                     |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------- |
-| Trying to discover portfolio companies via Deepline tools     | Wastes 60-80% of turn budget on company discovery                       | Fetch the public portfolio page directly                |
-| Using old `json_mode` fields from retired local AI docs       | New AI tools ignore that contract and structured output drifts or fails | Pass a `jsonSchema` object to `deeplineagent`           |
-| Searching with strict titles at small startups                | 0 results — person hasn't been hired yet                                | Remove title filter, get broader roles, pick best match |
+| Pitfall                                                   | What happens                                                            | Fix                                                     |
+| --------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------- |
+| Trying to discover portfolio companies via Deepline tools | Wastes 60-80% of turn budget on company discovery                       | Fetch the public portfolio page directly                |
+| Using old `json_mode` fields from retired local AI docs   | New AI tools ignore that contract and structured output drifts or fails | Pass a `jsonSchema` object to `deeplineagent`           |
+| Searching with strict titles at small startups            | 0 results — person hasn't been hired yet                                | Remove title filter, get broader roles, pick best match |

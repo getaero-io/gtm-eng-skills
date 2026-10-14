@@ -3,153 +3,47 @@ name: find-qualified-titles
 description: "Use when finding real role-holders at known company domains from an ICP, especially prompts like 'find all job titles at these companies', 'find qualified titles', 'find RevOps or marketing-ops buyers', or when exact title discovery should precede paid people search."
 ---
 
-# Find Qualified Titles (company_titles -> ICP filter -> contacts)
+# Find Qualified Titles
 
-Given a list of companies and an ICP described in plain English, find the people who
-hold the matching roles - starting from each company's **real title roster**, not
-keyword guesses. The title roster is free, the ICP match is one small LLM call per
-company, and you only spend on contacts at the very end.
+Given a list of companies and an ICP in plain English, find the people who hold the matching roles, starting from each company's real title roster instead of guessed keywords. The roster is free, the ICP match is one small AI call per company, and you spend on contacts only at the end.
 
-**Why `title_lists` fits here.** Guessed titles are brittle (you miss "Sr Director
-Marketing Operations" if you typed "Senior Director..."). That problem does not exist in
-this pipeline, because the titles come from `company_titles` - they are the company's
-_own verbatim roster strings_. The LLM picks from that list, so every matched title
-resolves. `title_lists` then returns holders of every title you selected (an OR across
-the list). **It is not exact matching:** live runs also return titles that merely contain
-a listed title (e.g. "Staff Engineer Heat Transfer Group" for "Staff Engineer"; 128 of
-380 rows in one run). Each returned row bills, so if you need exact holders, drop rows
-whose `title` is not in your matched list before paying for enrichment.
+This recipe names Deepline's own tools because the method depends on two of them: `company_titles` returns a company's verbatim titles, and `search_contact` is the people search that accepts those titles as lists. Read both contracts with `deepline tools describe` before you build.
 
 ## When to use
 
-- **Primary path** when the user asks for nuanced functions or real job titles at named
-  companies, such as "AI leadership at Mount Sinai."
-- "Find all job titles at these companies" / "what roles exist at X".
-- "Find the marketing ops / RevOps / Salesforce buyers at these accounts."
-- "Find qualified titles" - user has accounts + an ICP and wants the real owners of a function.
-- Any time you would otherwise guess `title_filters` keyword patterns and miss real titles
-  (e.g. "Revenue Architect" instead of "VP Sales", "GTM Systems" instead of "Sales Ops").
+- The user asks for nuanced functions or real job titles at named companies, such as "AI leadership at Mount Sinai".
+- "Find all job titles at these companies", or "what roles exist at X".
+- "Find the marketing ops, RevOps, or Salesforce buyers at these accounts."
+- Any time you would otherwise guess title keywords and miss real titles, such as "Revenue Architect" for "VP Sales" or "GTM Systems" for "Sales Ops".
 
-Do **not** reach for a paid people search for this. `company_titles` answers "what titles exist here"
-for free; people-search is for when you already know the persona and need volume.
+Do not start with a paid people search here. The roster answers "what titles exist at this company" for free; people search is for when you already know the persona and need volume.
 
 ## Inputs
 
-- A CSV (or just a list) of company domains. `domain` column required;
-  `company_name` / `company_linkedin` optional.
-- An ICP in plain English (the qualification criteria).
+- A CSV or a list of company domains. A `domain` column is required; `company_name` and `company_linkedin` are optional.
+- The ICP in plain English.
 
-## Quick reference
+## Steps
 
-| Step | What                                      | Tool                              | Cost                    |
-| ---- | ----------------------------------------- | --------------------------------- | ----------------------- |
-| 1    | Full title roster per company             | `company_titles`                  | FREE                    |
-| 1b   | Flatten nested titles -> scalar column    | `run_javascript`                  | 0                       |
-| 2    | LLM filters roster to ICP-matching titles | `deeplineagent`                   | cheap (1 small call/co) |
-| 2b   | Flatten `matched_titles` -> scalar column | `run_javascript`                  | 0                       |
-| 3    | Find holders of the matched titles        | `search_contact` (`title_lists`)  | LinkedIn-only tier      |
-| 4    | (optional) reveal email / phone           | `enrich_contact` / `enrich_phone` | only on kept rows       |
+Author this as one play over the company list, one column per step. For a single company, run the same tools with `deepline tools execute`.
 
-## Why this shape (non-obvious rules, all verified live)
+1. **Get each company's title roster.** `company_titles` with the company domain. It is free.
+2. **Flatten the roster to a plain list of strings.** The tool declares no getters, so read one persisted row to see where the titles landed (recent runs put them under `output.titles`) before writing the extraction.
+3. **Filter the roster to the ICP.** One `deeplineagent` call per company with a `jsonSchema` of `{matched_titles: string[], reasoning: string}`. Spell out what to include and exclude, for example "Marketing Ops, Sales Ops, RevOps, Salesforce admin or architect; senior IC and above; exclude recruiters, finance, support, and plain reps", and tell it to return only exact strings from the list. Pass the full roster; do not trim it first.
+4. **Find the holders of the matched titles.** `search_contact` with the domain and `title_lists: [{"name": "icp", "titles": [...]}]`. `titles` must be a real array when the call runs; a CSV cell that only looks like JSON is rejected before the provider is called. Raise `page_size` (default 10, maximum 250) or paginate when many titles matched, or the results are cut off without warning.
+5. **Re-check every returned title.** Title-list matching is not exact: results include titles that only contain a listed one, such as "Staff Engineer Heat Transfer Group" for "Staff Engineer" (128 of 380 rows in one run). Each returned row is billed, so drop rows whose `title` is not in the matched list before paying for anything else.
+6. **Flatten to one row per contact.** One company yields many people, so this is a file step, not another column. The script is in this skill's `scripts/` directory:
 
-- **`title_lists`, not `title_filters`.** Matched titles are exact strings from the
-  company's own roster - `title_lists` returns holders of each title you pass, plus some
-  titles that only contain a listed title (it is not exact full-string matching; re-check
-  `title`). `title_filters` is boolean keyword/substring matching
-  (e.g. `"operations"` also catches "People Operations Intern") - use that only when you
-  did NOT qualify against the real roster first and want a broad keyword sweep.
-- **`title_lists` works on `search_contact`, NOT `prospector`.** Verified live:
-  `prospector` returns `422 unexpected key 'title_lists'` - its Deepline schema only
-  accepts `title_filter`/`title_filters` + `limit`. (Upstream Waterfall once announced
-  `title_lists` on Prospector, but Deepline's prospector parser does not wire it through;
-  `search_contact` is the path that works today.)
-- **`page_size` caps results per call - raise it for big lists.** `search_contact`
-  defaults to a small page. If you select many titles or expect many holders, set
-  `page_size` high enough (or paginate with `page_number`) so matches aren't silently
-  truncated. Don't assume 10 is enough when you passed 30 titles.
-- **Materialize nested output into flat columns before referencing it.** In a play,
-  row cells, `company_titles` currently appears under `row.titles.output.titles`
-  and `deeplineagent` structured JSON under `row.icp_match.result.object.<field>` or
-  `row.icp_match.extracted_json.<field>`.
-  A bare placeholder like `{{titles.output.titles}}` does NOT resolve, and a raw array
-  placeholder breaks a JSON payload spec. Extract with `run_javascript` first.
-  Direct `deepline tools execute <tool-id> --json` uses the V2 envelope (`toolResponse.rawV2...`),
-  so do not copy direct execute paths into row-level JS without inspecting the persisted row.
-  - Inside `run_javascript`, use the persisted row shape:
-    `row.titles.output.titles` and
-    `row.icp_match.result.object.matched_titles` / `row.icp_match.extracted_json.matched_titles`.
-  - `title_lists[].titles` must be a real array at execution time, not a CSV string
-    that looks like JSON. If a CSV-sourced cell still reaches `search_contact` as
-    a string like `["VP Sales"]`, Deepline rejects it with a pre-provider `422 value must be
-an array`; that should not bill. Add a `run_javascript` parse/materialize pass
-    immediately before `search_contact` when needed.
-  - When injecting a live array-valued cell into a later payload, **quote the placeholder**:
-    `"titles": "{{matched_titles}}"` (the interpolator substitutes the real array).
+   ```bash
+   python3 scripts/flatten-search-contact-persons.py contacts.csv --contacts-col contacts > contact_rows.csv
+   ```
 
-## Pipeline
+7. **Reveal contact data only on the rows the user keeps.** Step 4 returns names, titles, and LinkedIn URLs, never an email or a phone. Ask which channels the user needs, then run the prebuilt email or phone batch play from the skill's working rules on the kept rows. Never enrich the whole set by default.
 
-This is a five-column custom play over `companies.csv` — author it once per
-[deepline-plays.md](deepline-plays.md) with these columns in order (single-company
-probes: run the same tool via `deepline tools execute`):
+## Rules that are easy to get wrong
 
-1. `titles` — `company_titles` with `{"domain": row.domain}` (FREE roster).
-2. `titles_flat` — `run_javascript`: `const t = row.titles?.output?.titles || row.titles?.result?.data?.output?.titles || []; return JSON.stringify(t);`
-3. `icp_match` — `deeplineagent`, model `openai/gpt-5.4-mini`, prompt: `ICP: <describe the buying-power roles, e.g. Marketing Ops, Sales Ops, RevOps, Salesforce admin/architect; senior IC and above; exclude recruiters/finance/support/plain reps>. From this exact title list return ONLY matching titles as exact strings: ${row.titles_flat}. Return JSON.` with `jsonSchema {matched_titles: string[], reasoning: string}`.
-4. `matched_titles` — `run_javascript`: `const match = row.icp_match || {}; const t = match?.extracted_json?.matched_titles || match?.result?.object?.matched_titles || match?.object?.matched_titles || []; return JSON.stringify(t.slice(0,100));`
-5. `contacts` — `search_contact` with `{"domain": row.domain, "title_lists":[{"name":"icp","titles": <matched_titles array>}], "page_size": 50}`. Returns holders of each title plus some near-matches (LinkedIn only — no email/phone); re-check `title`; raise `page_size` when many titles matched.
-
-Contacts land at `contacts.output.persons[]` (legacy rows may use
-`contacts.result.data.output.persons[]`) with name, title, `linkedin_url`, seniority,
-and department. Flatten to one row per contact before any email or phone reveal:
-
-```bash
-python3 .skills/deepline-gtm/scripts/flatten-search-contact-persons.py contacts.csv \
-  --contacts-col contacts > contact_rows.csv
-```
-
-If the skill is installed outside the repo, use the same script from the installed
-`deepline-gtm/scripts/` directory. This expansion is a file-level step, not another
-`run_javascript` column, because one company can produce many people.
-
-## Tiered contact reveal - buy only what the user needs
-
-Step 3 (`search_contact`) returns LinkedIn only - the lowest upfront cost. **Ask the user
-which channels they actually need before spending**, then add only the steps they pick:
-
-| Tier          | Tool                                                                               | Returns                                      |
-| ------------- | ---------------------------------------------------------------------------------- | -------------------------------------------- |
-| LinkedIn only | `search_contact` (above)                                                           | name, title, LinkedIn (email/phone redacted) |
-| + work email  | `enrich_contact` on the kept `linkedin_url` (or `first_name`+`last_name`+`domain`) | + verified email                             |
-| + phone       | `enrich_phone` on priority contacts only                                           | + phone (top picks only)                     |
-
-Run email/phone only on the rows the user keeps; never blanket-enrich the full set.
-
-Cost note: if the user wants emails on _most_ contacts up front, `prospector` (boolean
-`title_filters`, returns contact+verified email in one call) can be cheaper net than
-`search_contact` + a separate `enrich_contact` per row - but `prospector` does **not**
-support `title_lists`, so you lose the roster-title precision. Use `search_contact`
-when you want roster-title precision and LinkedIn-first; consider `prospector` only when
-broad boolean matching is acceptable and you want emails in one shot.
-
-## Supplemental coverage after the roster path
-
-Run supplemental providers only after the roster-qualified `search_contact` pass:
-
-- A public-profile search can find people missing from contact databases. Verify
-  the current employer and title before treating a result as a match.
-- A keyword people search can add database rows or contact data, but keep it
-  supplemental for nuanced titles. Keyword filters can miss a real roster title
-  such as "Director, Mount Sinai AI Assurance Lab" when the guessed keywords do not
-  occur in the title.
-
-Find both with `deepline search`. For broad market sizing rather than
-named-company title qualification, a count tool and a keyword people search
-remain the right primary tools.
-
-## Notes
-
-- Don't pre-trim the roster before the LLM filter - let the LLM pick from the full list,
-  then raise `page_size` on step 3 so all holders of the matched titles come back.
-- The LLM filter is only as good as the ICP prompt - be specific about include/exclude,
-  and tell it to return **exact strings from the list** so titles map back to `title_lists`.
-- v2 SDK equivalent: `docs-examples/sdk-v2/companies-to-contacts-icp-titles.play.ts`.
+- **Title lists, not title filters.** The matched titles are exact strings from the company's own roster, so `title_lists` resolves every one. `title_filters` is boolean keyword matching, where "operations" also catches "People Operations Intern"; use it only when you did not qualify against the roster and want a broad sweep.
+- **`title_lists` exists on `search_contact` only.** `prospector` rejects it with a 422. `prospector` returns the contact and an email in one call from boolean title filters, so consider it only when broad matching is acceptable and the user wants emails on most contacts up front.
+- **Supplemental coverage comes after the roster pass.** Other people-search and public-profile tools, found with `deepline search`, can add people the contact search misses. Check the current employer and title before counting one as a match: keyword filters miss real roster titles such as "Director, Mount Sinai AI Assurance Lab".
+- **The AI filter is only as good as the ICP prompt.** Be specific about what is in and out.
+- For sizing a market instead of qualifying titles at named companies, follow `build-tam.md`.

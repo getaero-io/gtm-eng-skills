@@ -134,7 +134,7 @@ When you already have contact + company context in CSV columns, use `run_javascr
 **Critical: avoid mail-merge output.** If every email has the same structure with only `{{first_name}}` and `{{company_name}}` swapped, it's a template — not personalized outreach. Each email must reference something specific to the company (product, use case, industry, recent news). Use `company_description`, `one_liner`, `company_research`, or other enrichment columns in your JS template or `deeplineagent` prompt so each email is substantively different.
 
 Author the generation column(s) as a custom play over your enriched CSV
-([recipes/deepline-plays.md](recipes/deepline-plays.md)) with
+(see `deepline plays --help`) with
 one `withColumn` per output:
 
 - Fast path: a `run_javascript` column applying a deterministic template.
@@ -225,7 +225,7 @@ SEQ_WITH=$(jq -nc --arg product "$PRODUCT_CONTEXT" '{
 printf "prospect_payload\n{\"person\":{\"firstName\":\"Rachael\",\"lastName\":\"Foster\",\"title\":\"Vice President AMER Field Marketing, Public Sector, Services, & Community\"},\"company\":{\"name\":\"Cloudera\",\"domain\":\"cloudera.com\"}}\n" > ./qualification_email_seed.csv
 
 # Run both columns as a custom play over the seed CSV (one withColumn per
-# payload above) — recipes/deepline-plays.md has the authoring loop.
+# payload above) — `deepline plays --help` covers authoring.
 ```
 
 ## Prompt Templates (Copy/Paste)
@@ -320,17 +320,17 @@ deepline csv show leads.csv --summary
 
 Use actual column names from the file. CSV JSON display still contains string
 cells. For native nested objects and arrays, use `runs export --format json`
-as described in [execution mechanics](references/plays-run-export-inspect-repair.md).
+as described in `deepline runs export --help`.
 
 ### Re-run a column
 
 `deepline csv` is local inspection only. Inspect the existing export and run
 before proposing recomputation. A new run or forced refresh needs execution
 authority and may spend again; completed receipt reuse is not a free-rerun
-guarantee. Follow [execution mechanics](references/plays-run-export-inspect-repair.md).
+guarantee. See `deepline plays run --help` and `deepline runs rerun --help`.
 
 ### CLI-only debug posture
 
 - Use these commands for local inspection, not re-execution. Deterministic
   processing is allowed; preserve the original and label derived outputs.
-- If you need to add columns or add providers, switch back to [enriching-and-researching.md](enriching-and-researching.md) instead of extending this page.
+- If you need to add columns or add providers, use a prebuilt play from `deepline search` or a custom play instead of extending this page.

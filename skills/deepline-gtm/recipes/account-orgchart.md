@@ -87,7 +87,7 @@ Agree on the requested function/seniority and a bounded first pass (default up t
 This recipe orchestrates ONE account (or one person). Run the calls below
 directly with real values. Building org charts across a LIST of accounts, or
 rerunning this weekly? Author the pipeline once as a custom play
-([deepline-plays.md](deepline-plays.md)) — each step below becomes one column,
+(`deepline plays --help`) — each step below becomes one column,
 and the tier pulls become `ctx.runPlay('prebuilt/company-to-contact', ...)`.
 
 **If LinkedIn URL given:** find a profile lookup tool and read the target's

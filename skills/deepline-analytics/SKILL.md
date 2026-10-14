@@ -22,21 +22,21 @@ Use this skill to answer customer analytics questions through Deepline's warehou
 
 ## Before You Start
 
-Use `deepline-gtm` instead when the task is prospecting, enrichment, contact finding, outbound sequencing, personalization, or row-by-row lead/account research. Analytics questions ask about existing customer data: revenue, pipeline, funnel, conversion, retention, usage, calls, accounts, opportunities, or warehouse tables.
+Use `deepline-gtm` instead for prospecting, enrichment, contact finding, outbound sequencing, personalization, or row-by-row lead/account research. Analytics questions ask about existing customer data: revenue, pipeline, funnel, conversion, retention, usage, calls, accounts, opportunities, or warehouse tables.
 
-If Snowflake credentials or a semantic layer are missing, stop and report the setup blocker. Guessing table names or falling straight to raw SQL hides the actual problem and usually produces incorrect business definitions.
+If Snowflake credentials or a semantic layer are missing, stop and report the setup blocker. Do not guess table names or fall straight to raw SQL; both usually produce incorrect business definitions.
 
 ## Deepline Internal Analytics Sources
 
 For Deepline's own product, usage, and operational analytics, choose the source by question. Do not assume every Snowflake metric is dbt-modeled.
 
-| Source                            | Tables / dataset                                                                                                                            | Use for                                                                                                | Caveats                                                                                                                                                                                |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Convex replica raw ledger         | `AERO_DB.CONVEX_RAW.*`, especially `PLAY_RUNS` and `INGESTION_PLANES`                                                                       | Persisted app state, play-run status, prebuilt/custom play identity, customer database inventory/state | Loaded by the Convex-to-Snowflake replica. Authoritative historically, but can lag same-day activity. Raw tables may include sensitive app/customer fields.                            |
-| Convex replica reporting views    | `AERO_DB.CONVEX.USAGE_EVENTS`, `BA_USER`, `BA_MEMBER`                                                                                       | Tool/enrich calls, Deepline credits, user/org identity                                                 | `USAGE_EVENTS` is the primitive billing/usage ledger. Provider spend must not be exposed. Some compatibility views are published selectively; verify freshness before relying on them. |
-| Axiom production logs             | Dataset `vercel`                                                                                                                            | Real-time play/run failures, CLI outcomes, provider/tool errors, log-message failure classes           | Real-time but log-shaped. Deduplicate run/request ids and compare against Snowflake when accuracy matters.                                                                             |
-| RudderStack product events        | `RUDDERSTACK.EVENTS.*` (`TRACKS`, `PAGES`, `IDENTIFIES`, event tables)                                                                      | Product journey, page views, signup/auth lifecycle, attribution                                        | Product analytics, not the operational ledger. Some browser events may be missing from Snowflake.                                                                                      |
-| dbt / transformed analytics marts | `AERO_DB.ANALYTICS*` schemas, for example `ANALYTICS.FCT_CUSTOMER_JOURNEY`, `DIM_ACCOUNT`, `CUSTOMER_STREAM`, and dbt views such as `STG_*` | Business-facing GTM, customer journey, CRM, TAM, and modeled analytics definitions                     | Use when the question asks for modeled business metrics. Do not use these as the default source for play-runtime health unless a modeled table is explicitly known to cover it.        |
+| Source                            | Tables / dataset                                                                                                                            | Use for                                                                                                | Caveats                                                                                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Convex replica raw ledger         | `AERO_DB.CONVEX_RAW.*`, especially `PLAY_RUNS` and `INGESTION_PLANES`                                                                       | Persisted app state, play-run status, prebuilt/custom play identity, customer database inventory/state | Authoritative historically, but can lag same-day activity. Raw tables may include sensitive app/customer fields.                                 |
+| Convex replica reporting views    | `AERO_DB.CONVEX.USAGE_EVENTS`, `BA_USER`, `BA_MEMBER`                                                                                       | Tool/enrich calls, Deepline credits, user/org identity                                                 | `USAGE_EVENTS` is the primitive billing/usage ledger. Never expose provider spend. Some views are published selectively; verify freshness first. |
+| Axiom production logs             | Dataset `vercel`                                                                                                                            | Real-time play/run failures, CLI outcomes, provider/tool errors, log-message failure classes           | Log-shaped. Deduplicate run/request ids and compare against Snowflake when accuracy matters.                                                     |
+| RudderStack product events        | `RUDDERSTACK.EVENTS.*` (`TRACKS`, `PAGES`, `IDENTIFIES`, event tables)                                                                      | Product journey, page views, signup/auth lifecycle, attribution                                        | Not the operational ledger. Some browser events may be missing from Snowflake.                                                                   |
+| dbt / transformed analytics marts | `AERO_DB.ANALYTICS*` schemas, for example `ANALYTICS.FCT_CUSTOMER_JOURNEY`, `DIM_ACCOUNT`, `CUSTOMER_STREAM`, and dbt views such as `STG_*` | Modeled business metrics: GTM, customer journey, CRM, TAM                                              | Not the default source for play-runtime health unless a modeled table is explicitly known to cover it.                                           |
 
 Current product usage dashboard source of truth:
 
@@ -46,7 +46,7 @@ Current product usage dashboard source of truth:
 - User/org dimensions and internal filters: prefer Snowflake `AERO_DB.CONVEX_RAW.BA_USER` and `AERO_DB.CONVEX_RAW.BA_MEMBER` for freshness; use reporting views only after checking freshness.
 - Customer database: Snowflake `AERO_DB.CONVEX.USAGE_EVENTS` for customer-db usage and `AERO_DB.CONVEX_RAW.INGESTION_PLANES` for table/plane inventory.
 
-That dashboard does not currently use `AERO_DB.ANALYTICS*` dbt/transformed models. If you add dbt-modeled metrics, document the model names, freshness, and grain next to the raw/Axiom parity metric.
+That dashboard does not use `AERO_DB.ANALYTICS*` dbt/transformed models. If you add dbt-modeled metrics, document the model names, freshness, and grain next to the raw/Axiom parity metric.
 
 ## Decision Matrix
 
@@ -61,56 +61,41 @@ That dashboard does not currently use `AERO_DB.ANALYTICS*` dbt/transformed model
 
 ## Standard Loop
 
-Use the Deepline CLI for these tools. `snowflake_get_semantic_layer` and `snowflake_run_semantic_query` are Deepline tool IDs invoked with `deepline tools execute ...`; do not search for MCP/deferred tool names first.
+`snowflake_get_semantic_layer` and `snowflake_run_semantic_query` are Deepline tool IDs invoked with `deepline tools execute ...`; do not search for MCP/deferred tool names first.
 
-1. **Confirm workspace context.** If the result depends on customer setup, run `deepline auth status` so you know which workspace receives the query.
-2. **Inspect the semantic layer.** Run `deepline tools execute snowflake_get_semantic_layer ...` before constructing payloads. Use `includeYaml: false` for a quick table list, and `includeYaml: true` when choosing exact metrics, dimensions, or filters.
+1. **Confirm workspace context.** If the result depends on customer setup, run `deepline auth status` to see which workspace receives the query.
+2. **Inspect the semantic layer.** Run `deepline tools execute snowflake_get_semantic_layer ...` before constructing payloads: `includeYaml: false` for a quick table list, `includeYaml: true` when choosing exact metrics, dimensions, or filters.
 3. **Map the user's words to semantic objects.** Choose one semantic `table_name`, named `metrics`, named `dimensions` or `time_dimensions`, and named `filters` from the YAML. Do not invent them.
-4. **Pilot the smallest useful query.** Start with one metric and low `rowLimit`; expand after it succeeds. This catches missing credentials, missing semantic objects, and warehouse schema drift cheaply.
-5. **Inspect returned SQL and rows.** `snowflake_run_semantic_query` returns both result rows and rendered SQL. The SQL is the audit trail and the safest starting point for any raw-SQL fallback.
-6. **Answer in business terms.** Name the metric, grouping dimensions, filters/base filters, row limits, and caveats. If the tool says results were limited, say that.
+4. **Pilot the smallest useful query.** One metric and a low `rowLimit`, for example `{"type": "metrics", "params": {"table_name": "OPPORTUNITY", "metrics": ["num_opportunities"]}, "rowLimit": 1}`; expand after it succeeds. This cheaply catches missing credentials, missing semantic objects, and warehouse schema drift.
+5. **Inspect returned SQL and rows.** `snowflake_run_semantic_query` returns result rows and the rendered SQL. The SQL is the audit trail and the safest starting point for a raw-SQL fallback.
+6. **Answer in business terms.** Name the metric, grouping dimensions, filters/base filters, row limits, and caveats. If the tool says results were limited, say so.
 
 ## Fastest Metric Path
 
-For a customer metric question where the semantic table is knowable from the wording, use this exact CLI path. Do not call ToolSearch, do not look for MCP tools, and do not write raw SQL first.
+For a customer metric question where the semantic table is knowable from the wording, use this exact CLI path. Do not call ToolSearch, look for MCP tools, or write raw SQL first.
 
-1. Confirm the workspace:
+1. Confirm the workspace: `deepline auth status`.
+2. Read the semantic layer: `deepline tools execute snowflake_get_semantic_layer --payload '{"includeYaml": true}' --json`.
+3. Run the semantic query with both the user-facing label and the sortable date-start dimension. For other metrics, replace only `table_name`, `metrics`, and dimensions after confirming names in the semantic layer.
 
-```bash
-deepline auth status
-```
+   ```bash
+   deepline tools execute snowflake_run_semantic_query --payload '{
+     "type": "metrics",
+     "params": {
+       "table_name": "OPPORTUNITY",
+       "metrics": ["total_pipeline_generated"],
+       "dimensions": ["discovery_quarter_label", "discovery_quarter_start"]
+     },
+     "rowLimit": 100
+   }' --json
+   ```
 
-2. Read the relevant semantic table slice:
-
-```bash
-deepline tools execute snowflake_get_semantic_layer --payload '{"includeYaml": true}' --json
-```
-
-3. Run the semantic query with both the user-facing label and the sortable date-start dimension:
-
-```bash
-deepline tools execute snowflake_run_semantic_query --payload '{
-  "type": "metrics",
-  "params": {
-    "table_name": "OPPORTUNITY",
-    "metrics": ["total_pipeline_generated"],
-    "dimensions": ["discovery_quarter_label", "discovery_quarter_start"]
-  },
-  "rowLimit": 100
-}' --json
-```
-
-4. Read `result.data.rows` directly from the JSON response. Select latest periods by sorting `DISCOVERY_QUARTER_START` descending. Do not chase `extracted_csv` files, shell-sort CSV artifacts, or rerun the semantic query unless the JSON response is unavailable.
-
-5. Do not open saved transcript files, `tool-results/*.txt`, or full semantic-layer blobs with `Read`, `cat`, or ad hoc Python just to confirm names. Large semantic YAML can exceed tool read limits. Use the current command output, targeted text search, or rerun with `includeYaml: false` for a table list before requesting full YAML.
-
-6. Do not treat `rowLimit` as ordering. For labels like `Q226`, parse them as Q2 2026 only if no date-start dimension is available.
-
-Use the same shape for other metrics: replace only `table_name`, `metrics`, and dimensions after confirming names in the semantic layer.
+4. Read `result.data.rows` directly from the JSON response. Select latest periods by sorting `DISCOVERY_QUARTER_START` descending; `rowLimit` is not ordering. Do not chase `extracted_csv` files, shell-sort CSV artifacts, or rerun the semantic query unless the JSON response is unavailable.
+5. Do not open saved transcript files, `tool-results/*.txt`, or full semantic-layer blobs with `Read`, `cat`, or ad hoc Python just to confirm names; large semantic YAML can exceed tool read limits. Use the current command output, targeted text search, or rerun with `includeYaml: false` for a table list before requesting full YAML.
 
 ## Semantic Query Contract
 
-The current public Snowflake semantic API accepts typed metrics payloads:
+Use the typed metrics payload by default:
 
 ```json
 {
@@ -125,131 +110,56 @@ The current public Snowflake semantic API accepts typed metrics payloads:
 }
 ```
 
-It also accepts the legacy flat metrics form when needed:
-
-```json
-{
-  "table_name": "OPPORTUNITY",
-  "metrics": ["num_opportunities"],
-  "dimensions": ["close_quarter_label"],
-  "rowLimit": 100
-}
-```
-
-Use the typed form by default because it matches the old Aero `run_semantic_query` shape and leaves room for other query types.
+The legacy flat metrics form is also accepted when needed: the `params` fields at the top level with no `type`, for example `{"table_name": "OPPORTUNITY", "metrics": ["num_opportunities"], "dimensions": ["close_quarter_label"], "rowLimit": 100}`.
 
 ### Allowed Concepts
 
 - `table_name` is a semantic table name from the YAML, not the model root name and not necessarily the physical Snowflake table.
 - `metrics` are aggregate business definitions. Use them for reported numbers.
 - `dimensions` and `time_dimensions` group the metric. Use semantic names, not raw SQL expressions.
-- `facts` are row-level values. They can be useful for detail extracts but are not usually the right answer for aggregate reports.
+- `facts` are row-level values: useful for detail extracts, usually wrong for aggregate reports.
 - `filters` are named semantic filters from the YAML.
-- `rowLimit` limits returned rows; use low limits for pilots and larger limits only after the payload is correct.
+- `rowLimit` limits returned rows. Use low limits for pilots and larger limits only after the payload is correct.
 
 ### Latest Periods Are Not Row Limits
 
-Do not use `rowLimit: 5` to answer "last 5 quarters", "latest 12 months", or similar questions. Semantic query results are not ordered unless you explicitly sort the returned rows or run SQL that orders them.
+Do not use `rowLimit: 5` to answer "last 5 quarters", "latest 12 months", or similar questions. Results are not ordered unless you sort the returned rows or run SQL that orders them. Instead:
 
-For recent-period questions:
-
-- Prefer pairing a label dimension with its sortable date-start dimension, for example `discovery_quarter_label` plus `discovery_quarter_start`.
+- Pair a label dimension with its sortable date-start dimension, for example `discovery_quarter_label` plus `discovery_quarter_start`.
 - Query enough groups to cover the full period range, such as `rowLimit: 100` for quarters.
-- Sort the returned rows by the date-start dimension when present, or parse labels like `Q226` as Q2 2026 before selecting the latest periods.
-- Ignore malformed/null buckets like `Q` when choosing latest periods unless the user explicitly asks about missing-date records.
-- Only after selecting the latest periods should you present the final N rows to the user.
+- Sort the returned rows by the date-start dimension; without one, parse labels like `Q226` as Q2 2026.
+- Ignore malformed/null buckets like `Q` unless the user explicitly asks about missing-date records.
+- Only then present the final N rows.
 
 ### Custom SQL Knobs
 
-The semantic tool supports Aero-compatible custom SQL fields:
-
-```text
-custom_dimensions
-custom_filter_expressions
-steps[].source_table
-steps[].ts_expr
-steps[].filter_expr
-steps[].events_sql
-```
-
-Use these when the semantic layer has the right table/metric but lacks the exact date bucket or filter the user needs. They are raw SQL snippets, so prefer named semantic dimensions and filters when they exist. Custom dimensions should be expression-first with an alias, for example `DATE_TRUNC('month', close_date) AS close_month`, not alias-first.
+The semantic tool supports Aero-compatible custom SQL fields: `custom_dimensions`, `custom_filter_expressions`, `steps[].source_table`, `steps[].ts_expr`, `steps[].filter_expr`, `steps[].events_sql`. Use them when the semantic layer has the right table/metric but lacks the exact date bucket or filter the user needs. They are raw SQL snippets, so prefer named semantic dimensions and filters when they exist. Write custom dimensions expression-first with an alias, for example `DATE_TRUNC('month', close_date) AS close_month`, not alias-first.
 
 ## Choosing Semantic Objects
 
-Read the YAML like a business contract:
+- Tables describe the grain and base filters. Base filters apply automatically; mention one if it materially changes counts.
+- Metric descriptions often say which time dimension they pair with. Follow the pairing: `created_*` instead of `close_*` can change the business meaning.
+- Time dimensions often have both date-start and label forms. Use labels for user-facing grouped output and date-start when chronological ordering matters.
+- Synonyms are hints, not payload names. Use the canonical `name` unless the tool explicitly supports aliases.
+- Relationship-backed fields may appear as qualified names like `sf_account.industry`. Use them only if the YAML defines the relationship and the field.
 
-- Tables describe the grain and base filters. A base filter is automatically applied, so mention it if it materially changes counts.
-- Metric descriptions often say which time dimension they pair with. Follow those pairings; using `created_*` instead of `close_*` can change the business meaning.
-- Time dimensions frequently have both date-start and label forms. Use label dimensions for user-facing grouped output and date-start dimensions when chronological ordering matters.
-- Synonyms are hints, not payload names. The payload should use the canonical `name` unless the tool explicitly supports aliases.
-- Relationship-backed fields may appear as qualified semantic names like `sf_account.industry`. Use them only if the YAML defines the relationship and the field.
+Filters:
 
-Bad — invents SQL inside `filters`, so the renderer looks for a named filter with that whole string:
-
-```json
-{ "filters": ["stage_name = 'Closed Won'"] }
-```
-
-Good — uses a named semantic filter when one exists:
-
-```json
-{ "filters": ["exclude_renewal_opportunities"] }
-```
-
-Good — if no named filter exists, keep the semantic metric/table and put the raw predicate in `custom_filter_expressions`:
-
-```json
-{ "custom_filter_expressions": ["stage_name = 'Closed Won'"] }
-```
-
-## Examples
-
-Basic metric:
-
-```bash
-deepline tools execute snowflake_run_semantic_query --payload '{
-  "type": "metrics",
-  "params": {
-    "table_name": "OPPORTUNITY",
-    "metrics": ["num_opportunities"]
-  },
-  "rowLimit": 1
-}'
-```
-
-Grouped metric:
-
-```bash
-deepline tools execute snowflake_run_semantic_query --payload '{
-  "type": "metrics",
-  "params": {
-    "table_name": "OPPORTUNITY",
-    "metrics": ["total_pipeline_generated"],
-    "dimensions": ["discovery_quarter_label"]
-  },
-  "rowLimit": 100
-}'
-```
-
-Read the semantic layer:
-
-```bash
-deepline tools execute snowflake_get_semantic_layer --payload '{"includeYaml": true}'
-```
+- Bad: `{ "filters": ["stage_name = 'Closed Won'"] }`. SQL inside `filters` fails because the renderer looks for a named filter with that whole string.
+- Good: `{ "filters": ["exclude_renewal_opportunities"] }`, a named semantic filter.
+- Good when no named filter exists: `{ "custom_filter_expressions": ["stage_name = 'Closed Won'"] }`. Keep the semantic metric/table and put the raw predicate there.
 
 ## Error Handling
 
-Treat errors as diagnostic signal, not noise to hide.
-
-| Error pattern                               | Meaning                                                                                                             | Response                                                                                    |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `SNOWFLAKE_CREDENTIALS_REQUIRED`            | Workspace has no Snowflake credentials                                                                              | Ask user to connect Snowflake; do not retry different payloads                              |
-| "No Snowflake semantic layer is configured" | No saved layer for this workspace                                                                                   | Ask for/upload semantic layer before querying                                               |
-| "table not found" in renderer               | `table_name` is not a semantic table                                                                                | Re-read YAML and use a table under `tables:`                                                |
-| "metric/dimension/filter not found"         | Payload invented or misspelled a semantic object                                                                    | Re-read YAML; use canonical names                                                           |
-| SQL compilation `invalid identifier`        | Rendered SQL references a warehouse column not available in the active Snowflake schema, or a renderer exposure bug | Show the rendered SQL/error; compare with raw SQL only after preserving the semantic intent |
-| Results include blank/null buckets          | Data has null dimension values or label expression permits blanks                                                   | Report the bucket and consider a named `has_*` filter if present                            |
-| `limited: true`                             | Returned rows were truncated by `rowLimit`                                                                          | Say the output is limited; rerun with a higher limit if the user needs all groups           |
+| Error pattern                               | Meaning                                                                                               | Response                                                                                    |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `SNOWFLAKE_CREDENTIALS_REQUIRED`            | Workspace has no Snowflake credentials                                                                | Ask user to connect Snowflake; do not retry different payloads                              |
+| "No Snowflake semantic layer is configured" | No saved layer for this workspace                                                                     | Ask for/upload semantic layer before querying                                               |
+| "table not found" in renderer               | `table_name` is not a semantic table                                                                  | Re-read YAML and use a table under `tables:`                                                |
+| "metric/dimension/filter not found"         | Payload invented or misspelled a semantic object                                                      | Re-read YAML; use canonical names                                                           |
+| SQL compilation `invalid identifier`        | Rendered SQL references a column missing from the active Snowflake schema, or a renderer exposure bug | Show the rendered SQL/error; compare with raw SQL only after preserving the semantic intent |
+| Results include blank/null buckets          | Null dimension values, or the label expression permits blanks                                         | Report the bucket and consider a named `has_*` filter if present                            |
+| `limited: true`                             | Returned rows were truncated by `rowLimit`                                                            | Say the output is limited; rerun with a higher limit if the user needs all groups           |
 
 When a semantic query fails, fix the table/metric/dimension/filter and rerun before claiming an answer. If you fall back to raw SQL, state that it is a fallback and preserve the semantic metric definition you started from.
 
@@ -263,11 +173,8 @@ A good analytics answer includes:
 - The time grain and whether it is created-date, close-date, occurred-date, discovery-date, or another business timestamp.
 - Whether the result was limited or sampled.
 - The rendered SQL when the user is debugging, validating, or likely to reuse it.
-
-Avoid false precision. If the semantic layer says a metric is a forecast, pipeline, ACV, ARR, bookings, or net revenue, use that language exactly. These are not interchangeable.
+- The metric's exact term from the semantic layer: forecast, pipeline, ACV, ARR, bookings, and net revenue are not interchangeable.
 
 ## Raw SQL Fallbacks
 
-Use `snowflake_run_query` when the question is outside the semantic layer, when you need to debug a warehouse/schema issue, or when the semantic renderer cannot express the requested shape even with custom dimensions/filters. Start from the rendered semantic SQL whenever possible because it carries base filters, joins, and metric definitions.
-
-Do not silently replace a semantic metric with a hand-written approximation. If you change the definition, name the change and explain why.
+Use `snowflake_run_query` when the question is outside the semantic layer, when you need to debug a warehouse/schema issue, or when the semantic renderer cannot express the requested shape even with custom dimensions/filters. Start from the rendered semantic SQL whenever possible because it carries base filters, joins, and metric definitions. Do not silently replace a semantic metric with a hand-written approximation; if you change the definition, name the change and explain why.

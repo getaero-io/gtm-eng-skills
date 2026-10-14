@@ -1,48 +1,10 @@
 {
-  "title": "Deepline Plays",
+  "title": "Deepline Plays (now part of deepline-gtm)",
   "documents": {
     "SKILL.md": {
       "kind": "entrypoint",
-      "title": "Deepline Plays",
-      "tags": ["sdk", "gtm", "plays", "v2"],
-      "providers": []
-    }
-  },
-  "prefixes": {
-    "jobs/": {
-      "kind": "guide",
-      "title": "Job Guide",
-      "tags": ["gtm", "workflow"],
-      "providers": []
-    },
-    "references/": {
-      "kind": "reference",
-      "title": "Reference",
-      "tags": ["cli", "debugging"],
-      "providers": []
-    },
-    "shared/": {
-      "kind": "guide",
-      "title": "Shared Guide",
-      "tags": ["sdk", "plays"],
-      "providers": []
-    },
-    "plays/shared/": {
-      "kind": "code",
-      "title": "Portable Play Helper",
-      "tags": ["sdk", "plays", "strategy", "evidence"],
-      "providers": []
-    },
-    "plays/": {
-      "kind": "guide",
-      "title": "Play Kernel",
-      "tags": ["sdk", "plays", "research"],
-      "providers": []
-    },
-    "scripts/": {
-      "kind": "script",
-      "title": "Authoring Helper",
-      "tags": ["sdk", "plays", "research", "strategy", "authoring"],
+      "title": "Deepline Plays (now part of deepline-gtm)",
+      "tags": ["deprecated", "alias", "plays"],
       "providers": []
     }
   },
