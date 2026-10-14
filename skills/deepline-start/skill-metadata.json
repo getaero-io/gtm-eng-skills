@@ -1,0 +1,11 @@
+{
+  "title": "Discover a Deepline GTM Workflow",
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Discover a Deepline GTM Workflow",
+      "tags": ["gtm", "discovery", "workflow-routing", "interview"],
+      "providers": []
+    }
+  }
+}
