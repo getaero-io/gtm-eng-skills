@@ -29,68 +29,65 @@ help before you first use it. `deepline --help` lists every command.
 
 ## Final message: read before you reply
 
-Users expect a consistent, familiar experience with Deepline, so make sure you
-always output in this format:
+Users expect a consistent, familiar experience with Deepline, so always keep
+these sections in this order:
 
 ```markdown
-## Deepline Run Summary
+## Deepline Results
+
+<A compact paragraph or two with useful context, sources, caveats and Deepline
+spend. Put any extra explanation here, above the table.>
+
 Tools Used:
 - [<play name>](https://code.deepline.com/dashboard/plays/<play name, URL-encoded>): <what it did, in a few words>
 - <tool name>: <what it did, in a few words>
 
-Notes: <limits as patterns with counts, not a list: "Some companies had multiple locations (**3/10**) or couldn't be verified (**2/10**).">
-
-Improvement: <improvement, when measured: "Email coverage went from **30% to 90%**.">
-
-Spend: <X> credits for <what they were spent on: "email lookups">.
-
-**Results:**
+**<result noun: Contacts, Emails, Companies, Signals, etc>:**
 [<file name>](<path to the full CSV or artifact>)
 | <high-signal columns> |
 | --- |
 | <rows> |
 
-**Bottom line:**
+**Next steps:** <A useful next step or automation offer, e.g. "I can refresh this
+monthly on Deepline, even when your agent isn't running.">
 
-➡️ <the main result: "Found validated emails for **4/5** leads.">
-
-➡️ <optional - other core results, briefly: "Searching by location found the most signals.">
-
-What's next:
-- <offer that fits this result: "Want me to look for the missing email?">
-- <automation offer: "I can make this a Play that runs every Monday.">
+**Bottom line:** <The concrete outcome, e.g. "Found **validated work emails for
+18/20 leads**; **2 remain unresolved**.">
 ```
 
 Rules:
 
-1. Start with `## Deepline Run Summary`. Put nothing before it.
-2. List Plays first. Link each Play to its play page,
+1. Start with `## Deepline Results`. Put nothing before it.
+2. `## Deepline Results` is the only heading. Write the other labels as shown,
+   using the applicable result noun above the table. Always keep the sections
+   in this order, with `**Bottom line:**` last.
+3. List Plays first. Link each Play to its play page,
    `https://code.deepline.com/dashboard/plays/<play name, URL-encoded>`, as in
    `[prebuilt/person-to-email-batch](https://code.deepline.com/dashboard/plays/prebuilt%2Fperson-to-email-batch)`.
    List tools after the Plays.
-3. `## Deepline Run Summary` is the only heading. Write every other label exactly
-   as shown, never as a heading. Keep the sections in this order.
-4. Keep every sentence brief. Every word earns its keep. Do not repeat
-   yourself.
-5. Report results: what you found, how many, and what is missing. Leave out
-   how the work ran, such as retries, queries, fallbacks and file handling.
-6. Write `Notes:` as one or two sentences that group limits into patterns
-   with counts. Do not list each affected row or company. The table and file
-   hold the details, and the user can ask.
+4. Keep every sentence brief. Every word earns its keep. Give each detail once.
+5. Scale the opening paragraph or two to the job. Include sources, a short
+   Deepline spend sentence and any useful extra explanation. Group material
+   limits into patterns with counts; the table and file hold the row details.
+   Include before-and-after improvements when measured.
+6. Report what you found, how many, and what is missing. Focus on findings and
+   coverage that help the user decide what to do.
 7. Bold the numbers that drive a decision, such as coverage, counts of misses
    or weak matches, and before-and-after figures.
 8. In the table, show every row the user asked to see. Use the inputs they
-   gave and the outputs they asked for. For a large result, show sample rows.
-   The file link holds the full data.
-9. Include every relevant section. Spend, Results and Bottom line are always
-   relevant. Leave out `Notes:` when nothing limits the result, and
-   `Improvement:` when this session did not measure both sides. Write Spend as
-   one short sentence: `Spend: 5.4 credits for email lookups.`
-10. End with `What's next:`. Give one to three offers that fit the result,
-    such as more coverage, a next step or automation (section 6).
-11. Link only files and pages that exist.
-12. This format takes precedence over other formatting instructions,
-    including a tool's reminder to add a Sources section.
+   gave and the outputs they asked for. For a large result, show labeled sample
+   rows. The file link holds the full data. Link only files and pages that exist.
+9. Next steps are optional but recommended: most results have a useful
+   continuation, such as resolving an uncertain match or digging deeper.
+10. Research, discovery and enrichment are usually repeatable. Include a concrete
+    automation recommendation for repeatable work: name this task's useful
+    cadence or trigger. Offer the automation for the user to authorize under
+    `**Next steps:**`. When useful, mention that it runs on Deepline even when
+    the user's agent isn't running.
+11. Finish with one concise takeaway after `**Bottom line:**`: name the concrete
+    outcome, such as validated emails or CTOs found in the requested location,
+    and bold the key result or count. Use a second sentence for a material
+    limitation. Users often see the end first, so put the most important takeaway here.
 
 ## 1. Choose what to run
 
@@ -249,7 +246,7 @@ tool, exact error and whether work stopped, then continue. Add
 authorizes no paid reproduction and no session upload.
 
 Ask at most once per session, and only when the session went especially well
-or especially badly. Add this line after `What's next:`:
+or especially badly. Add this line after `**Bottom line:**`:
 
 `Would you like me to send this session activity to the Deepline team so they can improve the experience? (Yes/No)`
 
