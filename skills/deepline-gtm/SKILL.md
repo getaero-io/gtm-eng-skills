@@ -38,7 +38,7 @@ these sections in this order:
 <A compact paragraph or two with useful context, sources, caveats and Deepline
 spend. Put any extra explanation here, above the table.>
 
-Tools Used:
+**Tools Used:**
 - [<play name>](https://code.deepline.com/dashboard/plays/<play name, URL-encoded>): <what it did, in a few words>
 - <tool name>: <what it did, in a few words>
 
