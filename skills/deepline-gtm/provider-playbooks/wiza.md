@@ -21,7 +21,7 @@ The response is `{ prospects: [...], total: N }`. Do not expect more than 30 res
 
 ## MCP availability
 
-`wiza_reveal_person` is unavailable through MCP pending source-platform authorization review. Search and existing-result reads remain available. Do not recommend profile collection, Sales Navigator saved-search scraping, or browser-session credential reuse.
+Direct `wiza_reveal_person` calls are unavailable through MCP pending source-platform authorization review. Authenticated Plays, including MCP-launched Plays and their children, may use Wiza reveal for contact enrichment. Search and existing-result reads remain available. Do not recommend Sales Navigator saved-search scraping or browser-session credential reuse.
 
 ## SDK/API reveal contract
 
