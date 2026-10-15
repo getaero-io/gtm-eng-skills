@@ -9,7 +9,7 @@ description: "Find companies backed by a specific investor or accelerator, then 
 
 ```bash
 npm install -g deepline
-deepline auth register --wait auto
+deepline preflight
 deepline -h
 ```
 

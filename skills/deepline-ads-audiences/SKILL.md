@@ -9,7 +9,7 @@ description: "Use this skill when building, enriching, auditing, or uploading B2
 
 ```bash
 npm install -g deepline
-deepline auth register --wait auto
+deepline preflight
 deepline -h
 ```
 

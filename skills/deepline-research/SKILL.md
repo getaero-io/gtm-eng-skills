@@ -9,7 +9,7 @@ description: 'Use when the user wants a last30days-style pre-research pass in De
 
 ```bash
 npm install -g deepline
-deepline auth register --wait auto
+deepline preflight
 deepline -h
 ```
 

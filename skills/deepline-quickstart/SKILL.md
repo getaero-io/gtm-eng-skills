@@ -10,7 +10,7 @@ disable-model-invocation: false
 
 ```bash
 npm install -g deepline
-deepline auth register --wait auto
+deepline preflight
 deepline -h
 ```
 

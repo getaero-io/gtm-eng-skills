@@ -10,7 +10,7 @@ description: 'Deprecated alias. This skill was renamed to `deepline-scoring`. Us
 
 ```bash
 npm install -g deepline
-deepline auth register --wait auto
+deepline preflight
 deepline -h
 ```
 

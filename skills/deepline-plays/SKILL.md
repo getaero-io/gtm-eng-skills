@@ -9,7 +9,7 @@ description: 'Deprecated alias. Play work is now part of `deepline-gtm`, and the
 
 ```bash
 npm install -g deepline
-deepline auth register --wait auto
+deepline preflight
 deepline -h
 ```
 

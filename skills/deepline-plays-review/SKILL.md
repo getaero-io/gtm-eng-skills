@@ -9,7 +9,7 @@ description: 'Use this skill when a human needs to review a Deepline Play result
 
 ```bash
 npm install -g deepline
-deepline auth register --wait auto
+deepline preflight
 deepline -h
 ```
 

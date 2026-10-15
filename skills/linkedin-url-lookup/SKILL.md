@@ -9,7 +9,7 @@ description: "Resolve LinkedIn profile URLs from name + company with strict iden
 
 ```bash
 npm install -g deepline
-deepline auth register --wait auto
+deepline preflight
 deepline -h
 ```
 

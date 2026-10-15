@@ -9,7 +9,7 @@ description: "Convert a Clay table configuration into local Deepline scripts. Ha
 
 ```bash
 npm install -g deepline
-deepline auth register --wait auto
+deepline preflight
 deepline -h
 ```
 

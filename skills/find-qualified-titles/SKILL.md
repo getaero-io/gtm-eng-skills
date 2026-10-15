@@ -9,7 +9,7 @@ description: "Use when finding real role-holders at known company domains from a
 
 ```bash
 npm install -g deepline
-deepline auth register --wait auto
+deepline preflight
 deepline -h
 ```
 

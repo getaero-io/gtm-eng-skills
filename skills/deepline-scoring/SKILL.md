@@ -10,7 +10,7 @@ description: 'Use when discovering niche signals, auditing ICP or won/lost evide
 
 ```bash
 npm install -g deepline
-deepline auth register --wait auto
+deepline preflight
 deepline -h
 ```
 
