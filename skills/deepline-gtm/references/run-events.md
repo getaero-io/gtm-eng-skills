@@ -13,11 +13,11 @@ Structured reads default to the last hour and 50 records or groups per page (max
 `--fields` discovers fields, types and operators. `where` accepts scalar equality, `{ eq, ne, gt, gte, lt, lte, in, exists }`, nested `context: { key: ... }` or flat `"context.key"`, and `{ and: [...] }` / `{ or: [...] }`. String predicates accept equality, inequality, ranges, `in`, `exists`, `&&`, `||` and parentheses; `$.field` is accepted. Quote strings with JSON double quotes; numbers, booleans and null stay unquoted. Missing fields do not match comparisons; use `exists false`. Filters allow 64 comparisons and 8 KiB; custom context fields must be recorded scalars, not nested payload data.
 
 ```bash
-deepline runs logs '<run-id>' --step company-lookup --level warn --since 1h --where 'context.attempt >= 2 && context.cached == false' --json
-deepline runs logs '<run-id>' --query 'timeout %_MARKER' --count --json
-deepline runs logs '<run-id>' --group-by stepId --sum context.durationMs --json
-deepline runs logs --fields --json
-deepline runs events --kind step.failed --since 1h --json
+deepline runs logs '<run-id>' --step company-lookup --level warn --since 1h --where 'context.attempt >= 2 && context.cached == false'
+deepline runs logs '<run-id>' --query 'timeout %_MARKER' --count
+deepline runs logs '<run-id>' --group-by stepId --sum context.durationMs
+deepline runs logs --fields
+deepline runs events --kind step.failed --since 1h
 ```
 
 `client.runs.logs(runId, options)` remains the callable text reader. Use `logs.query/count/summarize/fields` for structured logs, or `client.runs.events.list/count/summarize/fields` for events; omit `runId` for organization-wide reads. Each method makes one request per page or aggregate.
@@ -48,8 +48,8 @@ A run ID alone reads text logs. Use the returned nextCursor with --cursor for ol
 ```bash
 deepline runs logs '<run-id>'
 deepline runs logs '<run-id>' --out run.log
-deepline runs logs --kind run.failed --json
-deepline runs logs --play my-play --since 2026-10-06T00:00:00Z --until 2026-10-06T01:00:00Z --json
+deepline runs logs --kind run.failed
+deepline runs logs --play my-play --since 2026-10-06T00:00:00Z --until 2026-10-06T01:00:00Z
 ```
 
 ## Known event kinds
@@ -85,14 +85,14 @@ String fields: eventId, orgId, runId, playName, runtimeScope, kind, status, sour
 Bare `runs logs --where`, `--since` and `--kind` keep this equality grammar; text `--failed`, `--out` and `--log-level` keep their established behavior. Context examples use `ctx.log("Lookup finished", { context: { companyId: "acme_123", attempt: 2, cached: false } })`.
 
 ```bash
-deepline runs logs --kind receipt.failed --where '$.status == "failed"' --payloads --json
-deepline runs logs --kind step.failed --where '$.stepId == "company-lookup"' --payloads --json
-deepline runs logs --kind activity.observed --where '$.provider == "apollo" && $.operation == "company_lookup"' --json
-deepline runs logs --kind dataset.lifecycle --where '$.datasetId == "companies" && $.phase == "failed"' --payloads --json
-deepline runs logs --kind log.appended --where '$.context.companyId == "acme_123"' --json
-deepline runs logs --kind log.appended --where '$.context.attempt == 2 && $.context.cached == false' --json
-deepline runs logs '<run-id>' --where '$.stepId == "company-lookup"' --json
-deepline runs logs --kind log.appended --where '$.level == "error" && $.stepId == "company-lookup"' --payloads --json
+deepline runs logs --kind receipt.failed --where '$.status == "failed"' --payloads
+deepline runs logs --kind step.failed --where '$.stepId == "company-lookup"' --payloads
+deepline runs logs --kind activity.observed --where '$.provider == "apollo" && $.operation == "company_lookup"'
+deepline runs logs --kind dataset.lifecycle --where '$.datasetId == "companies" && $.phase == "failed"' --payloads
+deepline runs logs --kind log.appended --where '$.context.companyId == "acme_123"'
+deepline runs logs --kind log.appended --where '$.context.attempt == 2 && $.context.cached == false'
+deepline runs logs '<run-id>' --where '$.stepId == "company-lookup"'
+deepline runs logs --kind log.appended --where '$.level == "error" && $.stepId == "company-lookup"' --payloads
 ```
 
 ## Retrieve results
@@ -100,8 +100,8 @@ deepline runs logs --kind log.appended --where '$.level == "error" && $.stepId =
 `--payloads` adds `eventPayload` details or saved `payload` results; unavailable details are explicit. Select an exact returned `eventId` with its original `--since`/`--until` window. Events retain seven days; details may differ. Redirecting JSON saves one page: follow `next.logs` for compatibility search or `next.page` for structured reads. Use `--out run.log` for all text or `runs export --format json --out results.json` for dataset rows.
 
 ```bash
-deepline runs logs '<run-id>' --kind receipt.completed --payloads --json
-deepline runs logs --where '$.eventId == "receipt:5a32ee1a-46cf-4853-b72b-5f1d782ffab4"' --payloads --json
+deepline runs logs '<run-id>' --kind receipt.completed --payloads
+deepline runs logs --where '$.eventId == "receipt:5a32ee1a-46cf-4853-b72b-5f1d782ffab4"' --payloads
 ```
 
 New tool results retain sanitized input under `payload.output.meta.callEvidence.input` and output under `payload.output.toolResponse.rawV2`. `callEvidence.providerRequests` contains observed HTTP requests, response status and failed response bodies; successful output is retained once in `toolResponse.rawV2`. Credentials and provider billing fields are removed. Multipart, binary, streaming, oversized or unobserved evidence reports an unavailable reason. Older results may have no input evidence.

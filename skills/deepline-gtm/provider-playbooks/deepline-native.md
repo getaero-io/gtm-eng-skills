@@ -112,7 +112,7 @@
 ### CLI quick checks
 
 ```bash
-deepline tools get deepline_native_job_change
+deepline describe deepline_native_job_change
 deepline tools execute deepline_native_job_change --payload '{"company_domain":"stripe.com","professional_email":"jane@stripe.com"}'
 deepline tools execute deepline_native_search_contact --payload '{"domain":"stripe.com","title_filters":[{"name":"eng","filter":"VP Engineering OR Head of Engineering"}],"page_size":5}'
 deepline tools execute deepline_native_search_contact --payload '{"domain":"hubspot.com","title_filters":[{"name":"sales-leadership","filter":"VP Sales OR Head of Sales OR Director of Sales"}],"page_size":3}'
@@ -123,9 +123,9 @@ deepline tools execute deepline_native_enrich_company --payload '{"domain":"stri
 ### CSV job-change Play
 
 Use a supplied Play when it already fits the task. When selecting or authoring one,
-discover with `deepline plays search "job change" --json` and confirm the selected
-contract with `deepline plays describe <play-ref> --json`. Tool IDs below are
-starting hints: confirm them with `deepline tools describe <tool-id> --json`;
+discover with `deepline plays search "job change"` and confirm the selected
+contract with `deepline describe <play-ref>`. Tool IDs below are
+starting hints: confirm them with `deepline describe <tool-id>`;
 do not infer renamed IDs from provider names.
 
 For a custom CSV workflow, save this as `job-change.play.ts`. It keeps the original
@@ -166,7 +166,7 @@ deepline plays run --file job-change.play.ts --csv contacts.csv --watch
 Run only within the requested scope. For larger or uncertain authorized batches,
 use a small representative input before scaling; a small supplied Play does not
 need an extra pilot or repeated approval. Inspect the existing run with
-`deepline runs get <run-id> --json` and follow its full-result/export commands to
+`deepline runs get <run-id>` and follow its full-result/export commands to
 save the rows (for example, to `contacts.csv.out.csv`). Inspection is read-only:
 do not rerun, add paid enrichment, or repair the workflow just to retrieve results.
 

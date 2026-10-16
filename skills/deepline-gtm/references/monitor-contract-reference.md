@@ -1,4 +1,4 @@
-<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 1a92218135126f0109c5f6407f01a474dc800697ec65f08d2da7c820497dbb63; run bun run docs:monitor-contract -->
+<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 58b9c79dae1fc9dbde420cb5ae359cee4275b62f3cdb911cdee443b5c32891b6; run bun run docs:monitor-contract -->
 
 # Monitor Contract Reference
 
@@ -131,7 +131,7 @@ Creates a Deepline-managed contact radar data pipe and writes provider-native co
 
 #### Pricing, identity, and updates
 
-- Pricing: Use the Deepline pricing returned by tools get, monitors available, check, or deploy --dry-run. Provider spend is not exposed.
+- Pricing: Use the Deepline pricing returned by describe, monitors available, check, or deploy --dry-run. Provider spend is not exposed.
 - Identity: The provider resource scope uses radar_type, profile_url. Different effective payload configurations in that scope may be separate monitor resources; exact duplicates still conflict.
 - Update: Use monitors update for a patch or deploy for a complete desired definition.
 - Backfill: Existing Customer DB rows are retained; this capability does not promise provider backfill unless its provider documentation says otherwise.
@@ -179,7 +179,7 @@ Creates a Deepline-managed industry radar data pipe and writes provider-native i
 
 #### Pricing, identity, and updates
 
-- Pricing: Use the Deepline pricing returned by tools get, monitors available, check, or deploy --dry-run. Provider spend is not exposed.
+- Pricing: Use the Deepline pricing returned by describe, monitors available, check, or deploy --dry-run. Provider spend is not exposed.
 - Identity: The provider resource scope uses radar_type, industry. Different effective payload configurations in that scope may be separate monitor resources; exact duplicates still conflict.
 - Update: Use monitors update for a patch or deploy for a complete desired definition.
 - Backfill: Existing Customer DB rows are retained; this capability does not promise provider backfill unless its provider documentation says otherwise.

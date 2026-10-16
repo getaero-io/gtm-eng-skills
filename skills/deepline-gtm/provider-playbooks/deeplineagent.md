@@ -2,15 +2,15 @@ Use `ai_inference` for plain text or structured-output model calls with no tool 
 
 Model IDs are case-sensitive. Use the exact `id` string from the live
 [AI Gateway model catalog](https://ai-gateway.vercel.sh/v1/models); the current
-Deepline default is `openai/gpt-5.6-luna`. The `tools describe` CLI also shows
+Deepline default is `openai/gpt-5.6-luna`. The `describe` CLI also shows
 the selected model metadata and provider option schema:
-`deepline tools describe ai_inference --model openai/gpt-5.6-luna --json`.
+`deepline tools describe ai_inference --model openai/gpt-5.6-luna`.
 
 Use `jsonSchema` for a structured result. Deepline guides the model to emit
 complete, compact JSON while preserving an explicit `maxOutputTokens` limit.
 Do not apply a small token cap indiscriminately to research or long free-text
 fields. For a small budget, ask for brief values; leave enough headroom for
-every required field and any model reasoning. Inspect `tools describe` for
+every required field and any model reasoning. Inspect `describe` for
 the current model and operation contract. Incomplete JSON remains a failure,
 not a partial successful result.
 

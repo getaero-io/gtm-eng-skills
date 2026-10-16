@@ -213,9 +213,9 @@ Do not overwrite variants during experimentation. Separate audiences are require
 After upload, poll platform status:
 
 ```bash
-deepline tools execute google_ads_audiences_get_audience_status --payload '{"account_id":"<google_customer_id>","audience_id":"<audience_id>"}' --json
-deepline tools execute meta_audiences_get_audience_status --payload '{"ad_account_id":"act_<meta_ad_account_id>","audience_id":"<audience_id>"}' --json
-deepline tools execute linkedin_ads_audiences_get_audience_status --payload '{"account_id":"<linkedin_account_id>","audience_id":"<audience_id>"}' --json
+deepline tools execute google_ads_audiences_get_audience_status --payload '{"account_id":"<google_customer_id>","audience_id":"<audience_id>"}'
+deepline tools execute meta_audiences_get_audience_status --payload '{"ad_account_id":"act_<meta_ad_account_id>","audience_id":"<audience_id>"}'
+deepline tools execute linkedin_ads_audiences_get_audience_status --payload '{"account_id":"<linkedin_account_id>","audience_id":"<audience_id>"}'
 ```
 
 Do not claim success from upload receipt alone. Success requires create, sync, and readback.

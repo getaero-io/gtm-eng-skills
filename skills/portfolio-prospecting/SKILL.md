@@ -9,7 +9,6 @@ description: "Find companies backed by a specific investor or accelerator, then 
 
 ```bash
 npm install -g deepline
-deepline preflight
 deepline -h
 ```
 

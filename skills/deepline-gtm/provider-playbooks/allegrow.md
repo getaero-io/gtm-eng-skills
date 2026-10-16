@@ -30,16 +30,16 @@ Allegrow specialises in B2B catch-all domain resolution and primary-email identi
 - **Bulk CSV**: Use the CSV job endpoints when the user explicitly needs Allegrow's bulk CSV workflow. `allegrow_create_csv_validation_job` only creates the job and upload URL; the CSV upload itself is a direct PUT to the returned presigned URL.
 
 For multi-step validation, use a supplied Play or discover with
-`deepline plays search "email validation" --json` and inspect the selected
-contract with `deepline plays describe <play-ref> --json`. Confirm operation
-hints using `deepline tools describe <tool-id> --json`, then call them inside
+`deepline plays search "email validation"` and inspect the selected
+contract with `deepline describe <play-ref>`. Confirm operation
+hints using `deepline describe <tool-id>`, then call them inside
 the Play via `ctx.tools.execute({ id, tool, input, description })`.
 For a custom CSV Play that reads `ctx.csv(input.csv)`, check it with
 `deepline plays check validate-email.play.ts` and run the authorized input
 with `deepline plays run --file validate-email.play.ts --csv contacts.csv --watch`.
 Pilot only for larger or uncertain authorized work; do not require an extra run
 or repeated approval for a small supplied Play. Inspect retained results with
-`deepline runs get <run-id> --json` and its result/export commands, without paid
+`deepline runs get <run-id>` and its result/export commands, without paid
 fallback or repair unless that additional work was requested.
 
 ## Known Limitations

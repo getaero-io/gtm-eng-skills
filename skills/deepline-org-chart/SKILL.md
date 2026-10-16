@@ -9,7 +9,6 @@ description: "Build an interactive account org chart, leadership map, buying com
 
 ```bash
 npm install -g deepline
-deepline preflight
 deepline -h
 ```
 

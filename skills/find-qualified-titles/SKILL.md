@@ -9,7 +9,6 @@ description: "Use when finding real role-holders at known company domains from a
 
 ```bash
 npm install -g deepline
-deepline preflight
 deepline -h
 ```
 

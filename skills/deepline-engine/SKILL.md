@@ -10,7 +10,6 @@ disable-model-invocation: true
 
 ```bash
 npm install -g deepline
-deepline preflight
 deepline -h
 ```
 
@@ -63,11 +62,11 @@ Local source subfolders do not set the UI location. After publication, set each 
 ```bash
 deepline plays settings set --play <orchestrator-name> --name path --value "team/<engine>"
 deepline plays settings set --play <transition-name> --name path --value "team/<engine>/Transitions/<state>"
-deepline plays settings get --play <orchestrator-name> --name path --json
-deepline plays settings get --play <transition-name> --name path --json
+deepline plays settings get --play <orchestrator-name> --name path
+deepline plays settings get --play <transition-name> --name path
 ```
 
-Choose folder names from the user's engine and state names, following existing workspace conventions. Use `deepline plays settings describe --name path --json` and `deepline plays settings set --help` to confirm the current path contract. Keep stable Play names and `ctx.runPlay` references; folders organize navigation without renaming callable identities. Leave reused workspace and prebuilt Plays in their existing locations, since moving a shared dependency would disrupt other workflows.
+Choose folder names from the user's engine and state names, following existing workspace conventions. Use `deepline plays settings describe --name path` and `deepline plays settings set --help` to confirm the current path contract. Keep stable Play names and `ctx.runPlay` references; folders organize navigation without renaming callable identities. Leave reused workspace and prebuilt Plays in their existing locations, since moving a shared dependency would disrupt other workflows.
 
 ## Invariants
 
@@ -107,7 +106,7 @@ After implementation checks pass, complete one dependency-ordered workflow:
 4. Set the orchestrator's static `billing.maxCreditsPerRun` before its first check or publication.
 5. Check the capped orchestrator against the published child contracts.
 6. Publish the capped orchestrator.
-7. Verify every publication with `deepline plays get <name> --json`: inspect `play.liveRevision.version` and the static `billing.maxCreditsPerRun` in `play.liveRevision.sourceCode`, not a working revision. Reconcile that live version with the publication result and `deepline plays versions --name <name> --json`. `deepline describe` and revision summaries do not expose the billing limit and cannot prove the cap by themselves.
+7. Verify every publication with `deepline plays get <name>`: read its `Live version` and `Live max credits per run` lines, which come from the live revision, not a working revision. If the cap is not a literal, read it from `deepline plays get <name> --source --live`. Reconcile that live version with the publication result and `deepline plays versions --name <name>`. `deepline describe` and revision summaries do not expose the billing limit and cannot prove the cap by themselves.
 8. Confirm the new-engine authoring pilot uses an explicit internal/test workspace. Do not run the multi-record pilot in a customer workspace. For a code fix that requires the separate one-case paid Production acceptance, use only the owner-verified personal workspace or designated Deepline Production workspace in `docs/production-paid-call-verification.md`.
 9. Run the selected synthetic records through the real paid transitions to terminal completion.
 10. Replay one completed transition with the same idempotency key and verify that it produces no duplicate charge, output, or handoff.

@@ -9,7 +9,6 @@ description: 'Use when the user wants a last30days-style pre-research pass in De
 
 ```bash
 npm install -g deepline
-deepline preflight
 deepline -h
 ```
 
@@ -17,8 +16,8 @@ deepline -h
 
 Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/INSTALL.md` to set up Deepline.
 
-Before the first Deepline fanout in a task, run `deepline preflight --json` as
-one standalone command and wait for it to finish. Never submit preflight beside
+Before the first Deepline fanout in a task, run `deepline billing balance` as
+one standalone command and wait for it to finish. Never submit it beside
 another Deepline command.
 
 Find the highest-signal GTM data sources, public evidence, and market language for a research or enrichment job before building the pipeline. This is a standalone Deepline skill that should behave like `last30days` with a GTM data lens: broad source coverage, recency, community signals, citations, source stats, and a grounded "What I learned" synthesis. In Deepline, the report first explains what the research found; only after that does it translate the findings into Deepline tool contracts, private/proprietary joins, and Deepline-facing cost.
@@ -137,7 +136,7 @@ SDK V2 users can get the same plan by prompting the installed Deepline GTM skill
 
 ### 4. Search For Deepline Candidate Tools
 
-Run several focused searches, usually in parallel after the standalone preflight. `deepline search --type tools` takes a task, not keywords: one sentence stating the input you have -> the result you need. Read the default search output without `--json`; there is no `--prefix` flag. For CRM/private data, search for the records you need, as in the last two examples.
+Run several focused searches, usually in parallel after that standalone first command. `deepline search --type tools` takes a task, not keywords: one sentence stating the input you have -> the result you need. Read the default search output without `--json`; there is no `--prefix` flag. For CRM/private data, search for the records you need, as in the last two examples.
 
 ```bash
 deepline search "topic -> recent web and news sources" --type tools --categories research

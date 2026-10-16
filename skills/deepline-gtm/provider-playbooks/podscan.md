@@ -50,5 +50,5 @@ paid). The connector applies a conservative shared limit and surfaces upstream
 owns provider pacing and retries. Run an authorized local workflow with
 `deepline plays run --file podcast-research.play.ts --input '{"query":"customer interviews"}' --watch`
 after authoring it with that input contract; a supplied Play needs no extra pilot
-run. Use `deepline runs get <run-id> --json` to inspect existing results, not a
+run. Use `deepline runs get <run-id>` to inspect existing results, not a
 fresh search or paid repair. Do not bypass provider limits with an external loop.

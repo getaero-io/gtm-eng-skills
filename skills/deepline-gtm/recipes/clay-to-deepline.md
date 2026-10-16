@@ -252,7 +252,7 @@ interpolate Clay braces or silently turn a missing path into an empty string.
 
 ```bash
 deepline plays run <table>.play.ts --csv seed.csv
-deepline runs get <run-id> --json
+deepline runs get <run-id>
 deepline runs export <run-id> --out output_<table>.csv
 ```
 

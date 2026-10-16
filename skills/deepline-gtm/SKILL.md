@@ -143,17 +143,15 @@ A tool returns its result as output; `--out <path>` writes rows to a CSV.
 A Play stores each dataset in a database table:
 
 ```bash
-deepline runs get <run-id> --json run.id,datasets.storage,actions  # status, tables, suggested commands
+deepline runs get <run-id>                                         # status, tables, suggested commands
 deepline db query --sql "<suggested SQL>"                          # filter, join, aggregate before downloading
 deepline runs export <run-id> --dataset <name> --out <file.csv>    # complete rows; --format json for nested evidence
 deepline runs logs <run-id>
 deepline runs receipt <run-id> --key '<receipt-key>'                # a saved tool result, by the key kept in the row
-deepline runs logs <run-id> --kind receipt.completed --payloads --json  # saved tool results without a key; pick one with --where
+deepline runs logs <run-id> --kind receipt.completed --payloads  # saved tool results without a key; pick one with --where
 ```
 
-If `runs get` rejects the field list, the CLI is older: pass bare `--json` or
-update it. Save a contract with
-`deepline describe <name> --json --out contract.json`.
+Save a contract with `deepline describe <name> --out contract.md`.
 
 For tool results in a Play, use the exact declared getters listed by
 `deepline describe`. Other fields live under `toolResponse.rawV2`, preserving
@@ -202,7 +200,7 @@ Approve full run?
 
 Out of credits: stop paid work, quote the returned `top_up_command` and
 `checkout_command` exactly, and wait for approval. Exact charge:
-`deepline billing usage --request-id <job_id> --json`; only `posted` is final.
+`deepline billing usage --request-id <job_id>`; a held or pending charge is not final.
 
 ## 5. Deliver results
 
@@ -233,7 +231,7 @@ connects to many external systems. Search to find the right connection.
 
 A **monitor** is a trigger that reports a change the user cares about: a
 contact changes jobs, a company posts a job, a company raises funding, etc. Run
-`deepline monitors status --json`, and only when it reports `has_access: true`
+`deepline monitors status`, and only when it reports access
 follow [Monitors](recipes/deepline-monitors.md). Every paid monitor deploy,
 reactivation or historical widening needs explicit approval.
 

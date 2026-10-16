@@ -28,7 +28,7 @@ groups nest, and `op` accepts `and` / `or`. Condition `type` supports `=`,
 `!=`, `in`, `not_in`, `contains`, `has_all`, `all_of`, `>`, `<`, `=>`, `=<`.
 Sorting is `sorts: [{"field": "...", "order": "asc" | "desc"}]`. Company and
 job search have their own filter/sort field vocabularies - read the field
-lists in each tool's input schema (`deepline tools describe`) rather than
+lists in each tool's input schema (`deepline describe`) rather than
 reusing person fields.
 
 ## Company-search response projections

@@ -5,7 +5,7 @@ Use LeadMagic as a contact-resolution, verification, and intent layer.
 - For role-based discovery, use `leadmagic_role_finder` for a single decision-maker and `leadmagic_employee_finder` when you need a wider company roster.
 - `leadmagic_email_validation` is the final outbound validity gate for this layer. Default acceptance rule is `email_status == valid`; treat `catch_all` and `unknown` as unresolved unless the user explicitly accepts risk.
 - LeadMagic is **conservative on catch-all domains** (many Google Workspace and corporate domains). `email_status: "invalid"` with a populated `mx_record` + `mx_provider` usually means "mailbox not provable," not "does not deliver." Don't auto-discard these rows — fall back to `deepline_native` validation or a second provider (`zerobounce`, `bettercontact`) before giving up on the lead.
-- If LeadMagic profile or phone quality is noisy on pilot rows, switch to quality-first enrichment (`crustdata_v3_person_enrich`, `peopledatalabs_enrich_contact`) before scaling. Confirm the current schema with `deepline tools describe <tool-id> --json`: CrustData V3 takes exactly one identifier family, `professional_network_profile_urls` or `business_emails`, as an array. Request the needed `fields` explicitly (for example, `contact` for contact data); do not copy the older camelCase person-enrichment payload into V3.
+- If LeadMagic profile or phone quality is noisy on pilot rows, switch to quality-first enrichment (`crustdata_v3_person_enrich`, `peopledatalabs_enrich_contact`) before scaling. Confirm the current schema with `deepline describe <tool-id>`: CrustData V3 takes exactly one identifier family, `professional_network_profile_urls` or `business_emails`, as an array. Request the needed `fields` explicitly (for example, `contact` for contact data); do not copy the older camelCase person-enrichment payload into V3.
 
 Operational pattern:
 
@@ -15,9 +15,9 @@ Operational pattern:
 4. Scale larger work after checking quality and assumptions. Provider changes or paid fallback calls must fit the existing authorization; inspecting a completed run does not authorize paid repair.
 
 Use a supplied Play when it fits. When selecting one, start with
-`deepline plays search "email verification" --json` and
-`deepline plays describe <play-ref> --json`. Confirm the tool's current contract
-with `deepline tools describe leadmagic_email_validation --json`.
+`deepline plays search "email verification"` and
+`deepline describe <play-ref>`. Confirm the tool's current contract
+with `deepline describe leadmagic_email_validation`.
 
 For a custom workflow, save this as `email-verify.play.ts`. The order and payload
 stay the same, but the success gate is explicit and each attempted verdict remains
@@ -79,7 +79,7 @@ deepline plays run --file email-verify.play.ts --csv contacts.csv --watch
 Validation, authentication, billing, and unexpected execution failures remain
 errors; do not turn them into candidate misses. Keep the original row and evidence,
 including MX fields needed for the catch-all caveat above. Retrieve existing output
-with `deepline runs get <run-id> --json` and its full-result/export commands (for
+with `deepline runs get <run-id>` and its full-result/export commands (for
 example, save to `contacts.csv.out.csv`), rather than rerunning to inspect it.
 
 Related docs:

@@ -10,7 +10,6 @@ description: 'Use when discovering niche signals, auditing ICP or won/lost evide
 
 ```bash
 npm install -g deepline
-deepline preflight
 deepline -h
 ```
 

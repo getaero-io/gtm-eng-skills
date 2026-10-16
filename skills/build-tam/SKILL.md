@@ -9,7 +9,6 @@ description: "Build a Total Addressable Market list: size the audience, source c
 
 ```bash
 npm install -g deepline
-deepline preflight
 deepline -h
 ```
 

@@ -9,7 +9,6 @@ description: "ACCESS-GATED beta. Deepline Monitors are provider event feeds (job
 
 ```bash
 npm install -g deepline
-deepline preflight
 deepline -h
 ```
 

@@ -9,7 +9,6 @@ description: "Use this skill when building, enriching, auditing, or uploading B2
 
 ```bash
 npm install -g deepline
-deepline preflight
 deepline -h
 ```
 
@@ -143,15 +142,15 @@ deepline tools list | grep -Ei "account|audience"
    Meta uses the new token-based connection: the customer's long-lived system-user access token is stored in Dashboard → Integrations → Meta Audiences and is used server-side for discovery and writes. Call `meta_audiences_list_ad_accounts` to discover live accounts through that saved token and confirm the account by `name`. Use a row with `enabled: true`; `is_default: true` marks the workspace default, and `custom_audience_terms_accepted: false` means creation will fail until someone accepts Meta's terms. Then either pass that row's `id` as `ad_account_id`, or omit `ad_account_id` to use the workspace default and read the account the call used back from `data.ad_account_id` in the create, list, status, or sync response. Never put the Meta token in a CLI payload or chat, and never grep old runs, CSVs, or notes for Meta account IDs: they can belong to customers.
 
 ```bash
-deepline tools execute meta_audiences_list_ad_accounts --payload '{}' --json
+deepline tools execute meta_audiences_list_ad_accounts --payload '{}'
 ```
 
 3. If no direct discovery tool is exposed, ask the user for the account ID and name, then validate it before upload:
 
 ```bash
-deepline tools execute google_ads_audiences_list_audiences --payload '{"account_id":"1234567890","page_size":10}' --json
-deepline tools execute meta_audiences_list_audiences --payload '{"ad_account_id":"1234567890"}' --json
-deepline tools execute linkedin_ads_audiences_list_audiences --payload '{"account_id":"urn:li:sponsoredAccount:123456789"}' --json
+deepline tools execute google_ads_audiences_list_audiences --payload '{"account_id":"1234567890","page_size":10}'
+deepline tools execute meta_audiences_list_audiences --payload '{"ad_account_id":"1234567890"}'
+deepline tools execute linkedin_ads_audiences_list_audiences --payload '{"account_id":"urn:li:sponsoredAccount:123456789"}'
 ```
 
 4. Show the discovered choices back to the user as `Account Name (Account ID)`, grouped by platform. If there is more than one plausible account, ask which one to use before creating audiences.
@@ -279,14 +278,14 @@ Before live upload, write a small audit with:
 Create one audience per platform per object, named so the account UI makes the test clear: `<customer or segment> enriched <date>` and `<customer or segment> unenriched <date>`. Then upload each object separately. Current starting hints:
 
 ```bash
-deepline tools execute google_ads_audiences_create_audience --payload '{"account_id":"1234567890","name":"Example enriched hash-only","membership_life_span_days":540,"upload_key_types":["CONTACT_ID"]}' --json
-deepline tools execute google_ads_audiences_sync_audience_members --payload '{"account_id":"1234567890","audience_id":"1111111111","mode":"append","terms_of_service_accepted":true,"consent":{"ad_user_data":"GRANTED","ad_personalization":"GRANTED"},"rows":[{"email_sha256":"973dfe463ec85785f5f95af5ba3906eedb2d931c24e69824a89ea65dba4e813b"}]}' --json
+deepline tools execute google_ads_audiences_create_audience --payload '{"account_id":"1234567890","name":"Example enriched hash-only","membership_life_span_days":540,"upload_key_types":["CONTACT_ID"]}'
+deepline tools execute google_ads_audiences_sync_audience_members --payload '{"account_id":"1234567890","audience_id":"1111111111","mode":"append","terms_of_service_accepted":true,"consent":{"ad_user_data":"GRANTED","ad_personalization":"GRANTED"},"rows":[{"email_sha256":"973dfe463ec85785f5f95af5ba3906eedb2d931c24e69824a89ea65dba4e813b"}]}'
 
-deepline tools execute meta_audiences_create_audience --payload '{"ad_account_id":"1234567890","name":"Example enriched hash-only","customer_file_source":"BOTH_USER_AND_PARTNER_PROVIDED"}' --json
-deepline tools execute meta_audiences_sync_audience_members --payload '{"ad_account_id":"1234567890","audience_id":"1111111111","mode":"replace","rows":[{"email_sha256":"973dfe463ec85785f5f95af5ba3906eedb2d931c24e69824a89ea65dba4e813b"}]}' --json
+deepline tools execute meta_audiences_create_audience --payload '{"ad_account_id":"1234567890","name":"Example enriched hash-only","customer_file_source":"BOTH_USER_AND_PARTNER_PROVIDED"}'
+deepline tools execute meta_audiences_sync_audience_members --payload '{"ad_account_id":"1234567890","audience_id":"1111111111","mode":"replace","rows":[{"email_sha256":"973dfe463ec85785f5f95af5ba3906eedb2d931c24e69824a89ea65dba4e813b"}]}'
 
-deepline tools execute linkedin_ads_audiences_create_audience --payload '{"account_id":"urn:li:sponsoredAccount:123456789","name":"Example enriched hash-only","audience_kind":"contacts"}' --json
-deepline tools execute linkedin_ads_audiences_sync_audience_members --payload '{"account_id":"urn:li:sponsoredAccount:123456789","audience_id":"1111111111","mode":"replace","rows":[{"email_sha256":"973dfe463ec85785f5f95af5ba3906eedb2d931c24e69824a89ea65dba4e813b"}]}' --json
+deepline tools execute linkedin_ads_audiences_create_audience --payload '{"account_id":"urn:li:sponsoredAccount:123456789","name":"Example enriched hash-only","audience_kind":"contacts"}'
+deepline tools execute linkedin_ads_audiences_sync_audience_members --payload '{"account_id":"urn:li:sponsoredAccount:123456789","audience_id":"1111111111","mode":"replace","rows":[{"email_sha256":"973dfe463ec85785f5f95af5ba3906eedb2d931c24e69824a89ea65dba4e813b"}]}'
 ```
 
 Use `append` for Google when uploading into a newly created empty audience if `replace` returns provider-side Data Manager payload errors. Report that clearly because it indicates connector behavior that should be fixed.
@@ -306,9 +305,9 @@ Read Google's match rate from `ingestedUserListInfo.contactIdInfo.matchRatePerce
 Run status checks after upload:
 
 ```bash
-deepline tools execute google_ads_audiences_get_audience_status --payload '{"account_id":"1234567890","audience_id":"1111111111"}' --json
-deepline tools execute meta_audiences_get_audience_status --payload '{"ad_account_id":"1234567890","audience_id":"1111111111"}' --json
-deepline tools execute linkedin_ads_audiences_get_audience_status --payload '{"account_id":"urn:li:sponsoredAccount:123456789","audience_id":"1111111111"}' --json
+deepline tools execute google_ads_audiences_get_audience_status --payload '{"account_id":"1234567890","audience_id":"1111111111"}'
+deepline tools execute meta_audiences_get_audience_status --payload '{"ad_account_id":"1234567890","audience_id":"1111111111"}'
+deepline tools execute linkedin_ads_audiences_get_audience_status --payload '{"account_id":"urn:li:sponsoredAccount:123456789","audience_id":"1111111111"}'
 ```
 
 Final answer format:

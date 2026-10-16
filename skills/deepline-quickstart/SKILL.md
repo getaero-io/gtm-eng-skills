@@ -10,7 +10,6 @@ disable-model-invocation: false
 
 ```bash
 npm install -g deepline
-deepline preflight
 deepline -h
 ```
 

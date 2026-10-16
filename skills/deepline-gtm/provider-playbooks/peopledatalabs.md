@@ -2,8 +2,8 @@ Use People Data Labs when you need explicit, auditable structured filters.
 
 ## Reading results
 
-Use the exact declared getters from `tools describe <tool-id> --json` or
-`tools get`: company enrichment declares `company_name` and `company_domain`;
+Use the exact declared getters from `describe <tool-id>` or
+`describe`: company enrichment declares `company_name` and `company_domain`;
 contact enrichment declares contact getters; search actions declare list
 getters. Do not invent getters for other profile fields.
 

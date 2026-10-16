@@ -10,7 +10,6 @@ disable-model-invocation: true
 
 ```bash
 npm install -g deepline
-deepline preflight
 deepline -h
 ```
 
@@ -106,7 +105,7 @@ Do not run a broad research pass when the input and route are already known.
 For a prospective Deepline operation, use read-only live catalog search to
 look for a matching prebuilt Play or tool and describe promising contracts;
 names in skills are hints, not proof that a capability is available now. Run
-`deepline --maintenance off preflight --json` by itself before other Deepline
+`deepline --maintenance off org status` by itself before other Deepline
 commands in this session. Use `--maintenance off` for every pre-confirmation
 CLI check, including catalog search and org status, so automatic updates or
 skill synchronization do not install anything before approval.
@@ -140,9 +139,9 @@ the proposed sequence against it. A description or routing-table entry alone
 cannot establish the specialist's source order, prerequisites, or quality gates.
 
 Resolve the effective org in the same working directory and command environment
-that execution will use. Reuse the current preflight's `auth.org_id` and
-`auth.org_name`; if unavailable or the command context has changed, run
-`deepline --maintenance off org status --json` and inspect `organization` and `current_org_id`.
+that execution will use. Read the `Organization` and `Organization ID` lines
+from that `deepline --maintenance off org status` result; if the command
+context has changed, run it again.
 Show the verified org name with the plan, adding its ID only if needed to
 distinguish duplicate names. Do not infer the org from the user's company,
 an input file, remembered credentials, or a global default that folder auth
@@ -171,9 +170,9 @@ revised version.
 After confirmation, complete these steps in order. This skill owns discovery;
 the selected skill owns implementation.
 
-1. **Run `deepline --maintenance off org status --json` before loading the selected skill.**
-   Compare the effective org ID with the confirmed one; cached preflight is
-   not a substitute for this check. A mismatch blocks the handoff and execution
+1. **Run `deepline --maintenance off org status` before loading the selected skill.**
+   Compare the effective org ID with the confirmed one; an earlier org status
+   result is not a substitute for this check. A mismatch blocks the handoff and execution
    until resolved with the user. This read-only identity check also applies
    when the workflow otherwise only creates local files.
 2. Prepare the agreed brief: outcome, population, identifiers/sources, success

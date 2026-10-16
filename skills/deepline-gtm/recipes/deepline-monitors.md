@@ -41,8 +41,8 @@ a scope or results table.
 
 ## Read the deployed monitor spec first
 
-Every `deepline monitors get <key> --json` response includes `monitor_spec`.
-When `monitor_spec.available` is true, use its `fields` as the field list for
+Every `deepline monitors get <key>` response includes the monitor spec.
+When the spec is available, use its fields as the field list for
 that monitor type before you write a definition, patch, or dependent Play. Each entry names the exact
 `payload.*` path and carries its description, type, required flag, enum,
 format/pattern constraints, plus provider-specific applicability, precedence,
@@ -94,7 +94,7 @@ decision in the scope table; keep resolved domains with the definition unless
 the user needs them.
 
 Before asking where to send matches, check Slack with
-`deepline notifications slack channels --json`. A successful response supplies
+`deepline notifications slack channels`. A successful response supplies
 real channels: recommend the best obvious channel, not an invented one. If Slack
 is unavailable or has no usable channel, say that plainly. When a CRM destination
 is configured, name it and ask: `Want me to turn this on and connect Slack, or
@@ -164,15 +164,15 @@ confirmation authorizes the paid mutation.
 Monitors are an access-gated beta. Before any monitor command, confirm access:
 
 ```bash
-deepline monitors status --json
+deepline monitors status
 ```
 
 - **You have access** → proceed.
 - **No access** → stop. Do not run other monitor commands; tell the user to
   contact the Deepline team to request access.
 
-The response is `{ "has_access": boolean, "reason": string }`; branch on
-`has_access`. Other failures need diagnosis, not reinterpretation as rollout
+It exits 0 with access and 1 without, with a reason; branch on that.
+Other failures need diagnosis, not reinterpretation as rollout
 denial.
 
 ## Explain the monitor only when useful
@@ -228,17 +228,17 @@ After creating or reactivating a monitor, read its stored definition and run
 the first applicable verification below. This is execution evidence, not a
 proposal or a substitute for a future provider event:
 
-1. **Safe callback diagnostic.** When `monitors get <key> --json` returns a
-   `sample_payload`, run it through the deployed monitor without writing a row
+1. **Safe callback diagnostic.** When `monitors get <key>` returns a
+   sample test payload, run it through the deployed monitor without writing a row
    or waking a Play in an internal/test workspace. In a customer workspace,
    first obtain explicit approval for this diagnostic:
 
    ```bash
-   deepline monitors test <key> '<sample_payload from monitors get>' --json
+   deepline monitors test <key> '<sample_payload from monitors get>'
    ```
 
-   Require `accepted: true`, `test_mode: validation_only`,
-   `persisted_rows: 0`, and `dispatched_bound_plays: 0`. This proves Deepline
+   Require `accepted`, validation-only mode, 0 persisted rows, and 0
+   dispatched bound Plays. This proves Deepline
    accepts that event shape against the monitor's real binding; it does not
    prove the upstream provider emitted it.
 
@@ -265,13 +265,13 @@ MONITOR='{
   }
 }'
 # These are safe. They validate the exact definition and show cost/reuse.
-deepline monitors check "$MONITOR" --json
-deepline monitors deploy --dry-run "$MONITOR" --json
+deepline monitors check "$MONITOR"
+deepline monitors deploy --dry-run "$MONITOR"
 # After explicit approval of scope, shared-stream impact, and price:
-deepline monitors deploy "$MONITOR" --json
-deepline monitors get stripe-cfo-job-openings --json
+deepline monitors deploy "$MONITOR"
+deepline monitors get stripe-cfo-job-openings
 # In an internal/test workspace, or after explicit customer approval:
-deepline monitors test stripe-cfo-job-openings '<sample_payload from get>' --json
+deepline monitors test stripe-cfo-job-openings '<sample_payload from get>'
 ```
 
 The deployment proof is the final `get` plus the safe test when available: the
@@ -389,8 +389,8 @@ For a requested filter change, use the same tight loop:
 
 ```bash
 deepline monitors update stripe-cfo-job-openings \
-  '{"payload":{"job_titles":"\"Chief Financial Officer\" OR \"VP Finance\""}}' --json
-deepline monitors get stripe-cfo-job-openings --json
+  '{"payload":{"job_titles":"\"Chief Financial Officer\" OR \"VP Finance\""}}'
+deepline monitors get stripe-cfo-job-openings
 ```
 
 When managing a fleet, prove this loop on one monitor first. Keep workers
@@ -430,7 +430,7 @@ is rejected and points you at `deepline monitors deploy`.
 
 ## Command set
 
-All commands accept `--json` (also automatic when stdout is piped).
+All commands accept `--json`.
 
 | Command                                                                     | What it does                                                                                                                                                                                                                                                                                                                                                                                              |
 | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -461,18 +461,18 @@ converges existing intent. Neither resumes a zero-credit pause.
 
 There is no org-wide direct-monitor resume. After credits or a cap are fixed:
 
-1. Read `deepline monitors health --json` until `refresh.state` is `"completed"`.
+1. Read `deepline monitors health` until it no longer reports refreshing.
 2. Reactivate a credit-suspended Fleet through its retained owner:
 
    ```bash
-   deepline monitors fleets reactivate <fleet-id> --yes --wait --json
+   deepline monitors fleets reactivate <fleet-id> --yes --wait
    ```
 
 3. For a fully disabled direct monitor, read its cost before recovery:
 
    ```bash
-   deepline monitors reactivate <key> --dry-run --json
-   deepline monitors reactivate <key> --json
+   deepline monitors reactivate <key> --dry-run
+   deepline monitors reactivate <key>
    ```
 
 Do not fan out direct recovery while suspension is still stopping resources: it

@@ -153,10 +153,10 @@ Provider rules from prior live verification (the Play recipe below is not a new 
 **Play workflow: roster → ICP matching → exact-title contact lookup**
 
 Use a supplied Play when it fits. Otherwise find a maintained workflow with
-`deepline plays search "qualified titles" --json` and inspect it with
-`deepline plays describe <play-ref> --json`. For custom authoring, confirm the
+`deepline plays search "qualified titles"` and inspect it with
+`deepline describe <play-ref>`. For custom authoring, confirm the
 cached tool hints `company_titles`, `deeplineagent`, and
-`deepline_native_search_contact` using `deepline tools describe <tool-id> --json`.
+`deepline_native_search_contact` using `deepline describe <tool-id>`.
 Do not substitute IDs solely because Waterfall and Deepline Native share guidance.
 
 Build `qualified-titles.play.ts` with `definePlay` and a top-level description.
@@ -215,7 +215,7 @@ deepline plays run --file qualified-titles.play.ts --csv companies.csv --watch
 
 For larger or uncertain authorized work, test a representative input before
 scaling. A small supplied Play needs no additional pilot or repeated approval.
-Inspect the existing run with `deepline runs get <run-id> --json`, then use its
+Inspect the existing run with `deepline runs get <run-id>`, then use its
 full-result/export commands to save company evidence and `contact_rows.csv`.
 Inspection does not authorize rerunning, paid fallback enrichment, or repair.
 For historical `contacts.csv` exports using the old wrapper shape, the existing
@@ -275,7 +275,7 @@ deepline tools execute deepline_native_search_contact --payload '{
 ### CLI quick checks
 
 ```bash
-deepline tools get deepline_native_job_change
+deepline describe deepline_native_job_change
 deepline tools execute deepline_native_job_change --payload '{"company_domain":"stripe.com","professional_email":"jane@stripe.com"}'
 deepline tools execute deepline_native_search_contact --payload '{"domain":"stripe.com","title_filters":[{"name":"eng","filter":"VP Engineering OR Head of Engineering"}],"page_size":5}'
 deepline tools execute deepline_native_search_contact --payload '{"domain":"hubspot.com","title_filters":[{"name":"sales-leadership","filter":"VP Sales OR Head of Sales OR Director of Sales"}],"page_size":3}'
@@ -298,7 +298,7 @@ const jobChange = await rowCtx.tools.execute({
 });
 ```
 
-Confirm the tool with `deepline tools describe deepline_native_job_change --json`.
+Confirm the tool with `deepline describe deepline_native_job_change`.
 Read the source with `ctx.csv(input.csv, { required: ['domain', 'email'] })`, keep
 the original columns and job-change evidence, and return the dataset handle from
 the Play. Save it as `job-change.play.ts` with a top-level description, then use

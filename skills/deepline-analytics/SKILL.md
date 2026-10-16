@@ -10,7 +10,6 @@ disable-model-invocation: false
 
 ```bash
 npm install -g deepline
-deepline preflight
 deepline -h
 ```
 
@@ -75,7 +74,7 @@ That dashboard does not use `AERO_DB.ANALYTICS*` dbt/transformed models. If you 
 For a customer metric question where the semantic table is knowable from the wording, use this exact CLI path. Do not call ToolSearch, look for MCP tools, or write raw SQL first.
 
 1. Confirm the workspace: `deepline auth status`.
-2. Read the semantic layer: `deepline tools execute snowflake_get_semantic_layer --payload '{"includeYaml": true}' --json`.
+2. Read the semantic layer: `deepline tools execute snowflake_get_semantic_layer --payload '{"includeYaml": true}'`.
 3. Run the semantic query with both the user-facing label and the sortable date-start dimension. For other metrics, replace only `table_name`, `metrics`, and dimensions after confirming names in the semantic layer.
 
    ```bash
@@ -87,10 +86,10 @@ For a customer metric question where the semantic table is knowable from the wor
        "dimensions": ["discovery_quarter_label", "discovery_quarter_start"]
      },
      "rowLimit": 100
-   }' --json
+   }'
    ```
 
-4. Read `result.data.rows` directly from the JSON response. Select latest periods by sorting `DISCOVERY_QUARTER_START` descending; `rowLimit` is not ordering. Do not chase `extracted_csv` files, shell-sort CSV artifacts, or rerun the semantic query unless the JSON response is unavailable.
+4. Read the result rows directly from the response. Select latest periods by sorting `DISCOVERY_QUARTER_START` descending; `rowLimit` is not ordering. Do not chase `extracted_csv` files, shell-sort CSV artifacts, or rerun the semantic query unless the response is unavailable.
 5. Do not open saved transcript files, `tool-results/*.txt`, or full semantic-layer blobs with `Read`, `cat`, or ad hoc Python just to confirm names; large semantic YAML can exceed tool read limits. Use the current command output, targeted text search, or rerun with `includeYaml: false` for a table list before requesting full YAML.
 
 ## Semantic Query Contract

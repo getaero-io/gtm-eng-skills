@@ -9,7 +9,6 @@ description: 'Deprecated alias. This skill was renamed to `deepline-research`. U
 
 ```bash
 npm install -g deepline
-deepline preflight
 deepline -h
 ```
 

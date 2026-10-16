@@ -9,7 +9,6 @@ description: 'Use this skill when a human needs to review a Deepline Play result
 
 ```bash
 npm install -g deepline
-deepline preflight
 deepline -h
 ```
 
@@ -139,8 +138,7 @@ EXPORT_INPUT="$(jq -n \
   }')"
 
 deepline tools execute google_workspace_export_dataset \
-  --input "$EXPORT_INPUT" --json |
-  tee "$WORKDIR/export.json"
+  --input "$EXPORT_INPUT"
 ```
 
 Use the returned spreadsheet ID, URL, tab name, Shared Drive URL, and folder URL

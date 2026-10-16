@@ -154,7 +154,7 @@ Enriches company data (size, industry, funding, HQ) from a domain name.
 ## Output shape
 
 These shapes describe the normalized payload, not the full execution envelope.
-Use the declared `email` and `personal_email` getters from `tools describe` for
+Use the declared `email` and `personal_email` getters from `describe` for
 the corresponding normalized values. Confirm the getters on the exact action.
 
 `contactout_enrich_person` has a profile payload with email arrays at `email`,
