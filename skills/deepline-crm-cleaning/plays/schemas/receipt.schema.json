@@ -1,0 +1,560 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code.deepline.com/schemas/crm-cleaning-receipt.v1.json",
+  "title": "Deepline CRM cleaning receipt",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "crm-cleaning.receipt.v1"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "path": {
+      "enum": [
+        "audit",
+        "dedupe",
+        "prevent",
+        "enrich",
+        "employment",
+        "relationships",
+        "hierarchy",
+        "repair",
+        "monitor",
+        "evaluate"
+      ]
+    },
+    "crm": {
+      "enum": ["hubspot", "salesforce", "attio", "other"]
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "review_required",
+        "blocked",
+        "no_change",
+        "partial"
+      ]
+    },
+    "decision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "tenant_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "snapshot_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["tenant_ref", "snapshot_ref", "policy_ref"],
+      "additionalProperties": false
+    },
+    "outcome": {
+      "type": "object",
+      "properties": {
+        "coverage": {
+          "type": "object",
+          "properties": {
+            "unit": {
+              "type": "string",
+              "minLength": 1
+            },
+            "planned": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "attempted": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "resolved": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unresolved": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "unit",
+            "planned",
+            "attempted",
+            "resolved",
+            "unresolved"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "enum": [
+              "merge_records",
+              "patch_fields",
+              "create_record",
+              "upsert_record",
+              "link_entities",
+              "convert_lead",
+              "hold_for_review",
+              "block_create",
+              "emit_alert",
+              "schedule_refresh",
+              "record_metric",
+              "no_op",
+              "request_evidence",
+              "preserve_records",
+              "clear_field",
+              "change_owner",
+              "refresh_employment",
+              "verify_relationships",
+              "reconcile_receipt",
+              "retry_read",
+              "delete_record",
+              "end_relationship"
+            ]
+          },
+          "target_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "status": {
+            "enum": [
+              "proposed",
+              "executed",
+              "verified",
+              "blocked",
+              "failed",
+              "unknown"
+            ]
+          },
+          "provider_receipt_ref": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relationship": {
+            "type": "object",
+            "properties": {
+              "source_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "target_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "relationship_type": {
+                "type": "string",
+                "minLength": 1
+              },
+              "direction": {
+                "const": "source_to_target"
+              },
+              "valid_from": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "valid_to": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "observed_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "verification_state": {
+                "enum": ["unverified", "verified", "conflicting"]
+              }
+            },
+            "required": [
+              "source_ref",
+              "target_ref",
+              "relationship_type",
+              "direction",
+              "valid_from",
+              "valid_to",
+              "observed_at",
+              "verification_state"
+            ],
+            "additionalProperties": false
+          },
+          "reason_code": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "operation",
+          "target_refs",
+          "status",
+          "provider_receipt_ref"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "operation": {
+                  "const": "end_relationship"
+                }
+              },
+              "required": ["operation"]
+            },
+            "then": {
+              "required": ["relationship"],
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "status": {
+                        "enum": ["executed", "verified"]
+                      }
+                    },
+                    "required": ["status"]
+                  },
+                  "then": {
+                    "properties": {
+                      "provider_receipt_ref": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "relationship": {
+                        "properties": {
+                          "verification_state": {
+                            "const": "verified"
+                          },
+                          "valid_to": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "relationship": {
+                        "properties": {
+                          "valid_to": {
+                            "type": "null"
+                          }
+                        },
+                        "required": ["valid_to"]
+                      }
+                    },
+                    "required": ["relationship"]
+                  },
+                  "then": {
+                    "properties": {
+                      "status": {
+                        "enum": ["proposed", "blocked"]
+                      }
+                    },
+                    "required": ["reason_code"]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "enum": ["executed", "verified"]
+                }
+              },
+              "required": ["status"]
+            },
+            "then": {
+              "properties": {
+                "provider_receipt_ref": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "numerator": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "denominator": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unit": {
+            "enum": ["ratio", "count", "seconds", "credits"]
+          },
+          "cohort_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "enum": ["measured", "not_measured", "zero_denominator"]
+          },
+          "source_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "window_start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "window_end": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "name",
+          "numerator",
+          "denominator",
+          "value",
+          "unit",
+          "cohort_ref",
+          "as_of"
+        ],
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "properties": {
+              "state": {
+                "const": "measured"
+              },
+              "numerator": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "required": ["state"],
+            "properties": {
+              "state": {
+                "const": "not_measured"
+              },
+              "numerator": {
+                "type": "null"
+              },
+              "denominator": {
+                "type": "null"
+              },
+              "value": {
+                "type": "null"
+              }
+            }
+          },
+          {
+            "required": ["state"],
+            "properties": {
+              "state": {
+                "const": "zero_denominator"
+              },
+              "unit": {
+                "const": "ratio"
+              },
+              "numerator": {
+                "const": 0
+              },
+              "denominator": {
+                "const": 0
+              },
+              "value": {
+                "type": "null"
+              }
+            }
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": ["state"]
+            },
+            "then": {
+              "required": ["source_ref", "window_start", "window_end"]
+            }
+          }
+        ]
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["kind", "ref", "sha256"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "run_id",
+    "case_id",
+    "path",
+    "crm",
+    "status",
+    "decision",
+    "reason_codes",
+    "evidence_refs",
+    "scope",
+    "outcome",
+    "actions",
+    "metrics",
+    "artifacts"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "partial"
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "outcome": {
+            "required": ["coverage"],
+            "properties": {
+              "coverage": {
+                "properties": {
+                  "planned": {
+                    "minimum": 1
+                  },
+                  "unresolved": {
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

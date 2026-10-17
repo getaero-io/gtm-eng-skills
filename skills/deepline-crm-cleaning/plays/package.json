@@ -1,0 +1,18 @@
+{
+  "name": "deepline-crm-cleaning-plays",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Standalone dependencies bundled into the CRM cleaning Plays",
+  "dependencies": {
+    "htmlparser2": "10.0.0",
+    "tr46": "6.0.0"
+  },
+  "peerDependencies": {
+    "deepline": ">=0.3.90"
+  },
+  "peerDependenciesMeta": {
+    "deepline": {
+      "optional": true
+    }
+  }
+}

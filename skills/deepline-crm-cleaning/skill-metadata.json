@@ -1,0 +1,37 @@
+{
+  "title": "Deepline CRM Cleaning",
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Deepline CRM Cleaning",
+      "tags": ["crm", "data-quality", "entity-resolution", "evaluation"],
+      "providers": []
+    }
+  },
+  "prefixes": {
+    "jobs/": {
+      "kind": "specialized-workflow",
+      "title": "CRM Cleaning Recipe",
+      "tags": ["crm", "recipe"],
+      "providers": []
+    },
+    "shared/": {
+      "kind": "reference",
+      "title": "CRM Cleaning Contract",
+      "tags": ["crm", "reference"],
+      "providers": []
+    },
+    "adapters/": {
+      "kind": "provider-playbook",
+      "title": "CRM Adapter",
+      "tags": ["crm", "adapter"],
+      "providers": []
+    }
+  },
+  "default_document": {
+    "kind": "reference",
+    "title": "CRM Cleaning Resource",
+    "tags": ["crm"],
+    "providers": []
+  }
+}
