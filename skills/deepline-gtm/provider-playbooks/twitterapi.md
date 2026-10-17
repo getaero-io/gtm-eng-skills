@@ -27,6 +27,20 @@ are GET reads. Use these instead of scraping x.com.
 Paginated endpoints take a `cursor` (omit or "" for the first page) and return
 `has_next_page` + `next_cursor`. Loop on those to page; do not refetch page one.
 
+## Replies and thread context
+
+The unversioned replies and thread-context actions expose records as `replies`.
+The provider also returns these records under `tweets`; the adapter preserves
+that raw field for existing consumers. The two aliases serialize the same
+records twice; process one array rather than combining them. A page can include
+the original post, deeper replies, or other context. Check `inReplyToId` when you need direct replies. Returned pages are
+not a completeness guarantee, and page sizes vary. Continue with `next_cursor`
+while `has_next_page` is true, including after an empty page.
+
+All three actions charge their request minimum on a successful
+empty page and report `no_result`. A nonempty context-only page reports
+`completed`; it does not establish that direct replies exist.
+
 ## Cost
 
 Every request carries a minimum charge, applied even when it returns zero
