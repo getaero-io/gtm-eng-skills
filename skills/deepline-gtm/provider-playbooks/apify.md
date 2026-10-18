@@ -15,10 +15,6 @@ Use Apify to read results from an existing, authorized run or dataset.
 deepline tools execute apify_get_dataset_items --payload '{"datasetId":"existing-authorized-dataset","limit":10,"offset":0}'
 ```
 
-## MCP availability
-
-Actor discovery, schema lookup, and launch are unavailable through MCP pending source-platform authorization review: `apify_list_store_actors`, `apify_get_actor`, `apify_get_actor_input_schema`, `apify_run_actor`, and `apify_run_actor_sync`. Confirmation does not override this restriction. Existing output and run operations above remain available.
-
 ## SDK/API actor execution
 
 SDK/CLI/API actor contracts remain available. Establish authorization from the source platform before designing collection; an actor listing or intermediary agreement does not establish that permission. Use only inputs and sources the user is authorized to process. Do not collect private profiles or saved searches through browser-session credentials.
