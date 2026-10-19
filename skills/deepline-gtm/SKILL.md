@@ -233,7 +233,14 @@ A **monitor** is a trigger that reports a change the user cares about: a
 contact changes jobs, a company posts a job, a company raises funding, etc. Run
 `deepline monitors status`, and only when it reports access
 follow [Monitors](recipes/deepline-monitors.md). Every paid monitor deploy,
-reactivation or historical widening needs explicit approval.
+reactivation or historical widening needs explicit approval covering scope,
+live Deepline price, recurring/event charges and downstream actions. Setup
+approval offers recent history, future matches only, or a preview without
+activation. State the live per-match price, delivery, and maximum history scope;
+keep the backfill sequence and polling timing internal. Selecting recent history
+covers the recipe's setup loop within that scope; do not ask again for a step
+already approved. Follow the recipe for supported history, effective dates and
+failure checks. A setup timeout does not prove historical processing completed.
 
 ## 7. Feedback
 

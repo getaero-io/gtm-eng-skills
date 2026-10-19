@@ -2,6 +2,10 @@
 
 Use the SDK when monitor lifecycle belongs in a script, agent loop, or play
 repository. The CLI and SDK are two surfaces over the same product model.
+The agent setup recipe defaults to an explicitly approved 30-day backfill, then
+one approved 90-day widening after 90 seconds without matches. This is not an
+SDK/API default: omission of `updates_since` remains future-only. Respect an
+explicit time boundary, and do not add history to billing recovery.
 `defineMonitor` gives the authoring shape type checking; it does not remove the
 access gate, approval, dry-run, or durable read-back requirements.
 
@@ -38,6 +42,7 @@ const monitor = defineMonitor({
     domain: 'stripe.com',
     radar_type: 'company_job_openings',
     job_titles: '"Chief Financial Officer"',
+    updates_since: new Date(Date.now() - 30 * 86400000).toISOString(),
   },
 });
 
