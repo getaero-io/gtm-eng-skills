@@ -124,6 +124,8 @@ Open one when the task matches:
 [portfolio prospecting](recipes/portfolio-prospecting.md),
 [small-business prospecting](recipes/small-business-prospecting.md).
 
+**Ad libraries (Meta, Google, LinkedIn, TikTok): Adyntel first, LeadMagic as fallback.** For "which ads does this company run", use `adyntel_facebook` or `adyntel_facebook_ad_search`, `adyntel_google`, `adyntel_linkedin` and `adyntel_tiktok_search` (0.13 credits per call). `leadmagic_meta_ads_search` and `leadmagic_google_ads_search` are cheaper per result (0.07) but are a fallback only: the LeadMagic ad-library endpoint has returned `UPSTREAM_ERROR` on every call since 2026-10-16, and a failing route costs more in retries and missing coverage than it saves. Put the fallback in an explicit `--with-waterfall` order instead of retrying it.
+
 ## 2. Run it
 
 ```bash
