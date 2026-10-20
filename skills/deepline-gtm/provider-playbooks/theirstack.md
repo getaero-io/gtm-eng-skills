@@ -26,7 +26,7 @@
 
 3. **Hiring signals:** Use `theirstack_job_search` to find companies actively hiring for specific roles or technologies. Always provide `posted_at_max_age_days` or a company filter — the API requires at least one.
 
-4. **Count before a large search:** Use `theirstack_job_search` with `include_total_results: true` and `limit: 1`; omit `blur_company_data`. A matching count returns and bills one job (1 TheirStack API credit); no matches return and bill zero jobs. Totals require TheirStack to scan the full matching dataset, so broad filters or long date windows can take up to two minutes.
+4. **Count before a large search:** Use `theirstack_job_search` with `include_total_results: true` and `limit: 1`; omit `blur_company_data`. A matching count returns and bills one job at the published Deepline per-result price; no matches return and bill zero jobs. Totals require TheirStack to scan the full matching dataset, so broad filters or long date windows can take up to two minutes.
 
 5. **Tech stack enrichment:** Use `theirstack_technographics` for a single known company — provide `company_domain` when possible (most reliable identifier).
 
@@ -60,3 +60,11 @@
 - Using Prospeo-style MX filters such as `company_email_provider` in `theirstack_company_search` → TheirStack does not support email-provider filtering
 - Setting `limit` too high on company search → expensive
 - Fetching years of job results in one request → use non-overlapping windows of 180 days or less; keep `include_total_results: false` when totals are not needed
+
+`blur_company_data: true` alone does not guarantee a free request. A count
+request (`include_total_results: true`, `limit: 1`) is billable. Any company
+identifier filter (`company_name_or`, `company_name_case_insensitive_or`,
+`company_domain_or`, `company_linkedin_url_or`, `company_id_or`, or
+`company_name_partial_match_or`) also makes the request billable. The ordinary
+blurred preview without those filters is free only where the legacy preview
+mode is eligible. Inspect the quote for the complete payload before execution.

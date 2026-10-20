@@ -13,3 +13,11 @@ Use `harvestapi_get_profile` with `main: "true"` when the smaller main-profile r
 HarvestAPI plan limits are concurrent-request limits, not per-minute quotas. Deepline uses its Business subscription's 40-request concurrency limit and applies shared retry/backoff handling for transient failures.
 
 An empty response can still consume managed Deepline credits. Paginated tools are priced per requested page, not per returned record. A successful `elements: []` response is charged when HarvestAPI reports billable usage; if that empty list reports no billable usage or omits usage, Deepline charges zero credits. Recognized missing-profile and missing-ad outcomes marked `no_result` are unbilled. Empty lists can have status `completed`; a completed status, null record, or body-level error alone does not guarantee a free call. Check the returned Deepline billing details for the actual charge.
+
+Treat `recentlyChangedJobs: true` as the provider's recent-job-change filter,
+not proof of a particular current role or role start date. Check the returned
+current-position dates against your own eligibility window when those dates
+are present. If dates or timestamps are absent, retain the row as unverified
+rather than inventing dates or silently counting it as a verified change.
+A provider error envelope, including numeric `status` and plural `errors`, is
+a failed request even if its transport status is HTTP 200.

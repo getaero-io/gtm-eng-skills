@@ -43,7 +43,7 @@ HTTP uses `POST /api/v2/runs/events` with a flat body: `operation: "list" | "cou
 
 ## Read logs or search events
 
-A run ID alone reads text logs. Use the returned nextCursor with --cursor for older lines. Omit the run ID or add a search flag to search events; a supplied run ID narrows the search. --out, --failed and --log-level cannot be combined with event search. Search defaults to the last hour, newest first; maximum lookback is seven days. Follow the returned next.logs command for the next page. --payloads adds available event details or saved work results, not dataset rows. Text logs default to 200 lines; compatibility event search defaults to 100 (maximum 200), or 10 with payloads and 16 MiB. Check retention warnings; --out saves all available log lines.
+--failed reads terminal context only when the overall run failed. A completed run can still contain failed rows: use `runs events <run-id> --kind receipt.failed --payloads --json` and inspect the run dataset. `runs get <run-id> --json` reports row outcome counts. A run ID alone reads text logs. Use the returned nextCursor with --cursor for older lines. Omit the run ID or add a search flag to search events; a supplied run ID narrows the search. --out, --failed and --log-level cannot be combined with event search. Search defaults to the last hour, newest first; maximum lookback is seven days. Follow the returned next.logs command for the next page. --payloads adds available event details or saved work results, not dataset rows. Text logs default to 200 lines; compatibility event search defaults to 100 (maximum 200), or 10 with payloads and 16 MiB. Check retention warnings; --out saves all available log lines.
 
 ```bash
 deepline runs logs '<run-id>'

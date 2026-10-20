@@ -22,6 +22,19 @@ are GET reads. Use these instead of scraping x.com.
 - Trends: `twitterapi_trends` (needs a WOEID). Spaces: `twitterapi_space_detail`.
 - Account/credits: `twitterapi_my_info`.
 
+## Replies and thread context
+
+`twitterapi_tweet_replies` and `twitterapi_tweet_thread_context` accept the
+provider's documented `replies` array and its observed `tweets` array, including
+nested `data` envelopes. Both expose the selected results at
+`toolResponse.rawV2.data.replies`; original provider fields and pagination are
+retained. An explicit empty array returns `no_result`; a missing or malformed
+array returns an upstream error. Both arrays can include the original tweet;
+thread context can also include surrounding posts. For direct replies to the
+requested tweet, filter on `inReplyToId === tweetId`. The full returned array
+is preserved and counted for per-item billing, including the original post;
+filtering your output does not change the call's billed item count.
+
 ## Pagination
 
 Paginated endpoints take a `cursor` (omit or "" for the first page) and return

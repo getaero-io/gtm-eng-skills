@@ -73,3 +73,14 @@ The most common workflow. Attio auto-enriches records when email (people) or dom
 | Webhook delivery | 25/sec per target URL |
 
 All actions handle `429` responses by respecting the `Retry-After` header. For batch imports, pace writes to stay under the 25/sec write limit.
+
+## Workspace access
+
+If Attio blocks a new OAuth installation at its application distribution cap,
+connect a workspace API access token through Deepline's existing integration
+credential form or `deepline tools connect attio --credentials-file <path> --json`.
+The credential file is a JSON object containing `access_token`. Store it as
+`access_token` and grant the scopes needed by the tools you will call. The
+read-only connection test lists objects. OAuth remains available when no
+active workspace token is stored. A token belongs to the Attio workspace that
+issued it; changing that workspace requires replacing the credential.
