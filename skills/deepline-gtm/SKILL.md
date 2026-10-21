@@ -243,11 +243,14 @@ follow [Monitors](recipes/deepline-monitors.md). Every paid monitor deploy,
 reactivation or historical widening needs explicit approval covering scope,
 live Deepline price, recurring/event charges and downstream actions. Setup
 approval offers recent history, future matches only, or a preview without
-activation. State the live per-match price, delivery, and maximum history scope;
-keep the backfill sequence and polling timing internal. Selecting recent history
-covers the recipe's setup loop within that scope; do not ask again for a step
-already approved. Follow the recipe for supported history, effective dates and
-failure checks. A setup timeout does not prove historical processing completed.
+activation. Every monitor ends in an action: suggest a connected Slack channel,
+CRM or outreach sequencer while listing the others, or ask the user to connect
+one. State the live
+per-match price and the action; never show history dates, and keep the
+volume-sized backfill sequence and polling timing internal. Selecting recent
+history covers the recipe's setup loop; do not ask again for a step already
+approved. Follow the recipe for effective dates and failure checks. A setup
+timeout does not prove historical processing completed.
 
 ## 7. Feedback
 

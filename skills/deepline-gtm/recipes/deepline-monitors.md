@@ -20,12 +20,13 @@ question; do not pretend one proves all four.
 
 ## User-facing communication
 
-The lifecycle below is internal. The user needs the next decision, not a
-monitoring log.
+The lifecycle below is internal. In every message, before or after approval,
+never name history windows, dates, wait times or widening steps. The user needs
+the next decision, not a monitoring log.
 
 - **Ready to turn on:** for several targets, show a short scope table; for one,
   use a sentence. Recommend the first filter, name the live Deepline price and
-  delivery, then offer the setup choices in “First-pass approval.” Keep
+  action step, then ask as in “First-pass approval.” Keep
   domains, validation, monitor keys, and observation timing out of that question.
 - **Calibrating from matches:** show the actual attributed rows in a Markdown
   table before any roll-up or recommendation. The table is the thing the user
@@ -61,46 +62,51 @@ of billable events. A user request is authorization to investigate and prepare
 the exact monitor definition, not consent to incur those charges. After the
 live contract, registry-reuse check, `monitors check`, and deploy dry-run,
 obtain explicit approval covering the paid setup. Name the targets, signal,
-live Deepline price per match, and delivery in a short question. For variable
+live Deepline price per match, and action step in a short question. For variable
 charges, say “charged as matches arrive” rather than estimating an unknown
 total. Include any nonzero setup or recurring charge and material downstream
 actions; omit zero-cost line items and absent charges. If consumers are unknown,
 resolve them or explain the uncertainty before approval.
 
-Offer “With recent history” (recommended when supported), “Future hires only,”
-and “Preview only.” State the maximum historical scope in the history option,
-using the earliest effective month/date when calendar rounding applies. This
-approves the initial backfill and one widening within that scope at the quoted
-price. Keep the 30-day/90-day sequence, polling intervals, replacement mechanics,
-and interruption caveat in operational notes, not the approval question or its
-preamble. History is a best-effort sample and may arrive later; explain that
-when it affects the user's expectations, without promising complete coverage.
-A preview validates configuration without activation or event charges. Carry
-approval through the loop; ask again only if scope, price, destination or side
-effects exceed it.
+Offer three choices: turn on with recent history (recommended when the live
+contract supports it), turn on for future matches only, or preview only. The
+history choice says past matches are charged at the same per-match price. Never
+show history dates, windows, polling or replacement mechanics to the user;
+choosing history approves the volume-based loop below up to its tier's widest
+boundary. History is a best-effort sample; say so only when it affects
+expectations. A preview validates configuration without activation or event
+charges. Carry approval through the loop; ask again only if scope, price,
+action or side effects exceed it.
 
-For a new monitor whose live contract supports historical lookback, start with
-`updates_since` 30 days before setup. Poll every 30 seconds for 90 seconds after
-provider activation. If no attributable match or pending finding has arrived,
-all readiness checks pass, and widening is approved, replace through the normal
-monitor lifecycle with a 90-day boundary. Skip 60 days. Poll for another 90
-seconds after the replacement activates. Keep the monitor active if neither
-window produces a sample; this is a setup observation budget, not provider scan
-completion. Use the decision rules in “Observe and refine.”
+Choose the first window from the volume you expect for these targets, signal
+and filters. Judge it from company size, brand prominence, filter breadth and
+rows already in the shared stream; when unsure, use moderate.
+
+| Expected volume | Examples                                                                   | Start    | Widen if empty |
+| --------------- | -------------------------------------------------------------------------- | -------- | -------------- |
+| High            | reviews or mentions of a well-known brand; job openings at a large company | 7 days   | 30 → 180 days  |
+| Moderate        | filtered roles at mid-size companies; reviews of a mid-market product      | 30 days  | 180 → 365 days |
+| Sparse          | executive hires, funding, a niche product's reviews, small companies       | 180 days | 365 → 730 days |
+
+Set `updates_since` to the first window's start. Poll every 30 seconds for 60
+seconds after provider activation. If no attributable match or pending finding
+has arrived and all readiness checks pass, replace through the normal monitor
+lifecycle with the tier's next boundary and poll another 60 seconds. Widen at
+most twice and never past two years unless the user asks; the contract allows
+five calendar years. Keep the monitor active if no window produces a sample;
+this is a setup observation budget, not scan completion. Use “Observe and refine.”
 
 Honor an explicit time boundary or future-only request. Do not replay history
 when merely recovering a billing-suspended monitor. For a type without history,
 use its documented forward behavior and say historical sampling is unavailable;
 do not invent `updates_since` or a substitute provider.
 
-Calculate both candidate dates from the same setup time. Where the live
-contract uses calendar-month precision, retain both requested and effective
-start dates in validation output. In the history choice, summarize only the
-earliest effective boundary, such as “available matches since July,” so the
-approved scope includes rounding without exposing the internal sequence. For
-new hires/promotions, validate that the 30-day timestamp is outside the current
-month. On a 31st it may still be in the current month: use and validate the
-previous month's start within the approved historical scope. Explain exact
+Calculate every candidate date from the same setup time. Where the live
+contract uses calendar-month precision, retain requested and effective start
+dates in validation output; keep them out of the approval. For
+new hires/promotions, validate that the first window's
+timestamp is outside the current month. A short window may still be in the
+current month: use and validate the previous month's start. Explain exact
 dates if the user asks or supplies a boundary that rounding would exceed;
 never silently widen that explicit boundary. SDK/API omission remains a
 future-only start; this historical default is an agent setup choice.
@@ -111,12 +117,19 @@ candidates merely because they seem plausible. Show their names and inclusion
 decision in the scope table; keep resolved domains with the definition unless
 the user needs them.
 
-When notifications are requested, check Slack with
-`deepline notifications slack channels` before recommending a channel. Use a
-real connected channel or configured CRM, and include that downstream action
-in the same setup approval. If the requested destination is unavailable, say
-so and resolve it. Otherwise use the existing data feed; routine monitor setup
-does not need an extra Slack or CRM decision.
+**Every monitor ends in an action.** Before approval, check what is connected:
+`deepline notifications slack channels` for Slack, and
+`deepline search "monitor match -> CRM record or task" --categories crm` for a
+CRM, and `--categories sequencing` for an outreach sequencer. Recommend the
+connected step that fits best—post each match to a named channel, create or
+update the matching CRM record or task, or add the matched contact to a named
+sequence—and still list the other two as alternatives, marking any that need
+connecting first. Build the chosen step as a Play with a
+`sqlListeners` trigger on the monitor's stream, and include it in the setup
+approval. If none is connected, say so and ask the user to connect Slack, a
+CRM or a sequencer in Dashboard → Integrations before turning it on. Never present
+the raw Customer DB table as the destination; it is only the fallback when the
+user declines an action.
 
 `job_titles` accepts only the documented Deepline Native input syntax: double-quoted title
 terms joined with uppercase `AND`, `OR`, and `NOT`, such as `"VP" OR "Head of
@@ -152,12 +165,11 @@ Use these defaults unless the request says otherwise:
   event only. Leave title, seniority, department, and geography unset unless
   the user explicitly supplied them. Do not broaden the target set for
   hypothetical future reuse.
-- **Time:** for supported history, use the approved 30-day → 90-day setup loop,
-  waiting 90 seconds per active binding. Respect explicit time limits and
-  future-only requests. Do not exceed 90 days without revised approval.
-- **Action:** preserve the monitor's event feed. Add a downstream Play only
-  when the user asks for a notification or another side effect; otherwise leave
-  the event in its Customer DB stream for review.
+- **Time:** for supported history, use the volume-based setup loop, waiting 60
+  seconds per active binding. Respect explicit time limits and future-only
+  requests. Do not exceed the approved boundary without revised approval.
+- **Action:** recommend a Slack, CRM or sequencer step on every monitor. Leave
+  matches only in the Customer DB stream when the user declines one.
 - **Ambiguity:** use the available company/person context to resolve it. Keep an
   unresolved target with a reason rather than stopping the whole setup.
 
@@ -194,8 +206,8 @@ denial.
 ## Explain the monitor only when useful
 
 After validation or deployment, use a sentence when the user needs the model:
-the monitor keeps watch; a matching event enters the shared signal feed; a
-requested Play can then notify Slack, update a CRM, create a task, or enrich
+the monitor keeps watch; a matching event enters the shared signal feed; its
+action Play then notifies Slack, updates a CRM, creates a task, or enriches
 the company. Do not render a diagram or a setup summary before doing the work.
 
 The important boundary is that a monitor does not itself send Slack messages,
@@ -208,8 +220,8 @@ only, not monitor ingestion cost.
 
 Do not make a customer wait days to discover whether the intended signal has
 coverage. After approval, start the approved small scout batch with only the
-target and requested event filters and the approved 30-day historical boundary
-when supported, then prove each stored definition after the write. This is the fastest feedback loop and guards against false success.
+target and requested event filters and the volume-based first window when
+history is supported, then prove each stored definition after the write. This is the fastest feedback loop and guards against false success.
 
 **Example outcome:** “Tell me when Stripe posts a Chief Financial Officer job,
 then let a Play react.” Read the live tool contract before using this example.
@@ -243,7 +255,8 @@ its own approved delivery path; `monitors test` has no dispatch mode.
 ```bash
 # Learn the live job-opening payload fields, output stream, and event price.
 deepline describe deepline_native.company_job_openings
-UPDATES_SINCE=$(node -e 'console.log(new Date(Date.now() - 30 * 86400000).toISOString())')
+# CFO openings at one company are sparse: start 180 days back.
+UPDATES_SINCE=$(node -e 'console.log(new Date(Date.now() - 180 * 86400000).toISOString())')
 MONITOR=$(node - "$UPDATES_SINCE" <<'JS'
 console.log(JSON.stringify({
   key: 'stripe-cfo-job-openings',
@@ -279,7 +292,7 @@ filter.
 
 `updates_since` is a radar boundary, not pagination. Historical widening can
 replace the upstream resource and restart billable ingestion. Validate the
-90-day definition and its live price before the initial approval, use the
+widest-boundary definition and its live price before the initial approval, use the
 normal owned create/replace path, and read back the new definition and binding.
 Keep targets and signal filters unchanged while widening; preserve existing
 rows. Do not use direct provider calls, manual deletion or a second monitor key
@@ -295,30 +308,30 @@ provider/ingestion error is an operational failure. Never fabricate event rows
 or manually create a guessed provider schema to hide it.
 
 Capture the current activation time, then inspect monitor state and attributed
-rows at 30, 60, and 90 seconds. For Deepline Native, read `data_plane_binding`
+rows at 30 and 60 seconds. For Deepline Native, read `data_plane_binding`
 from `monitors get <key> --json` and use both `_dl_monitor_id` and
 `_dl_monitor_binding_version` in shared-stream queries. Reset the timer and use
 the new binding after widening. `last_received_event` proves raw receipt only;
 it does not prove typed storage or downstream Play delivery.
 
-| Observation at the cutoff                                                                   | Action                                                                                                                    |
-| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Attributable rows arrived                                                                   | Show the real sample immediately; keep the monitor and calibrate from evidence. Do not widen.                             |
-| Provider findings or callbacks arrived but rows are pending                                 | Follow their delivery state; investigate a write failure. Do not widen or call it empty.                                  |
-| Configuration, provider, table, binding or ingestion failed                                 | Report **Blocked** with the failure; repair through the normal lifecycle. Do not widen or claim no history.               |
-| 30-day binding is ready, with no matching rows or pending findings after 90 seconds         | Use the already-approved 90-day replacement; otherwise obtain approval first. Skip 60 days.                               |
-| 90-day binding is ready, with no matching rows or pending findings after another 90 seconds | Leave it active and say: **“No matching historical events found during setup. Monitoring is active for future matches.”** |
+| Observation at the cutoff                                                                                          | Action                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| Attributable rows arrived                                                                                          | Show the real sample immediately; keep the monitor and calibrate from evidence. Do not widen.                             |
+| Provider findings or callbacks arrived but rows are pending                                                        | Follow their delivery state; investigate a write failure. Do not widen or call it empty.                                  |
+| Configuration, provider, table, binding or ingestion failed                                                        | Report **Blocked** with the failure; repair through the normal lifecycle. Do not widen or claim no history.               |
+| A binding short of the tier's widest boundary is ready, with no matching rows or pending findings after 60 seconds | Replace it with the tier's next boundary; setup approval already covers it.                                               |
+| The widest-boundary binding is ready, with no matching rows or pending findings after 60 seconds                   | Leave it active and say: **“No matching historical events found during setup. Monitoring is active for future matches.”** |
 
 If an observed matching finding has an unreadable delivery state, report an
 inconclusive sample and investigate it. With no observed matching finding or
-known pending delivery, follow the 90-second setup cutoffs; a scan-completion
+known pending delivery, follow the 60-second setup cutoffs; a scan-completion
 flag is not required. Absence of rows does not prove full historical coverage.
 Deepline Native documents historical delivery during the first 24 hours and
 has no historical-scan completion flag. Early widening may interrupt remaining
-30-day processing. Retain this limitation in operational notes; describe
-history to the user as a best-effort sample if needed. The final message reports
-only the bounded observation. Later history may still arrive from the
-active 90-day monitor. Do not claim complete historical coverage or a broken
+processing of the narrower window. Retain this limitation in operational notes;
+describe history to the user as a best-effort sample if needed. The final
+message reports only the bounded observation. Later history may still arrive
+from the active monitor. Do not claim complete historical coverage or a broken
 signal from either timeout.
 
 ## How to communicate
@@ -344,27 +357,26 @@ filter—so the first real matches tell us what belongs.
 | No    | <candidate> | <why it is not in this first pass> |
 
 Turn on <signal> tracking for <named targets>? Matches cost <live Deepline
-price> each, charged as they arrive, and appear in <validated destination>.
+price> each, charged as they arrive, and each one <recommended action>. Or
+<alternative action> / <alternative action (connect first)>.
 
-- With recent history (recommended): include available past matches <maximum
-  approved scope; use “since July” rather than rolling-day counts for month precision>.
-- Future hires only: watch for new matches from now on.
+- With recent history (recommended): include a sample of past matches now,
+  charged at the same price.
+- Future <signal noun> only: watch for new matches from now on.
 - Preview only: validate the configuration without activating or spending credits.
 ```
 
-For one company, replace the table with a sentence. Use the signal's own noun
-for the future-only choice, such as “Future job openings only.” If history is
-unsupported or the user already chose future-only, omit the history choice.
-Honor preview-only requests without asking to activate. Selecting history
-approves the internal setup loop within the displayed boundary; selecting
-future-only omits `updates_since`; selecting preview-only performs no paid
-mutation. Do not ask the same setup question again after a choice is approved.
+For one company, replace the table with a sentence. If history is unsupported
+or the user already chose future-only, omit the history choice. Honor
+preview-only requests without asking to activate. Selecting history approves
+the internal setup loop and the action step; future-only omits
+`updates_since`; preview-only performs no paid mutation. Do not ask the same
+setup question again after a choice is approved.
 
 Similar companies are a scope recommendation, not a silent expansion: show each
-candidate and whether it is in this pass. Include delivery in this same handoff;
-recommend a real Slack channel when connected or the existing data feed when no
-external destination was requested. Mention a missing Slack connection only if
-it prevents requested delivery, rather than forcing another setup decision.
+candidate and whether it is in this pass. Name the action step from “Every
+monitor ends in an action” in this same handoff; when nothing is connected,
+ask the user to connect one rather than naming the raw table.
 
 ### Calibration decision
 
@@ -390,8 +402,8 @@ asked to calibrate, a recommendation to leave the filter broad still ends with
 the same yes-or-adjust prompt; it gives them the smallest useful control.
 
 Use the “Observe and refine” decision rules: inspect every 30 seconds, show
-matches as soon as they arrive, and use only the approved 30-day → 90-day
-widening. Do not ask for another approval already covered by setup consent.
+matches as soon as they arrive, and widen only along the chosen volume tier.
+Do not ask for another approval already covered by setup consent.
 When rows arrive, keep matching patterns and remove only an observed off-target
 pattern. Verify the stored update and observe it forward; an ordinary filter
 update does not request new historical matches. A rejected signal is **Stopped**:

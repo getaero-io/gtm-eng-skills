@@ -1,4 +1,4 @@
-<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 58b9c79dae1fc9dbde420cb5ae359cee4275b62f3cdb911cdee443b5c32891b6; run bun run docs:monitor-contract -->
+<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 9587892a1d6d3b5700af827379edf5df9c909eb4cedf873aec14bc615aa9a5d7; run bun run docs:monitor-contract -->
 
 # Monitor Contract Reference
 
@@ -14,6 +14,84 @@ This factual reference is generated from the same monitor capability contracts u
 
 - Validation errors name the payload path and expected contract value; correct the definition and rerun monitors check.
 - A paused monitor needs a balance or entitlement correction before reactivation. Deepline exposes Deepline pricing only.
+
+## `rb2b.visitor_events`
+
+Ingest RB2B identified-visitor webhook events after you add the Deepline endpoint in RB2B.
+
+### Executable examples
+
+#### Website visitors
+
+```json
+{
+  "key": "rb2b-website-visitors",
+  "tool": "rb2b.visitor_events",
+  "payload": {}
+}
+```
+
+### Outputs
+
+| Stream   | Customer DB table     | Meaning                                                       |
+| -------- | --------------------- | ------------------------------------------------------------- |
+| `events` | `rb2b.visitor_events` | RB2B identified visitor webhook events delivered to Deepline. |
+
+#### Pricing, identity, and updates
+
+- Pricing: Use the Deepline pricing returned by describe, monitors available, check, or deploy --dry-run. Provider spend is not exposed.
+- Identity: This monitor uses the provider capability identity declared by Deepline.
+- Update: Use monitors update for a patch or deploy for a complete desired definition.
+- Backfill: Existing Customer DB rows are retained; this capability does not promise provider backfill unless its provider documentation says otherwise.
+
+#### Troubleshooting
+
+- **Validation failed:** Correct the reported payload path, then run monitors check again.
+
+## `deepline.analytics`
+
+Capture signed, session-based Radar website activity from the Deepline Analytics tracker.
+
+### Executable examples
+
+#### Website sessions
+
+```json
+{
+  "key": "deepline-analytics-sessions",
+  "tool": "deepline.analytics",
+  "payload": {
+    "domains": ["example.com"]
+  }
+}
+```
+
+### Outputs
+
+| Stream     | Customer DB table             | Meaning                                          |
+| ---------- | ----------------------------- | ------------------------------------------------ |
+| `sessions` | `deepline_analytics.sessions` | Signed, session-based Deepline Analytics events. |
+
+#### Fields
+
+| Field            | Semantics                                        |
+| ---------------- | ------------------------------------------------ |
+| `domains`        | Provider-specific domains monitor filter.        |
+| `formTracking`   | Provider-specific formTracking monitor filter.   |
+| `clickTracking`  | Provider-specific clickTracking monitor filter.  |
+| `customEvents`   | Provider-specific customEvents monitor filter.   |
+| `waitForConsent` | Provider-specific waitForConsent monitor filter. |
+
+#### Pricing, identity, and updates
+
+- Pricing: Use the Deepline pricing returned by describe, monitors available, check, or deploy --dry-run. Provider spend is not exposed.
+- Identity: This monitor uses the provider capability identity declared by Deepline.
+- Update: Use monitors update for a patch or deploy for a complete desired definition.
+- Backfill: Existing Customer DB rows are retained; this capability does not promise provider backfill unless its provider documentation says otherwise.
+
+#### Troubleshooting
+
+- **Validation failed:** Correct the reported payload path, then run monitors check again.
 
 ## `deepline_native.company_radar`
 
@@ -181,6 +259,39 @@ Creates a Deepline-managed industry radar data pipe and writes provider-native i
 
 - Pricing: Use the Deepline pricing returned by describe, monitors available, check, or deploy --dry-run. Provider spend is not exposed.
 - Identity: The provider resource scope uses radar_type, industry. Different effective payload configurations in that scope may be separate monitor resources; exact duplicates still conflict.
+- Update: Use monitors update for a patch or deploy for a complete desired definition.
+- Backfill: Existing Customer DB rows are retained; this capability does not promise provider backfill unless its provider documentation says otherwise.
+
+#### Troubleshooting
+
+- **Validation failed:** Correct the reported payload path, then run monitors check again.
+
+## `vector.visitor_events`
+
+Ingest Vector contact.visited events after you add the Deepline callback URL to a live Vector segment.
+
+### Executable examples
+
+#### High-intent website visitors
+
+```json
+{
+  "key": "vector-high-intent-visitors",
+  "tool": "vector.visitor_events",
+  "payload": {}
+}
+```
+
+### Outputs
+
+| Stream   | Customer DB table       | Meaning                                              |
+| -------- | ----------------------- | ---------------------------------------------------- |
+| `events` | `vector.visitor_events` | Vector contact.visited events delivered to Deepline. |
+
+#### Pricing, identity, and updates
+
+- Pricing: Use the Deepline pricing returned by describe, monitors available, check, or deploy --dry-run. Provider spend is not exposed.
+- Identity: This monitor uses the provider capability identity declared by Deepline.
 - Update: Use monitors update for a patch or deploy for a complete desired definition.
 - Backfill: Existing Customer DB rows are retained; this capability does not promise provider backfill unless its provider documentation says otherwise.
 
