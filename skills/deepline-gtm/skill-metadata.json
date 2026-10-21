@@ -42,6 +42,19 @@
       "title": "Monitor Contract Reference",
       "tags": ["reference", "monitors"],
       "providers": []
+    },
+    "recipes/developer-signals.md": {
+      "kind": "specialized-workflow",
+      "title": "Developer Signals",
+      "tags": [
+        "recipe",
+        "developer",
+        "intent",
+        "github",
+        "identity-resolution",
+        "account-scoring"
+      ],
+      "providers": []
     }
   },
   "prefixes": {

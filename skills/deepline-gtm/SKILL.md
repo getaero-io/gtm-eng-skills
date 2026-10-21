@@ -1,6 +1,6 @@
 ---
 name: deepline-gtm
-description: "GTM prospecting, enrichment, outreach, and Deepline Play work/audits. Providers: adyntel,affinity,ai_ark,akta,allegrow,amplemarket,apify,attention,attio,aviato,bettercontact,bigquery,bluesky,bounceban,brave,browserbase,builtwith,cbinsights,clay,clickhouse,cloudflare,contactout,contextdev,crunchbase,crustdata-v3,customer_db,databricks,dataforseo,datagma,dealroom,deepline_ip_to_company,deepline_native,deeplineagent,discolike,dnb,dropleads,edges,emailbison,emailguard,enformion,enigma,exa,findymail,firecrawl,fireflies,firmable,forager,fullenrich,fundable,generic_http,getleads,gong,google_ads_audiences,google_workspace,govfiles,grain,hackernews,harvestapi,heyreach,hubspot,hunter,icypeas,instantly,intercom,ipqs,kaspr,kernel,leadmagic,lemlist,limadata,linkedin_ads_audiences,luma,lusha,meta_audiences,millionverifier,nooks,notion,openmart,opensosdata,openwebninja,outreach,parallel,peopledatalabs,pitchbook,podscan,polymarket,postgres,predictleads,prospeo,quickenrich,rapidapi,redshift,rocketreach,salesforce,…."
+description: "GTM leads, enrichment, outreach, Plays, developer signals/Reo.dev. Providers: adyntel,affinity,ai_ark,akta,allegrow,amplemarket,apify,attention,attio,aviato,bettercontact,bigquery,bluesky,bounceban,brave,browserbase,builtwith,cbinsights,clay,clickhouse,cloudflare,contactout,contextdev,crunchbase,crustdata-v3,customer_db,databricks,dataforseo,datagma,dealroom,deepline_ip_to_company,deepline_native,deeplineagent,discolike,dnb,dropleads,edges,emailbison,emailguard,enformion,enigma,exa,findymail,firecrawl,fireflies,firmable,forager,fullenrich,fundable,generic_http,getleads,gong,google_ads_audiences,google_workspace,govfiles,grain,hackernews,harvestapi,heyreach,hubspot,hunter,icypeas,instantly,intercom,ipqs,kaspr,kernel,leadmagic,lemlist,limadata,linkedin_ads_audiences,luma,lusha,meta_audiences,millionverifier,nooks,notion,openmart,opensosdata,openwebninja,outreach,parallel,peopledatalabs,pitchbook,podscan,polymarket,postgres,predictleads,prospeo,quickenrich,rapidapi,redshift,rocketreach,salesforce,…."
 ---
 
 # Deepline GTM
@@ -105,6 +105,10 @@ Rules:
   Do not split the file or run one record at a time.
 - **Company criteria drive the task:** find the companies first, then the
   people there.
+- **Developer signals or Reo.dev questions:** read
+  [developer signals](recipes/developer-signals.md) for accessible signal
+  coverage, identity mapping and account scoring. Do not claim vendor
+  replacement or offer inaccessible sources.
 - **The task names a provider:** search for that provider.
 - **Authoring a Play:** `deepline plays --help` shows how to start from
   working code; `--help --verbose` adds the authoring rules.
@@ -118,6 +122,7 @@ Open one when the task matches:
 [account org chart](recipes/account-orgchart.md),
 [build TAM](recipes/build-tam.md),
 [Clay conversion](recipes/clay-to-deepline.md),
+[developer signals](recipes/developer-signals.md),
 [monitors](recipes/deepline-monitors.md),
 [qualified titles](recipes/find-qualified-titles.md),
 [LinkedIn URL lookup](recipes/linkedin-url-lookup.md),
