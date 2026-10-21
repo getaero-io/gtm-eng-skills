@@ -113,7 +113,7 @@ append a new immutable run tab to an existing workbook:
 : "${DATASET_ID:?Set DATASET_ID to the selected datasets[].datasetId}"
 TAB_LABEL="${TAB_LABEL:-Results}"
 SPREADSHEET_TITLE="${SPREADSHEET_TITLE:-Play review}"
-OPERATION_KEY="${OPERATION_KEY:-review-$(date -u +%Y%m%dT%H%M%SZ)}"
+EXPORT_OPERATION_ID="${EXPORT_OPERATION_ID:-review-$(date -u +%Y%m%dT%H%M%SZ)}"
 PRESENTATION="$(node "$SKILL_DIR/scripts/review-sheet-presentation.mjs")"
 
 EXPORT_INPUT="$(jq -n \
@@ -122,7 +122,7 @@ EXPORT_INPUT="$(jq -n \
   --arg spreadsheet_id "${SPREADSHEET_ID:-}" \
   --arg spreadsheet_title "$SPREADSHEET_TITLE" \
   --arg tab_name "$TAB_LABEL" \
-  --arg operation_key "$OPERATION_KEY" \
+  --arg operation_key "$EXPORT_OPERATION_ID" \
   --argjson presentation "$PRESENTATION" \
   '{
     dataset: {run_id: $run_id, dataset_id: $dataset_id},
