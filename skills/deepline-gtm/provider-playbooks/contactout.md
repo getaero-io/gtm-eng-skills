@@ -2,7 +2,7 @@
 
 ## When to use
 
-ContactOut for LinkedIn → email/phone enrichment when you have a LinkedIn URL. High accuracy for active LinkedIn users. Strong for US + global. Falls after dropleads in cost-ordered waterfalls.
+ContactOut for LinkedIn → email/phone enrichment when you have a LinkedIn URL. High accuracy for active LinkedIn users. Strong for US + global. Check current pricing before choosing a waterfall order.
 
 **Important**: Free pre-check APIs (`contactout_check_email_status`, `contactout_check_work_email`, `contactout_check_personal_email`, `contactout_check_phone`) are informational only. Do not use an empty pre-check to skip a paid reveal: it can be empty even when ContactOut's paid reveal returns verified contact data.
 

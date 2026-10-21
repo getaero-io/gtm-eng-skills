@@ -2,20 +2,20 @@
 
 ## Operation Selection
 
-| Goal                                      | Operation        |
-| ----------------------------------------- | ---------------- |
-| Find contacts at a company                | `prospector`     |
-| Enrich a single contact                   | `enrich_contact` |
-| Look up phone numbers                     | `enrich_phone`   |
-| Enrich a company record                   | `enrich_company` |
-| Detect job changes (preferred)            | `job_change`     |
-| LinkedIn lookup — dropleads fallback only | `search_contact` |
+| Goal                           | Operation        |
+| ------------------------------ | ---------------- |
+| Find contacts at a company     | `prospector`     |
+| Enrich a single contact        | `enrich_contact` |
+| Look up phone numbers          | `enrich_phone`   |
+| Enrich a company record        | `enrich_company` |
+| Detect job changes (preferred) | `job_change`     |
+| Company-scoped LinkedIn lookup | `search_contact` |
 
 ## Provider Positioning
 
 - **`job_change`**: preferred job-change provider — charges only on confirmed moves.
-- **`search_contact`**: secondary people search. **Not free** — `0.56` Deepline credits per contact returned on successful calls. Zero returned contacts are free. Deepline `422` schema validation errors are rejected before provider execution and should not bill. **Dropleads is the default people search and is free per call.** Use `search_contact` only when dropleads fails or is unavailable. Not yet tested enough to be the primary path.
-- **`prospector` / `enrich_contact`**: use when Dropleads coverage is insufficient for the target segment.
+- **`search_contact`**: secondary people search. **Not free** — `0.56` Deepline credits per contact returned on successful calls. Zero returned contacts are free. Deepline `422` schema validation errors are rejected before provider execution and should not bill. Use it for company-scoped LinkedIn candidate discovery; check current catalog options and pricing before selecting a provider.
+- **`prospector` / `enrich_contact`**: use for company-scoped prospecting and contact enrichment.
 - **`enrich_company`**: `0.98` Deepline credits per call. Use when firmographic data is required and other sources have been exhausted.
 
 ## Key Behaviors
@@ -64,7 +64,7 @@
 
 ### search_contact
 
-- **Not the default people search — dropleads is.** Use as a fallback when dropleads fails or returns no results.
+- Use for company-scoped LinkedIn candidate discovery. Discover available alternatives through `deepline search --type tools`.
 - Uses the dedicated Waterfall search key/budget (`60 RPM`), separate from the higher-throughput enrichment key.
 - **Pricing: `0.56` Deepline credits per contact returned (post-deduct, billed on success). Zero returned contacts are free. Deepline `422` schema validation errors, such as `title_lists[0].titles` not being an array, happen before provider execution and should not bill.** A `page_size: 10` call that returns 10 contacts costs `5.6` credits — keep `page_size` small (`1-3`) for targeted lookups.
 - Synchronous. Returns LinkedIn URLs and profile/title data only. There is no request option to reveal contact data: `professional_email`, `personal_email`, `mobile_phone`, `phone_numbers`, and `email_verified` are present in each person but always empty, and every returned profile still bills. Use `enrich_contact` / `enrich_phone` on the rows you keep.
@@ -105,8 +105,8 @@
 
 ### LinkedIn lookup fallback flow
 
-1. Try dropleads first (`dropleads_search_people`) — it is the default.
-2. If dropleads fails or returns no results, fall back to `search_contact` with domain + title_filters.
+1. Use `search_contact` with domain + title_filters for company-scoped candidates.
+2. Inspect the returned profiles and keep matches for the requested company and role.
 3. Follow up with `enrich_contact` on the returned `linkedin_url` to get email.
 
 ### CLI quick checks
@@ -172,7 +172,7 @@ do not rerun, add paid enrichment, or repair the workflow just to retrieve resul
 
 ## Anti-Patterns to Avoid
 
-- Do not default to `search_contact` for people search — use dropleads first.
+- Do not treat `search_contact` as free; each returned contact is billable.
 - Do not assume portable play-style seniorities like `C-Level` are valid on the raw `search_contact` tool.
 - Do not use broad founder/CEO filters when you really want a functional leader at a company; they can produce noisy candidate sets.
 - Do not use `email`/`linkedin`/`domain` field names for `job_change` — use the correct API names (`professional_email`, `contact_linkedin`, `company_domain`).

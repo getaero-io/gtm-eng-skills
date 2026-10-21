@@ -1,5 +1,7 @@
 # Dropleads Playbook
 
+Dropleads is hidden from tool discovery because of upstream reliability issues. Choose another provider for new workflows. Exact calls and existing Plays remain supported; the guidance below applies to those existing integrations.
+
 Use Dropleads as a two-phase flow: low-cost contact discovery first, paid enrichment second. Do not use Dropleads people search as the first step for account discovery.
 
 ## 1) Start with low-cost discovery

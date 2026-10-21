@@ -68,12 +68,12 @@ deepline describe <candidate_tool_id> # verify it exists + see payload schema
 | `normalize-company-name`                                    | `deeplineagent` or `run_javascript`                                                                                                                                                                                                                                                                                                                | JS preferred for pure string ops                                                              |
 | `generate-email-permutations`                               | `run_javascript`                                                                                                                                                                                                                                                                                                                                   | Pure compute, no provider                                                                     |
 | `validate-email` (all instances)                            | `leadmagic_email_validation` (one final gate)                                                                                                                                                                                                                                                                                                      | Skip per-step validation; validate once after waterfall                                       |
-| `wiza-find-email`                                           | `dropleads_email_finder` (waterfall step 1)                                                                                                                                                                                                                                                                                                        | Part of native play                                                                           |
-| `find-email-v2` (Hunter)                                    | `hunter_email_finder` (waterfall step 2)                                                                                                                                                                                                                                                                                                           | Part of native play                                                                           |
-| `leadmagic-find-work-email`                                 | `leadmagic_email_finder` (waterfall step 3)                                                                                                                                                                                                                                                                                                        | Part of native play                                                                           |
-| `findymail-find-work-email`                                 | `dropleads_email_finder` (waterfall fallback)                                                                                                                                                                                                                                                                                                      | Covered by native play                                                                        |
+| `wiza-find-email`                                           | `name-and-domain-to-email-waterfall`                                                                                                                                                                                                                                                                                                               | Part of native play                                                                           |
+| `find-email-v2` (Hunter)                                    | `hunter_email_finder`                                                                                                                                                                                                                                                                                                                              | Part of native play                                                                           |
+| `leadmagic-find-work-email`                                 | `leadmagic_email_finder`                                                                                                                                                                                                                                                                                                                           | Part of native play                                                                           |
+| `findymail-find-work-email`                                 | `findymail_find_from_name`                                                                                                                                                                                                                                                                                                                         | Covered by native play                                                                        |
 | `enrich-person` (PDL)                                       | `peopledatalabs_enrich_contact` (waterfall step)                                                                                                                                                                                                                                                                                                   | Covered by native play                                                                        |
-| `dropcontact-enrich-person`                                 | `dropleads_email_finder` (waterfall step)                                                                                                                                                                                                                                                                                                          | Covered by native play                                                                        |
+| `dropcontact-enrich-person`                                 | `name-and-domain-to-email-waterfall`                                                                                                                                                                                                                                                                                                               | Covered by native play                                                                        |
 | **Entire email waterfall group**                            | `name-and-domain-to-email-waterfall`                                                                                                                                                                                                                                                                                                               | One play replaces all 6 finders when you have a domain; include `linkedin_url` when available |
 | `use-ai` (no web, simple)                                   | `deeplineagent`                                                                                                                                                                                                                                                                                                                                    | Match model tier                                                                              |
 | `use-ai` (no web, structured)                               | `deeplineagent` + `jsonSchema`                                                                                                                                                                                                                                                                                                                     |                                                                                               |
@@ -141,7 +141,7 @@ return rows.find((c) => c.domain === joinKey) || null;
 
 ## Email Waterfall (6 Clay providers → 1 Deepline native play)
 
-The entire Clay waterfall group collapses to one native play. Pick based on available input:
+The entire Clay waterfall group collapses to one native play. The play owns its provider order and validation stages. Pick based on available input:
 
 **Have LinkedIn URL + name + domain** (preferred — highest hit rate):
 
@@ -149,8 +149,6 @@ The entire Clay waterfall group collapses to one native play. Pick based on avai
 .withColumn('work_email', 'name-and-domain-to-email-waterfall', { linkedin_url: "{{linkedin_url}}", first_name: "{{first_name}}", last_name: "{{last_name}}", domain: "{{company_domain}}" })
 
 ```
-
-Compiles to: `dropleads_email_finder → hunter_email_finder → leadmagic_email_finder → enrich_contact → crustdata_v3_person_enrich → peopledatalabs_enrich_contact`
 
 **Have name + company only**:
 
@@ -166,12 +164,9 @@ Compiles to: `dropleads_email_finder → hunter_email_finder → leadmagic_email
 
 ```
 
-Compiles to: `leadmagic_email_validation (first.last@, firstlast@, first_last@) → dropleads_email_finder → hunter_email_finder → leadmagic_email_finder → enrich_contact → peopledatalabs_enrich_contact`
-
 **Alternative individual providers** (use `deepline search "name and company domain -> work email" --type tools` to see current list):
 
 - `icypeas_email_search` — 700M+ profiles, strong LinkedIn coverage; useful as a step if native play misses
-- `dropleads_email_finder` — included in native plays; available standalone too
 - Run `deepline describe icypeas_email_search` to verify tool exists before using
 
 **Final validation gate** (replaces all per-step Clay `validate-email` calls):
@@ -201,12 +196,6 @@ Alternative — `zerobounce_validate` (more detailed sub_status, better for catc
 ```
 
 Check `.status` and `.sub_status`. Use `zerobounce_validate` for each email; Deepline disables ZeroBounce batch validation because the upstream batch endpoint currently returns 403 Access denied from Deepline egress.
-
-Alternative — `dropleads_email_verifier` (cheapest option):
-
-```ts
-.withColumn('email_valid', 'dropleads_email_verifier', { email: "{{work_email}}" })
-```
 
 Run `deepline search "email -> validation status" --type tools` to see all current options.
 
