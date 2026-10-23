@@ -37,6 +37,7 @@ export default definePlay(
     }
 
     const createResult = await ctx.tools.execute({
+      staleAfterSeconds: 0,
       id: 'create_google_audience',
       tool: 'google_ads_audiences_create_audience',
       input: {
@@ -64,6 +65,7 @@ export default definePlay(
     }
 
     const syncResult = await ctx.tools.execute({
+      staleAfterSeconds: 0,
       id: 'sync_google_audience_members',
       tool: 'google_ads_audiences_sync_audience_members',
       input: {
@@ -86,6 +88,7 @@ export default definePlay(
     });
 
     const statusResult = await ctx.tools.execute({
+      staleAfterSeconds: 0,
       id: 'get_google_audience_status',
       tool: 'google_ads_audiences_get_audience_status',
       input: {
@@ -108,6 +111,7 @@ export default definePlay(
     };
   },
   {
+    compatibility: { authoringContract: 'explicit-freshness' },
     description:
       'Create a Google Customer Match audience, upload hash-only rows, and read the resulting status back.',
   },

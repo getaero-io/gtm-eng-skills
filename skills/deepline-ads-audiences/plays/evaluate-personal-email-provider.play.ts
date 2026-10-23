@@ -318,6 +318,7 @@ export default definePlay(
       .withColumn('provider_result', (row, rowCtx) => {
         if (input.provider === 'leadmagic_personal_email_finder') {
           return rowCtx.tools.execute({
+            staleAfterSeconds: 0,
             id: 'leadmagic_personal_email_finder',
             tool: 'leadmagic_personal_email_finder',
             input: providerInput(input.provider, row) as never,
@@ -326,6 +327,7 @@ export default definePlay(
         }
         if (input.provider === 'crustdata_v3_person_enrich') {
           return rowCtx.tools.execute({
+            staleAfterSeconds: 0,
             id: 'crustdata_v3_person_enrich',
             tool: 'crustdata_v3_person_enrich',
             input: providerInput(input.provider, row) as never,
@@ -334,6 +336,7 @@ export default definePlay(
         }
         if (input.provider === 'contactout_enrich_person') {
           return rowCtx.tools.execute({
+            staleAfterSeconds: 0,
             id: 'contactout_enrich_person',
             tool: 'contactout_enrich_person',
             input: providerInput(input.provider, row) as never,
@@ -342,6 +345,7 @@ export default definePlay(
         }
         if (input.provider === 'datagma_full_enrichment') {
           return rowCtx.tools.execute({
+            staleAfterSeconds: 0,
             id: 'datagma_full_enrichment',
             tool: 'datagma_full_enrichment',
             input: providerInput(input.provider, row) as never,
@@ -350,6 +354,7 @@ export default definePlay(
         }
         if (input.provider === 'enformion_person_search') {
           return rowCtx.tools.execute({
+            staleAfterSeconds: 0,
             id: 'enformion_person_search',
             tool: 'enformion_person_search',
             input: providerInput(input.provider, row) as never,
@@ -358,6 +363,7 @@ export default definePlay(
         }
         if (input.provider === 'fullenrich_bulk_enrich') {
           return rowCtx.tools.execute({
+            staleAfterSeconds: 0,
             id: 'fullenrich_bulk_enrich',
             tool: 'fullenrich_bulk_enrich',
             input: providerInput(input.provider, row) as never,
@@ -366,6 +372,7 @@ export default definePlay(
         }
         if (input.provider === 'limadata_find_personal_email') {
           return rowCtx.tools.execute({
+            staleAfterSeconds: 0,
             id: 'limadata_find_personal_email',
             tool: 'limadata_find_personal_email',
             input: providerInput(input.provider, row) as never,
@@ -374,6 +381,7 @@ export default definePlay(
         }
         if (input.provider === 'lusha_enrich_person') {
           return rowCtx.tools.execute({
+            staleAfterSeconds: 0,
             id: 'lusha_enrich_person',
             tool: 'lusha_enrich_person',
             input: providerInput(input.provider, row) as never,
@@ -381,6 +389,7 @@ export default definePlay(
           }) as Promise<unknown>;
         }
         return rowCtx.tools.execute({
+          staleAfterSeconds: 0,
           id: 'wiza_reveal_person',
           tool: 'wiza_reveal_person',
           input: providerInput(input.provider, row) as never,
@@ -431,6 +440,7 @@ export default definePlay(
     };
   },
   {
+    compatibility: { authoringContract: 'explicit-freshness' },
     description:
       'Compare personal-email providers on the same contact sample, reporting hit rate, unique hashes added, and Deepline spend.',
   },

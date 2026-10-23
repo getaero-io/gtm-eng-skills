@@ -70,6 +70,7 @@ export default definePlay(
       .dataset('leadmagic_eval', rows)
       .withColumn('leadmagic_result', (row, rowCtx) =>
         rowCtx.tools.execute({
+          staleAfterSeconds: 0,
           id: 'leadmagic_personal_email_finder',
           tool: 'leadmagic_personal_email_finder',
           input: { profile_url: String(row.linkedin_url) },
@@ -116,6 +117,7 @@ export default definePlay(
     };
   },
   {
+    compatibility: { authoringContract: 'explicit-freshness' },
     description:
       'Measure LeadMagic personal-email coverage and cost per hit on a sample of contacts before committing to a full run.',
   },

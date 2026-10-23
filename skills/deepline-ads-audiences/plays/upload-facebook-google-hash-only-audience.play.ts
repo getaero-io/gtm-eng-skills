@@ -54,6 +54,7 @@ export default definePlay(
       input.google_account_id !== undefined
         ? await (async () => {
             const createResult = await ctx.tools.execute({
+              staleAfterSeconds: 0,
               id: 'create_google_audience',
               tool: 'google_ads_audiences_create_audience',
               input: {
@@ -79,6 +80,7 @@ export default definePlay(
               );
             }
             const syncResult = await ctx.tools.execute({
+              staleAfterSeconds: 0,
               id: 'sync_google_audience_members',
               tool: 'google_ads_audiences_sync_audience_members',
               input: {
@@ -100,6 +102,7 @@ export default definePlay(
               description: 'Upload hash-only audience members to Google.',
             });
             const statusResult = await ctx.tools.execute({
+              staleAfterSeconds: 0,
               id: 'get_google_audience_status',
               tool: 'google_ads_audiences_get_audience_status',
               input: {
@@ -129,6 +132,7 @@ export default definePlay(
               );
             }
             const syncResult = await ctx.tools.execute({
+              staleAfterSeconds: 0,
               id: 'sync_meta_audience_members',
               tool: 'meta_audiences_sync_audience_members',
               input: {
@@ -155,6 +159,7 @@ export default definePlay(
     };
   },
   {
+    compatibility: { authoringContract: 'explicit-freshness' },
     description:
       'Upload the same validated hash-only rows to a Google Customer Match audience and an existing Meta Custom Audience.',
   },

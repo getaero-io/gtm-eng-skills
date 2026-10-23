@@ -224,6 +224,7 @@ export default definePlay(
 
     for (const [index, chunk] of chunks.entries()) {
       const result = await ctx.tools.execute({
+        staleAfterSeconds: 0,
         id: 'contactout_hashes',
         tool: 'contactout_get_hashed_email_identifiers',
         input: { profiles: chunk } as never,
@@ -271,6 +272,7 @@ export default definePlay(
     };
   },
   {
+    compatibility: { authoringContract: 'explicit-freshness' },
     description:
       'Resolve LinkedIn URLs into a deduped ContactOut email hash pool for paid ads audiences, reporting net-new hashes and matched-profile cost.',
   },

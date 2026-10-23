@@ -130,7 +130,7 @@ function readProviderHashes(result: unknown): string[] {
   const body = providerData(result);
   const data = asRecord(body.data ?? body);
   const found: string[] = [];
-  const push = (value: unknown) => {
+  const collectProviderHash = (value: unknown) => {
     const hash = normalizeSha256(value);
     if (hash && !found.includes(hash)) found.push(hash);
   };
@@ -142,15 +142,15 @@ function readProviderHashes(result: unknown): string[] {
     data.sha256,
     asRecord(data.matched_result).hash,
   ]) {
-    push(candidate);
+    collectProviderHash(candidate);
   }
   if (Array.isArray(data.hashedEmails)) {
-    for (const entry of data.hashedEmails) push(entry);
+    for (const entry of data.hashedEmails) collectProviderHash(entry);
   }
   if (Array.isArray(data.hashed_emails)) {
     for (const entry of data.hashed_emails) {
       const record = asRecord(entry);
-      push(record.normalized_hash ?? record.hash ?? entry);
+      collectProviderHash(record.normalized_hash ?? record.hash ?? entry);
     }
   }
   return found;
@@ -172,17 +172,17 @@ function readPersonalEmailHashes(result: unknown): string[] {
   const body = providerData(result);
   const data = asRecord(body.data ?? body);
   const found: string[] = [];
-  const push = (value: unknown) => {
+  const collectPersonalEmailHash = (value: unknown) => {
     const email = normalizeEmail(value);
     if (!email) return;
     const hash = sha256Hex(email);
     if (!found.includes(hash)) found.push(hash);
   };
 
-  push(data.personal_email);
-  push(data.first_personal_email);
+  collectPersonalEmailHash(data.personal_email);
+  collectPersonalEmailHash(data.first_personal_email);
   if (Array.isArray(data.personal_emails)) {
-    for (const entry of data.personal_emails) push(entry);
+    for (const entry of data.personal_emails) collectPersonalEmailHash(entry);
   }
   return found;
 }
@@ -262,6 +262,7 @@ export default definePlay(
           const linkedinUrl = readLinkedInUrl(row);
           const workEmail = normalizeEmail(row.work_email);
           return rowCtx.tools.execute({
+            staleAfterSeconds: 0,
             id: 'aviato_hash',
             tool: 'aviato_pull_email_hash',
             input: (linkedinUrl
@@ -281,6 +282,7 @@ export default definePlay(
           const linkedinUrl = readLinkedInUrl(row);
           const workEmail = normalizeEmail(row.work_email);
           return rowCtx.tools.execute({
+            staleAfterSeconds: 0,
             id: 'limadata_hash',
             tool: 'limadata_find_audience_identifiers',
             input: {
@@ -302,6 +304,7 @@ export default definePlay(
           Boolean(readLinkedInUrl(row)),
         run: ({ row, ctx: rowCtx }) =>
           rowCtx.tools.execute({
+            staleAfterSeconds: 0,
             id: 'leadmagic_personal_email',
             tool: 'leadmagic_personal_email_finder',
             input: { profile_url: readLinkedInUrl(row) } as never,
@@ -396,6 +399,7 @@ export default definePlay(
         contactOutSent = profiles.length;
         for (const chunk of chunkProfiles(profiles)) {
           const result = await ctx.tools.execute({
+            staleAfterSeconds: 0,
             id: 'contactout_hashes',
             tool: 'contactout_get_hashed_email_identifiers',
             input: { profiles: chunk } as never,
@@ -473,6 +477,7 @@ export default definePlay(
     };
   },
   {
+    compatibility: { authoringContract: 'explicit-freshness' },
     description:
       'Enrich a contact list for paid ads audiences: cheap hash layers first, each running only on rows still missing a hash, with ContactOut as a bulk pass over everyone with a LinkedIn URL.',
   },
