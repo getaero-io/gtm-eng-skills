@@ -3,9 +3,7 @@
     "SKILL.md": {
       "kind": "entrypoint",
       "title": "LinkedIn URL Lookup",
-      "tags": [
-        "recipe"
-      ],
+      "tags": ["linkedin", "retired"],
       "providers": []
     }
   }

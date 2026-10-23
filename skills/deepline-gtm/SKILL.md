@@ -109,6 +109,10 @@ Rules:
   [developer signals](recipes/developer-signals.md) for accessible signal
   coverage, identity mapping and account scoring. Do not claim vendor
   replacement or offer inaccessible sources.
+- **Finding a person's LinkedIn URL from a name:** keep a URL only when the
+  first and last name on the returned profile match the input. Mark the rest
+  unresolved; a paid person lookup by name and company domain is the last
+  fallback.
 - **The task names a provider:** search for that provider.
 - **Authoring a Play:** `deepline plays --help` shows how to start from
   working code; `--help --verbose` adds the authoring rules.
@@ -125,7 +129,6 @@ Open one when the task matches:
 [developer signals](recipes/developer-signals.md),
 [monitors](recipes/deepline-monitors.md),
 [qualified titles](recipes/find-qualified-titles.md),
-[LinkedIn URL lookup](recipes/linkedin-url-lookup.md),
 [portfolio prospecting](recipes/portfolio-prospecting.md),
 [small-business prospecting](recipes/small-business-prospecting.md).
 

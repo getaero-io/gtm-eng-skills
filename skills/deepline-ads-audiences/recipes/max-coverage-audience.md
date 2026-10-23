@@ -75,7 +75,7 @@ Validation:
 
 ### L2: LinkedIn Repair
 
-For rows missing verified LinkedIn profile URLs, run the LinkedIn URL lookup ladder before LinkedIn-dependent hash providers. Include rows that already have work emails; LinkedIn repair is meant to unlock personal-hash providers and improve match coverage beyond the work-email baseline.
+For rows missing verified LinkedIn profile URLs, look up the LinkedIn URL by name and company before LinkedIn-dependent hash providers. Include rows that already have work emails; LinkedIn repair is meant to unlock personal-hash providers and improve match coverage beyond the work-email baseline.
 
 Use cleaned account/company aliases and validate identity before merging:
 
