@@ -24,10 +24,9 @@ The lifecycle below is internal. In every message, before or after approval,
 never name history windows, dates, wait times or widening steps. The user needs
 the next decision, not a monitoring log.
 
-- **Ready to turn on:** for several targets, show a short scope table; for one,
-  use a sentence. Recommend the first filter, name the live Deepline price and
-  action step, then ask as in “First-pass approval.” Keep
-  domains, validation, monitor keys, and observation timing out of that question.
+- **Ready to set up:** confirm scope first, then ask the three cards in
+  “Sample-first setup,” one at a time. Keep domains, validation, monitor keys, and observation timing out of
+  every card.
 - **Calibrating from matches:** show the actual attributed rows in a Markdown
   table before any roll-up or recommendation. The table is the thing the user
   is calibrating against—counts and labels such as “relevant” are not enough.
@@ -36,7 +35,8 @@ the next decision, not a monitoring log.
 
 For calibration, follow the artifact with one concrete recommendation and one
 question: `Want me to use that, or adjust it?` This applies even when the call is
-to leave the filter broad: the user explicitly asked to calibrate. For no
+to leave the filter broad: the user explicitly asked to calibrate. During setup,
+a noisy sample uses the improve card in “Sample-first setup” instead. For no
 access, no sample, failure, or stop, state that outcome directly; do not invent
 a scope or results table.
 
@@ -68,33 +68,102 @@ total. Include any nonzero setup or recurring charge and material downstream
 actions; omit zero-cost line items and absent charges. If consumers are unknown,
 resolve them or explain the uncertainty before approval.
 
-Offer three choices: turn on with recent history (recommended when the live
-contract supports it), turn on for future matches only, or preview only. The
-history choice says past matches are charged at the same per-match price. Never
-show history dates, windows, polling or replacement mechanics to the user;
-choosing history approves the volume-based loop below up to its tier's widest
-boundary. History is a best-effort sample; say so only when it affects
-expectations. A preview validates configuration without activation or event
-charges. Carry approval through the loop; ask again only if scope, price,
-action or side effects exceed it.
+**Confirm scope first.** Unless the request already names them, ask one scope
+card with two multi-select questions: which targets to watch (the named ones,
+plus any recommended peers) and which signals count (for example product
+reviews, social switching posts, news). Never assume the targets or signals, and
+never fold an unconfirmed list into a later card. Then set up in three cards, in
+this order (copy in “Sample-first setup”):
 
-Choose the first window from the volume you expect for these targets, signal
-and filters. Judge it from company size, brand prominence, filter breadth and
-rows already in the shared stream; when unsure, use moderate.
+1. **Sample.** Ask to pull a small sample so that we can confirm it looks
+   correct. The sample covers **one target per signal type**, not every
+   target: pick the target most likely to produce a match for that signal (the
+   largest or most reviewed company). Two signal types, such as reviews and
+   social posts, need two samples. Name no company in the card: approval covers
+   the sample deployment, the volume-based loop below, and moving on to the next
+   most likely target when one comes back empty, without asking again, until
+   each signal type has at least one attributable match. Then show the rows with
+   the company each came from. If they are the requested signal, ask whether
+   they look right; if most are noise, ask the improve card instead.
+2. **Destination.** Ask where matches should go: Slack, CRM or outreach
+   sequencer. Choosing one approves turning on every requested target with that
+   action at the live per-match price.
+3. **Send the sample.** Once the action Play is published, ask whether to send
+   the sample through it so that we can see exactly how matches will arrive.
 
-| Expected volume | Examples                                                                   | Start    | Widen if empty |
-| --------------- | -------------------------------------------------------------------------- | -------- | -------------- |
-| High            | reviews or mentions of a well-known brand; job openings at a large company | 7 days   | 30 → 180 days  |
-| Moderate        | filtered roles at mid-size companies; reviews of a mid-market product      | 30 days  | 180 → 365 days |
-| Sparse          | executive hires, funding, a niche product's reviews, small companies       | 180 days | 365 → 730 days |
+Never show history dates, windows, polling or replacement mechanics to the user.
+History is a best-effort sample; say so only when it affects expectations.
+Carry each approval through its step; ask again only if scope, price, action or
+side effects exceed it. If history is unsupported, say a sample is unavailable
+and start at the destination card. Honor an explicit future-only or
+preview-only request without the sample card.
 
-Set `updates_since` to the first window's start. Poll every 30 seconds for 60
-seconds after provider activation. If no attributable match or pending finding
-has arrived and all readiness checks pass, replace through the normal monitor
-lifecycle with the tier's next boundary and poll another 60 seconds. Widen at
-most twice and never past two years unless the user asks; the contract allows
-five calendar years. Keep the monitor active if no window produces a sample;
-this is a setup observation budget, not scan completion. Use “Observe and refine.”
+Choose each signal type's first window from the volume you expect for **that
+signal** at the sample target, not from the company alone: a well-known brand
+can be mentioned daily and reviewed a few times a year. Judge it from company
+size, the brand's prominence for that signal, filter breadth and rows already in
+the shared stream; when unsure, use moderate.
+
+| Expected volume | Examples                                                                         | Start    | Widen if empty       | Wait per window |
+| --------------- | -------------------------------------------------------------------------------- | -------- | -------------------- | --------------- |
+| Very high       | likes and comments on a well-known brand's posts; mentions of a well-known brand | 1 day    | 7 days               | 3 minutes       |
+| High            | mentions of a mid-size company; job openings at a large company                  | 3 days   | 7 → 30 days          | 3 minutes       |
+| Moderate        | reviews of a well-known product; filtered roles at mid-size companies            | 30 days  | 180 → 365 → 730 days | 2 minutes       |
+| Sparse          | executive hires, funding, a niche product's reviews, small companies             | 180 days | 365 → 730 days       | 2 minutes       |
+
+Busy signals stop at 7 or 30 days: one that finds nothing in that window most
+likely has no coverage, and a longer pull is where an unexpected bill comes from.
+Even one day of a very high signal can be dozens of matches.
+
+Deploy the sample radar with priority execution so history arrives faster, and
+set `updates_since` to the first window's start:
+
+```json
+{
+  "key": "<target>-<signal>-sample",
+  "tool": "deepline_native.company_radar",
+  "payload": {
+    "domain": "<target domain>",
+    "radar_type": "<radar type>",
+    "updates_since": "<first window start>"
+  },
+  "controls": { "execution_type": "priority" }
+}
+```
+
+Only the sample radar is priority; every other radar is created without
+`controls.execution_type`. Priority does not change the price. Poll every 30
+seconds for the
+tier's wait after provider activation. If no attributable match or pending
+finding has arrived and all readiness checks pass, replace through the normal
+monitor lifecycle with the tier's next boundary and wait again. Never widen past
+the tier's last window unless the user asks, even for a single target, although
+the contract allows five calendar years. If the tier's last window produces no
+match, tear that attempt down (below), then move to the next most likely target
+for that signal type, from its own first window, without asking again; if that target is
+also empty, say no sample was found and continue to the destination card. This
+is a setup observation budget, not scan completion. Use “Observe and refine.”
+
+**Tear down every sample attempt before the next step.** Sample approval does
+not cover ongoing matches, and an empty observation is not a stopped feed:
+history can keep arriving for 24 hours. Tear an attempt down as soon as it has
+rows, without waiting for other signal types; when its last window comes back
+empty, before trying the next target; and when the user skips or abandons
+setup, before asking anything else. Its stored rows remain.
+
+1. Stop it with `deepline monitors stop <key>`. The stop returns a Monitor Job;
+   wait for it with `deepline monitors jobs wait <job id>`.
+2. Confirm `deepline monitors get <key>` reads `inactive`.
+3. Release its priority slot, which a stopped monitor still holds:
+
+```bash
+deepline monitors update <key> '{"controls":{"execution_type":null}}'
+```
+
+Never change `controls` on an active monitor: that replaces the radar with the
+same window, and the replacement pulls the history and charges for it again. If
+the stop job fails or the monitor does not read `inactive`, report it and do not
+patch, restart or move on.
 
 Honor an explicit time boundary or future-only request. Do not replay history
 when merely recovering a billing-suspended monitor. For a type without history,
@@ -124,12 +193,51 @@ CRM, and `--categories sequencing` for an outreach sequencer. Recommend the
 connected step that fits best—post each match to a named channel, create or
 update the matching CRM record or task, or add the matched contact to a named
 sequence—and still list the other two as alternatives, marking any that need
-connecting first. Build the chosen step as a Play with a
-`sqlListeners` trigger on the monitor's stream, and include it in the setup
-approval. If none is connected, say so and ask the user to connect Slack, a
-CRM or a sequencer in Dashboard → Integrations before turning it on. Never present
-the raw Customer DB table as the destination; it is only the fallback when the
-user declines an action.
+connecting first. Ask this as its own card after the sample is confirmed. Build
+the chosen step as a Play with a `sqlListeners` trigger on the monitor's stream
+and publish it **before** starting the sample monitor or deploying the other
+targets: a listener fires only for rows written after it exists. Start the
+stopped sample monitor with `deepline monitors start <key>`, which restarts it
+at regular execution because its priority was released, and deploy the other
+targets without `updates_since` or `controls.execution_type`; the sample already
+supplied the history. If
+none is connected, say so and ask the user to connect Slack, a CRM or a
+sequencer in Dashboard → Integrations before turning it on. Never present the
+raw Customer DB table as the destination; it is only the fallback when the user
+declines an action.
+
+**Send the sample through the action.** The sample rows were stored before the
+Play existed, so the listener never saw them. A manual run skips the listener's
+`where` filter, which normally runs in the database before the Play starts, so
+select only the stored sample rows the published listener would accept: apply
+its `where` conditions in the SQL that reads the sample rows. Skip the rest.
+After the user approves, run the published Play once per eligible row with the
+event it would have received:
+
+```bash
+deepline plays run <play> --input @sample-event.json
+```
+
+```json
+{
+  "tool": "<monitor tool>",
+  "stream": "<stream>",
+  "operation": "INSERT",
+  "before": null,
+  "after": { "<the stored row, every column>": "..." },
+  "changedAt": "<the row's _dl_ingested_at>",
+  "metadata": {
+    "outboxId": "sample:<the row's _dl_dedupe_key>",
+    "listenerId": "sample",
+    "table": "<schema.table>"
+  }
+}
+```
+
+Run each sample row exactly once: a manual run is not deduplicated, so a second
+run repeats the action. Read the run back and confirm the action happened (the
+Slack post, CRM write or enrollment). For a sequencer, the card must say that these people will be
+enrolled; never enroll a sample without that approval.
 
 `job_titles` accepts only the documented Deepline Native input syntax: double-quoted title
 terms joined with uppercase `AND`, `OR`, and `NOT`, such as `"VP" OR "Head of
@@ -142,9 +250,8 @@ create/replace lifecycle covered by setup approval; it is not a query filter. Do
 when the selected row does not list it.
 
 **Keep approval decision-ready, not procedural.** Do the read-only validation
-and price lookup directly, then send one short approval request with the three
-setup choices below. A single choice card is useful; a questionnaire about
-routine configuration is not. Keep titled plans, diagrams, raw definitions, and
+and price lookup directly, then send the sample card below. One choice card per
+step is useful; a questionnaire about routine configuration is not. Keep titled plans, diagrams, raw definitions, and
 operational timing out of the handoff. If a progress update is useful, make it
 one plain sentence.
 
@@ -165,9 +272,10 @@ Use these defaults unless the request says otherwise:
   event only. Leave title, seniority, department, and geography unset unless
   the user explicitly supplied them. Do not broaden the target set for
   hypothetical future reuse.
-- **Time:** for supported history, use the volume-based setup loop, waiting 60
-  seconds per active binding. Respect explicit time limits and future-only
-  requests. Do not exceed the approved boundary without revised approval.
+- **Time:** for supported history, run the volume-based setup loop on the
+  sample target only, waiting the tier's wait per active binding. Other targets
+  start without history. Respect explicit time limits and future-only requests.
+  Do not exceed the approved boundary without revised approval.
 - **Action:** recommend a Slack, CRM or sequencer step on every monitor. Leave
   matches only in the Customer DB stream when the user declines one.
 - **Ambiguity:** use the available company/person context to resolve it. Keep an
@@ -216,78 +324,6 @@ write to the same feed; each Play decides which new rows deserve action. That
 keeps one useful source of truth, but a Play filter controls downstream action
 only, not monitor ingestion cost.
 
-## First proof of value: a minimally filtered scout
-
-Do not make a customer wait days to discover whether the intended signal has
-coverage. After approval, start the approved small scout batch with only the
-target and requested event filters and the volume-based first window when
-history is supported, then prove each stored definition after the write. This is the fastest feedback loop and guards against false success.
-
-**Example outcome:** “Tell me when Stripe posts a Chief Financial Officer job,
-then let a Play react.” Read the live tool contract before using this example.
-
-### Optional: test the closest real signal
-
-A paid current-signal probe is optional and needs approval of its live price.
-Discover one with `deepline search "<tracked subject -> exact signal>" --type tools`;
-prefer the monitor's provider. It must match both the event and its timing:
-a contact's current profile does not prove a job change; a separate REST read
-does not prove webhook delivery. If no faithful probe exists, say so. Inspect
-identity, date and URL before calling a result a match. Empty coverage is
-inconclusive, and current coverage does not prove future delivery.
-
-### Verify every requested deployment
-
-Read back every created/reactivated monitor. When `get` supplies `sample_payload`,
-run the safe diagnostic in an internal/test workspace; obtain explicit approval
-first in a customer workspace:
-
-```bash
-deepline monitors test <key> '<sample_payload from monitors get>' --json
-```
-
-Require `accepted: true`, `test_mode: validation_only`, `persisted_rows: 0`
-and `dispatched_bound_plays: 0`. This checks event shape against the real binding,
-not upstream emission. If no sample exists, report that no safe payload test is
-available. Never fabricate a webhook body. A real event → DB → Play test needs
-its own approved delivery path; `monitors test` has no dispatch mode.
-
-```bash
-# Learn the live job-opening payload fields, output stream, and event price.
-deepline describe deepline_native.company_job_openings
-# CFO openings at one company are sparse: start 180 days back.
-UPDATES_SINCE=$(node -e 'console.log(new Date(Date.now() - 180 * 86400000).toISOString())')
-MONITOR=$(node - "$UPDATES_SINCE" <<'JS'
-console.log(JSON.stringify({
-  key: 'stripe-cfo-job-openings',
-  name: 'Stripe CFO job openings',
-  tool: 'deepline_native.company_radar',
-  payload: {
-    domain: 'stripe.com',
-    radar_type: 'company_job_openings',
-    job_titles: '"Chief Financial Officer"',
-    updates_since: process.argv[2],
-  },
-}));
-JS
-)
-# These are safe. They validate the exact definition and show cost/reuse.
-deepline monitors check "$MONITOR"
-deepline monitors deploy --dry-run "$MONITOR"
-# After explicit approval of scope, shared-stream impact, and price:
-deepline monitors deploy "$MONITOR"
-deepline monitors get stripe-cfo-job-openings
-# In an internal/test workspace, or after explicit customer approval:
-deepline monitors test stripe-cfo-job-openings '<sample_payload from get>'
-```
-
-The deployment proof is the final `get` plus the safe test when available: the
-definition must show `definition.payload.job_titles` as `"Chief Financial
-Officer"`, the expected domain/radar type, and `status: active`; the safe test
-must accept the provider-shaped sample without persistence or dispatch. If any
-check fails, report a failed deployment. Do not wait for events to infer the
-filter.
-
 ## Observe and refine
 
 `updates_since` is a radar boundary, not pagination. Historical widening can
@@ -307,24 +343,34 @@ table is a valid outcome; a missing table, read failure, missing binding, or
 provider/ingestion error is an operational failure. Never fabricate event rows
 or manually create a guessed provider schema to hide it.
 
-Capture the current activation time, then inspect monitor state and attributed
-rows at 30 and 60 seconds. For Deepline Native, read `data_plane_binding`
-from `monitors get <key> --json` and use both `_dl_monitor_id` and
-`_dl_monitor_binding_version` in shared-stream queries. Reset the timer and use
-the new binding after widening. `last_received_event` proves raw receipt only;
-it does not prove typed storage or downstream Play delivery.
+Record the setup start time before the first sample deploy, then inspect
+monitor state and attributed rows every 30 seconds until the tier's wait ends.
+Count rows by monitor key and receive time with exactly this query:
 
-| Observation at the cutoff                                                                                          | Action                                                                                                                    |
-| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| Attributable rows arrived                                                                                          | Show the real sample immediately; keep the monitor and calibrate from evidence. Do not widen.                             |
-| Provider findings or callbacks arrived but rows are pending                                                        | Follow their delivery state; investigate a write failure. Do not widen or call it empty.                                  |
-| Configuration, provider, table, binding or ingestion failed                                                        | Report **Blocked** with the failure; repair through the normal lifecycle. Do not widen or claim no history.               |
-| A binding short of the tier's widest boundary is ready, with no matching rows or pending findings after 60 seconds | Replace it with the tier's next boundary; setup approval already covers it.                                               |
-| The widest-boundary binding is ready, with no matching rows or pending findings after 60 seconds                   | Leave it active and say: **“No matching historical events found during setup. Monitoring is active for future matches.”** |
+```bash
+deepline db query --sql "select count(*) as n, max(_dl_received_at) as last_received from <output table> where _dl_monitor_id = '<key>' and _dl_received_at >= '<setup start time>'"
+```
+
+It counts every window since setup started, so replacing a window never hides
+rows that are still arriving. Do not filter on `_dl_monitor_binding_version`
+during setup: it is stored as text, and comparing it with the numeric
+`binding_version` fails. A non-zero exit or error output is **unknown**, never
+zero: fix the query and check again before widening. Reset the timer after
+widening. `last_received_event` proves raw receipt only; it does not prove typed
+storage or downstream Play delivery, but a value newer than the current window's
+start means delivery has begun, so keep waiting instead of widening.
+
+| Observation at the cutoff                                                                                               | Action                                                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Attributable rows arrived                                                                                               | Show the real sample immediately and tear down this attempt; calibrate from the stored rows. Do not widen.                                               |
+| Provider findings or callbacks arrived but rows are pending                                                             | Follow their delivery state; investigate a write failure. Do not widen or call it empty.                                                                 |
+| Configuration, provider, table, binding or ingestion failed                                                             | Report **Blocked** with the failure; repair through the normal lifecycle. Do not widen or claim no history.                                              |
+| A binding short of the tier's widest boundary is ready, with no matching rows or pending findings after the tier's wait | Replace it with the tier's next boundary; setup approval already covers it.                                                                              |
+| The widest-boundary binding is ready, with no matching rows or pending findings after the tier's wait                   | Tear down this attempt, then try the next most likely target once; if it is also empty, say **“No sample found during setup.”** and ask the destination. |
 
 If an observed matching finding has an unreadable delivery state, report an
 inconclusive sample and investigate it. With no observed matching finding or
-known pending delivery, follow the 60-second setup cutoffs; a scan-completion
+known pending delivery, follow the tier's setup cutoffs; a scan-completion
 flag is not required. Absence of rows does not prove full historical coverage.
 Deepline Native documents historical delivery during the first 24 hours and
 has no historical-scan completion flag. Early widening may interrupt remaining
@@ -341,42 +387,85 @@ credits, timing, history, or a checklist; those matter only once a real decision
 is ready. Translate internal language: say “first pass,” “matches,” and “look
 further back,” not “forward scout,” “accepted events,” or “historical rung.”
 
-### First-pass approval
+### Sample-first setup
 
-For a multi-company monitor, use this shape after live validation. Keep only
-decision-bearing columns; resolved domains, duplicate checks, and monitor
-plumbing are internal.
+Ask these after live validation, one card at a time. Use “we” in the copy.
+Keep resolved domains, duplicate checks and monitor plumbing internal.
+
+**1. Sample**
 
 ```markdown
-Recommendation: Start broad—no title, department, seniority, or location
-filter—so the first real matches tell us what belongs.
+I'd like to pull a small sample of recent <signal noun> so that we can confirm
+it looks correct. Each <signal noun, singular> costs <live Deepline price>.
 
-| Watch | Company     | Why                                |
-| ----- | ----------- | ---------------------------------- |
-| Yes   | <company>   | <named target or approved peer>    |
-| No    | <candidate> | <why it is not in this first pass> |
-
-Turn on <signal> tracking for <named targets>? Matches cost <live Deepline
-price> each, charged as they arrive, and each one <recommended action>. Or
-<alternative action> / <alternative action (connect first)>.
-
-- With recent history (recommended): include a sample of past matches now,
-  charged at the same price.
-- Future <signal noun> only: watch for new matches from now on.
-- Preview only: validate the configuration without activating or spending credits.
+- Pull a sample (Recommended)
+- Skip the sample
 ```
 
-For one company, replace the table with a sentence. If history is unsupported
-or the user already chose future-only, omit the history choice. Honor
-preview-only requests without asking to activate. Selecting history approves
-the internal setup loop and the action step; future-only omits
-`updates_since`; preview-only performs no paid mutation. Do not ask the same
-setup question again after a choice is approved.
+Name no company here, so an empty first target can move on to the next one
+without another question.
 
-Similar companies are a scope recommendation, not a silent expansion: show each
-candidate and whether it is in this pass. Name the action step from “Every
-monitor ends in an action” in this same handoff; when nothing is connected,
-ask the user to connect one rather than naming the raw table.
+When the sample arrives, show its rows as in “Calibration decision,” with the
+company each came from. If the rows are the requested signal, ask:
+
+```markdown
+Do these look like the <signal> you want?
+
+- Yes, looks right
+- Not quite
+```
+
+If most rows are not the requested signal (for example vendor marketing, the
+company's own staff or hiring posts instead of complaints), or the user answers
+“Not quite,” say what the noise is in one sentence and ask an improve card
+before the destination. Offer two to four concrete changes, recommend one, and
+say for each what it changes and whether it lowers cost. A Play filter only
+changes what reaches the destination; every monitor match is still billed.
+
+```markdown
+Only <n> of <N> <signal noun> are <the requested signal>; most are <the noise
+pattern>. How should we tighten it?
+
+- <Remove the noise at the source, such as dropping a noisy signal type>
+  (Recommended): <what changes>; <cost effect>.
+- <Keep the signal and filter what is posted>: only <matching rows> reach
+  <destination>; every <signal noun> is still billed.
+- Keep it as is: <what the user keeps getting>.
+```
+
+Apply the choice, show any rows it changes, then continue to the destination
+card.
+
+**2. Destination**
+
+```markdown
+Where should <signal> for <every named target> go? Each one costs <live
+Deepline price>, charged as it arrives.
+
+- Slack: <connected channel> (Recommended)
+- CRM: create or update a record or task. <Needs connecting first.>
+- Outreach sequencer: add the person to a sequence. <Needs connecting first.>
+```
+
+Recommend the best connected option; mark the others that need connecting.
+
+**3. Send the sample**
+
+```markdown
+Want me to send these <N> sample <signal noun> to <destination> so that we can
+see exactly how they'll arrive? <M> others don't pass the filter we set.
+
+- Yes, send them (Recommended)
+- No, just new ones
+```
+
+For a sequencer, say what happens: “Add these <N> people to <sequence>? They'll
+start getting emails.” <N> counts only the rows that pass the action's filter;
+drop the second sentence when none were filtered out. Skip this card when no
+sample was found or no row passes the filter.
+
+Similar companies are a scope recommendation, not a silent expansion: name each
+candidate and whether it is in this pass before the destination card.
 
 ### Calibration decision
 
@@ -427,99 +516,13 @@ bounded and save each requested patch/read-back result. A
 the monitor first: read it again and retry only if needed. Never treat a 409 as
 success or retry it blindly.
 
-## Find monitor types and read their filters
+## Operations reference
 
-Monitor types live on the `tools` surface, alongside every other capability.
-Browse them, then read one type's exact filters + stream columns:
-
-```bash
-# Browse the monitor types you can deploy
-deepline tools list --categories monitors
-deepline search "company domains -> ongoing company event feed" --type tools
-
-# Read one specific monitor variant's full contract
-deepline describe deepline_native.company_job_openings
-```
-
-(`deepline monitors available [tool-id]` is a legacy alias for the same
-discovery — prefer `tools`.)
-
-The contract for a type gives you everything you need to deploy and to filter:
-
-- **payload_schema** — the deploy-time filters you set in the monitor `payload`
-  (typed: required fields, allowed values).
-- **stream columns** — the row fields a play filters on with `sqlListeners.where`
-  (the post-ingestion filter surface).
-- **pricing** — live Deepline price, charge timing, and pricing basis.
-- **a deploy example** — `deepline monitors deploy '<def>'`.
-
-A monitor type is deployed, not executed: `deepline tools execute <monitor-type>`
-is rejected and points you at `deepline monitors deploy`.
-
-## Command set
-
-Monitor commands use readable text by default; pass `--json` when parsing output.
-Use `deepline describe <tool-id>` without `--json` for discovery.
-
-| Command                                                   | Purpose                                                                                                             |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `monitors status`                                         | Check beta access first.                                                                                            |
-| `tools list --categories monitors` / `describe <tool-id>` | Discover live payload fields, streams and prices.                                                                   |
-| `monitors available [tool-id]`                            | Legacy alias for tool discovery.                                                                                    |
-| `monitors check '<definition>'`                           | Validate without deployment or spend.                                                                               |
-| `monitors deploy '<definition>'`                          | Apply a full desired definition; `--dry-run` previews validity, price and reuse.                                    |
-| `monitors list`                                           | Page the registry with `--status active\|inactive\|all`, `--limit` and `--cursor`.                                  |
-| `monitors get <key>`                                      | Read stored definition, current binding and `monitor_spec`.                                                         |
-| `monitors test <key> '<payload>'`                         | Validate callback shape without rows, charges or Play dispatch.                                                     |
-| `monitors validate <key>`                                 | Validate provider configuration; does not prove delivery.                                                           |
-| `monitors update <key> '<patch>'`                         | Apply a patch; may replace the resource. Validate the merged definition first.                                      |
-| `monitors delete <key>`                                   | Delete upstream and local resources; supports `--dry-run`; requires `--yes` non-interactively.                      |
-| `monitors reactivate <key>`                               | Resume a disabled monitor; inspect cost with `--dry-run`.                                                           |
-| `monitors health [--fleet <id>]`                          | Inspect desired/provider state and delivery. Wait for `refresh.state: "completed"` before using whole-scope counts. |
-| `monitors audit [--fleet <id>]`                           | Read upstream evidence; `--watch` waits for completion. Does not resume billing-paused ingestion.                   |
-| `monitors repair [--fleet <id>]`                          | Converge observed state disagreements; audit and dry-run first. Does not bypass billing recovery.                   |
-| `monitors fleets init` / `sync` / `get`                   | Define, converge or inspect a Fleet; `sync --dry-run` plans, `sync --wait` follows its durable operation.           |
-| `monitors fleets deactivate <id>`                         | Stop the owned Fleet; supports `--dry-run`, `--yes` and `--wait`.                                                   |
-| `monitors fleets reactivate <id>`                         | Explicit recovery after credit suspension; inspect costs before `--yes --wait`.                                     |
-
-Prefix these commands with `deepline`. Use live `--help` for flags. Definition
-commands accept positional JSON or `--file <path>` / `--file -`. When listing,
-read `total`, `returned`, `has_more` and `next_cursor`; continue while `has_more`
-is true. `--include-consumers` is limited to 20 rows. A top-up alone does not
-recreate deleted Fleet resources.
-
-## Billing pause: current safe operator path
-
-`status: active` is control-plane intent, not delivery proof; start with
-`health` when a feed is quiet. `audit` records provider evidence and `repair`
-converges existing intent. Neither resumes a zero-credit pause.
-
-There is no org-wide direct-monitor resume. After credits or a cap are fixed:
-
-1. Read `deepline monitors health` until it no longer reports refreshing.
-2. Reactivate a credit-suspended Fleet through its retained owner:
-
-   ```bash
-   deepline monitors fleets reactivate <fleet-id> --yes --wait
-   ```
-
-3. For a fully disabled direct monitor, read its cost before recovery:
-
-   ```bash
-   deepline monitors reactivate <key> --dry-run
-   deepline monitors reactivate <key>
-   ```
-
-Do not fan out direct recovery while suspension is still stopping resources: it
-can race delete/create. Report that gap rather than inventing bulk recovery.
-
-## Recover from errors by code
-
-Read the returned state before retrying. For validation errors, correct every
-reported field against the live contract and rerun `check`. For insufficient
-credits, report the required credits, balance, and shortfall, then stop. Retry a
-transient read or check once; do not blindly repeat a create, settlement, or
-cleanup failure.
+Deployment verification, finding monitor types and their filters, the command
+set, the billing-pause recovery path, error-code recovery and the definition
+shape (including priority execution) are in
+[monitor operations](../references/monitor-operations.md). Read the matching
+section there before running a monitor command you have not used in this session.
 
 ## Operate safely
 
@@ -563,52 +566,3 @@ the same definition and lifecycle contract; see
   use a normal enrichment/sourcing tool or play instead.
 - You want a play to fire the moment a provider event lands (bind a play's
   `sqlListeners` trigger to the monitor's table).
-
-## Monitor definition shape
-
-A definition is a single JSON object:
-
-```json
-{
-  "key": "company-job-openings",
-  "tool": "deepline_native.company_radar",
-  "name": "Company job openings",
-  "payload": {
-    "domain": "stripe.com",
-    "radar_type": "company_job_openings"
-  },
-  "controls": {}
-}
-```
-
-- `key` — public monitor instance id (you reference it in `get`/`update`/`delete`).
-- `tool` — a live Deepline-native tool id. Get the valid ids and each
-  `payload_schema` from `deepline tools list --categories monitors` /
-  `deepline describe <tool-id>`.
-- `payload` — tool-specific; must match that tool's `payload_schema`.
-- `name` — optional human label. `controls` — optional Deepline lifecycle metadata.
-
-The same object is what `defineMonitor({ ... })` returns (typed) and what
-`client.monitors.check`/`deploy` accept — the CLI JSON and the SDK definition are
-one shape. See "Monitors as code (SDK)".
-
-### Priority radar exception
-
-Use `controls.execution_type: "priority"` only for an urgent preview or
-calibration. Deepline adds the provider-facing marker; do not put
-`custom_fields` in `payload`. Regular and bulk creation stay normal. An org has
-ten active-or-in-flight priority slots. At the cap, report it and get the
-user's choice; never delete a customer radar automatically. To retain a radar
-but release its slot, patch `{"controls":{"execution_type":null}}`.
-
-```json
-{
-  "key": "stripe-job-openings-preview",
-  "tool": "deepline_native.company_radar",
-  "payload": {
-    "domain": "stripe.com",
-    "radar_type": "company_job_openings"
-  },
-  "controls": { "execution_type": "priority" }
-}
-```

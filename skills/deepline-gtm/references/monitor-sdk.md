@@ -2,9 +2,11 @@
 
 Use the SDK when monitor lifecycle belongs in a script, agent loop, or play
 repository. The CLI and SDK are two surfaces over the same product model.
-The agent setup recipe includes history automatically: it sizes the first
-window to expected match volume (7, 30 or 180 days) and widens at most twice,
-up to two years, after 60 seconds without matches. This is not an
+The agent setup recipe pulls a small history sample first: it sizes the first
+window to the signal's expected volume (1 day, 3 days, 30 days or 180 days),
+waits 3 minutes for very high and high signals and 2 minutes otherwise, and
+widens along that tier, to at most 7 or 30 days for busy signals and two years
+for the rest. This is not an
 SDK/API default: omission of `updates_since` remains future-only. Respect an
 explicit time boundary, and do not add history to billing recovery.
 `defineMonitor` gives the authoring shape type checking; it does not remove the

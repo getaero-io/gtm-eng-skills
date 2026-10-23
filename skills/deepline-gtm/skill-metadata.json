@@ -43,6 +43,12 @@
       "tags": ["reference", "monitors"],
       "providers": []
     },
+    "references/monitor-operations.md": {
+      "kind": "reference",
+      "title": "Monitor Operations",
+      "tags": ["reference", "monitors"],
+      "providers": []
+    },
     "recipes/developer-signals.md": {
       "kind": "specialized-workflow",
       "title": "Developer Signals",
