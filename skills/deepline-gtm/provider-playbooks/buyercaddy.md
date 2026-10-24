@@ -6,4 +6,4 @@ buyercaddy_search_companies is the reverse lookup: filter.productIdIn or filter.
 buyercaddy_find_customers_of_products takes a plain-language prompt and returns AI-compiled customers with a probability and a usage note, without domains. Treat it as leads to verify, not as confirmed installs.
 Use companyDomain for installed-technology and competitor lookups, vendorDomain for vendor products.
 File export is not available on any endpoint; page through results.
-Billed per row returned; use small `size` values to cap spend. buyercaddy_find_customers_of_products ignores `size` and returns about 10 rows per call, so `size` does not cap its spend. The category list is free.
+Billed per call, including calls that return no rows; `size` does not change the price, so request the rows you need in one call. buyercaddy_find_customers_of_products ignores `size` and returns about 10 rows.
