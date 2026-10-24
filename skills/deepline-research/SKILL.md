@@ -80,18 +80,18 @@ Tell the user the parsed scope before provider calls.
 
 Do not default to browser scraping, raw x.com scraping, or unvetted actors. Prefer managed external APIs and private connectors. Each route runs on the Deepline integration API key unless its note says otherwise.
 
-| Source family                         | Preferred route                                                       | Notes                                                                                                                                                            |
-| ------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Reddit threads/comments               | managed social-data tool, found with `deepline search`                | Required for Reddit comment/thread coverage.                                                                                                                     |
-| TikTok / Instagram / YouTube fallback | managed social-data tool, found with `deepline search`                | Captions, engagement, and transcript fallback. Search without `--categories` when profile/contact tools matter; some are categorized as `admin`, not `research`. |
-| X/Twitter                             | managed X/Twitter tool, found with `deepline search`                  | Avoids scraping x.com.                                                                                                                                           |
-| Web/news/docs                         | web-search tool, found with `deepline search`                         | Search API, not search-page scraping.                                                                                                                            |
-| Web extraction fallback               | page-extraction tool, found with `deepline search`                    | Use after URL discovery, not for blind scrape-at-scale.                                                                                                          |
-| Hacker News                           | Hacker News tool, found with `deepline search`                        | Public API; no credential.                                                                                                                                       |
-| Bluesky                               | Bluesky tool, found with `deepline search`                            | Public API; no credential.                                                                                                                                       |
-| CRM/private                           | the workspace's connected CRM                                         | Deepline OAuth/private connector. Query customer-authorized APIs, not UI scraping.                                                                               |
-| Warehouse/product/workflow            | the workspace's connected warehouse, customer DB, or workflow runtime | Deepline private connector; use scoped access.                                                                                                                   |
-| Last-resort scraping fallback         | general scraping tool, found with `deepline search`                   | Only after explicit approval and provider gap status.                                                                                                            |
+| Source family                         | Preferred route                                                       | Notes                                                                                                    |
+| ------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Reddit threads/comments               | managed social-data tool, found with `deepline search`                | Required for Reddit comment/thread coverage.                                                             |
+| TikTok / Instagram / YouTube fallback | managed social-data tool, found with `deepline search`                | Captions, engagement, and transcript fallback. Profile and post tools are categorized as `social_media`. |
+| X/Twitter                             | managed X/Twitter tool, found with `deepline search`                  | Avoids scraping x.com.                                                                                   |
+| Web/news/docs                         | web-search tool, found with `deepline search`                         | Search API, not search-page scraping.                                                                    |
+| Web extraction fallback               | page-extraction tool, found with `deepline search`                    | Use after URL discovery, not for blind scrape-at-scale.                                                  |
+| Hacker News                           | Hacker News tool, found with `deepline search`                        | Public API; no credential.                                                                               |
+| Bluesky                               | Bluesky tool, found with `deepline search`                            | Public API; no credential.                                                                               |
+| CRM/private                           | the workspace's connected CRM                                         | Deepline OAuth/private connector. Query customer-authorized APIs, not UI scraping.                       |
+| Warehouse/product/workflow            | the workspace's connected warehouse, customer DB, or workflow runtime | Deepline private connector; use scoped access.                                                           |
+| Last-resort scraping fallback         | general scraping tool, found with `deepline search`                   | Only after explicit approval and provider gap status.                                                    |
 
 Treat any route not covered by a described Deepline tool contract, key/auth plan, test endpoint, and Deepline-facing pricing as unapproved until the public research synthesis is complete.
 
@@ -144,7 +144,7 @@ deepline search "topic -> recent social posts and comments" --type tools --categ
 deepline search "Facebook page URL -> profile and contact email" --type tools
 deepline search "Instagram handle -> profile bio and links" --type tools
 deepline search "company domains -> firmographics, funding, technographics and open jobs" --type tools --categories company_search
-deepline search "connected CRM or warehouse -> account, workflow and usage records" --type tools --categories admin
+deepline search "connected CRM or warehouse -> account, workflow and usage records" --type tools --categories crm,data_warehouse
 deepline search "account domains -> CRM accounts, contacts and deals" --type tools
 deepline search "SQL question -> warehouse query result" --type tools
 ```
