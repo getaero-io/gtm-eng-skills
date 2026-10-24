@@ -83,6 +83,52 @@ Use enrich after narrowing candidates:
 - `crustdata_v3_person_enrich` for full cached person profiles.
 - `crustdata_v3_person_contact_enrich` for contact-only lookups.
 - `crustdata_v3_company_enrich` for full company records.
+- `crustdata_v3_dev_platform_enrich` for a person's linked GitHub profile.
+- `crustdata_v3_social_post_search` for what a person or company is posting about.
+
+## Developer signals (GitHub, posts, technographics)
+
+Person search can select developers by their GitHub footprint, but it never
+returns that data: `dev_platform_profiles.*` fields are filter-only
+(`fields: ["dev_platform_profiles"]` on search is a 400). Filter, then enrich.
+
+- **Find developers at target accounts**: `crustdata_v3_person_search` with
+  `experience.employment_details.current.company_website_domain` (`in`, at most
+  5 domains per search) plus `dev_platform_profiles.public_repo_count` (`=>`),
+  `dev_platform_profiles.total_stars`, `dev_platform_profiles.all_languages`
+  (`has_all`), or `dev_platform_profiles.repos.topics`. Add
+  `social_handles.twitter_handle` `is_not_null`-style conditions only when the
+  operator is documented for the field.
+- **Read the GitHub profile**: `crustdata_v3_dev_platform_enrich` with
+  `profile_url` (a GitHub profile URL) or `crustdata_person_id` from search,
+  enrich, or a social post's `actor.crustdata_entity_id`. It returns repos with
+  stars and languages, totals, followers, topics, `declared_handles` (LinkedIn,
+  website), org memberships, and metric history for 1 credit; a 404 means no
+  linked account and is free. A LinkedIn URL is rejected. For a batch of
+  LinkedIn URLs, `crustdata_v3_person_enrich` with
+  `fields: ["social_handles", "dev_platform_profiles"]` returns the same profile
+  object for 2 credits per matched person, 25 URLs per call, and also the X
+  handle under `social_handles.twitter_identifier.slug`.
+- **What they talk about**: `crustdata_v3_social_post_search` filtered on
+  `actor.professional_network_url` (one person) or `actor.company_name` plus a
+  `text` `[.]` phrase (a topic across a company). Use `limit: 0` first; it
+  returns `total_count` for free. Every returned post costs 0.5 credits, so keep
+  `limit` small and leave `reactors` and `comments` out of `fields`.
+  `crustdata_v3_person_enrich` with `fields: ["social_posts"]` returns up to the
+  10 most recent posts for 5 extra credits and is permission-gated.
+- **Company tech stack**: `crustdata_v3_company_enrich` with
+  `fields: ["basic_info", "technographics"]` returns `technographics`
+  (`total_technologies`, `top_technologies`, `technologies[]` with `sources`,
+  `posting_count`, `categories`, `evidence`). It costs 2 extra credits only for
+  companies that return data and is gated per account (403 `Access denied to
+fields: technographics` without the grant). Company search filters on
+  `technographics.technologies.name`, `.category`, `.super_category` (for
+  example `engineering-devops`), and `technographics.top_technologies`.
+
+A GitHub handle alone is not a resolved person. Accept a GitHub-to-LinkedIn
+link only when `declared_handles` carries the LinkedIn URL, or when the
+Crustdata person id came from a LinkedIn-anchored enrich; name-only agreement
+stays a candidate.
 
 Use `crustdata_v3_company_identify` before company enrich when the inbound identifier is fuzzy. It is free. Prefer a domain or LinkedIn company URL. Name-only matching can return unrelated companies even at `confidence_score: 1.0`; treat those results as candidates and verify an independent identifier before changing stored names or domains.
 
