@@ -329,9 +329,10 @@ def adjust(results):
         row["q_by"] = min(1.0, previous*harmonic)
 
 def analyze(input_path, keywords, tools, job_roles, website_col=None, jobs_col=None,
-            status_col="status", partition="all", evidence_limit=12):
+            status_col="status", partition="all", evidence_limit=12, include_account_features=False):
     accounts, stats = load_accounts(input_path, website_col, jobs_col, status_col, partition)
     rows = []
+    account_features = []
     for family, config in (("keywords", keywords), ("tools", tools), ("job_roles", job_roles)):
         for category, name, aliases in concepts(config):
             # Separate source strata; never pool partial website/jobs into one denominator.
@@ -355,6 +356,16 @@ def analyze(input_path, keywords, tools, job_roles, website_col=None, jobs_col=N
                     if positive and a["account_id"] in eligible_ids:
                         counts[a["status"]] += 1
                         positives.add(a["account_id"])
+                    if include_account_features:
+                        value = 1 if positive else 0 if a["coverage"][kind] == "success" else None
+                        account_features.append({
+                            "account_id": a["account_id"], "parent_id": a["parent_id"], "domain": a["domain"],
+                            "family": family, "category": category, "signal": name, "aliases": aliases,
+                            "source": kind, "source_status": a["coverage"][kind], "value": value,
+                            "status": "matched" if positive else "not_found_in_collected_source" if value == 0 else "unknown",
+                            "scoring_eligible": False,
+                            "evidence": [{k: v for k, v in hit.items() if k != "outcome"} for hit in local],
+                        })
                     if local:
                         # Preserve counterevidence without flooding the sample with repeats.
                         for polarity in ("affirmative", "negative", "uncertain"):
@@ -389,13 +400,24 @@ def analyze(input_path, keywords, tools, job_roles, website_col=None, jobs_col=N
     stats["coverage"] = {kind: {label: dict(Counter(a["coverage"][kind] for a in accounts if a["status"] == label))
                                for label in ("won", "lost", "lookalike", "unlabeled")}
                          for kind in ("website", "jobs")}
-    return {"schema_version": VERSION, "statistics": stats, "signals": rows,
+    result = {"schema_version": VERSION, "statistics": stats, "signals": rows,
             "method": {"metric": "P(feature|won) / P(feature|lost), Jeffreys-smoothed; NOT win-rate lift",
                        "multiplicity_family": "all configured concept/source tests in this invocation",
                        "uncertainty": "Wilson marginal intervals; Fisher tests assume independent accounts",
                        "validation": "Exploratory output only. No automatic scoring promotion, even on a validation partition.",
                        "semantic_limit": "Lexical mentions with heuristic polarity; not confirmed use, intent or headcount.",
                        "partition": partition}}
+    if include_account_features:
+        if accounts and not account_features:
+            raise ValueError("Account features require at least one configured concept")
+        result["account_features"] = account_features
+        result["method"]["account_features"] = (
+            "One lexical observation per account/concept/source, including unlabeled accounts. "
+            "1 = affirmative mention; 0 = no affirmative match in successfully collected content; "
+            "null = unknown coverage without an affirmative match. All matching evidence is retained, "
+            "independent of evidence-limit. Attribution/context review and approved model mapping are required before scoring."
+        )
+    return result
 
 def discover(accounts, max_phrases=500, min_accounts=2, max_n=5):
     """Outcome-blind n-gram proposals from discovery partition only."""
@@ -443,6 +465,8 @@ def main():
     p.add_argument("--status-col", default="status")
     p.add_argument("--partition", choices=["all", "discovery", "validation"], default="discovery")
     p.add_argument("--evidence-limit", type=int, default=12)
+    p.add_argument("--include-account-features", action="store_true",
+                   help="Export complete account/concept/source observations, not just sampled cohort evidence")
     p.add_argument("--discover-phrases", action="store_true")
     p.add_argument("--max-phrases", type=int, default=500)
     p.add_argument("--min-phrase-accounts", type=int, default=2)
@@ -453,6 +477,7 @@ def main():
         if args.output and Path(args.input).resolve() == Path(args.output).resolve():
             raise ValueError("Output must not overwrite input")
         if args.discover_phrases:
+            if args.include_account_features: raise ValueError("Account features require reviewed configs, not phrase discovery")
             if args.partition != "discovery": raise ValueError("Mine discovery only, never validation/all")
             accounts, _ = load_accounts(args.input, args.website_col, args.jobs_col, args.status_col)
             result = discover(accounts, args.max_phrases, args.min_phrase_accounts)
@@ -475,7 +500,8 @@ def main():
                             raise ValueError("Config frozen after validation scoring date")
             configs = {name: json.loads(Path(path).read_text()) for name, path in paths.items()}
             result = analyze(args.input, **configs, website_col=args.website_col, jobs_col=args.jobs_col,
-                             status_col=args.status_col, partition=args.partition, evidence_limit=args.evidence_limit)
+                             status_col=args.status_col, partition=args.partition, evidence_limit=args.evidence_limit,
+                             include_account_features=args.include_account_features)
             result["config_sha256"] = {name: hashlib.sha256(Path(path).read_bytes()).hexdigest() for name, path in paths.items()}
         text = json.dumps(result, indent=2, ensure_ascii=False, allow_nan=False)
         if args.output: Path(args.output).write_text(text+"\n", encoding="utf-8")

@@ -4,14 +4,15 @@ Read this when a customer disputes a driver, a new extract changes rankings, or 
 
 ## Find the failing layer
 
-| Symptom | Check first | Smallest useful correction |
-| --- | --- | --- |
-| Wrong company, branch, or operator type | Domain, name, location, parent/branch and source attribution | Resolve identity; retain ambiguous rows for review |
-| Phrase fires in the wrong sense | Full quote, speaker, page type and definition | Correct extraction and test both matches and missed positives |
-| Accurate feature gives implausible points | Encoding, scaling, correlated features, intensity and missingness | Diagnose contributions; compare regularized/constrained retraining and versioned caps |
-| Scores drift with unchanged coefficients | Page selection, HTML/markdown, extractor, aggregation and source vintage | Compare the same accounts through each extraction path |
-| Fewer reported false positives | Queue size, recall, labels, threshold and cohort | Compare at the same capacity and account for lost qualified leads |
-| Sheet and Play disagree | Raw value → transform → contribution → score → grade → route | Use one versioned executor and reconcile the export |
+| Symptom                                   | Check first                                                                                               | Smallest useful correction                                                                      |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Only industry/size/geo drive scores       | Website collection receipts → complete account features → model input mapping → per-account contributions | Mark as baseline/incomplete; restore the missing evidence or mapping and evaluate the candidate |
+| Wrong company, branch, or operator type   | Domain, name, location, parent/branch and source attribution                                              | Resolve identity; retain ambiguous rows for review                                              |
+| Phrase fires in the wrong sense           | Full quote, speaker, page type and definition                                                             | Correct extraction and test both matches and missed positives                                   |
+| Accurate feature gives implausible points | Encoding, scaling, correlated features, intensity and missingness                                         | Diagnose contributions; compare regularized/constrained retraining and versioned caps           |
+| Scores drift with unchanged coefficients  | Page selection, HTML/markdown, extractor, aggregation and source vintage                                  | Compare the same accounts through each extraction path                                          |
+| Fewer reported false positives            | Queue size, recall, labels, threshold and cohort                                                          | Compare at the same capacity and account for lost qualified leads                               |
+| Sheet and Play disagree                   | Raw value → transform → contribution → score → grade → route                                              | Use one versioned executor and reconcile the export                                             |
 
 ## Define features before looking at outcomes
 

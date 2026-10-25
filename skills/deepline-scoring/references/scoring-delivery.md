@@ -10,14 +10,18 @@ Score the full requested universe, not a post-opportunity filter. Evaluation can
 
 ## Four dimensions, requested outputs only
 
-| Dimension          | Inputs                                                                               | Excluded                                                    |
-| ------------------ | ------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
-| account_fit        | External trade, geography, size, operating footprint, verified technology, ownership | Visits, replies, deal stage, AE notes, internal pain/budget |
-| account_engagement | Dated relevant first-party activity, deduplicated across contacts                    | Fit points; lifetime counters with no recency               |
-| lead_fit           | Account fit plus current role, seniority, responsibility and persona match           | Engagement points; seller-assigned champion labels          |
-| lead_engagement    | Dated individual activity, relevance, channel and recency                            | Account size and title points                               |
+| Dimension          | Inputs                                                                                                                                | Excluded                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| account_fit        | Website workflow/pain and business-model concepts, plus external trade, geography, size, footprint, verified technology and ownership | Visits, replies, deal stage, AE notes, internal pain/budget |
+| account_engagement | Dated relevant first-party activity, deduplicated across contacts                                                                     | Fit points; lifetime counters with no recency               |
+| lead_fit           | Account fit plus current role, seniority, responsibility and persona match                                                            | Engagement points; seller-assigned champion labels          |
+| lead_engagement    | Dated individual activity, relevance, channel and recency                                                                             | Account size and title points                               |
 
 Keep hiring spikes/acquisitions in separately named timing features unless the customer defines their place. Distinguish steady department structure from a fresh hiring event. Separation does not imply statistical independence. A customer-requested combined priority score is a separate tested policy; preserve the components.
+
+## Required website feature layer
+
+For account-fit and propensity deliveries, follow [account website features](account-website-features.md): collect the relevant source pages, export complete account/concept observations, review their meaning, and join their approved encodings into the scorer. Include billing/revenue/customer-model concepts. Show per-feature contributions or exclusion reasons. A summary of keyword prevalence or a few sampled quotes does not establish that an account was scored on them. An unchanged approved model can be replayed for parity; label missing website inputs and evaluate the proposed layer separately. Do not replace it or invent positive weights without acceptance evidence.
 
 ## Point-in-time and proxies
 

@@ -20,6 +20,8 @@ Name the metric: feature prevalence ratio is not conditional win-rate lift. Do n
 
 ## 3. Which accounts come first?
 
+Deliver the complete account-level phrase/concept feature table, including nonmatches, unknowns, evidence links, reviewed interpretations, model roles and contributions or exclusion reasons. Include business-model concepts; competitive evidence is optional when requested and available. Reconcile its Account IDs with the scoring export; sampled cohort evidence is not a substitute.
+
 Use one ranked table with account/identifier, requested score and grade, contributing signals, missing evidence, buyer persona and next action. Show requested score dimensions separately. Keep unresolved or insufficient-evidence rows visible with null scores and reasons. Distinguish known customers, held-out deals and unlabeled alternatives; existing customers are not net-new prospects.
 
 Explain every displayed score using the same versioned scoring definition used by the Play and evaluation. Include raw values, transforms, account contributions (including present/absent effects), caps, penalties and missing-value handling so totals reconcile. Separate the primary routing policy from frozen audit outputs and experimental candidates. Follow the scoring delivery contract for percentile grades and frozen references. Do not invent weights or force a ranking when no supported model exists.

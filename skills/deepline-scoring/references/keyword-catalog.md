@@ -18,6 +18,7 @@ For each target, explore these families independently:
 8. Capacity and deployment constraints, compliance, safety, language.
 9. Buyer wording, abbreviations, regional synonyms.
 10. Negative statements, counterexamples, resolved problems, vendor self-descriptions.
+11. Commercial model: billing mechanics, revenue streams and evidence for B2B, B2C, B2B2C, marketplace or mixed customer models. Separate how the account operates from what its product enables.
 
 Use careers/ATS, workflow/help pages, case studies, customer interviews, integrations, reviews, news and structured fields. Record source availability; never force every family to produce a signal.
 
