@@ -1,4 +1,4 @@
-import { definePlay } from 'deepline';
+import deepline from 'deepline';
 import { prepareHashOnlyUploadRows } from './shared/audience-hash';
 
 type HashOnlyRow = {
@@ -6,113 +6,109 @@ type HashOnlyRow = {
   email?: string;
 };
 
-export default definePlay(
-  'ads-audience-upload-google-hash-only',
-  async (
-    ctx,
-    input: {
-      file: string;
-      account_id: string;
-      audience_name: string;
-      login_account_id?: string;
-      description?: string;
-      validate_only?: boolean;
-    },
-  ) => {
-    const sourceDataset = await ctx.csv<HashOnlyRow>(input.file);
-    const sourceRows = (await sourceDataset.materialize()) as HashOnlyRow[];
-    const { rows, audit } = prepareHashOnlyUploadRows(sourceRows);
-    if (
-      rows.length === 0 ||
-      audit.malformedHashes > 0 ||
-      audit.duplicateHashes > 0 ||
-      audit.rawEmailFieldsPresent
-    ) {
-      throw new Error(
-        JSON.stringify({
-          message: 'Hash-only audience payload did not pass validation.',
-          audit,
-        }),
-      );
-    }
+export const config = {
+  compatibility: { authoringContract: 'explicit-freshness' },
+  name: 'ads-audience-upload-google-hash-only',
+  description:
+    'Create a Google Customer Match audience, upload hash-only rows, and read the resulting status back.',
+};
 
-    const createResult = await ctx.tools.execute({
-      staleAfterSeconds: 0,
-      id: 'create_google_audience',
-      tool: 'google_ads_audiences_create_audience',
-      input: {
-        account_id: input.account_id,
-        // Only send login_account_id when the caller supplied one; the tool
-        // rejects an explicit undefined, and it is only needed for MCC access.
-        ...(input.login_account_id
-          ? { login_account_id: input.login_account_id }
-          : {}),
-        name: input.audience_name,
-        membership_life_span_days: 540,
-        membership_status: 'OPEN',
-        upload_key_types: ['CONTACT_ID'],
-        validate_only: input.validate_only === true,
-      },
-      description: 'Create a Google Customer Match audience.',
-    });
-
-    const audienceId = String(
-      (createResult as { data?: { audience?: { id?: unknown } } }).data
-        ?.audience?.id ?? '',
+export default async function (input: {
+  file: string;
+  account_id: string;
+  audience_name: string;
+  login_account_id?: string;
+  description?: string;
+  validate_only?: boolean;
+}) {
+  const sourceDataset = await deepline.csv<HashOnlyRow>(input.file);
+  const sourceRows = (await sourceDataset.materialize()) as HashOnlyRow[];
+  const { rows, audit } = prepareHashOnlyUploadRows(sourceRows);
+  if (
+    rows.length === 0 ||
+    audit.malformedHashes > 0 ||
+    audit.duplicateHashes > 0 ||
+    audit.rawEmailFieldsPresent
+  ) {
+    throw new Error(
+      JSON.stringify({
+        message: 'Hash-only audience payload did not pass validation.',
+        audit,
+      }),
     );
-    if (!audienceId) {
-      throw new Error('Google audience create did not return an audience id.');
-    }
+  }
 
-    const syncResult = await ctx.tools.execute({
-      staleAfterSeconds: 0,
-      id: 'sync_google_audience_members',
-      tool: 'google_ads_audiences_sync_audience_members',
-      input: {
-        account_id: input.account_id,
-        ...(input.login_account_id
-          ? { login_account_id: input.login_account_id }
-          : {}),
-        audience_id: audienceId,
-        mode: 'append',
-        rows,
-        consent: {
-          ad_user_data: 'GRANTED',
-          ad_personalization: 'GRANTED',
-        },
-        encoding: 'HEX',
-        validate_only: input.validate_only === true,
-        terms_of_service_accepted: true,
-      },
-      description: 'Upload hash-only audience members to Google.',
-    });
+  const createResult = await deepline.tools.execute({
+    staleAfterSeconds: 0,
+    id: 'create_google_audience',
+    tool: 'google_ads_audiences_create_audience',
+    input: {
+      account_id: input.account_id,
+      // Only send login_account_id when the caller supplied one; the tool
+      // rejects an explicit undefined, and it is only needed for MCC access.
+      ...(input.login_account_id
+        ? { login_account_id: input.login_account_id }
+        : {}),
+      name: input.audience_name,
+      membership_life_span_days: 540,
+      membership_status: 'OPEN',
+      upload_key_types: ['CONTACT_ID'],
+      validate_only: input.validate_only === true,
+    },
+    description: 'Create a Google Customer Match audience.',
+  });
 
-    const statusResult = await ctx.tools.execute({
-      staleAfterSeconds: 0,
-      id: 'get_google_audience_status',
-      tool: 'google_ads_audiences_get_audience_status',
-      input: {
-        account_id: input.account_id,
-        ...(input.login_account_id
-          ? { login_account_id: input.login_account_id }
-          : {}),
-        audience_id: audienceId,
-      },
-      description: 'Read back Google audience status after upload.',
-    });
+  const audienceId = String(
+    (createResult as { data?: { audience?: { id?: unknown } } }).data?.audience
+      ?.id ?? '',
+  );
+  if (!audienceId) {
+    throw new Error('Google audience create did not return an audience id.');
+  }
 
-    return {
+  const syncResult = await deepline.tools.execute({
+    staleAfterSeconds: 0,
+    id: 'sync_google_audience_members',
+    tool: 'google_ads_audiences_sync_audience_members',
+    input: {
+      account_id: input.account_id,
+      ...(input.login_account_id
+        ? { login_account_id: input.login_account_id }
+        : {}),
       audience_id: audienceId,
-      uploaded_rows: rows.length,
-      audit,
-      create_result: createResult,
-      sync_result: syncResult,
-      status_result: statusResult,
-    };
-  },
-  {
-    compatibility: { authoringContract: 'explicit-freshness' },
-    description:
-      'Create a Google Customer Match audience, upload hash-only rows, and read the resulting status back.',
-  },
-);
+      mode: 'append',
+      rows,
+      consent: {
+        ad_user_data: 'GRANTED',
+        ad_personalization: 'GRANTED',
+      },
+      encoding: 'HEX',
+      validate_only: input.validate_only === true,
+      terms_of_service_accepted: true,
+    },
+    description: 'Upload hash-only audience members to Google.',
+  });
+
+  const statusResult = await deepline.tools.execute({
+    staleAfterSeconds: 0,
+    id: 'get_google_audience_status',
+    tool: 'google_ads_audiences_get_audience_status',
+    input: {
+      account_id: input.account_id,
+      ...(input.login_account_id
+        ? { login_account_id: input.login_account_id }
+        : {}),
+      audience_id: audienceId,
+    },
+    description: 'Read back Google audience status after upload.',
+  });
+
+  return {
+    audience_id: audienceId,
+    uploaded_rows: rows.length,
+    audit,
+    create_result: createResult,
+    sync_result: syncResult,
+    status_result: statusResult,
+  };
+}

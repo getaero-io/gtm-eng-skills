@@ -84,7 +84,7 @@ deepline runs logs --play my-play --since 2026-10-06T00:00:00Z --until 2026-10-0
 
 String fields are eventId, orgId, runId, playName, runtimeScope, kind, status, source, level, stepId, stepKind, datasetId, phase, provider, and operation. producerAttempt is a positive integer, context.&lt;key&gt; accepts flat string, number, or boolean log fields, and --kind selects run and step outcomes. Filters contain at most eight $.field == value predicates and 512 bytes, joined with && within single shell quotes. Missing fields do not match, and strings need double quotes while numbers and booleans remain unquoted. OR, ranges, wildcards, and text or payload search are unavailable, and examples need values from your actual events. status is not inferred from kind, and provider/operation match recorded activity.observed events, not every provider call.
 
-Bare `runs logs --where`, `--since`, and `--kind` retain this equality grammar. Text `--failed`, `--out`, and `--log-level` retain their established behavior. Context examples use `ctx.log("Lookup finished", { context: { companyId: "acme_123", attempt: 2, cached: false } })`.
+Bare `runs logs --where`, `--since`, and `--kind` retain this equality grammar. Text `--failed`, `--out`, and `--log-level` retain their established behavior. Context examples use `deepline.log("Lookup finished", { context: { companyId: "acme_123", attempt: 2, cached: false } })`.
 
 ```bash
 deepline runs logs --kind receipt.failed --where '$.status == "failed"' --payloads

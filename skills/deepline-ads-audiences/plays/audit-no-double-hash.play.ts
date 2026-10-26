@@ -1,4 +1,4 @@
-import { definePlay } from 'deepline';
+import deepline from 'deepline';
 import {
   auditHashRows,
   normalizeSha256,
@@ -16,80 +16,78 @@ function collectHashes(row: HashRow, columns: string[]): string[] {
   return hashes;
 }
 
-export default definePlay(
-  'ads-audience-audit-no-double-hash',
-  async (
-    ctx,
-    input: {
-      payloadFile: string;
-      providerHashFile: string;
-      providerHashColumns?: string[];
-    },
-  ) => {
-    const payloadDataset = await ctx.csv<HashRow>(input.payloadFile);
-    const providerDataset = await ctx.csv<HashRow>(input.providerHashFile);
-    const payloadRows = await payloadDataset.materialize();
-    const providerRows = await providerDataset.materialize();
-    const providerHashColumns = input.providerHashColumns ?? [
-      'email_sha256',
-      'personal_email_sha256',
-      'hashed_personal_email_sha256',
-      'aviato_hash',
-      'limadata_hash',
-    ];
+export const config = {
+  name: 'ads-audience-audit-no-double-hash',
+  description:
+    'Verify a paid-ads upload payload is hash-only, deduped, and free of hash-of-hash mistakes before it reaches a platform.',
+};
 
-    const payloadHashes = new Set(
-      payloadRows
-        .map((row) => normalizeSha256(row.email_sha256))
-        .filter((hash): hash is string => Boolean(hash)),
+export default async function (input: {
+  payloadFile: string;
+  providerHashFile: string;
+  providerHashColumns?: string[];
+}) {
+  const payloadDataset = await deepline.csv<HashRow>(input.payloadFile);
+  const providerDataset = await deepline.csv<HashRow>(input.providerHashFile);
+  const payloadRows = await payloadDataset.materialize();
+  const providerRows = await providerDataset.materialize();
+  const providerHashColumns = input.providerHashColumns ?? [
+    'email_sha256',
+    'personal_email_sha256',
+    'hashed_personal_email_sha256',
+    'aviato_hash',
+    'limadata_hash',
+  ];
+
+  const payloadHashes = new Set(
+    payloadRows
+      .map((row) => normalizeSha256(row.email_sha256))
+      .filter((hash): hash is string => Boolean(hash)),
+  );
+  const providerHashes = new Set<string>();
+  providerRows.forEach((row) => {
+    collectHashes(row, providerHashColumns).forEach((hash) =>
+      providerHashes.add(hash),
     );
-    const providerHashes = new Set<string>();
-    providerRows.forEach((row) => {
-      collectHashes(row, providerHashColumns).forEach((hash) =>
-        providerHashes.add(hash),
-      );
-    });
+  });
 
-    const missingProviderHashes = Array.from(providerHashes).filter(
-      (hash) => !payloadHashes.has(hash),
+  const missingProviderHashes = Array.from(providerHashes).filter(
+    (hash) => !payloadHashes.has(hash),
+  );
+  const doubleHashedProviderHashes = Array.from(providerHashes)
+    .map((hash) => sha256Hex(hash))
+    .filter((hash) => payloadHashes.has(hash));
+  const audit = auditHashRows(payloadRows);
+
+  const ok =
+    audit.malformedHashes === 0 &&
+    audit.duplicateHashes === 0 &&
+    audit.rawEmailFieldsPresent === false &&
+    missingProviderHashes.length === 0 &&
+    doubleHashedProviderHashes.length === 0;
+
+  if (!ok) {
+    throw new Error(
+      JSON.stringify({
+        message: 'Audience hash audit failed.',
+        audit,
+        provider_hashes: providerHashes.size,
+        missing_provider_hashes: missingProviderHashes.length,
+        double_hashed_provider_hashes: doubleHashedProviderHashes.length,
+        missing_provider_hash_examples: missingProviderHashes.slice(0, 5),
+        double_hashed_provider_hash_examples: doubleHashedProviderHashes.slice(
+          0,
+          5,
+        ),
+      }),
     );
-    const doubleHashedProviderHashes = Array.from(providerHashes)
-      .map((hash) => sha256Hex(hash))
-      .filter((hash) => payloadHashes.has(hash));
-    const audit = auditHashRows(payloadRows);
+  }
 
-    const ok =
-      audit.malformedHashes === 0 &&
-      audit.duplicateHashes === 0 &&
-      audit.rawEmailFieldsPresent === false &&
-      missingProviderHashes.length === 0 &&
-      doubleHashedProviderHashes.length === 0;
-
-    if (!ok) {
-      throw new Error(
-        JSON.stringify({
-          message: 'Audience hash audit failed.',
-          audit,
-          provider_hashes: providerHashes.size,
-          missing_provider_hashes: missingProviderHashes.length,
-          double_hashed_provider_hashes: doubleHashedProviderHashes.length,
-          missing_provider_hash_examples: missingProviderHashes.slice(0, 5),
-          double_hashed_provider_hash_examples:
-            doubleHashedProviderHashes.slice(0, 5),
-        }),
-      );
-    }
-
-    return {
-      ok: true,
-      audit,
-      provider_hashes: providerHashes.size,
-      missing_provider_hashes: 0,
-      double_hashed_provider_hashes: 0,
-    };
-  },
-  {
-    description:
-      'Verify a paid-ads upload payload is hash-only, deduped, and free of hash-of-hash mistakes before it reaches a platform.',
-  },
-);
+  return {
+    ok: true,
+    audit,
+    provider_hashes: providerHashes.size,
+    missing_provider_hashes: 0,
+    double_hashed_provider_hashes: 0,
+  };
+}

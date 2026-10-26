@@ -76,27 +76,23 @@ does not replace the company-search resolver or the domain-first enrichment poli
 Save this custom workflow as `company-lookup.play.ts`:
 
 ```ts
-import { definePlay } from 'deepline';
+import deepline from 'deepline';
 
-export default definePlay(
-  'company-lookup',
-  async (ctx, input: { csv: string }) => {
-    const accounts = await ctx.csv(input.csv, { required: ['Company'] });
-    const rows = await ctx
-      .dataset('accounts', accounts)
-      .withColumn('company_lookup', (row, rowCtx) =>
-        rowCtx.tools.execute({
-          id: 'company_lookup',
-          tool: 'crustdata_v3_company_search_autocomplete',
-          input: { field: 'basic_info.name', query: row.Company, limit: 1 },
-          description: 'Look up the canonical company-name candidate.',
-        }),
-      )
-      .run({});
-    return { rows };
-  },
-  { description: 'Look up company names from the supplied accounts CSV.' },
-);
+export default async function (input: { csv: string }) {
+  const accounts = await deepline.csv(input.csv, { required: ['Company'] });
+  const rows = await deepline
+    .dataset('accounts', accounts)
+    .withColumn('company_lookup', (row) =>
+      deepline.tools.execute({
+        id: 'company_lookup',
+        tool: 'crustdata_v3_company_search_autocomplete',
+        input: { field: 'basic_info.name', query: row.Company, limit: 1 },
+        description: 'Look up the canonical company-name candidate.',
+      }),
+    )
+    .run({});
+  return { rows };
+}
 ```
 
 ```bash

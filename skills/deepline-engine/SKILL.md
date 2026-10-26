@@ -44,7 +44,7 @@ Keep the state decision explicit. Inferring state from incidental fields creates
 3. **Define the tables.** Give every state an input table and an output table in Customer DB. Infer clear names and domain columns from the state machine and repository conventions. Record the structural fields needed to connect an input, its result, and the next state.
 4. **Choose a durable source directory.** Generate the engine under a maintained project directory inferred from repository conventions. Keep the orchestrator at the engine directory's top level and new child Plays in descriptive subfolders, alongside shared types, README, and Mermaid diagram as project source. Do not use an ignored `tmp/` scaffold; temporary paths hide work from version control and make the engine disposable.
 5. **Resolve every transition Play before authoring one.** Search callable Plays visible to the user's workspace with `deepline search "<transition input -> transition outcome>" --type plays`. Inspect owned and prebuilt candidates with `deepline describe <name>`. Reuse an exact contract match; names are only hints, so verify input, output, and inline-composition compatibility. If no candidate fits, author one new Play for that transition instead of embedding its transformation in the orchestrator.
-6. **Author the orchestrator Play.** Use `definePlay(name, handler, options)`. Determine the state, select the matching transition Play, and call it through `ctx.runPlay(...)` with a stable key. The orchestrator owns state routing and Customer DB persistence; transition Plays own transformations.
+6. **Author the orchestrator Play.** Write a `.play.ts` file that default-exports an async function of its input (`import deepline from 'deepline'; export default async function (input: EngineInput) { ... return { ... }; }`; the file name is the default Play name, `export const config = { name }` overrides it). Determine the state, select the matching transition Play, and call it through `deepline.runPlay(...)` with a stable key. The orchestrator owns state routing and Customer DB persistence; transition Plays own transformations.
 7. **Persist the transition.** Materialize the accepted input, the child Play result, `from_state`, `to_state`, status, error or miss information, timestamps, workflow version, transition Play identity/version, and idempotency key. If the transition continues, write the next state's input idempotently.
 8. **Choose the advancement model.** Infer one transition per invocation or multiple transitions per invocation from the workflow. Default to multiple transitions through terminal completion when no external event must occur between states. Record the choice and its retry and observability implications instead of pausing for confirmation.
 9. **Validate every edge.** Check every new transition Play and the orchestrator. Before the paid-pilot gate, use static checks and provider-free fixtures to test each allowed transition, each terminal state, an invalid or unknown state, a child Play failure, an invalid state returned by a child, and replay of a completed transition. Defer provider-executing edge tests for this new engine to its bounded authoring pilot after caps and workspace authorization are verified. A separate post-fix acceptance follows `docs/production-paid-call-verification.md`.
@@ -66,17 +66,17 @@ deepline plays settings get --play <orchestrator-name> --name path
 deepline plays settings get --play <transition-name> --name path
 ```
 
-Choose folder names from the user's engine and state names, following existing workspace conventions. Use `deepline plays settings describe --name path` and `deepline plays settings set --help` to confirm the current path contract. Keep stable Play names and `ctx.runPlay` references; folders organize navigation without renaming callable identities. Leave reused workspace and prebuilt Plays in their existing locations, since moving a shared dependency would disrupt other workflows.
+Choose folder names from the user's engine and state names, following existing workspace conventions. Use `deepline plays settings describe --name path` and `deepline plays settings set --help` to confirm the current path contract. Keep stable Play names and `deepline.runPlay` references; folders organize navigation without renaming callable identities. Leave reused workspace and prebuilt Plays in their existing locations, since moving a shared dependency would disrupt other workflows.
 
 ## Invariants
 
 - Keep the engine as an orchestrator Play and every transformation as a transition Play. A switch statement full of embedded business transformations hides reusable work and is not the engine architecture.
 - Keep generated engine artifacts in a durable, maintained project directory. The orchestrator, child Plays, types, README, and Mermaid diagram are source, not an ignored `tmp/` scaffold.
 - Search the user's callable Plays and Deepline prebuilts before creating a transition Play. Reimplementing an existing contract creates duplicate behavior that will drift.
-- Accept a reused Play only when its described input/output contract and composition shape fit the transition. A child that owns `ctx.dataset()`, `ctx.csv()`, event waits, or another lifecycle boundary cannot be composed with `ctx.runPlay`; create or adapt a scalar transition Play instead.
+- Accept a reused Play only when its described input/output contract and composition shape fit the transition. A child that owns `deepline.dataset()`, `deepline.csv()`, event waits, or another lifecycle boundary cannot be composed with `deepline.runPlay`; create or adapt a scalar transition Play instead.
 - Let the user's state machine drive the implementation. Do not ship a canned business workflow under generic names.
 - Give each state distinct input and output table roles. Combine them only when existing project conventions clearly require it and the transition history remains unambiguous; report that assumption.
-- Persist engine state with idempotent, schema-qualified Customer DB mutations. `ctx.dataset(...)` creates a run-scoped Runtime Sheet and cannot replace the durable state input and output tables.
+- Persist engine state with idempotent, schema-qualified Customer DB mutations. `deepline.dataset(...)` creates a run-scoped Runtime Sheet and cannot replace the durable state input and output tables.
 - Persist the original input alongside or by stable reference from the output. A result without its input cannot be audited or replayed safely.
 - Persist a typed failed or invalid output before rethrowing a child failure, unknown state, or forbidden child result. Failure outcomes use the same transition idempotency key and never create a next-state handoff.
 - Make state transitions idempotent. A retry may repair an incomplete handoff, but it must not duplicate a completed output or next-state input.
@@ -102,7 +102,7 @@ After implementation checks pass, complete one dependency-ordered workflow:
 
 1. Read live Deepline balance and pricing, select at most three pilot records, calculate a per-run cap, and disclose the aggregate bound as `(pilot runs + one replay attempt) × billing.maxCreditsPerRun`. If credits are unavailable, stop without attempting a top-up.
 2. Set a static `billing.maxCreditsPerRun` on every newly authored provider-backed child before its first check or publication. A child cap must be no greater than the orchestrator cap so launching the published child directly cannot bypass the pilot bound.
-3. Check and publish the capped children required for `ctx.runPlay` name and contract resolution. Never publish an uncapped revision of a newly authored paid child.
+3. Check and publish the capped children required for `deepline.runPlay` name and contract resolution. Never publish an uncapped revision of a newly authored paid child.
 4. Set the orchestrator's static `billing.maxCreditsPerRun` before its first check or publication.
 5. Check the capped orchestrator against the published child contracts.
 6. Publish the capped orchestrator.
@@ -127,7 +127,7 @@ Return:
 - the maintained project source directory and source tree
 - the implemented orchestrator `.play.ts` file and any newly required transition `.play.ts` files
 - shared type source, a project README, and the Mermaid diagram as a maintained project file
-- the state-decision and `ctx.runPlay` dispatch logic
+- the state-decision and `deepline.runPlay` dispatch logic
 - the idempotency and replay strategy
 - the checks run and their actual results
 - the paid pilot inputs and final outputs, observed Deepline spend, orchestrator and provider-backed child caps, aggregate bound, replay result, and any required customer-credit restoration receipt

@@ -9,8 +9,8 @@ historical payloads, prompts, field paths, provider order, and validation
 semantics. They are **not** current callback-based Play examples. Do not paste
 them into a Play.
 Translate a selected recipe using `deepline plays --help`:
-`withColumn(alias, async (row, rowCtx) => ...)`, `rowCtx.tools.execute` with
-stable `id`, `tool`, typed `input`, and `description`, or `rowCtx.runPlay` for a
+`withColumn(alias, async (row) => ...)`, `deepline.tools.execute` with
+stable `id`, `tool`, typed `input`, and `description`, or `deepline.runPlay` for a
 prebuilt. Replace brace interpolation with typed row reads and use declared
 getters rather than assuming historical `.output.body` wrappers still exist.
 

@@ -159,10 +159,12 @@ cached tool hints `company_titles`, `deeplineagent`, and
 `deepline_native_search_contact` using `deepline describe <tool-id>`.
 Do not substitute IDs solely because Waterfall and Deepline Native share guidance.
 
-Build `qualified-titles.play.ts` with `definePlay` and a top-level description.
-Read `companies.csv` through `ctx.csv(input.csv, { required: ['domain'] })` and
-materialize the work with `ctx.dataset('companies', companies)`. Within its row
-resolver, use `rowCtx.tools.execute({ id, tool, input, description })` for each
+Build `qualified-titles.play.ts` as a default-exported async function of its
+input (`import deepline from 'deepline'`, then
+`export default async function (input: { csv: string })`); top-level play code
+is rejected. Read `companies.csv` through `deepline.csv(input.csv, { required: ['domain'] })` and
+materialize the work with `deepline.dataset('companies', companies)`. Within its row
+resolver, use `deepline.tools.execute({ id, tool, input, description })` for each
 provider call, with the following steps:
 
 1. **`titles` / `company_titles`**: pass `{ domain: row.domain }` (free).
@@ -182,7 +184,8 @@ matchedTitles }], page_size: 50, page_number: 1 }`. Keep `matchedTitles` as a
 4. Retain company inputs, roster, matched titles, reasoning, and `output.persons`
    evidence. Materialize a contact dataset with one row per returned person,
    including the source domain and `linkedin_url`, when a flat contact export is
-   needed. Return dataset handles rather than an unbounded inline result.
+   needed. Return an object of dataset handles from the play function rather than
+   an unbounded inline result.
 
 The ICP model input (Play fragment; `titles` is the validated roster from step 1):
 
@@ -286,11 +289,11 @@ deepline tools execute deepline_native_enrich_company --payload '{"domain":"stri
 ### CSV job-change Play
 
 Use the same Play execution and inspection workflow as above. In a
-`ctx.dataset('contacts', contacts)` column named `job_change`, preserve this
+`deepline.dataset('contacts', contacts)` column named `job_change`, preserve this
 payload mapping (fragment inside a row resolver):
 
 ```ts
-const jobChange = await rowCtx.tools.execute({
+const jobChange = await deepline.tools.execute({
   id: 'job_change',
   tool: 'deepline_native_job_change',
   input: { company_domain: row.domain, professional_email: row.email },
@@ -299,9 +302,9 @@ const jobChange = await rowCtx.tools.execute({
 ```
 
 Confirm the tool with `deepline describe deepline_native_job_change`.
-Read the source with `ctx.csv(input.csv, { required: ['domain', 'email'] })`, keep
+Read the source with `deepline.csv(input.csv, { required: ['domain', 'email'] })`, keep
 the original columns and job-change evidence, and return the dataset handle from
-the Play. Save it as `job-change.play.ts` with a top-level description, then use
+the Play. Save it as `job-change.play.ts`, then use
 `deepline plays check job-change.play.ts` and
 `deepline plays run --file job-change.play.ts --csv contacts.csv --watch` for the
 authorized run. Use that run's export command to save `contacts.csv.out.csv`;

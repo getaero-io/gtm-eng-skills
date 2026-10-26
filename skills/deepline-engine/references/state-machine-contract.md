@@ -49,7 +49,7 @@ deepline describe <owned-or-prebuilt-candidate>
 
 `--all` includes Plays created in the user's workspace as well as prebuilts. Search by the transformation's outcome and input contract, not a guessed name. Prefer an exact owned or prebuilt contract over new code. Record why each candidate fits or fails; a similar title is not enough.
 
-The orchestrator composes the selected Play with `ctx.runPlay`. That boundary accepts scalar child Plays only. A child that uses `ctx.dataset()`, `ctx.csv()`, a Runtime Sheet, an event wait, or an explicit timeout owns a separate lifecycle and cannot be used as an inline transition. When no compatible Play exists, author a scalar transition Play and include it in the engine's automatic dependency-ordered check and publication workflow.
+The orchestrator composes the selected Play with `deepline.runPlay`. That boundary accepts scalar child Plays only. A child that uses `deepline.dataset()`, `deepline.csv()`, a Runtime Sheet, an event wait, or an explicit timeout owns a separate lifecycle and cannot be used as an inline transition. When no compatible Play exists, author a scalar transition Play and include it in the engine's automatic dependency-ordered check and publication workflow.
 
 ## Maintained source tree
 
@@ -68,7 +68,8 @@ Do not put these artifacts in an ignored `tmp/` directory. Before handoff, confi
 Keep the state machine visible in code:
 
 ```ts
-import { definePlay } from 'deepline';
+import deepline from 'deepline';
+// Helpers are placeholders for the user's table contract; pass `deepline` in.
 
 type EngineInput = {
   itemKey: string;
@@ -81,62 +82,60 @@ type TransitionResult = {
   output: Record<string, unknown>;
 };
 
-export default definePlay(
-  'user-chosen-engine-name',
-  async (ctx, input: EngineInput) => {
-    const state = await determineState(ctx, input); // implement the user's rule
-    let transition: TransitionResult;
+export const config = {
+  description: 'Advance one item through the user-defined state machine.',
+};
 
-    try {
-      switch (state) {
-        case 'user-defined-state-a':
-          transition = await ctx.runPlay<TransitionResult>(
-            'transition-from-state-a',
-            'user-owned-or-prebuilt-transition-play-a',
-            { itemKey: input.itemKey, payload: input.payload },
-            { description: 'Apply the user-defined transition from state A.' },
-          );
-          break;
-        case 'user-defined-state-b':
-          transition = await ctx.runPlay<TransitionResult>(
-            'transition-from-state-b',
-            'user-owned-or-prebuilt-transition-play-b',
-            { itemKey: input.itemKey, payload: input.payload },
-            { description: 'Apply the user-defined transition from state B.' },
-          );
-          break;
-        default:
-          throw new UnknownEngineStateError(state);
-      }
-    } catch (error) {
-      await persistTransitionFailure(ctx, input, state, {
-        status: isUnknownStateError(error) ? 'invalid' : 'failed',
-        error: toTypedTransitionError(error),
-      });
-      throw error;
+export default async function (input: EngineInput) {
+  const state = await determineState(deepline, input); // implement the user's rule
+  let transition: TransitionResult;
+
+  try {
+    switch (state) {
+      case 'user-defined-state-a':
+        transition = await deepline.runPlay<TransitionResult>(
+          'transition-from-state-a',
+          'user-owned-or-prebuilt-transition-play-a',
+          { itemKey: input.itemKey, payload: input.payload },
+          { description: 'Apply the user-defined transition from state A.' },
+        );
+        break;
+      case 'user-defined-state-b':
+        transition = await deepline.runPlay<TransitionResult>(
+          'transition-from-state-b',
+          'user-owned-or-prebuilt-transition-play-b',
+          { itemKey: input.itemKey, payload: input.payload },
+          { description: 'Apply the user-defined transition from state B.' },
+        );
+        break;
+      default:
+        throw new UnknownEngineStateError(state);
     }
+  } catch (error) {
+    await persistTransitionFailure(deepline, input, state, {
+      status: isUnknownStateError(error) ? 'invalid' : 'failed',
+      error: toTypedTransitionError(error),
+    });
+    throw error;
+  }
 
-    try {
-      assertAllowedTransition(state, transition.nextState);
-    } catch (error) {
-      await persistInvalidTransition(ctx, input, state, transition, {
-        error: toTypedTransitionError(error),
-      });
-      throw error;
-    }
+  try {
+    assertAllowedTransition(state, transition.nextState);
+  } catch (error) {
+    await persistInvalidTransition(deepline, input, state, transition, {
+      error: toTypedTransitionError(error),
+    });
+    throw error;
+  }
 
-    await persistTransitionAndHandoff(ctx, input, state, transition);
-    return transition;
-  },
-  {
-    description: 'Advance one item through the user-defined state machine.',
-  },
-);
+  await persistTransitionAndHandoff(deepline, input, state, transition);
+  return transition;
+}
 ```
 
 Replace every placeholder with the user's contract. Do not copy the example state names into a real engine.
 
-The example shows dispatch and outcome ordering; its named error and persistence helpers are placeholders for the user's table contract. Implement those helpers with `ctx.customerDb.query(...)`: use schema-qualified Customer DB `INSERT ... ON CONFLICT` mutations keyed by the transition idempotency key for state outputs and deterministic handoff keys for next-state inputs. Persist a typed `failed` output when the child Play rejects and a typed `invalid` output when the state or proposed next state is forbidden, without writing a next-state handoff. After a valid child result, write the completed output first, then the next-state input; replay must repair a missing handoff without duplicating either row. Do not use `ctx.dataset(...)` for engine state tables: it materializes a run-scoped Runtime Sheet, not durable Customer DB state. A dataset may expose an optional per-run view, but it is not the engine's persistence layer. Keep Customer DB reads bounded and provider calls or other transformation work inside the transition Play; call the child through `ctx.runPlay(...)` so retries reuse durable work.
+The example shows dispatch and outcome ordering; its named error and persistence helpers are placeholders for the user's table contract. Implement those helpers with `deepline.customerDb.query(...)`: use schema-qualified Customer DB `INSERT ... ON CONFLICT` mutations keyed by the transition idempotency key for state outputs and deterministic handoff keys for next-state inputs. Persist a typed `failed` output when the child Play rejects and a typed `invalid` output when the state or proposed next state is forbidden, without writing a next-state handoff. After a valid child result, write the completed output first, then the next-state input; replay must repair a missing handoff without duplicating either row. Do not use `deepline.dataset(...)` for engine state tables: it materializes a run-scoped Runtime Sheet, not durable Customer DB state. A dataset may expose an optional per-run view, but it is not the engine's persistence layer. Keep Customer DB reads bounded and provider calls or other transformation work inside the transition Play; call the child through `deepline.runPlay(...)` so retries reuse durable work.
 
 ## Advancement choice
 
@@ -177,7 +176,7 @@ requirements to it.
 
 ## Automatic publication and paid pilot
 
-Inspect live Deepline balance and pricing before publishing paid code. Choose the pilot records and calculate the per-run cap. Put a static `billing.maxCreditsPerRun` no greater than the orchestrator cap on every newly authored provider-backed child before its first check or publication, then check and publish the capped children needed for `ctx.runPlay` resolution. A published child is independently callable, so relying only on the parent's inline cap leaves its root-run path unbounded. Never publish an uncapped revision of a newly authored paid child.
+Inspect live Deepline balance and pricing before publishing paid code. Choose the pilot records and calculate the per-run cap. Put a static `billing.maxCreditsPerRun` no greater than the orchestrator cap on every newly authored provider-backed child before its first check or publication, then check and publish the capped children needed for `deepline.runPlay` resolution. A published child is independently callable, so relying only on the parent's inline cap leaves its root-run path unbounded. Never publish an uncapped revision of a newly authored paid child.
 
 Place the static `billing.maxCreditsPerRun` in the orchestrator source before checking or publishing it. A preliminary uncapped live revision creates an avoidable window for unbounded runs, especially if bindings are added later.
 

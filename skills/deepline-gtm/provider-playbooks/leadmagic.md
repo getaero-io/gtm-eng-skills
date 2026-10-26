@@ -25,51 +25,47 @@ stay the same, but the success gate is explicit and each attempted verdict remai
 available for inspection. Catch-all/unknown are unresolved, not permission to send.
 
 ```ts
-import { definePlay } from 'deepline';
+import deepline from 'deepline';
 
-export default definePlay(
-  'email-verify',
-  async (ctx, input: { csv: string }) => {
-    const contacts = await ctx.csv(input.csv, {
-      required: ['email_1', 'email_2'],
-    });
-    const rows = await ctx
-      .dataset('contacts', contacts)
-      .withColumn('email_verification', async (row, rowCtx) => {
-        const attempts = [];
-        for (const [id, email] of [
-          ['verify_primary', row.email_1],
-          ['verify_secondary', row.email_2],
-        ] as const) {
-          if (!email) continue;
-          const result = await rowCtx.tools.execute({
-            id,
-            tool: 'leadmagic_email_validation',
-            input: { email },
-            description: 'Verify this candidate email before accepting it.',
-          });
-          if (!['completed', 'no_result'].includes(result.status)) {
-            throw new Error(
-              `Email verification did not complete: ${result.status}`,
-            );
-          }
-          const verdict = result.extractedValues.email_status?.get();
-          const emailStatus = verdict?.status ?? null;
-          attempts.push({
-            email,
-            emailStatus,
-            verdict,
-            response: result.toolResponse,
-          });
-          if (emailStatus === 'valid') return { email, attempts };
+export default async function (input: { csv: string }) {
+  const contacts = await deepline.csv(input.csv, {
+    required: ['email_1', 'email_2'],
+  });
+  const rows = await deepline
+    .dataset('contacts', contacts)
+    .withColumn('email_verification', async (row) => {
+      const attempts = [];
+      for (const [id, email] of [
+        ['verify_primary', row.email_1],
+        ['verify_secondary', row.email_2],
+      ] as const) {
+        if (!email) continue;
+        const result = await deepline.tools.execute({
+          id,
+          tool: 'leadmagic_email_validation',
+          input: { email },
+          description: 'Verify this candidate email before accepting it.',
+        });
+        if (!['completed', 'no_result'].includes(result.status)) {
+          throw new Error(
+            `Email verification did not complete: ${result.status}`,
+          );
         }
-        return { email: null, attempts };
-      })
-      .run({});
-    return { rows };
-  },
-  { description: 'Verify primary and fallback emails for supplied contacts.' },
-);
+        const verdict = result.extractedValues.email_status?.get();
+        const emailStatus = verdict?.status ?? null;
+        attempts.push({
+          email,
+          emailStatus,
+          verdict,
+          response: result.toolResponse,
+        });
+        if (emailStatus === 'valid') return { email, attempts };
+      }
+      return { email: null, attempts };
+    })
+    .run({});
+  return { rows };
+}
 ```
 
 ```bash

@@ -285,7 +285,7 @@ This applies to all buttons. There is no per-button `post_interaction`.
 
 ## Timeout and continuation
 
-The new `timeout: null` and `on_timeout_mode` options apply to Play calls through `ctx.tools.execute`. Legacy workflow blocks retain their existing timeout contract and reject these new options before posting a card.
+The new `timeout: null` and `on_timeout_mode` options apply to Play calls through `deepline.tools.execute`. Legacy workflow blocks retain their existing timeout contract and reject these new options before posting a card.
 
 ```json
 {
@@ -353,7 +353,7 @@ When the timeout fires, the tool response includes:
 }
 ```
 
-Pass this input to `ctx.tools.execute` in a Play. In subsequent Play code, branch on the tool response's `timed_out` field: handle `true` as expiry, and only perform approval actions when `timed_out` is false and `selected_option` matches the approval button. A completed tool call alone is not proof of human approval.
+Pass this input to `deepline.tools.execute` in a Play. In subsequent Play code, branch on the tool response's `timed_out` field: handle `true` as expiry, and only perform approval actions when `timed_out` is false and `selected_option` matches the approval button. A completed tool call alone is not proof of human approval.
 
 The `message_ref` contains the channel and timestamp of the expired card, so you can reference it in follow-up actions (e.g., reply in thread, update the card, post a reminder).
 

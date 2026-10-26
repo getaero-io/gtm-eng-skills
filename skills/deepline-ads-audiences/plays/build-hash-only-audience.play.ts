@@ -1,4 +1,4 @@
-import { definePlay } from 'deepline';
+import deepline from 'deepline';
 import {
   auditHashRows,
   normalizeEmail,
@@ -121,74 +121,73 @@ function dedupe(rows: HashOnlyRow[]): HashOnlyRow[] {
   return output;
 }
 
-export default definePlay(
-  'ads-audience-build-hash-only',
-  async (ctx, input: { file: string }) => {
-    const dataset = await ctx.csv<AudienceInputRow>(input.file);
-    const rows = await dataset.materialize();
-    const baseline: HashOnlyRow[] = [];
-    const enriched: HashOnlyRow[] = [];
+export const config = {
+  name: 'ads-audience-build-hash-only',
+  description:
+    'Build a validated hash-only paid-ads upload file from contact rows, normalizing and hashing identifiers exactly once.',
+};
 
-    rows.forEach((row, index) => {
-      const rowId = sourceRow(row, index);
-      const workEmail = normalizeEmail(row.work_email || row.email);
-      if (workEmail) {
-        const hash = sha256Hex(workEmail);
-        baseline.push({
-          email_sha256: hash,
-          source_row: rowId,
-          provider_used: 'work_email',
-          identifier_type: 'work_email',
-        });
-        enriched.push({
-          email_sha256: hash,
-          source_row: rowId,
-          provider_used: 'work_email',
-          identifier_type: 'work_email',
-        });
-      }
+export default async function (input: { file: string }) {
+  const dataset = await deepline.csv<AudienceInputRow>(input.file);
+  const rows = await dataset.materialize();
+  const baseline: HashOnlyRow[] = [];
+  const enriched: HashOnlyRow[] = [];
 
-      for (const providerHash of allProviderHashes(row)) {
-        enriched.push({
-          email_sha256: providerHash.hash,
-          source_row: rowId,
-          provider_used: providerHash.provider,
-          identifier_type: 'provider_hash',
-        });
-      }
+  rows.forEach((row, index) => {
+    const rowId = sourceRow(row, index);
+    const workEmail = normalizeEmail(row.work_email || row.email);
+    if (workEmail) {
+      const hash = sha256Hex(workEmail);
+      baseline.push({
+        email_sha256: hash,
+        source_row: rowId,
+        provider_used: 'work_email',
+        identifier_type: 'work_email',
+      });
+      enriched.push({
+        email_sha256: hash,
+        source_row: rowId,
+        provider_used: 'work_email',
+        identifier_type: 'work_email',
+      });
+    }
 
-      for (const personalEmail of personalEmails(row)) {
-        enriched.push({
-          email_sha256: sha256Hex(personalEmail),
-          source_row: rowId,
-          provider_used: 'personal_email',
-          identifier_type: 'personal_email',
-        });
-      }
-    });
+    for (const providerHash of allProviderHashes(row)) {
+      enriched.push({
+        email_sha256: providerHash.hash,
+        source_row: rowId,
+        provider_used: providerHash.provider,
+        identifier_type: 'provider_hash',
+      });
+    }
 
-    const baselineRows = dedupe(baseline);
-    const enrichedRows = dedupe(enriched);
-    const baselineAudit = auditHashRows(baselineRows);
-    const enrichedAudit = auditHashRows(enrichedRows);
+    for (const personalEmail of personalEmails(row)) {
+      enriched.push({
+        email_sha256: sha256Hex(personalEmail),
+        source_row: rowId,
+        provider_used: 'personal_email',
+        identifier_type: 'personal_email',
+      });
+    }
+  });
 
-    const baselineDataset = await ctx
-      .dataset('baseline_hash_only_audience', baselineRows)
-      .run({ description: 'Baseline work-email hash-only audience rows.' });
-    const enrichedDataset = await ctx
-      .dataset('enriched_hash_only_audience', enrichedRows)
-      .run({ description: 'Enriched hash-only audience rows.' });
+  const baselineRows = dedupe(baseline);
+  const enrichedRows = dedupe(enriched);
+  const baselineAudit = auditHashRows(baselineRows);
+  const enrichedAudit = auditHashRows(enrichedRows);
 
-    return {
-      baseline_rows: baselineDataset,
-      enriched_rows: enrichedDataset,
-      baseline_audit: baselineAudit,
-      enriched_audit: enrichedAudit,
-      unique_hash_lift: enrichedAudit.outputRows - baselineAudit.outputRows,
-    };
-  },
-  {
-    description:
-      'Build a validated hash-only paid-ads upload file from contact rows, normalizing and hashing identifiers exactly once.',
-  },
-);
+  const baselineDataset = await deepline
+    .dataset('baseline_hash_only_audience', baselineRows)
+    .run({ description: 'Baseline work-email hash-only audience rows.' });
+  const enrichedDataset = await deepline
+    .dataset('enriched_hash_only_audience', enrichedRows)
+    .run({ description: 'Enriched hash-only audience rows.' });
+
+  return {
+    baseline_rows: baselineDataset,
+    enriched_rows: enrichedDataset,
+    baseline_audit: baselineAudit,
+    enriched_audit: enrichedAudit,
+    unique_hash_lift: enrichedAudit.outputRows - baselineAudit.outputRows,
+  };
+}

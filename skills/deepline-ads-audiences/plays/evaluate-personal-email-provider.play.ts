@@ -1,4 +1,4 @@
-import { definePlay } from 'deepline';
+import deepline from 'deepline';
 import { normalizeEmail, sha256Hex } from './shared/audience-hash';
 
 type SourceRow = {
@@ -298,150 +298,144 @@ function extractEmails(provider: ProviderName, result: unknown): string[] {
   return wizaPersonalEmails(result);
 }
 
-export default definePlay(
-  'ads-audience-provider-eval',
-  async (
-    ctx,
-    input: {
-      file: string;
-      provider: ProviderName;
-      limit?: number;
-    },
-  ) => {
-    const rows = (await ctx.csv<SourceRow>(input.file))
-      .filter((row) => Boolean(row.contact_id && row.linkedin_url))
-      .slice(0, Math.max(1, Math.min(input.limit ?? 25, 500)));
-    const rowCount = await rows.count();
+export const config = {
+  compatibility: { authoringContract: 'explicit-freshness' },
+  name: 'ads-audience-provider-eval',
+  description:
+    'Compare personal-email providers on the same contact sample, reporting hit rate, unique hashes added, and Deepline spend.',
+};
 
-    const evaluated = await ctx
-      .dataset('eval_rows', rows)
-      .withColumn('provider_result', (row, rowCtx) => {
-        if (input.provider === 'leadmagic_personal_email_finder') {
-          return rowCtx.tools.execute({
-            staleAfterSeconds: 0,
-            id: 'leadmagic_personal_email_finder',
-            tool: 'leadmagic_personal_email_finder',
-            input: providerInput(input.provider, row) as never,
-            description: providerDescription(input.provider),
-          }) as Promise<unknown>;
-        }
-        if (input.provider === 'crustdata_v3_person_enrich') {
-          return rowCtx.tools.execute({
-            staleAfterSeconds: 0,
-            id: 'crustdata_v3_person_enrich',
-            tool: 'crustdata_v3_person_enrich',
-            input: providerInput(input.provider, row) as never,
-            description: providerDescription(input.provider),
-          }) as Promise<unknown>;
-        }
-        if (input.provider === 'contactout_enrich_person') {
-          return rowCtx.tools.execute({
-            staleAfterSeconds: 0,
-            id: 'contactout_enrich_person',
-            tool: 'contactout_enrich_person',
-            input: providerInput(input.provider, row) as never,
-            description: providerDescription(input.provider),
-          }) as Promise<unknown>;
-        }
-        if (input.provider === 'datagma_full_enrichment') {
-          return rowCtx.tools.execute({
-            staleAfterSeconds: 0,
-            id: 'datagma_full_enrichment',
-            tool: 'datagma_full_enrichment',
-            input: providerInput(input.provider, row) as never,
-            description: providerDescription(input.provider),
-          }) as Promise<unknown>;
-        }
-        if (input.provider === 'enformion_person_search') {
-          return rowCtx.tools.execute({
-            staleAfterSeconds: 0,
-            id: 'enformion_person_search',
-            tool: 'enformion_person_search',
-            input: providerInput(input.provider, row) as never,
-            description: providerDescription(input.provider),
-          }) as Promise<unknown>;
-        }
-        if (input.provider === 'fullenrich_bulk_enrich') {
-          return rowCtx.tools.execute({
-            staleAfterSeconds: 0,
-            id: 'fullenrich_bulk_enrich',
-            tool: 'fullenrich_bulk_enrich',
-            input: providerInput(input.provider, row) as never,
-            description: providerDescription(input.provider),
-          }) as Promise<unknown>;
-        }
-        if (input.provider === 'limadata_find_personal_email') {
-          return rowCtx.tools.execute({
-            staleAfterSeconds: 0,
-            id: 'limadata_find_personal_email',
-            tool: 'limadata_find_personal_email',
-            input: providerInput(input.provider, row) as never,
-            description: providerDescription(input.provider),
-          }) as Promise<unknown>;
-        }
-        if (input.provider === 'lusha_enrich_person') {
-          return rowCtx.tools.execute({
-            staleAfterSeconds: 0,
-            id: 'lusha_enrich_person',
-            tool: 'lusha_enrich_person',
-            input: providerInput(input.provider, row) as never,
-            description: providerDescription(input.provider),
-          }) as Promise<unknown>;
-        }
-        return rowCtx.tools.execute({
+export default async function (input: {
+  file: string;
+  provider: ProviderName;
+  limit?: number;
+}) {
+  const rows = (await deepline.csv<SourceRow>(input.file))
+    .filter((row) => Boolean(row.contact_id && row.linkedin_url))
+    .slice(0, Math.max(1, Math.min(input.limit ?? 25, 500)));
+  const rowCount = await rows.count();
+
+  const evaluated = await deepline
+    .dataset('eval_rows', rows)
+    .withColumn('provider_result', (row) => {
+      if (input.provider === 'leadmagic_personal_email_finder') {
+        return deepline.tools.execute({
           staleAfterSeconds: 0,
-          id: 'wiza_reveal_person',
-          tool: 'wiza_reveal_person',
+          id: 'leadmagic_personal_email_finder',
+          tool: 'leadmagic_personal_email_finder',
           input: providerInput(input.provider, row) as never,
           description: providerDescription(input.provider),
         }) as Promise<unknown>;
-      })
-      .withColumn('evaluated', (row) => {
-        const emails = extractEmails(input.provider, row.provider_result);
-        const hashes = hashEmails(emails);
-        return {
-          ...row,
-          provider: input.provider,
-          validated_personal_email_hashes_sha256: hashes.join(';'),
-          validated_hash_count: hashes.length,
-          candidate_email_count: emails.length,
-          accepted: hashes.length > 0,
-          rejection_reason: hashes.length
-            ? undefined
-            : 'no_valid_personal_email',
-        } satisfies EvaluatedRow;
-      })
-      .run({
-        key: 'contact_id',
-        description:
-          'Evaluate one personal-email provider on remaining paid-audience misses.',
-      });
+      }
+      if (input.provider === 'crustdata_v3_person_enrich') {
+        return deepline.tools.execute({
+          staleAfterSeconds: 0,
+          id: 'crustdata_v3_person_enrich',
+          tool: 'crustdata_v3_person_enrich',
+          input: providerInput(input.provider, row) as never,
+          description: providerDescription(input.provider),
+        }) as Promise<unknown>;
+      }
+      if (input.provider === 'contactout_enrich_person') {
+        return deepline.tools.execute({
+          staleAfterSeconds: 0,
+          id: 'contactout_enrich_person',
+          tool: 'contactout_enrich_person',
+          input: providerInput(input.provider, row) as never,
+          description: providerDescription(input.provider),
+        }) as Promise<unknown>;
+      }
+      if (input.provider === 'datagma_full_enrichment') {
+        return deepline.tools.execute({
+          staleAfterSeconds: 0,
+          id: 'datagma_full_enrichment',
+          tool: 'datagma_full_enrichment',
+          input: providerInput(input.provider, row) as never,
+          description: providerDescription(input.provider),
+        }) as Promise<unknown>;
+      }
+      if (input.provider === 'enformion_person_search') {
+        return deepline.tools.execute({
+          staleAfterSeconds: 0,
+          id: 'enformion_person_search',
+          tool: 'enformion_person_search',
+          input: providerInput(input.provider, row) as never,
+          description: providerDescription(input.provider),
+        }) as Promise<unknown>;
+      }
+      if (input.provider === 'fullenrich_bulk_enrich') {
+        return deepline.tools.execute({
+          staleAfterSeconds: 0,
+          id: 'fullenrich_bulk_enrich',
+          tool: 'fullenrich_bulk_enrich',
+          input: providerInput(input.provider, row) as never,
+          description: providerDescription(input.provider),
+        }) as Promise<unknown>;
+      }
+      if (input.provider === 'limadata_find_personal_email') {
+        return deepline.tools.execute({
+          staleAfterSeconds: 0,
+          id: 'limadata_find_personal_email',
+          tool: 'limadata_find_personal_email',
+          input: providerInput(input.provider, row) as never,
+          description: providerDescription(input.provider),
+        }) as Promise<unknown>;
+      }
+      if (input.provider === 'lusha_enrich_person') {
+        return deepline.tools.execute({
+          staleAfterSeconds: 0,
+          id: 'lusha_enrich_person',
+          tool: 'lusha_enrich_person',
+          input: providerInput(input.provider, row) as never,
+          description: providerDescription(input.provider),
+        }) as Promise<unknown>;
+      }
+      return deepline.tools.execute({
+        staleAfterSeconds: 0,
+        id: 'wiza_reveal_person',
+        tool: 'wiza_reveal_person',
+        input: providerInput(input.provider, row) as never,
+        description: providerDescription(input.provider),
+      }) as Promise<unknown>;
+    })
+    .withColumn('evaluated', (row) => {
+      const emails = extractEmails(input.provider, row.provider_result);
+      const hashes = hashEmails(emails);
+      return {
+        ...row,
+        provider: input.provider,
+        validated_personal_email_hashes_sha256: hashes.join(';'),
+        validated_hash_count: hashes.length,
+        candidate_email_count: emails.length,
+        accepted: hashes.length > 0,
+        rejection_reason: hashes.length ? undefined : 'no_valid_personal_email',
+      } satisfies EvaluatedRow;
+    })
+    .run({
+      key: 'contact_id',
+      description:
+        'Evaluate one personal-email provider on remaining paid-audience misses.',
+    });
 
-    const outputRows = (await evaluated.materialize(500)) as Array<{
-      evaluated?: EvaluatedRow;
-    }>;
-    const rowsOut = outputRows
-      .map((row) => row.evaluated)
-      .filter((row): row is EvaluatedRow => Boolean(row));
-    const hitRows = rowsOut.filter((row) => row.accepted);
-    const hashes = new Set(
-      hitRows.flatMap((row) =>
-        row.validated_personal_email_hashes_sha256.split(';').filter(Boolean),
-      ),
-    );
+  const outputRows = (await evaluated.materialize(500)) as Array<{
+    evaluated?: EvaluatedRow;
+  }>;
+  const rowsOut = outputRows
+    .map((row) => row.evaluated)
+    .filter((row): row is EvaluatedRow => Boolean(row));
+  const hitRows = rowsOut.filter((row) => row.accepted);
+  const hashes = new Set(
+    hitRows.flatMap((row) =>
+      row.validated_personal_email_hashes_sha256.split(';').filter(Boolean),
+    ),
+  );
 
-    return {
-      provider: input.provider,
-      attempted_rows: rowCount,
-      validated_contacts: hitRows.length,
-      validated_hashes: hashes.size,
-      hit_rate_pct: rowCount === 0 ? 0 : (hitRows.length * 100) / rowCount,
-      evaluated_rows: evaluated,
-    };
-  },
-  {
-    compatibility: { authoringContract: 'explicit-freshness' },
-    description:
-      'Compare personal-email providers on the same contact sample, reporting hit rate, unique hashes added, and Deepline spend.',
-  },
-);
+  return {
+    provider: input.provider,
+    attempted_rows: rowCount,
+    validated_contacts: hitRows.length,
+    validated_hashes: hashes.size,
+    hit_rate_pct: rowCount === 0 ? 0 : (hitRows.length * 100) / rowCount,
+    evaluated_rows: evaluated,
+  };
+}

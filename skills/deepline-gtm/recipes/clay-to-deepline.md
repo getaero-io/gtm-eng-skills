@@ -377,7 +377,7 @@ clay_curl() {
 
 ### Play Shape and Column Order
 
-The migrated table is a play file: the body reads the seed CSV with `ctx.csv(...)`, chains one `.withColumn(alias, ...)` per Clay action in dependency order, and finishes with `.run({ key })`. Author it per `deepline plays --help`; columns execute in declaration order, and each column can read any earlier alias.
+The migrated table is a play file: the script reads the seed CSV with `deepline.csv(...)`, chains one `.withColumn(alias, ...)` per Clay action in dependency order, and finishes with `.run({ key })`. Author it per `deepline plays --help`; columns execute in declaration order, and each column can read any earlier alias.
 
 Validate before spending credits:
 

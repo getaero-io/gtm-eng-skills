@@ -133,29 +133,25 @@ For a custom CSV workflow, save this as `job-change.play.ts`. It keeps the origi
 operation's required payload fields.
 
 ```ts
-import { definePlay } from 'deepline';
+import deepline from 'deepline';
 
-export default definePlay(
-  'job-change',
-  async (ctx, input: { csv: string }) => {
-    const contacts = await ctx.csv(input.csv, {
-      required: ['domain', 'email'],
-    });
-    const rows = await ctx
-      .dataset('contacts', contacts)
-      .withColumn('job_change', (row, rowCtx) =>
-        rowCtx.tools.execute({
-          id: 'job_change',
-          tool: 'deepline_native_job_change',
-          input: { company_domain: row.domain, professional_email: row.email },
-          description: 'Check whether this contact changed employers.',
-        }),
-      )
-      .run({});
-    return { rows };
-  },
-  { description: 'Check job changes for the supplied CRM contacts.' },
-);
+export default async function (input: { csv: string }) {
+  const contacts = await deepline.csv(input.csv, {
+    required: ['domain', 'email'],
+  });
+  const rows = await deepline
+    .dataset('contacts', contacts)
+    .withColumn('job_change', (row) =>
+      deepline.tools.execute({
+        id: 'job_change',
+        tool: 'deepline_native_job_change',
+        input: { company_domain: row.domain, professional_email: row.email },
+        description: 'Check whether this contact changed employers.',
+      }),
+    )
+    .run({});
+  return { rows };
+}
 ```
 
 ```bash

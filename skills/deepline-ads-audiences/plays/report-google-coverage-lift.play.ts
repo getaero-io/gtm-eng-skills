@@ -1,4 +1,4 @@
-import { definePlay } from 'deepline';
+import deepline from 'deepline';
 
 type AudienceMetric = {
   key?: string;
@@ -218,42 +218,41 @@ function buildMessage(input: Input, rows: ReportRow[]): string {
   return lines.join('\n');
 }
 
-export default definePlay(
-  'ads-audience-report-google-coverage-lift',
-  async (ctx, input: Input) => {
-    if (!input.comparisons.length) {
-      throw new Error('At least one comparison audience is required.');
-    }
+export const config = {
+  name: 'ads-audience-report-google-coverage-lift',
+  description:
+    'Calculate Google Customer Match coverage lift, estimated matched identifiers, and spend efficiency against a baseline audience.',
+};
 
-    const rows = [
-      buildReportRow(input.baseline, input.baseline),
-      ...input.comparisons.map((audience) =>
-        buildReportRow(input.baseline, audience),
-      ),
-    ];
-    const best = bestRow(rows);
-    const spendTotal = totalSpend(input.spend);
-    const reportRows = await ctx
-      .dataset('coverage_lift', rows)
-      .run({ description: 'Google Ads audience match-rate lift report.' });
+export default async function (input: Input) {
+  if (!input.comparisons.length) {
+    throw new Error('At least one comparison audience is required.');
+  }
 
-    return {
-      account_name: input.account_name,
-      account_id: input.account_id,
-      segment_name: input.segment_name,
-      source_rows: input.source_rows,
-      baseline_match_rate_pct: input.baseline.match_rate_pct,
-      best_audience_label: best.label,
-      best_audience_id: best.audience_id,
-      best_match_rate_pct: best.match_rate_pct,
-      best_delta_points_vs_baseline: best.delta_points_vs_baseline,
-      deepline_spend_usd: spendTotal,
-      report_rows: reportRows,
-      follow_up_message: buildMessage(input, rows),
-    };
-  },
-  {
-    description:
-      'Calculate Google Customer Match coverage lift, estimated matched identifiers, and spend efficiency against a baseline audience.',
-  },
-);
+  const rows = [
+    buildReportRow(input.baseline, input.baseline),
+    ...input.comparisons.map((audience) =>
+      buildReportRow(input.baseline, audience),
+    ),
+  ];
+  const best = bestRow(rows);
+  const spendTotal = totalSpend(input.spend);
+  const reportRows = await deepline
+    .dataset('coverage_lift', rows)
+    .run({ description: 'Google Ads audience match-rate lift report.' });
+
+  return {
+    account_name: input.account_name,
+    account_id: input.account_id,
+    segment_name: input.segment_name,
+    source_rows: input.source_rows,
+    baseline_match_rate_pct: input.baseline.match_rate_pct,
+    best_audience_label: best.label,
+    best_audience_id: best.audience_id,
+    best_match_rate_pct: best.match_rate_pct,
+    best_delta_points_vs_baseline: best.delta_points_vs_baseline,
+    deepline_spend_usd: spendTotal,
+    report_rows: reportRows,
+    follow_up_message: buildMessage(input, rows),
+  };
+}

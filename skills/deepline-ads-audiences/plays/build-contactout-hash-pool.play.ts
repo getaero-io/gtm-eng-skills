@@ -1,4 +1,4 @@
-import { definePlay } from 'deepline';
+import deepline from 'deepline';
 import { normalizeSha256 } from './shared/audience-hash';
 
 /**
@@ -100,7 +100,7 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 /**
- * ctx.tools.execute returns a wrapper, not the provider body. The provider
+ * deepline.tools.execute returns a wrapper, not the provider body. The provider
  * response sits under toolResponse.rawV2. Inspect its declared view before selecting data. Reading the wrapper root returns
  * nothing, which would report zero hashes after a call that already spent
  * credits.
@@ -131,149 +131,145 @@ function readMatchesFound(result: unknown): number {
     : 0;
 }
 
-export default definePlay(
-  'ads-audience-contactout-hash-pool',
-  async (
-    ctx,
-    input: {
-      file: string;
-      limit?: number;
-      /**
-       * Send every row with a LinkedIn URL, including rows that already carry a
-       * hash from an earlier provider.
-       *
-       * Off by default, which suits a cost-effective pass: those rows often
-       * resolve to hashes the pool already has, and ContactOut bills per
-       * matched profile whether or not the hash is new.
-       *
-       * Turn it on for max-coverage runs. Roughly a third of what ContactOut
-       * returns is a second or third address for a person it already matched
-       * (measured live: 228 matched profiles returned 313 hashes). Excluding a
-       * row because it has an Aviato or LimaData hash forfeits any different
-       * address ContactOut would have found for that same person, and more
-       * addresses per person means more chances a platform matches them.
-       */
-      includeRowsWithExistingHash?: boolean;
-    },
-  ) => {
-    const dataset = await ctx.csv<SourceRow>(input.file);
-    const allRows = await dataset.materialize();
+export const config = {
+  compatibility: { authoringContract: 'explicit-freshness' },
+  name: 'ads-audience-contactout-hash-pool',
+  description:
+    'Resolve LinkedIn URLs into a deduped ContactOut email hash pool for paid ads audiences, reporting net-new hashes and matched-profile cost.',
+};
 
-    const existingPool = new Set<string>();
-    const profiles: string[] = [];
-    const seenProfiles = new Set<string>();
-    let skippedAlreadyHashed = 0;
-    let skippedNoLinkedIn = 0;
+export default async function (input: {
+  file: string;
+  limit?: number;
+  /**
+   * Send every row with a LinkedIn URL, including rows that already carry a
+   * hash from an earlier provider.
+   *
+   * Off by default, which suits a cost-effective pass: those rows often
+   * resolve to hashes the pool already has, and ContactOut bills per
+   * matched profile whether or not the hash is new.
+   *
+   * Turn it on for max-coverage runs. Roughly a third of what ContactOut
+   * returns is a second or third address for a person it already matched
+   * (measured live: 228 matched profiles returned 313 hashes). Excluding a
+   * row because it has an Aviato or LimaData hash forfeits any different
+   * address ContactOut would have found for that same person, and more
+   * addresses per person means more chances a platform matches them.
+   */
+  includeRowsWithExistingHash?: boolean;
+}) {
+  const dataset = await deepline.csv<SourceRow>(input.file);
+  const allRows = await dataset.materialize();
 
-    for (const row of allRows) {
-      const existing = readExistingHash(row);
-      if (existing) existingPool.add(existing);
+  const existingPool = new Set<string>();
+  const profiles: string[] = [];
+  const seenProfiles = new Set<string>();
+  let skippedAlreadyHashed = 0;
+  let skippedNoLinkedIn = 0;
 
-      const url = readLinkedInUrl(row);
-      if (!url) {
-        skippedNoLinkedIn += 1;
-        continue;
-      }
+  for (const row of allRows) {
+    const existing = readExistingHash(row);
+    if (existing) existingPool.add(existing);
 
-      // The response is an unattributed pool, so coverage cannot be reconciled
-      // per row after the call. Filtering the send set on what we already know
-      // is the only saving available.
-      if (existing && !input.includeRowsWithExistingHash) {
-        skippedAlreadyHashed += 1;
-        continue;
-      }
-
-      const key = url.toLowerCase();
-      if (seenProfiles.has(key)) continue;
-      seenProfiles.add(key);
-      profiles.push(url);
+    const url = readLinkedInUrl(row);
+    if (!url) {
+      skippedNoLinkedIn += 1;
+      continue;
     }
 
-    const limited =
-      typeof input.limit === 'number' && input.limit > 0
-        ? profiles.slice(0, input.limit)
-        : profiles;
-
-    // Too few profiles to call ContactOut. This is a normal outcome, not a
-    // failure: it usually means the earlier hash layers already covered the
-    // list, which is the result you wanted. Throwing here would fail an
-    // audience build for succeeding. Return an empty contribution and let the
-    // caller see why.
-    if (limited.length < CONTACTOUT_MIN_BATCH) {
-      return {
-        source_rows: allRows.length,
-        unique_profiles_sent: 0,
-        skipped_already_hashed: skippedAlreadyHashed,
-        skipped_no_linkedin_url: skippedNoLinkedIn,
-        excluded_rows_may_hold_additional_addresses: skippedAlreadyHashed > 0,
-        chunks: 0,
-        matched_profiles: 0,
-        hashes_returned: 0,
-        existing_pool_hashes: existingPool.size,
-        net_new_hashes: 0,
-        chunk_results: [],
-        net_new_hash_pool: [],
-        skipped_reason: `Only ${limited.length} eligible profiles after filtering, below the ${CONTACTOUT_MIN_BATCH}-profile minimum. Nothing was sent and nothing was billed.`,
-      };
+    // The response is an unattributed pool, so coverage cannot be reconciled
+    // per row after the call. Filtering the send set on what we already know
+    // is the only saving available.
+    if (existing && !input.includeRowsWithExistingHash) {
+      skippedAlreadyHashed += 1;
+      continue;
     }
 
-    const chunks = chunkProfiles(limited);
-    const chunkResults: ChunkResult[] = [];
-    const contactoutHashes = new Set<string>();
-    let matchedProfiles = 0;
+    const key = url.toLowerCase();
+    if (seenProfiles.has(key)) continue;
+    seenProfiles.add(key);
+    profiles.push(url);
+  }
 
-    for (const [index, chunk] of chunks.entries()) {
-      const result = await ctx.tools.execute({
-        staleAfterSeconds: 0,
-        id: 'contactout_hashes',
-        tool: 'contactout_get_hashed_email_identifiers',
-        input: { profiles: chunk } as never,
-        description: 'Hash a batch of LinkedIn profiles into email identifiers',
-      });
+  const limited =
+    typeof input.limit === 'number' && input.limit > 0
+      ? profiles.slice(0, input.limit)
+      : profiles;
 
-      const hashes = readHashes(result);
-      const found = readMatchesFound(result);
-      for (const hash of hashes) contactoutHashes.add(hash);
-      matchedProfiles += found;
-
-      chunkResults.push({
-        chunk_index: index,
-        profiles_sent: chunk.length,
-        matches_found: found,
-        hashes_returned: hashes.length,
-        status: hashes.length > 0 ? 'matched' : 'no_match',
-      });
-    }
-
-    const netNew = [...contactoutHashes].filter(
-      (hash) => !existingPool.has(hash),
-    );
-
+  // Too few profiles to call ContactOut. This is a normal outcome, not a
+  // failure: it usually means the earlier hash layers already covered the
+  // list, which is the result you wanted. Throwing here would fail an
+  // audience build for succeeding. Return an empty contribution and let the
+  // caller see why.
+  if (limited.length < CONTACTOUT_MIN_BATCH) {
     return {
       source_rows: allRows.length,
-      unique_profiles_sent: limited.length,
+      unique_profiles_sent: 0,
       skipped_already_hashed: skippedAlreadyHashed,
       skipped_no_linkedin_url: skippedNoLinkedIn,
-      // Those skipped rows may still have had a second personal address that
-      // ContactOut would have found. Re-run with includeRowsWithExistingHash
-      // when the goal is maximum coverage rather than lowest cost.
       excluded_rows_may_hold_additional_addresses: skippedAlreadyHashed > 0,
-      chunks: chunkResults.length,
-      matched_profiles: matchedProfiles,
-      hashes_returned: contactoutHashes.size,
+      chunks: 0,
+      matched_profiles: 0,
+      hashes_returned: 0,
       existing_pool_hashes: existingPool.size,
-      net_new_hashes: netNew.length,
-      // matched_profiles is the billing signal. hashes_returned is larger
-      // whenever a profile resolves to more than one hashed address, so it must
-      // not be used to report cost.
-      chunk_results: chunkResults,
-      net_new_hash_pool: netNew,
-      skipped_reason: null,
+      net_new_hashes: 0,
+      chunk_results: [],
+      net_new_hash_pool: [],
+      skipped_reason: `Only ${limited.length} eligible profiles after filtering, below the ${CONTACTOUT_MIN_BATCH}-profile minimum. Nothing was sent and nothing was billed.`,
     };
-  },
-  {
-    compatibility: { authoringContract: 'explicit-freshness' },
-    description:
-      'Resolve LinkedIn URLs into a deduped ContactOut email hash pool for paid ads audiences, reporting net-new hashes and matched-profile cost.',
-  },
-);
+  }
+
+  const chunks = chunkProfiles(limited);
+  const chunkResults: ChunkResult[] = [];
+  const contactoutHashes = new Set<string>();
+  let matchedProfiles = 0;
+
+  for (const [index, chunk] of chunks.entries()) {
+    const result = await deepline.tools.execute({
+      staleAfterSeconds: 0,
+      id: 'contactout_hashes',
+      tool: 'contactout_get_hashed_email_identifiers',
+      input: { profiles: chunk } as never,
+      description: 'Hash a batch of LinkedIn profiles into email identifiers',
+    });
+
+    const hashes = readHashes(result);
+    const found = readMatchesFound(result);
+    for (const hash of hashes) contactoutHashes.add(hash);
+    matchedProfiles += found;
+
+    chunkResults.push({
+      chunk_index: index,
+      profiles_sent: chunk.length,
+      matches_found: found,
+      hashes_returned: hashes.length,
+      status: hashes.length > 0 ? 'matched' : 'no_match',
+    });
+  }
+
+  const netNew = [...contactoutHashes].filter(
+    (hash) => !existingPool.has(hash),
+  );
+
+  return {
+    source_rows: allRows.length,
+    unique_profiles_sent: limited.length,
+    skipped_already_hashed: skippedAlreadyHashed,
+    skipped_no_linkedin_url: skippedNoLinkedIn,
+    // Those skipped rows may still have had a second personal address that
+    // ContactOut would have found. Re-run with includeRowsWithExistingHash
+    // when the goal is maximum coverage rather than lowest cost.
+    excluded_rows_may_hold_additional_addresses: skippedAlreadyHashed > 0,
+    chunks: chunkResults.length,
+    matched_profiles: matchedProfiles,
+    hashes_returned: contactoutHashes.size,
+    existing_pool_hashes: existingPool.size,
+    net_new_hashes: netNew.length,
+    // matched_profiles is the billing signal. hashes_returned is larger
+    // whenever a profile resolves to more than one hashed address, so it must
+    // not be used to report cost.
+    chunk_results: chunkResults,
+    net_new_hash_pool: netNew,
+    skipped_reason: null,
+  };
+}

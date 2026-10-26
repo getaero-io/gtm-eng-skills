@@ -114,8 +114,24 @@ Rules:
   unresolved; a paid person lookup by name and company domain is the last
   fallback.
 - **The task names a provider:** search for that provider.
-- **Authoring a Play:** `deepline plays --help` shows how to start from
-  working code; `--help --verbose` adds the authoring rules.
+- **Authoring a Play:** a Play is a `.play.ts` file:
+
+  ```ts
+  import deepline from 'deepline';
+
+  export default async function (input: { domain: string }) {
+    const company = await deepline.tools.execute({
+      id: 'company', tool: 'company_lookup', input: { domain: input.domain },
+      description: 'Look up the company.',
+    });
+    return { company };
+  }
+  ```
+
+  Call tools with `deepline.tools.execute({ id, tool, input, description })`. A
+  call's `id` is a fixed name for that call site: Deepline keys repeated calls
+  by input, so a loop keeps one id. Return an object (`return { rows }`).
+  `deepline plays --help --verbose` has the authoring rules.
 - **A Play or run was supplied:** use it. Do not rediscover or replace it.
 
 For outreach copy, read [writing outreach](writing-outreach.md).
@@ -201,7 +217,7 @@ Sample
 <real sample rows, or "Not run">
 
 Cost
-- Route: <tool or Play>
+- Route: <Play or prebuilt>
 - Scope: <rows/items>
 - Estimated credits: <range and basis>
 
