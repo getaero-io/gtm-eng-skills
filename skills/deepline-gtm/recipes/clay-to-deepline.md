@@ -1,6 +1,6 @@
 ---
 name: clay-to-deepline
-description: 'Convert a Clay table configuration into local Deepline scripts. Handles extraction (MCP or script), documentation, action mapping, script generation, and parity validation against Clay ground truth.'
+description: 'Convert a Clay table, or a whole Clay workspace via the Clay CLI, into Deepline plays. Handles extraction, documentation, action mapping, play generation, and cell-level parity validation against Clay ground truth.'
 ---
 
 # Clay → Deepline Migration
@@ -17,12 +17,12 @@ For execution authority, pilots, and retrieval, use
 
 Every migration targets a Deepline play. The shape differs by table:
 
-| Signal in Clay table                                                                                        | Target play shape                                                                                                                                                                                                                                                                                                      |
-| ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Batch rows, no triggers, one-time or manual re-runs                                                         | CSV-input play: one `.withColumn(...)` per Clay action (this recipe)                                                                                                                                                                                                                                                   |
-| **Function (subroutine) table**: a `f_subroutine_source` "Function inputs" field + a `write-to-cell` action | **Reusable play with a typed input contract:** input = the subroutine's declared parameter row (not a lead CSV), one `.withColumn(...)` per non-source field, output = the `write-to-cell` `data` map. Drop `write-to-cell`. See the Clay Functions section in [clay-extraction.md](../references/clay-extraction.md). |
-| Webhook trigger, row routing (`route-row`), CRM writes, campaign pushes                                     | Custom play with triggers/orchestration → `deepline plays --help`                                                                                                                                                                                                                                                      |
-| Hybrid: batch enrichment + downstream push to CRM/campaign                                                  | CSV-input play first, then a second play for the push                                                                                                                                                                                                                                                                  |
+| Signal in Clay table                                                        | Target play shape                                                    |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Batch rows, no triggers, one-time or manual re-runs                         | CSV-input play: one `.withColumn(...)` per Clay action (this recipe) |
+| **Function (subroutine) table**: "Function inputs" source + `write-to-cell` | Reusable play with a typed input contract (see below)                |
+| Webhook trigger, `route-row`, CRM writes, campaign pushes                   | Custom play with triggers/orchestration (`deepline plays --help`)    |
+| Hybrid: batch enrichment + downstream push                                  | CSV-input play first, then a second play for the push                |
 
 Most Clay tables are batch tables. This recipe covers that path end-to-end;
 for trigger/routing tables, **Extraction and Documentation still apply** — then
@@ -42,9 +42,156 @@ input/output/body capture map — read it whenever these signals appear.
 
 ---
 
+## Fast path: a whole Clay workspace with the Clay CLI
+
+Use this first when the user has the [Clay CLI](https://github.com/clay-run/agent-plugins)
+(`clay`) installed. It needs no browser cookie, and it is read-only against Clay. It
+converts every table in the workspace and proves formula parity on real rows
+before any paid Deepline call.
+
+```bash
+clay login && clay workspaces list && clay workspaces switch <workspace-id>
+S=<this skill>/scripts/clay-to-deepline.mjs        # Node 18+, no npm dependencies
+node $S export  clay-export --rows 25              # read-only: tables, columns, functions, 25 full rows per table
+node $S compile clay-export                        # plays/*.play.ts + *.clay.js, seeds/*.csv, migration-report.json
+node $S parity  clay-export                        # every formula and lookup cell vs Clay's stored value; exit 1 on a mismatch
+node $S check   clay-export                        # deepline plays check on every play (free, no run)
+node $S sample  clay-export --table t_x --column "Work Email" --row-ids r_a,r_b   # one column + its inputs as a pilot play
+node $S selftest                                   # Clay-semantics assertions, no network
+```
+
+Add `--tables t_a,t_b` to `export` for a subset. Run `compile` and `check` from a
+folder pinned to the target Deepline workspace: `compile` reads tool schemas with
+`deepline describe`, and `check` validates credentials there. A provider that is
+not connected in that workspace (for example HeyReach) fails `check` until it is
+connected.
+
+**Keys: have the user add theirs.** `export` records which connection each Clay
+action ran on (`clay app-accounts list`: the workspace's own key, or Clay's shared
+one). `compile` writes `keys.json`, one row per Deepline provider, from
+`deepline describe`. Before any run, show the user that table and ask them to
+connect:
+
+- every `deeplineKey: required` provider (CRMs, sequencers: HubSpot, Salesforce,
+  HeyReach). Deepline has no managed access, so these plays fail until connected.
+- every `optional` provider where `clayKeys` includes `own`: they paid that vendor
+  directly in Clay, so they keep their contract and rate in Deepline.
+- `optional` providers that ran on Clay-managed keys run on Deepline credits. A key
+  is optional.
+
+The user connects each with `deepline tools connect <provider>` (owner or admin;
+OAuth providers open a browser), or at the `setupUrl` in `keys.json`. Suggest
+`! deepline tools connect <provider>` so it runs in their session. Never ask for a
+key in chat, and never connect one yourself. Re-run `check` afterwards.
+
+What each output is for:
+
+| Output                                           | Use                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plays/<table>.play.ts`                          | One play per Clay table. Formula columns are local `withColumn`s, actions are tool calls, run conditions are `runIf`, and columns are dependency-ordered.                                                                                                                                                                                                                                                                                                                                                                         |
+| `plays/<table>.clay.js`, `plays/clay-runtime.js` | Clay's own JS formulas and Clay semantics, as plain JS imported by the play. `parity` imports the same files, so the parity result is about the code the play runs.                                                                                                                                                                                                                                                                                                                                                               |
+| `seeds/<table>.csv`                              | The exported rows' input columns: a ready pilot CSV.                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `migration-report.json`                          | Every column with `kind` (seed, formula, local, lookup, waterfall, action) and `status` (compiled, mapped, needs_review, unmapped), the mapped tool and provider, `substitute` when the Clay vendor is not in Deepline, `sameCapability` when Deepline runs the same search on another provider, `resolveTool` for a two-step id lookup, `reuses` when the call is identical to an earlier column's, and why a column needs review. Waterfall columns list their `steps` in Clay order, each with the provider column it returns. |
+| `keys.json`                                      | One row per Deepline provider: `required`/`optional`/`managed`, whether Clay used the user's own key, and the `deepline tools connect` command.                                                                                                                                                                                                                                                                                                                                                                                   |
+| `parity-cells.csv`, `parity-columns.json`        | The per-cell and per-column parity verdicts to show the user.                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+
+**Clay semantics the compiler reproduces** (each was found as a parity failure on a
+real workspace and is now covered by `parity`):
+
+- A Clay formula is a JavaScript expression, not a template. Raw newlines inside
+  string literals are legal in Clay and are escaped.
+- `{{column}}` on an action or source column reads its structured `fields`. Its
+  `value` is only a display string ("❌ No Record Found"), so a column without
+  `fields` reads as empty.
+- `{{column}}?.a?.["b"]` resolves as one path lookup: a missing column or path is
+  `''` (falsy, and empty in string concatenation), never `"undefined"`.
+- Output is trimmed text, then typed by the column's data type: `url` and `email`
+  values that fail validation become empty, `date` becomes ISO UTC, and text over
+  about 8 KB becomes empty (inferred: kept 8,055 characters, dropped 8,422).
+- `Clay.formatForJSON(x)` escapes text for use inside an already-quoted JSON string.
+- `moment`/lodash calls run on a small built-in UTC subset (`format`, `isSame`,
+  `isSameOrAfter`, `diff`, `toISOString`, `_.uniq`, `_.keys`). Extend
+  `clay-runtime.js` when the compile report shows another.
+- `lookup-row-in-other-table` returns the first match in creation order as
+  `{ record }` keyed by the target's Clay column names (`lookup-multiple-rows`
+  returns `{ records, numberOfResults }`). The play takes the target table as a
+  CSV input, `lookup_<tableId>`, with Clay column names as headers. That is Clay's own CSV
+  export.
+
+**Waterfalls.** A Clay waterfall is a merge column (`formulaType: waterfall`) over
+N provider columns. Each provider column has a run condition that skips it once an
+earlier step found a value that passed its validator. The compiler keeps all of
+it: the merge becomes `__clay.waterfall(step1, step2, ...)` (first non-empty, in
+the user's order), and each provider column keeps its own `runIf`. Vendors map
+like this:
+
+- Same vendor whenever Deepline has it (Findymail stays Findymail, `find-email-v2`
+  is Hunter, `validate-email` is ZeroBounce, `enrich-person` is PDL). The vendor
+  comes from the connection type, not the action key.
+- Same capability: Clay's Google `google-company-to-domain` is the same Google
+  search on Serper (`serper_google_search`); `__clay.searchDomain` takes the
+  first organic result's host without `www`. The report marks it
+  `sameCapability`, not `substitute`.
+- Dealroom and Crunchbase take their own entity ids, so the column makes two
+  calls: a search by the company domain (`dealroom_search_companies`,
+  `crunchbase_search_organizations`) finds the id (`__clay.entityId`), then the
+  funding tool runs on it (`dealroom_get_company_by_id`,
+  `dealroom_get_company_fundings`, `crunchbase_get_organization`). Each call is
+  skipped when its input is empty. Both vendors need the user's own key
+  (`required` in `keys.json`), so `check` fails until it is connected.
+- A vendor Deepline lacks gets a substitute from an ordered pool. The pool skips
+  providers the table already runs, so a 10-step waterfall stays on distinct
+  providers. One Clay vendor maps to one provider per table, and an identical call
+  reuses the earlier column's result instead of paying twice. A waterfall's `note`
+  says when Deepline has fewer distinct providers than the Clay waterfall.
+- Clay formulas and run conditions read Clay's field names (`{{finder}}?.email`).
+  Provider columns are read through `__clay.view`: a name on the object resolves
+  directly (so parity on Clay's cells stays exact); otherwise it is the first
+  non-null field of that name in the Deepline response, with known renames
+  (FullEnrich `most_probable_email` is `most_probable_work_email`). Without it,
+  every gate reads empty and every step runs.
+- A tool call whose required input is empty is skipped, as in Clay.
+
+Pilot one waterfall with `sample`. It writes the column and only the columns it
+reads (no CRM writes) as its own play, plus a seed of the chosen Clay rows. Run it
+with `--max-credits`, then compare each row's step trace with the step Clay hit.
+Clay's stored hits can be months old, so a same-vendor miss today is a data
+difference, not a mapping bug. Check that later steps did not run after a
+validated hit.
+
+**Reading `parity`.** It rebuilds each row from Clay's own input cells and compares
+every formula cell with Clay's stored value. A clean run reports `mismatch: 0`.
+Report the other verdicts as counts, never as matches:
+
+| Verdict                           | Meaning                                                                                                                               |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `match`                           | Same value. For formulas that read the current time, "same" means both are empty or both are non-empty. Report that count separately. |
+| `clay_not_evaluated`              | Clay never computed the cell (status `empty`); the play would compute it.                                                             |
+| `clay_stale_input` / `clay_stale` | An input is empty or marked stale, so Clay's value predates its inputs.                                                               |
+| `dangling_ref`                    | The formula reads a deleted Clay column. Fix the formula in Clay or in the play.                                                      |
+| `clay_error`                      | Clay errored and the play produced no value.                                                                                          |
+| `not_in_sample`                   | Lookup only: Clay's matched row is outside the exported sample. Raise `--rows` to cover it.                                           |
+| `target_changed_later`            | Lookup only: the matching target row or column is newer than this row, and Clay does not re-run lookups when the target changes.      |
+
+`parity` covers formula, local transform, lookup and waterfall-merge columns, which
+are deterministic and must match 100%. Provider and AI columns return live data,
+so validate them on a paid pilot (`sample`, then §7). A formula that reads a
+provider output path is `config-inferred` until a pilot shows the path resolves
+on a Deepline response. A substitute vendor's shape can differ more than a same
+vendor's.
+
+**Still manual** (the compiler emits a column that throws, plus the reason, so a
+run fails loudly instead of skipping): `route-row`, `write-to-other-table-v2`,
+`trigger-find-people-source`, `lookup-company-in-other-table`, Google Docs writes,
+and Google Sheet upserts. Clay Functions are inventoried with their inputs and actions,
+but not compiled: `clay functions get` returns an XML schema with action display
+names, not action keys. Port each one as a reusable play.
+
+---
+
 ## §1 Extraction
 
-If you need to extract from Clay (no extract JSON provided), read [clay-extraction.md](../references/clay-extraction.md) for MCP and script-based extraction paths, API endpoints, config structure, and input data formats.
+Prefer the Clay CLI fast path above. Without the Clay CLI (no extract JSON provided), read [clay-extraction.md](../references/clay-extraction.md) for MCP and script-based extraction paths, API endpoints, config structure, and input data formats.
 
 The full observed Clay internal API - every endpoint, plus how to pull the 1398-action catalog with input/output schemas - is in [clay-api-surface.md](../references/clay-api-surface.md). Go there when an `actionKey` is not covered by the mapping table, when you need a table's source filter criteria, or when you want a workbook's real dependency graph instead of deriving one.
 
@@ -284,16 +431,6 @@ This replaces the old filter-to-a-separate-CSV-and-merge workaround. Compatible
 completed tool receipts may be reused; incomplete or ambiguous work can execute
 again. Do not promise that a rerun is free.
 
-### Architecture Choice: Play vs Python SDK
-
-Use a Play for repeated row execution, including Claygent-heavy tables: keep
-`exa_search` retrieval and `deeplineagent` synthesis as separate stages, with
-explicit confidence and failure outcomes. Historical Python implementations used
-`ThreadPoolExecutor` for parallelism and custom retry/confidence control; retain
-those semantics when migrating, but use Play-managed durable calls rather than
-adding an agent-level retry loop. Local Python remains useful for deterministic
-preparation and parity analysis of saved outputs.
-
 ### Common Failure Modes
 
 | Symptom                     | Cause                                         | Fix                                                  |
@@ -346,7 +483,7 @@ deepline describe <candidate_tool_id>       # inspect candidate
 
 ## §5 Binary Search Optimizer (Claygent Web Research)
 
-Use whenever replicating a `use-ai (claygent + web)` column.
+Use whenever replicating a `use-ai (claygent + web)` column, as a Play: keep `exa_search` retrieval and `deeplineagent` synthesis as separate columns with explicit confidence and failure outcomes. Adapt the three angles to the use case (signals: tech stack/jobs, engineering blog, talks).
 
 ### Pass Structure
 
@@ -392,26 +529,11 @@ Expected failure rate: ~15%.
 | No indexed source | `ziphq.com`                     | Fall back to Crunchbase + LinkedIn                       |
 | URL contamination | Deep-read returns wrong company | Use `_extract_primary_source_url(company_domain=domain)` |
 
-### Adapting Search Angles
-
-| Use case            | Angle A              | Angle B             | Angle C          |
-| ------------------- | -------------------- | ------------------- | ---------------- |
-| GTM strategy        | 10-K / IR            | Product launches    | New segments     |
-| Signal detection    | Tech stack / jobs    | Engineering blog    | Conference talks |
-| Competitor research | Pricing pages        | G2/Capterra reviews | Exec interviews  |
-| Private company     | Crunchbase / funding | Newsroom            | Founder blog     |
-
 ---
 
 ## §6 Patterns and Antipatterns
 
 Clay-specific patterns. For general Deepline patterns (email plays, interpolation, deeplineagent, column shapes), use the prebuilt plays and the steps in the deepline-gtm skill.
-
-### Prompt Recovery
-
-**Do this**: Extract from richest source (HAR > extract > portableSchema > approximate). Mark files with source header.
-
-**Not this**: Approximate when the actual prompt was in the export.
 
 ### Email Match Rate
 
@@ -423,18 +545,6 @@ Clay-specific patterns. For general Deepline patterns (email plays, interpolatio
 | Provider waterfall only | ~12%             |
 
 Use `name-and-domain-to-email-waterfall` as primary play. Accept `valid`, `valid_catch_all`, AND `catch_all` from validation (NOT `unknown`).
-
-### Cookie Security
-
-Read `CLAY_COOKIE` only in the generated shell script. Single quotes belong in `.env.deepline`. Add `.env.deepline` and `output/` to `.gitignore`. Never place the cookie in a play payload.
-
-### run_javascript
-
-`run_javascript` does not expose fetch or process.env. Use it for deterministic row transforms only. Route HTTP through `generic_http_request`, or fetch Clay records in `scripts/fetch_<table>.sh` with `clay_curl`. Column payloads live in the play file as real TypeScript, so no shell JSON assembly is needed.
-
-### Clay API Calls
-
-Always use `clay_curl` wrapper. Get `VIEW_ID` from `.table.firstViewId`. Parse with `.get('results', [])`. Record ID is `.id` not `.recordId`.
 
 ---
 
@@ -460,17 +570,13 @@ Clay-specific extensions:
 
 ### Running the Comparison
 
-```bash
-python3 /path/to/skill/scripts/compare.py ground_truth.csv enriched.csv
-python3 /path/to/skill/scripts/compare.py ground_truth.csv enriched.csv \
-  --map '{"clay_final_email":"work_email","clay_job_function":"job_function"}'
-```
+Deterministic columns: `node <this skill>/scripts/clay-to-deepline.mjs parity <export-dir>`
+(see the fast path). It needs no Deepline run.
 
-### Accuracy Expectations
-
-- **Valid/valid_catch_all**: high confidence (<5% bounce)
-- **catch_all**: domain accepts all — best guess. Same limitation as Clay (same ZeroBounce under the hood)
-- **unknown**: skip, do not treat as found
+Provider and AI columns: export the pilot run (`deepline runs export <run-id> --out pilot.csv`)
+and compare each migrated column with the same Clay rows' values from the export
+(`rows/<tableId>/<rowId>.json`, cell `value`/`fields`), joining on the seed
+columns. Report found rate and agreement per column against the thresholds above.
 
 ### Diagnosing LLM Mismatches
 
@@ -499,7 +605,7 @@ Use this mismatch process: check prompt parity → check model parity → check 
 4. **Phase 2 (§3)**: Pre-flight → write `fetch_<table>.sh` + `<table>.play.ts`
 5. **Check and pilot**: `deepline plays check` (no provider spend), then an authorized bounded pilot for larger unproven work; no duplicate small supplied run
 6. **Full run**: Complete the approved scope without redundant post-pilot approval; ask if scope, cost, or risk changes
-7. **Phase 3 (§7)**: `compare.py ground_truth.csv enriched.csv` — confirm thresholds pass
+7. **Phase 3 (§7)**: `clay-to-deepline.mjs parity` reports `mismatch: 0` for deterministic columns; pilot comparisons meet the thresholds for provider and AI columns
 8. **Trigger/routing migration** (optional): If table needs triggers/routing → `deepline plays --help`
 
 ### Pilot Gate

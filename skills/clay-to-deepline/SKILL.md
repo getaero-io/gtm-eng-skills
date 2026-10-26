@@ -1,6 +1,6 @@
 ---
 name: clay-to-deepline
-description: "Convert a Clay table configuration into local Deepline scripts. Handles extraction (MCP or script), documentation, action mapping, script generation, and parity validation against Clay ground truth."
+description: "Convert a Clay table, or a whole Clay workspace via the Clay CLI, into Deepline plays. Handles extraction, documentation, action mapping, play generation, and cell-level parity validation against Clay ground truth."
 ---
 
 # Clay → Deepline Migration
