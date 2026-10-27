@@ -377,7 +377,7 @@ clay_curl() {
 
 ### Play Shape and Column Order
 
-The migrated table is a play file: the script reads the seed CSV with `deepline.csv(...)`, chains one `.withColumn(alias, ...)` per Clay action in dependency order, and finishes with `.run({ key })`. Author it per `deepline plays --help`; columns execute in declaration order, and each column can read any earlier alias.
+The migrated table is a play file: the script reads the seed CSV with `deepline.csv(input.csv)`, chains one `.withColumn(alias, ...)` per Clay action in dependency order, and finishes with `.run({ key })`. Author it per `deepline plays --help`; columns execute in declaration order, and each column can read any earlier alias. Pass the CSV through the play's `csv` input, as in the run commands below; the CLI uploads that file before the run starts. Do not build the path inside the play: `plays check` accepts a computed path, but the cloud run cannot open it.
 
 Validate before spending credits:
 
@@ -398,7 +398,7 @@ interpolate Clay braces or silently turn a missing path into an empty string.
 ### Running and Waiting
 
 ```bash
-deepline plays run <table>.play.ts --csv seed.csv
+deepline plays run <table>.play.ts --input '{"csv": "seed.csv"}'
 deepline runs get <run-id>
 deepline runs export <run-id> --out output_<table>.csv
 ```
@@ -418,7 +418,7 @@ scaling. A small authorized supplied Play runs once, without a separate pilot:
 
 ```bash
 # Prepare pilot.csv with a CSV parser (quoted fields may contain newlines).
-deepline plays run --file <table>.play.ts --input '{"csv": "pilot.csv"}'
+deepline plays run <table>.play.ts --input '{"csv": "pilot.csv"}'
 ```
 
 To skip rows a cheaper pass already answered, gate the expensive column with `runIf` so it only fires where the value is missing:
@@ -617,8 +617,8 @@ scaling; do not repeat them solely to satisfy a full-run ritual:
 ```bash
 deepline plays check <table>.play.ts                                        # step 1: compile only, no spend
 # Prepare pilot.csv with a CSV parser; seed.csv below is the remaining scope.
-deepline plays run --file <table>.play.ts --input '{"csv": "pilot.csv"}'   # step 2: 3 rows, real providers
-deepline plays run --file <table>.play.ts --input '{"csv": "seed.csv"}'    # step 3: all rows
+deepline plays run <table>.play.ts --input '{"csv": "pilot.csv"}'   # step 2: 3 rows, real providers
+deepline plays run <table>.play.ts --input '{"csv": "seed.csv"}'    # step 3: all rows
 ```
 
 `plays check` compiles the play without spending credits. It still calls the Deepline compile API, so it needs auth and network — it is not an offline check.
