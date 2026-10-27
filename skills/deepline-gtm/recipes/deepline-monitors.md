@@ -406,7 +406,8 @@ Name no company here, so an empty first target can move on to the next one
 without another question.
 
 When the sample arrives, show its rows as in “Calibration decision,” with the
-company each came from. If the rows are the requested signal, ask:
+company each came from, and for text signals first “Show the full text.” If
+the rows are the requested signal, ask:
 
 ```markdown
 Do these look like the <signal> you want?
@@ -489,6 +490,18 @@ For other signals use `Target / Signal / Detail / When`, limited to returned
 fields. Never replace the table with a count or a role roll-up. When the user
 asked to calibrate, a recommendation to leave the filter broad still ends with
 the same yes-or-adjust prompt; it gives them the smallest useful control.
+
+**Show the full text.** For posts, reviews, mentions and replies, the user approves the words, and
+your host may bar repeating third-party text in chat. As rows arrive, write
+them to a file and display or attach it (with no such tool, run the command
+in the user's terminal, then print the file there, because the command itself
+prints only the export path); never substitute a summary:
+
+```bash
+deepline db query --format markdown --out <key>-sample.md --sql "select <who>, <when>, <url>, <text> from <stream table> where _dl_monitor_id = '<key>' and _dl_received_at >= '<setup start time>'"
+```
+
+Ask “Do these look like…” only after that.
 
 Use the “Observe and refine” decision rules: inspect every 30 seconds, show
 matches as soon as they arrive, and widen only along the chosen volume tier.
