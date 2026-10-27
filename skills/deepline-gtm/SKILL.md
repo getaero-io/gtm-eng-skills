@@ -228,6 +228,16 @@ Out of credits: stop paid work, quote the returned `top_up_command` and
 
 ## 5. Deliver results
 
+**Typical coverage, validated results only:** work email about 75%, mobile
+about 60%, LinkedIn URL and company domain about 90%. Count catch-all or
+unverified emails separately. If a first pass lands well below these, run a
+second pass on the misses only, using a different route, and set an explicit
+credit budget for it first, sized from the cost per row you observed. A
+budget the user already gave you counts, if enough remains. Do not rerun rows
+that already succeeded. If a step errors on every
+call, search for another tool. Stop and report the gap with the cheapest next
+step when the budget is spent.
+
 Export the complete requested population to the requested path and filename,
 then verify row count, identity and requested columns. Keep every supplied row,
 including misses, and its evidence and lineage fields. Write CSVs with a CSV
