@@ -1,9 +1,9 @@
-Use CrustData for structured discovery and enrichment with recall-first filtering.
+Use CrustData for structured discovery and enrichment with recall-first filtering. The legacy `crustdata_*` tools are hidden from discovery and fail with a provider authorization error; use the `crustdata_v3_*` tools.
 
 - Start with free autocomplete (`crustdata_v3_company_search_autocomplete`, `crustdata_v3_person_search_autocomplete`) to discover canonical values. Confirm these hints with `deepline describe <tool-id>`.
 - Preserve recall-first matching: in historical CompanyDB filters, fuzzy `(.)` was the default and strict `[.]` was only for an explicit substring request. V3 uses `contains`; confirm its semantics and current field vocabulary rather than forwarding old operators.
 - Use `crustdata_v3_company_search` as the resolver step; for `crustdata_v3_company_enrich`, prefer domain-based inputs instead of name-only payloads. Check each input schema before converting older company filters.
-- For job data, use `crustdata_v3_job_search` for indexed listings or `crustdata_v2_live_job_search` when freshness is required for a known CrustData company id. Legacy job-listing compatibility actions are hidden from discovery and should not be selected for new workflows.
+- For job data, use `crustdata_v3_job_search`.
 - In changed-company email recovery, use Crust as the second step after LeadMagic and before PDL.
 - Keep filters composable and inspect a small sample before adding expensive enrichments.
 - If Crust misses in the first 10 rows for a batch, move it later for the rest of that batch.

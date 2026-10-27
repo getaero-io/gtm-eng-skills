@@ -1,7 +1,5 @@
 # CrustData V2 Guidance
 
-Use autocomplete before structured CompanyDB or PersonDB searches when a field expects canonical values. Prefer in-DB search for broad list building and reserve realtime search/enrichment for freshness-sensitive cases.
-
-For job data, use `crustdata_v3_job_search` for indexed job-listing discovery and `crustdata_v2_live_job_search` when the user explicitly needs current professional-network jobs for one known CrustData company id. Confirm the schema with `deepline describe <tool-id>`; V3 indexed search uses its own filter vocabulary, not a renamed V2 payload. Legacy dataset-table compatibility actions are hidden from discovery and should not be selected for new workflows.
+CrustData V2 is hidden from tool discovery: CrustData no longer serves Deepline's V2 API access, so every V2 call fails with a provider authorization error. Use the `crustdata_v3_*` tools for new workflows and migrate existing ones; confirm each V3 schema with `deepline describe <tool-id>`, since V3 uses its own filter vocabulary, not a renamed V2 payload.
 
 Do not expose provider credit ladders to customers; Deepline tool pricing should remain Deepline-facing.
