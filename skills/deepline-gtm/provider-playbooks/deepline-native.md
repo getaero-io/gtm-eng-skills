@@ -14,7 +14,7 @@
 ## Provider Positioning
 
 - **`job_change`**: preferred job-change provider — charges only on confirmed moves.
-- **`search_contact`**: secondary people search. **Not free** — `0.56` Deepline credits per contact returned on successful calls. Zero returned contacts are free. Deepline `422` schema validation errors are rejected before provider execution and should not bill. Use it for company-scoped LinkedIn candidate discovery; check current catalog options and pricing before selecting a provider.
+- **`search_contact`**: secondary people search. **Standard managed pricing** — `0.56` Deepline credits per contact returned on successful calls. Zero returned contacts are free. Deepline `422` schema validation errors are rejected before provider execution and should not bill. Use it for company-scoped LinkedIn candidate discovery; check current catalog options and pricing before selecting a provider.
 - **`prospector` / `enrich_contact`**: use for company-scoped prospecting and contact enrichment.
 - **`enrich_company`**: `0.98` Deepline credits per call. Use when firmographic data is required and other sources have been exhausted.
 
@@ -64,9 +64,11 @@
 
 ### search_contact
 
+- Workspace-specific included usage, remaining quota, reset time, rate limits, and overage price come from `deepline billing entitlements`; those terms take precedence over the standard prices below.
+
 - Use for company-scoped LinkedIn candidate discovery. Discover available alternatives through `deepline search --type tools`.
 - Uses the dedicated Waterfall search key/budget (`60 RPM`), separate from the higher-throughput enrichment key.
-- **Pricing: `0.56` Deepline credits per contact returned (post-deduct, billed on success). Zero returned contacts are free. Deepline `422` schema validation errors, such as `title_lists[0].titles` not being an array, happen before provider execution and should not bill.** A `page_size: 10` call that returns 10 contacts costs `5.6` credits — keep `page_size` small (`1-3`) for targeted lookups.
+- **Standard pricing: `0.56` Deepline credits per contact returned (post-deduct, billed on success). Zero returned contacts are free. Deepline `422` schema validation errors, such as `title_lists[0].titles` not being an array, happen before provider execution and should not bill.** A `page_size: 10` call that returns 10 contacts costs `5.6` credits — keep `page_size` small (`1-3`) for targeted lookups.
 - Synchronous. Returns LinkedIn URLs and profile/title data only. There is no request option to reveal contact data: `professional_email`, `personal_email`, `mobile_phone`, `phone_numbers`, and `email_verified` are present in each person but always empty, and every returned profile still bills. Use `enrich_contact` / `enrich_phone` on the rows you keep.
 - Treat it as a company-scoped LinkedIn candidate finder, not a clean org-chart API. It is good at surfacing plausible current people at a company, but broad title queries can still return adjacent or support roles.
 - Follow up with `enrich_contact` to get email/phone for returned LinkedIn URLs.
@@ -168,7 +170,7 @@ do not rerun, add paid enrichment, or repair the workflow just to retrieve resul
 
 ## Anti-Patterns to Avoid
 
-- Do not treat `search_contact` as free; each returned contact is billable.
+- Do not assume `search_contact` is included: check `deepline billing entitlements` for any workspace-specific allowance and overage rate before estimating cost.
 - Do not assume portable play-style seniorities like `C-Level` are valid on the raw `search_contact` tool.
 - Do not use broad founder/CEO filters when you really want a functional leader at a company; they can produce noisy candidate sets.
 - Do not use `email`/`linkedin`/`domain` field names for `job_change` — use the correct API names (`professional_email`, `contact_linkedin`, `company_domain`).
