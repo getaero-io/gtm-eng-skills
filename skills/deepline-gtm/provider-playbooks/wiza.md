@@ -2,7 +2,7 @@
 
 ## Prospect search
 
-`wiza_search_prospects` discovers prospects by title, level, company, industry, and location. It returns masked profiles without contact information, with up to 30 results per search.
+`wiza_search_prospects` discovers prospects by title, level, company, industry, and location. It returns names, titles, companies, and LinkedIn URLs without contact information. `size` sets how many profiles come back (default 0, which returns only the match count; maximum 30), and each returned profile is billed.
 
 ```json
 {
