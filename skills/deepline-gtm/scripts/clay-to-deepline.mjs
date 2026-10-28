@@ -5,6 +5,7 @@
 //   node clay-to-deepline.mjs compile <dir>                                 # <dir> -> <dir>/plays/*.play.ts + report
 //   node clay-to-deepline.mjs sample  <dir> --table t_x --column "Work Email" [--rows 3 | --row-ids r_a,r_b]  # one column's play
 //   node clay-to-deepline.mjs parity  <dir>                                 # formula cells vs Clay's stored values
+//   node clay-to-deepline.mjs workflow-cost <dir> <wf_id> [--limit N]       # Clay-metered credits per completed workflow run
 //   node clay-to-deepline.mjs check   <dir>                                 # deepline plays check on every play (free)
 //   node clay-to-deepline.mjs selftest                                      # Clay-semantics assertions, no network
 //
@@ -158,6 +159,17 @@ async function exportWorkspace() {
         rows++;
       });
     });
+  }
+  // `actionExecutionBalance` exists only on action-execution plans. Its absence marks the legacy plan.
+  try {
+    const b = await clay('credits', 'balance');
+    writeJson(`${dir}/billing.json`, {
+      actionExecutionPlan: b.actionExecutionBalance != null,
+      balance: b.balance,
+      actionExecutionBalance: b.actionExecutionBalance ?? null,
+    });
+  } catch (e) {
+    console.error(`warning: billing not captured (${e.message})`);
   }
   console.log(
     JSON.stringify({
@@ -2278,6 +2290,473 @@ async function checkAll() {
 
 // ---------------------------------------------------------------- selftest (no Clay or Deepline access)
 // Each assertion is a Clay behavior observed on a real workspace's cells.
+// ---------------------------------------------------------------- import (bookmarklet / clay-extract.py JSON -> export dir)
+// `import <dir> <extract.json | folder> ...` writes the same files `export` writes, so compile, parity,
+// check and cost run unchanged on a browser export. Read-only; no Clay or Deepline call.
+const positional = () =>
+  rest.filter(
+    (a, i) => !a.startsWith('--') && !(i > 0 && rest[i - 1].startsWith('--')),
+  );
+const BULK_STATUS = (s) => {
+  const v = String(s ?? '').toLowerCase();
+  if (!v) return null;
+  if (v.includes('error') || v === 'failed') return 'error';
+  if (v.includes('success') || v === 'ok' || v === 'completed')
+    return 'success';
+  if (v.includes('queue') || v.includes('running') || v.includes('pending'))
+    return 'running';
+  return v === 'empty' ? 'empty' : null;
+};
+// One extract cell (flat value, {value}, or a bulk-fetch cell with metadata) -> the CLI cell shape.
+function cellFromExtract(raw) {
+  const isCell =
+    raw &&
+    typeof raw === 'object' &&
+    !Array.isArray(raw) &&
+    ('value' in raw || 'metadata' in raw || 'status' in raw);
+  const value = isCell ? raw.value : raw;
+  const empty = value === undefined || value === null || value === '';
+  const status =
+    (isCell && (raw.status || BULK_STATUS(raw.metadata?.status))) ||
+    (empty ? 'empty' : 'success');
+  const cell = { status };
+  if (status === 'error')
+    cell.error = raw?.metadata?.error ?? raw?.error ?? undefined;
+  if (status === 'success' || status === 'empty') {
+    cell.value = empty ? null : value;
+    cell.fields =
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? value
+        : null;
+  }
+  if (isCell && raw.metadata) cell.metadata = raw.metadata;
+  return cell;
+}
+function columnFromExtract(f) {
+  const ts = f.typeSettings || {};
+  if (f.type === 'source')
+    return {
+      type: 'source',
+      id: f.id,
+      name: f.name,
+      sources: (ts.sourceIds || []).map((id) => ({
+        id,
+        name: f.name,
+        numSourceRecords: null,
+        sourceType: ts.taggedSourceType || 'unknown',
+      })),
+    };
+  if (f.type === 'action')
+    return {
+      type: 'action',
+      id: f.id,
+      name: f.name,
+      settings: {
+        type: 'action',
+        ...ts,
+        actionKey: ts.actionKey || f.actionType,
+      },
+    };
+  const formula = f.type === 'formula' || ts.formulaText;
+  return {
+    type: 'basic',
+    id: f.id,
+    name: f.name,
+    settings: {
+      type: 'basic',
+      dataTypeSettings: ts.dataTypeSettings || {
+        type: f.type === 'formula' ? 'text' : f.type || 'text',
+      },
+      ...ts,
+      ...(formula ? { formulaType: ts.formulaType || 'text' } : {}),
+    },
+  };
+}
+function rowsFromExtract(ext) {
+  const bulk = ext.bulkFetchRecords?.results || ext.bulkFetchRecords || [];
+  const src =
+    Array.isArray(bulk) && bulk.length ? bulk : ext.exampleRecords || [];
+  return src.map((r, i) => {
+    const cells =
+      r.cells && typeof r.cells === 'object'
+        ? r.cells
+        : Object.fromEntries(
+            Object.entries(r).filter(([k]) => k.startsWith('f_')),
+          );
+    return {
+      id: r.id || `r_import_${i}`,
+      cells: Object.fromEntries(
+        Object.entries(cells).map(([k, v]) => [k, cellFromExtract(v)]),
+      ),
+    };
+  });
+}
+function importExtracts() {
+  const files = positional().flatMap((p) =>
+    fs.statSync(p).isDirectory()
+      ? fs
+          .readdirSync(p)
+          .filter((f) => f.endsWith('.json'))
+          .map((f) => path.join(p, f))
+      : [p],
+  );
+  if (!files.length)
+    throw new Error(
+      'import needs one or more extract JSON files or a folder of them',
+    );
+  const invPath = `${dir}/inventory.json`;
+  const inv = fs.existsSync(invPath)
+    ? readJson(invPath)
+    : {
+        workspace: {},
+        workbooks: [],
+        tables: [],
+        workflows: [],
+        functions: [],
+        exportedAt: new Date().toISOString(),
+      };
+  const out = [];
+  for (const file of files) {
+    const ext = readJson(file);
+    const t = ext.table || {};
+    const id = t.id || ext._meta?.tableId;
+    if (!id || !Array.isArray(ext.fields)) {
+      out.push({
+        file,
+        skipped: 'not a Clay extract (needs table.id and fields[])',
+      });
+      continue;
+    }
+    const rows = rowsFromExtract(ext);
+    writeJson(`${dir}/columns/${id}.json`, {
+      data: ext.fields.map(columnFromExtract),
+    });
+    for (const r of rows)
+      writeJson(`${dir}/rows/${id}/${r.id}.json`, {
+        workspace: t.workspaceId,
+        id: r.id,
+        cells: r.cells,
+      });
+    if (!inv.tables.some((x) => x.id === id))
+      inv.tables.push({ id, name: t.name || id, workbookId: t.workbookId });
+    if (t.workspaceId && !inv.workspace?.id)
+      inv.workspace = { id: t.workspaceId, name: `workspace ${t.workspaceId}` };
+    const actionCells = rows
+      .flatMap((r) =>
+        ext.fields.filter((f) => f.type === 'action').map((f) => r.cells[f.id]),
+      )
+      .filter((c) => c && c.status === 'success');
+    out.push({
+      file,
+      tableId: id,
+      table: t.name,
+      columns: ext.fields.length,
+      rows: rows.length,
+      // The bookmarklet keeps display values, not structured `fields`, for most actions. Parity of formulas that read them is weaker.
+      warnings: [
+        ...(rows.length
+          ? []
+          : [
+              'no sample rows: parity and cost have nothing to read (config-inferred, unvalidated)',
+            ]),
+        ...(actionCells.length && actionCells.every((c) => !c.fields)
+          ? [
+              'action cells have no structured fields: formulas that read them cannot be proven',
+            ]
+          : []),
+      ],
+    });
+  }
+  writeJson(invPath, inv);
+  if (!fs.existsSync(`${dir}/app-accounts.json`))
+    writeJson(`${dir}/app-accounts.json`, {});
+  console.log(
+    JSON.stringify(
+      { imported: out.filter((o) => o.tableId).length, files: out },
+      null,
+      1,
+    ),
+  );
+}
+
+// ---------------------------------------------------------------- cost (Clay run metadata vs Deepline price)
+// Credit keys differ by source. In `metadata` the number is Clay's own record of the charge. In `fields` it is
+// the vendor's response (LeadMagic `credits_consumed`, Datagma `creditBurn`): it is NOT what Clay billed.
+const CREDIT_KEY =
+  /^(credits?[_-]?(consumed|used|cost|burn|spent|charged)|credit[_-]?(burn|cost|used|consumed|spent)|creditsUsed|creditBurn)$/i;
+function scanCredits(o, depth = 0) {
+  if (!o || typeof o !== 'object' || Array.isArray(o) || depth > 5) return null;
+  for (const [k, v] of Object.entries(o)) {
+    if (CREDIT_KEY.test(k)) {
+      const n = Number(v);
+      if (v !== '' && v !== null && Number.isFinite(n)) return n;
+    } else if (v && typeof v === 'object') {
+      const n = scanCredits(v, depth + 1);
+      if (n !== null) return n;
+    }
+  }
+  return null;
+}
+const creditsOf = (cell) => ({
+  clay: scanCredits(cell?.metadata),
+  vendor: scanCredits(cell?.fields),
+});
+// `deepline describe` prints "0.34 Deepline credits / $0.034 per result (managed by Deepline)".
+function parseDeeplineCost(text) {
+  const m =
+    /([\d.]+)\s+Deepline credits?\s*\/\s*\$([\d.]+)\s*(per [a-z ]+?)?\s*(\(|$)/i.exec(
+      String(text || ''),
+    );
+  return m
+    ? {
+        credits: Number(m[1]),
+        usd: Number(m[2]),
+        unit: (m[3] || 'per call').trim(),
+      }
+    : null;
+}
+const PRICING_URL =
+  'https://code.deepline.com/api/public/gtm-data-pricing/clay-actions/export';
+async function loadPricing(src) {
+  try {
+    const text = fs.existsSync(src || '')
+      ? fs.readFileSync(src, 'utf8')
+      : await (await fetch(src || PRICING_URL)).text();
+    const d = JSON.parse(text);
+    return {
+      updatedAt: d.updatedAt,
+      bySlug: new Map((d.records || []).map((r) => [r.action.claySlug, r])),
+    };
+  } catch (e) {
+    console.error(
+      `warning: Clay price catalog not loaded (${e.message}); pass --pricing <file>. Clay USD will be empty.`,
+    );
+    return { updatedAt: null, bySlug: new Map() };
+  }
+}
+function clayRunPrice(rec, plan) {
+  const p = rec?.currentPlan;
+  if (plan === 'legacy')
+    return rec?.legacyPlan
+      ? {
+          credits: rec.legacyPlan.credits,
+          usd: rec.legacyPlan.usdPerRun,
+          refund: false,
+        }
+      : null;
+  if (!p) return null;
+  const credits =
+    (p.dataCredits || 0) + (p.actionCreditsApply ? p.actionCredits || 0 : 0);
+  return {
+    credits,
+    usd: plan === 'launch' ? p.launchUsdPerRun : p.growthUsdPerRun,
+    refund: !!p.refundOnSuccessfulNoData,
+  };
+}
+// Plan type comes from billing.json (written by `export`). The CLI does not return the tier, so a tier needs --plan.
+function resolvePlan(d = dir, flag = opt('plan')) {
+  if (flag) return { plan: flag, planSource: '--plan flag' };
+  const f = `${d}/billing.json`;
+  if (fs.existsSync(f)) {
+    const b = readJson(f);
+    if (!b.actionExecutionPlan)
+      return {
+        plan: 'legacy',
+        planSource: 'billing.json: no actionExecutionBalance (legacy plan)',
+      };
+    return {
+      plan: 'growth',
+      planSource:
+        'billing.json: action-execution plan, tier unknown. Pass --plan launch|growth if known',
+    };
+  }
+  return {
+    plan: 'growth',
+    planSource: 'default: no billing.json and no --plan',
+  };
+}
+async function cost() {
+  const { plan, planSource } = resolvePlan();
+  const pricing = await loadPricing(opt('pricing'));
+  const inv = readJson(`${dir}/inventory.json`);
+  const reportPath = `${dir}/migration-report.json`;
+  const toolOf = new Map(
+    fs.existsSync(reportPath)
+      ? readJson(reportPath)
+          .columns.filter((c) => c.tool)
+          .map((c) => [c.columnId, c.tool])
+      : [],
+  );
+  if (!toolOf.size)
+    console.error(
+      'note: no migration-report.json. Run `compile` first to price the Deepline side.',
+    );
+  const cache = `${dir}/describe`;
+  const rows = [];
+  for (const t of inv.tables) {
+    const colsPath = `${dir}/columns/${t.id}.json`;
+    if (!fs.existsSync(colsPath)) continue;
+    const cols = readJson(colsPath).data || [];
+    const files = fs.existsSync(`${dir}/rows/${t.id}`)
+      ? fs.readdirSync(`${dir}/rows/${t.id}`).filter((f) => f.endsWith('.json'))
+      : [];
+    const sample = files.map((f) => readJson(`${dir}/rows/${t.id}/${f}`));
+    const total =
+      cols
+        .filter((c) => c.type === 'source')
+        .flatMap((c) => c.sources || [])
+        .reduce((n, s) => n + (s.numSourceRecords || 0), 0) || sample.length;
+    for (const col of cols.filter((c) => c.type === 'action')) {
+      const key = col.settings?.actionKey;
+      const cells = sample.map((r) => r.cells?.[col.id]).filter(Boolean);
+      const ok = cells.filter((c) => c.status === 'success');
+      const clayObs = ok
+        .map((c) => creditsOf(c).clay)
+        .filter((n) => n !== null);
+      const vendorObs = ok
+        .map((c) => creditsOf(c).vendor)
+        .filter((n) => n !== null);
+      const avg = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+      const price = clayRunPrice(pricing.bySlug.get(key), plan);
+      const tool = toolOf.get(col.id);
+      const dl = tool
+        ? parseDeeplineCost(describeTool(tool, cache)?.cost)
+        : null;
+      // Clay metadata, when present, is the charge. Otherwise the catalog price per run. Either applies to every success cell.
+      const claySource = clayObs.length
+        ? 'metadata'
+        : price
+          ? 'catalog'
+          : 'unpriced';
+      const creditsPerRun = clayObs.length
+        ? avg(clayObs)
+        : (price?.credits ?? null);
+      // USD per credit comes from the catalog (usd per run / credits per run).
+      const usdPerCredit = price?.credits ? price.usd / price.credits : null;
+      const clayUsdPerRow =
+        creditsPerRun === null
+          ? null
+          : clayObs.length
+            ? usdPerCredit === null
+              ? null
+              : (ok.length * creditsPerRun * usdPerCredit) /
+                (sample.length || 1)
+            : (ok.length * price.usd) / (sample.length || 1);
+      const dlUsdPerRow = dl
+        ? (ok.length * dl.usd) / (sample.length || 1)
+        : null;
+      rows.push({
+        table: t.name,
+        tableId: t.id,
+        column: col.name,
+        columnId: col.id,
+        actionKey: key,
+        tool: tool || null,
+        sampleRows: sample.length,
+        ran: cells.length,
+        success: ok.length,
+        error: cells.filter((c) => c.status === 'error').length,
+        clayMetadataCells: clayObs.length,
+        vendorReportedCells: vendorObs.length,
+        vendorReportedAvg: vendorObs.length ? avg(vendorObs) : null,
+        clayCreditsPerRun: creditsPerRun,
+        catalogCreditsPerRun: price?.credits ?? null,
+        claySource,
+        clayUsdPerRow,
+        deeplineUsdPerRow: dlUsdPerRow,
+        deeplineUnit: dl?.unit ?? null,
+        tableRows: total,
+        clayUsdTable: clayUsdPerRow === null ? null : clayUsdPerRow * total,
+        deeplineUsdTable: dlUsdPerRow === null ? null : dlUsdPerRow * total,
+        note: !key
+          ? 'no actionKey'
+          : !tool
+            ? 'no Deepline tool mapped (AI, CRM write or unmapped): not priced'
+            : !dl
+              ? 'Deepline price not fixed (usage-based)'
+              : clayObs.length &&
+                  price?.credits &&
+                  Math.abs(creditsPerRun - price.credits) > 0.1 * price.credits
+                ? 'Clay metadata credits differ from catalog by over 10%'
+                : '',
+      });
+    }
+  }
+  const priced = rows.filter(
+    (r) => r.clayUsdPerRow !== null && r.deeplineUsdPerRow !== null,
+  );
+  const summary = {
+    plan,
+    planSource,
+    catalogUpdatedAt: pricing.updatedAt,
+    actionColumns: rows.length,
+    pricedBothSides: priced.length,
+    clayUsdTable: priced.reduce((n, r) => n + r.clayUsdTable, 0),
+    deeplineUsdTable: priced.reduce((n, r) => n + r.deeplineUsdTable, 0),
+    metadataColumns: rows.filter((r) => r.claySource === 'metadata').length,
+    catalogColumns: rows.filter((r) => r.claySource === 'catalog').length,
+    unpricedColumns: rows.length - priced.length,
+    caveat:
+      'Extrapolated from the exported sample rows to each table\'s source row count. Deepline bills "per result" tools on a hit only, so this is an upper bound where Clay billed a miss.',
+  };
+  writeJson(`${dir}/cost-report.json`, { summary, columns: rows });
+  const header = Object.keys(rows[0] || { table: '' });
+  const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  fs.writeFileSync(
+    `${dir}/cost-columns.csv`,
+    [
+      header.join(','),
+      ...rows.map((r) => header.map((h) => q(r[h])).join(',')),
+    ].join('\n') + '\n',
+  );
+  console.log(JSON.stringify(summary, null, 1));
+}
+
+// Workflow runs carry Clay's own metering: `dataCreditsUsed` and `actionCreditsUsed` per run, final at a terminal status.
+// Usage: workflow-cost <dir> <workflowId> [--limit N]
+async function workflowCost() {
+  const wf = rest.find((a) => a.startsWith('wf_'));
+  if (!wf) throw new Error('pass a workflow id (wf_...)');
+  const limit = Number(opt('limit', '50'));
+  const list = await clay(
+    'workflows',
+    'runs',
+    'list',
+    wf,
+    '--status',
+    'completed',
+    '--limit',
+    String(Math.min(limit, 100)),
+  );
+  const runs = await pool(list.data || [], 4, async (r) => {
+    const d = await clay('workflows', 'runs', 'get', r.runId);
+    return {
+      runId: r.runId,
+      status: d.status,
+      dataCreditsUsed: d.dataCreditsUsed,
+      actionCreditsUsed: d.actionCreditsUsed,
+      entrySteps: d.totalEntrySteps ?? null,
+    };
+  });
+  const sum = (k) => runs.reduce((n, r) => n + (r[k] || 0), 0);
+  const out = {
+    source: 'metadata',
+    workflowId: wf,
+    runs: runs.length,
+    dataCreditsUsed: sum('dataCreditsUsed'),
+    actionCreditsUsed: sum('actionCreditsUsed'),
+    dataCreditsPerRun: runs.length
+      ? sum('dataCreditsUsed') / runs.length
+      : null,
+    actionCreditsPerRun: runs.length
+      ? sum('actionCreditsUsed') / runs.length
+      : null,
+    note: 'Credits only. Convert to USD with the plan rate. Completed runs only; a run still settling can read low.',
+  };
+  writeJson(`${dir}/workflow-cost-${wf}.json`, { summary: out, runs });
+  console.log(JSON.stringify(out, null, 1));
+}
+
 async function selftest() {
   const tmp = fs.mkdtempSync(
     path.join(process.env.TMPDIR || '/tmp', 'clay-selftest-'),
@@ -2579,6 +3058,116 @@ async function selftest() {
     42,
     'Dealroom fundings on the found id',
   );
+  eq(
+    [
+      creditsOf({
+        metadata: { creditsUsed: 3 },
+        fields: { credits_consumed: 1 },
+      }),
+      creditsOf({ fields: { creditBurn: '2' } }),
+      creditsOf({ fields: { email: 'a@b.co' } }),
+    ],
+    [
+      { clay: 3, vendor: 1 },
+      { clay: null, vendor: 2 },
+      { clay: null, vendor: null },
+    ],
+    'cost: Clay metadata and vendor fields are read apart; string numbers read; none is null',
+  );
+  eq(
+    parseDeeplineCost(
+      '0.34 Deepline credits / $0.034 per result (managed by Deepline)',
+    ),
+    { credits: 0.34, usd: 0.034, unit: 'per result' },
+    'cost: Deepline price parsed from describe text',
+  );
+  eq(
+    clayRunPrice(
+      {
+        currentPlan: {
+          dataCredits: 0.3,
+          actionCredits: 1,
+          actionCreditsApply: true,
+          growthUsdPerRun: 0.017675,
+          launchUsdPerRun: 0.01716,
+          refundOnSuccessfulNoData: true,
+        },
+      },
+      'growth',
+    ),
+    { credits: 1.3, usd: 0.017675, refund: true },
+    'cost: data and action credits both count',
+  );
+  {
+    const ext = {
+      table: { id: 't_x', name: 'X' },
+      fields: [
+        { id: 'f_1', name: 'Email', type: 'text' },
+        {
+          id: 'f_2',
+          name: 'Domain',
+          type: 'formula',
+          typeSettings: { formulaText: '{{f_1}}.split("@")[1]' },
+        },
+        {
+          id: 'f_3',
+          name: 'Find',
+          type: 'action',
+          actionType: 'leadmagic-find-work-email',
+          typeSettings: { actionKey: 'leadmagic-find-work-email' },
+        },
+      ],
+      exampleRecords: [
+        {
+          f_1: 'a@b.co',
+          f_3: {
+            value: { email: 'a@b.co' },
+            metadata: { status: 'SUCCESS', creditsUsed: 1 },
+          },
+        },
+        { f_1: '' },
+      ],
+    };
+    const cols = ext.fields.map(columnFromExtract);
+    const rows = rowsFromExtract(ext);
+    eq(
+      [cols[1].settings.formulaType, cols[2].settings.actionKey],
+      ['text', 'leadmagic-find-work-email'],
+      'import: formula and action settings carried into CLI column shape',
+    );
+    eq(
+      [
+        rows[0].cells.f_1.status,
+        rows[1].cells.f_1.status,
+        rows[0].cells.f_3.status,
+        creditsOf(rows[0].cells.f_3).clay,
+      ],
+      ['success', 'empty', 'success', 1],
+      'import: cell status and bulk-fetch metadata credits preserved',
+    );
+  }
+  {
+    const d = fs.mkdtempSync(path.join(tmp, 'plan-'));
+    eq(
+      resolvePlan(d).plan,
+      'growth',
+      'plan: no billing.json defaults to growth',
+    );
+    fs.writeFileSync(
+      `${d}/billing.json`,
+      JSON.stringify({ actionExecutionPlan: false }),
+    );
+    eq(
+      resolvePlan(d).plan,
+      'legacy',
+      'plan: no actionExecutionBalance means legacy',
+    );
+    fs.writeFileSync(
+      `${d}/billing.json`,
+      JSON.stringify({ actionExecutionPlan: true }),
+    );
+    eq(resolvePlan(d, 'launch').plan, 'launch', 'plan: --plan flag wins');
+  }
   console.log('selftest ok');
 }
 
@@ -2588,11 +3177,14 @@ const cmds = {
   sample: sampleColumn,
   parity,
   check: checkAll,
+  import: importExtracts,
+  cost,
+  'workflow-cost': workflowCost,
   selftest,
 };
 if (!cmds[cmd] || (!dir && cmd !== 'selftest')) {
   console.error(
-    'usage: clay-to-deepline.mjs <export|compile|parity|check> <dir> [--rows N] [--tables t_a,t_b] | selftest',
+    'usage: clay-to-deepline.mjs <export|import|compile|parity|check|cost|workflow-cost> <dir> [extract.json ...] [--rows N] [--tables t_a,t_b] [--plan launch|growth|legacy] [--pricing file] | selftest',
   );
   process.exit(2);
 }

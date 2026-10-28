@@ -9,13 +9,24 @@ Use `scripts/clay-extract.py` (bundled at `.skills/deepline-gtm/scripts/clay-ext
 
 ## Three extraction paths
 
-| Path                         | When                                          | Steps                                                                                                                                          |
-| ---------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Path                         | When                                          | Steps                                                                                                                                           |
+| ---------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Bookmarklet**              | A human, or an agent with Claude-in-Chrome    | One click on the Clay table tab. Downloads a complete `clay_extract_<table>.json`. Agents run the same source via `javascript_tool` (see below) |
 | **Claude-in-Chrome MCP**     | Running inside Claude Code with the extension | Zero steps. Run the bookmarklet source (below), or `fetch(url, {credentials: 'include'})` ad hoc from the authenticated browser session         |
-| **`clay-extract.py` script** | Standalone, CI, or no MCP                     | One-time cURL paste for auth, then zero-step extraction                                                                                        |
+| **`clay-extract.py` script** | Standalone, CI, or no MCP                     | One-time cURL paste for auth, then zero-step extraction                                                                                         |
 
 The bookmarklet and the MCP path share one source of truth: `scripts/clay-extract-bookmarklet.js` (in this skill). It hits the current Clay v3 API (`/v3/tables/{id}` for config+fields+views, `table-schema-v2` for the rendered sample rows, `/count`, `records/ids`, and batched `bulk-fetch-records`) and assembles the same shape `clay-extract.py` produces.
+
+## After extraction: load the file
+
+Every extract file loads with one command. It writes the same folder that the Clay CLI `export` writes.
+Then run `compile`, `parity`, `check` and `cost` as in the recipe.
+
+```bash
+node scripts/clay-to-deepline.mjs import clay-export clay_extract_<table>.json   # or a folder of extract files
+```
+
+`import` reads `fields`, `exampleRecords` and `bulkFetchRecords` (when present). A cell may be a plain value, `{value}`, or a bulk-fetch cell with `metadata`. It keeps `metadata`, so `cost` can read Clay's credit record from it.
 
 ## Script setup (one-time)
 
@@ -84,12 +95,12 @@ list.
 
 **Signature — how to recognize a function table:**
 
-| Signal | Field | What it means |
-| --- | --- | --- |
-| **Input source** | a `type: "source"` field named "Function inputs", id `f_subroutine_source`, `typeSettings.sourceIds` (and sometimes `taggedSourceType`) | The function's parameter row. Every other column reads `{{f_subroutine_source}}?.["<Input Name>"]`. |
-| **Work action(s)** | one or more `type: "action"` fields (`use-ai`, `hubspot-lookup-object`, an email finder, etc.) | The actual computation. Full config is in `typeSettings` — see below. |
-| **Write-back** | a `type: "action"` field with `actionKey: "write-to-cell"` | Returns the function's outputs to the calling cell. Its `inputsBinding` `data` **`formulaMap`** lists every output the function exposes, keyed by output name. **This map is the function's output schema.** |
-| **Table type** | `table.tableSettings.BLOCK_TYPE == "SUBROUTINE"` + `SUBROUTINE_INPUTS` | When present, this is conclusive. `SUBROUTINE_INPUTS` is the **typed input schema** — an array of `{inputName, optional, semanticTypeEnum, description}` (e.g. `{"inputName":"Domain","optional":false,"semanticTypeEnum":"company-domain"}`). Use it verbatim as the play's input contract. |
+| Signal             | Field                                                                                                                                   | What it means                                                                                                                                                                                                                                                                                |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Input source**   | a `type: "source"` field named "Function inputs", id `f_subroutine_source`, `typeSettings.sourceIds` (and sometimes `taggedSourceType`) | The function's parameter row. Every other column reads `{{f_subroutine_source}}?.["<Input Name>"]`.                                                                                                                                                                                          |
+| **Work action(s)** | one or more `type: "action"` fields (`use-ai`, `hubspot-lookup-object`, an email finder, etc.)                                          | The actual computation. Full config is in `typeSettings` — see below.                                                                                                                                                                                                                        |
+| **Write-back**     | a `type: "action"` field with `actionKey: "write-to-cell"`                                                                              | Returns the function's outputs to the calling cell. Its `inputsBinding` `data` **`formulaMap`** lists every output the function exposes, keyed by output name. **This map is the function's output schema.**                                                                                 |
+| **Table type**     | `table.tableSettings.BLOCK_TYPE == "SUBROUTINE"` + `SUBROUTINE_INPUTS`                                                                  | When present, this is conclusive. `SUBROUTINE_INPUTS` is the **typed input schema** — an array of `{inputName, optional, semanticTypeEnum, description}` (e.g. `{"inputName":"Domain","optional":false,"semanticTypeEnum":"company-domain"}`). Use it verbatim as the play's input contract. |
 
 **Fallback when `tableSettings` is absent.** Some extracts (older script runs,
 trimmed table objects) drop `tableSettings`, so `BLOCK_TYPE` may be missing even
@@ -156,16 +167,20 @@ When Claude-in-Chrome MCP is available, skip the script. Run the bookmarklet's l
 2. `navigate` → the Clay **table view** URL (`.../tables/t_xxx/views/gv_xxx`)
 3. Confirm auth before extracting: `javascript_tool` →
    ```javascript
-   fetch('https://api.clay.com/v3/tables/' + location.pathname.match(/t_[A-Za-z0-9]+/)[0], {
-     credentials: 'include',
-   }).then((r) => r.status); // expect 200; 401 means not logged in
+   fetch(
+     'https://api.clay.com/v3/tables/' +
+       location.pathname.match(/t_[A-Za-z0-9]+/)[0],
+     {
+       credentials: 'include',
+     },
+   ).then((r) => r.status); // expect 200; 401 means not logged in
    ```
 4. Extract: read `scripts/clay-extract-bookmarklet.js` from this skill and paste its IIFE body into `javascript_tool`. It assigns the full result to `window.__clayExtract` and downloads `clay_extract_<table>.json`.
    - In a headless/automation context the auto-download may not surface a file. Either read the payload off `window.__clayExtract` and write it yourself, or skip the `<a>.click()` and return `JSON.stringify(window.__clayExtract)`.
    - The payload can be large (the TAL Scoring table is ~14 MB). Return a summary from `javascript_tool` (field counts, `exampleRecords.length`, `recordIds.length`), then pull the full object in chunks or via the download, not as one giant tool result.
 5. The browser already has the session cookie. `credentials: 'include'` sends it automatically; without it, fetch returns 401. The cookie is never read by the script, only the browser uses it.
 
-**Richest data lives in `exampleRecords`** (from `table-schema-v2`): flat `{ f_xxx: <rendered value> }` rows with formula/action outputs already resolved. `bulkFetchRecords` covers *all* rows but is sparse (only populated cells appear, and un-run rows show just `f_created_at`/`f_updated_at`). For prompt and schema recovery, prefer `exampleRecords` and the `tableSchema` tree; use `bulkFetchRecords` for full-table cell coverage.
+**Richest data lives in `exampleRecords`** (from `table-schema-v2`): flat `{ f_xxx: <rendered value> }` rows with formula/action outputs already resolved. `bulkFetchRecords` covers _all_ rows but is sparse (only populated cells appear, and un-run rows show just `f_created_at`/`f_updated_at`). For prompt and schema recovery, prefer `exampleRecords` and the `tableSchema` tree; use `bulkFetchRecords` for full-table cell coverage.
 
 ## Input data formats
 

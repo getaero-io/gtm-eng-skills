@@ -1,9 +1,9 @@
 ---
 name: clay-to-deepline
-description: "Convert a Clay table, or a whole Clay workspace via the Clay CLI, into Deepline plays. Handles extraction, documentation, action mapping, play generation, and cell-level parity validation against Clay ground truth."
+description: "Move Clay tables, workflows and functions to Deepline Plays, and compare what the same run costs in Clay and in Deepline. Use for any Clay migration, Clay export or bookmarklet JSON, Clay CLI workspace, \"convert this Clay table\", Clay credit cost, or \"is Deepline cheaper than Clay\". Reads a Clay CLI export or a bookmarklet / clay-extract.py JSON file. Makes the Plays, proves formula parity on real rows, and prices both sides."
 ---
 
-# Clay → Deepline Migration
+# Clay to Deepline
 
 ## Quick Start
 
