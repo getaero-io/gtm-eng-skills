@@ -1,9 +1,9 @@
+<!-- skill-tool-unavailable: nooks_create_sequence_state -- Negative availability note: sequence-state creation is disabled because it can trigger immediate enrichment. -->
+
 # Nooks
 
 Use Nooks to inspect a connected customer's sales-engagement workspace.
 
-- The internal test endpoint uses hidden `nooks_get_me` to verify the
-  credential and identify the connected workspace.
 - Use list actions to find IDs, then fetch a specific sequence, prospect,
   account, task, call, mailbox, user, sequence state, step, disposition, or
   email template.

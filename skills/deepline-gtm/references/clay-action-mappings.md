@@ -1,5 +1,8 @@
 # Clay Action → Deepline Tool Mappings
 
+<!-- skill-tool-compat: run_javascript -- Supported local runtime tool retained in explicitly historical payload examples; author new deterministic transforms as native Play callbacks. -->
+<!-- skill-tool-field: clay_record -- Reserved column alias for the extracted Clay record, not a provider tool. -->
+
 Every Clay action maps to a specific Deepline CLI tool or native play. Use actual tool IDs in every generated script — never generic descriptions.
 
 ## Legacy payload reference — not runnable Play syntax
@@ -50,9 +53,9 @@ deepline describe <candidate_tool_id> # verify it exists + see payload schema
 | Clay model                       | Deepline column params                  | Notes                                            |
 | -------------------------------- | --------------------------------------- | ------------------------------------------------ |
 | `gpt-4.1`, `claude` (clay-argon) | `"model":"anthropic/claude-sonnet-4.6"` | Complex reasoning, larger structured outputs     |
-| `gpt-4.1-mini`                   | `"model":"openai/gpt-5.4-mini"`         | Clay's mid-tier model for claygent-style columns |
-| `gpt-4o-mini`, `gpt-5-mini`      | `"model":"openai/gpt-5.4-mini"`         | Fast classify/generate                           |
-| `gpt-5-nano`                     | `"model":"openai/gpt-5.4-mini"`         | Cheapest tier approximation                      |
+| `gpt-4.1-mini`                   | `"model":"openai/gpt-5.6-luna"`         | Clay's mid-tier model for claygent-style columns |
+| `gpt-4o-mini`, `gpt-5-mini`      | `"model":"openai/gpt-5.6-luna"`         | Fast classify/generate                           |
+| `gpt-5-nano`                     | `"model":"openai/gpt-5.6-luna"`         | Cheapest tier approximation                      |
 
 ---
 
@@ -317,7 +320,7 @@ enriched = json.loads(result.stdout).get("result", {}).get("company", {})
 For LLM-quality normalization:
 
 ```ts
-.withColumn('normalized_company', 'deeplineagent', { model: "openai/gpt-5.4-mini", prompt: "Normalize this company name: {{company_raw}}. Strip legal suffixes (Inc, LLC, Corp, Ltd, Holdings, Group). Return title case. Return ONLY the name, nothing else." })
+.withColumn('normalized_company', 'deeplineagent', { model: "openai/gpt-5.6-luna", prompt: "Normalize this company name: {{company_raw}}. Strip legal suffixes (Inc, LLC, Corp, Ltd, Holdings, Group). Return title case. Return ONLY the name, nothing else." })
 
 ```
 
@@ -341,7 +344,7 @@ return name
 ### `chat-gpt-schema-mapper`
 
 ```ts
-.withColumn('job_function', 'deeplineagent', { model: "openai/gpt-5.4-mini", prompt: "Classify this job title into a function label. Rules: all lowercase except BizOps/RevOps/GTM Ops, <4 words, describe the vertical. Return ONLY the label.\n\nJob title: {{job_title}}" })
+.withColumn('job_function', 'deeplineagent', { model: "openai/gpt-5.6-luna", prompt: "Classify this job title into a function label. Rules: all lowercase except BizOps/RevOps/GTM Ops, <4 words, describe the vertical. Return ONLY the label.\n\nJob title: {{job_title}}" })
 
 ```
 
@@ -355,7 +358,7 @@ No `jsonSchema` needed for a single-value string output.
 
 ```ts
 // fast reasoning / generation
-.withColumn('data_warehouse_formatted', 'deeplineagent', { model: "openai/gpt-5.4-mini", prompt: "<exact Clay prompt with {{field}} refs translated>" })
+.withColumn('data_warehouse_formatted', 'deeplineagent', { model: "openai/gpt-5.6-luna", prompt: "<exact Clay prompt with {{field}} refs translated>" })
 
 
 // larger structured output
@@ -376,7 +379,7 @@ Reference structured output fields in downstream passes as `{{col_name.field}}`.
 **Pass 1 — Research:**
 
 ```ts
-.withColumn('company_research', 'deeplineagent', { model: "openai/gpt-5.4-mini", prompt: "Use the research context to summarize {{company_domain}} ({{company_name}}). Return JSON with summary, initiatives, and sources.", jsonSchema: { type: "object", properties: { summary: { type: "string" }, initiatives: { type: "string" }, sources: { type: "string" } }, required: ["summary", "initiatives"], additionalProperties: false } })
+.withColumn('company_research', 'deeplineagent', { model: "openai/gpt-5.6-luna", prompt: "Use the research context to summarize {{company_domain}} ({{company_name}}). Return JSON with summary, initiatives, and sources.", jsonSchema: { type: "object", properties: { summary: { type: "string" }, initiatives: { type: "string" }, sources: { type: "string" } }, required: ["summary", "initiatives"], additionalProperties: false } })
 
 ```
 
@@ -428,7 +431,7 @@ Two passes:
 **Pass 1 — Gather signals (separate enrich call):**
 
 ```ts
-.withColumn('sequence_signals', 'deeplineagent', { model: "openai/gpt-5.4-mini", prompt: "Summarize outbound signals for {{first_name}} ({{title}} at {{company_name}}). Use context: {{qualify_person}} / {{strategic_initiatives}} / {{tension_mapping}}. Return key talking points and pain hypotheses." })
+.withColumn('sequence_signals', 'deeplineagent', { model: "openai/gpt-5.6-luna", prompt: "Summarize outbound signals for {{first_name}} ({{title}} at {{company_name}}). Use context: {{qualify_person}} / {{strategic_initiatives}} / {{tension_mapping}}. Return key talking points and pain hypotheses." })
 
 ```
 

@@ -25,7 +25,7 @@ Uses ContactOut's Contact Info API (`GET /v1/people/linkedin`) for one LinkedIn 
 }
 ```
 
-`email_type` accepts `personal`, `work`, `personal,work`, or `none`. ContactOut only consumes email credits when emails are returned; `email_type: "none"` returns no emails and consumes no email credits. `include_phone: true` can consume phone credits when phone numbers are returned.
+`email_type` accepts `personal`, `work`, `personal,work`, or `none`. Returned email data can be billable; `email_type: "none"` returns no emails and does not bill email data. `include_phone: true` can add a phone-data charge when phone numbers are returned.
 
 A customer credential connected in the dashboard always overrides the managed
 personal and work credential lanes.
@@ -36,7 +36,7 @@ Managed-key routing follows ContactOut's endpoint entitlements:
 domain, and personal-status endpoints use the personal/default key. The
 connector does not currently expose either LinkedIn batch endpoint.
 
-ContactOut does not document a per-call charge response header for this endpoint. Deepline billing is therefore locked to the documented response fields: one email credit when any returned email bucket is non-empty, plus one phone credit when a phone bucket is non-empty.
+ContactOut does not document a per-call charge response header for this endpoint. Deepline billing uses the documented response fields to determine which contact data was returned. Inspect the exact action’s current Deepline pricing.
 
 ### contactout_get_hashed_email_identifiers
 
@@ -91,7 +91,7 @@ Returns one channel-specific payload per tool:
 
 Enriches a person by LinkedIn URL (preferred), email, or name+company. Returns email array at `email`, `work_email`, `personal_email`.
 
-A matched profile is billable even when the requested email is absent. People Enrich consumes a search credit for the profile match, plus email or phone credits when those fields are returned. A 404 no-match is free. For email-only work with a known LinkedIn URL, use `contactout_linkedin_contact_info` with `email_type: "work"` or `"personal"`; that endpoint bills returned contact data only.
+A matched profile is billable even when the requested email is absent. People Enrich bills a matched profile and can add email or phone charges when those fields are returned. A 404 no-match is free. For email-only work with a known LinkedIn URL, use `contactout_linkedin_contact_info` with `email_type: "work"` or `"personal"`; that endpoint bills returned contact data only.
 
 Name and company context do not prove identity. Inspect response warnings and independently verify the returned person, LinkedIn URL, and company before using contact data or writing it back to a CRM. A current-company mismatch may reflect a past role or a different person. Missing requested contact fields remain explicit warnings alongside the retained profile and its billing.
 
@@ -124,9 +124,9 @@ Free audience sizing. Takes the same filters as `contactout_search_people` and r
 
 ### contactout_search_people
 
-Search people by title, company, location, seniority. Set `reveal_info: true` to also retrieve emails (costs search + email credits).
+Search people by title, company, location, seniority. Set `reveal_info: true` to also retrieve emails (additional contact-data charges can apply).
 
-**This is never a free call.** Search bills 1 credit per returned profile, and `reveal_info: false` does not change that. It only gates the extra email/phone credits, so a `reveal_info: false` search is a full-price search, not a count or discovery mode. Use `contactout_count_people` when you want a count.
+**This is never a free call.** Search bills per returned profile at the action’s current Deepline price, and `reveal_info: false` does not change that. It only gates the extra email/phone charges, so a `reveal_info: false` search is a full-price search, not a count or discovery mode. Use `contactout_count_people` when you want a count.
 
 ContactOut controls the page size and exposes no page-size parameter, so you cannot ask for fewer results. One call bills for every profile on the page even if you only need a handful. Narrow the filters to change _who_ comes back; you cannot change _how many_. The number actually billed comes back as `metadata.page_size`.
 
@@ -176,5 +176,5 @@ rawV2 response.
 - Don't use Sales Navigator or Recruiter URLs — they'll return 400
 - Don't use an empty free checker result to suppress a paid reveal — only the paid reveal determines whether ContactOut returns usable contact data
 - Don't include "http://" or "www." in domain values for `enrich_domain`
-- Don't treat `reveal_info: false` as a free or count mode — it still bills 1 search credit per returned profile. Size the audience with `contactout_count_people`, which is free
+- Don't treat `reveal_info: false` as a free or count mode — it still bills per returned profile. Size the audience with `contactout_count_people`, which is free
 - Don't call `contactout_search_people` when you only need a handful of profiles and the audience is unsized — there is no page-size parameter, so the call bills for the whole page regardless of how many you wanted

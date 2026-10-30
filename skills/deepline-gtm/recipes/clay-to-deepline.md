@@ -5,6 +5,12 @@ description: 'Move Clay tables, workflows and functions to Deepline Plays, and c
 
 # Clay to Deepline
 
+<!-- skill-tool-field: match -- Cell-parity result status, not a tool alias. -->
+<!-- skill-tool-field: clay_not_evaluated -- Cell-parity status for a Clay cell that has not run. -->
+<!-- skill-tool-field: clay_stale_input -- Cell-parity status for changed source inputs. -->
+<!-- skill-tool-field: clay_stale -- Cell-parity status for stale source results. -->
+<!-- skill-tool-field: clay_error -- Cell-parity status for a failed source cell. -->
+
 Convert Clay tables to Deepline Plays. Make one `withColumn` for each Clay column.
 Prove that the formulas give the same values as Clay. Then compare the cost of
 the Clay run with the cost of the Deepline run.

@@ -113,7 +113,10 @@ Rules:
   first and last name on the returned profile match the input. Mark the rest
   unresolved; a paid person lookup by name and company domain is the last
   fallback.
-- **The task names a provider:** search for that provider.
+- **The task names a provider:** search for that provider. The provider names
+  in this skill description are a bounded discovery hint. For a supplied tool
+  ID, use `deepline describe <tool-id>`; absence from discovery does not prove
+  that an existing tool or Play is unavailable.
 - **Authoring a Play:** a Play is a `.play.ts` file:
 
   ```ts
@@ -121,7 +124,7 @@ Rules:
 
   export default async function (input: { domain: string }) {
     const company = await deepline.tools.execute({
-      id: 'company', tool: 'company_lookup', input: { domain: input.domain },
+      id: 'company', tool: '<tool-id>', input: { domain: input.domain },
       description: 'Look up the company.',
     });
     return { company };

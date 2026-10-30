@@ -1,3 +1,5 @@
+<!-- skill-tool-field: datagma_mobile -- Example step alias used to explain phone-field extraction, not a tool ID. -->
+
 # Datagma Workflow Guidance
 
 Datagma is strongest when you need real-time enrichment rather than a static

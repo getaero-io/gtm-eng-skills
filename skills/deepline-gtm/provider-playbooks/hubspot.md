@@ -1,3 +1,5 @@
+<!-- skill-tool-field: hubspot_owner_id -- HubSpot CRM property name for record ownership, not a tool ID. -->
+
 # HubSpot CRM - Agent Guidance
 
 ## Quick Reference

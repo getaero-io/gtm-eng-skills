@@ -4,7 +4,7 @@ Use this skill when the task involves cold emails, personalization, lead scoring
 
 ## What This Skill Does
 
-- Loads ICP/criteria context from a local file (for example `./icp.md`) using `read_file`.
+- Loads ICP/criteria context from a local file (for example `./icp.md`) using the agent’s local file reader.
 - Produces strict, structured qualification output:
   - numeric score (`0-10`)
   - fit label (for example `Strong fit: 8/10`)
@@ -127,9 +127,9 @@ Example `icp.md` starter:
 }
 ```
 
-## Personalization: `run_javascript` vs `deeplineagent`
+## Personalization: native callbacks and AI
 
-When you already have contact + company context in CSV columns, use `run_javascript` for email generation when a deterministic template is enough. Use `deeplineagent` when you want AI help with reasoning, scoring, copy quality, or research.
+When you already have contact + company context in CSV columns, use a native Play callback for email generation when a deterministic template is enough. Use `deeplineagent` when you want AI help with reasoning, scoring, copy quality, or research.
 
 **Critical: avoid mail-merge output.** If every email has the same structure with only `{{first_name}}` and `{{company_name}}` swapped, it's a template — not personalized outreach. Each email must reference something specific to the company (product, use case, industry, recent news). Use `company_description`, `one_liner`, `company_research`, or other enrichment columns in your JS template or `deeplineagent` prompt so each email is substantively different.
 
@@ -137,7 +137,7 @@ Author the generation column(s) as a custom play over your enriched CSV
 (see `deepline plays --help`) with
 one `withColumn` per output:
 
-- Fast path: a `run_javascript` column applying a deterministic template.
+- Fast path: a callback-based `withColumn` applying a deterministic template to typed row values.
 - AI path: a `deeplineagent` column with the research columns interpolated into
   the prompt and a `jsonSchema` of `{subject, email}`.
 - Research-first path: a research `deeplineagent` column, then the generation
@@ -146,8 +146,8 @@ one `withColumn` per output:
 Notes:
 
 - `{{company_research}}` is the safe form for AI prompts when the prior column came from `deeplineagent`.
-- If you need a single field from prior research for deterministic template logic, extract it into its own scalar column with `run_javascript` first, then reference that scalar column in later steps.
-- Inside `run_javascript`, use `row["company_research"]` or `row.company_research`. Do not use `{{row.company_research}}`; `row` is only available inside the JS code.
+- If you need a single field from prior research for deterministic template logic, extract it into its own scalar column with a native callback first, then reference that scalar column in later steps.
+- Inside a callback, use `row["company_research"]` or `row.company_research`. Read typed row values directly instead of brace interpolation.
 
 ## Recommended Workflow
 
@@ -161,7 +161,7 @@ QUAL_WITH=$(jq -nc --arg icp "$ICP_CONTEXT" '{
   alias: "qualification_output",
   tool: "deeplineagent",
   payload: {
-    model: "openai/gpt-5.4-mini",
+    model: "openai/gpt-5.6-luna",
     prompt: ("You are a B2B qualification analyst. Use only the provided evidence. Inputs:\nICP context:\n" + $icp + "\nProspect payload:\n{{prospect_payload}}"),
     jsonSchema: {
       type: "object",
@@ -188,7 +188,7 @@ SEQ_WITH=$(jq -nc --arg product "$PRODUCT_CONTEXT" '{
   alias: "email_sequence_output",
   tool: "deeplineagent",
   payload: {
-    model: "openai/gpt-5.4-mini",
+    model: "openai/gpt-5.6-luna",
     prompt: ("You are a B2B email strategist. Write 4 concise emails tied to the qualification output and product context.\nProduct context:\n" + $product + "\nQualification payload:\n{{qualification_output}}\nProspect payload:\n{{prospect_payload}}"),
     jsonSchema: {
       type: "object",
@@ -230,14 +230,14 @@ printf "prospect_payload\n{\"person\":{\"firstName\":\"Rachael\",\"lastName\":\"
 
 ## Prompt Templates (Copy/Paste)
 
-Use these as `prompt` values inside `deeplineagent` payloads. Pair each prompt with a `jsonSchema` that matches the output contracts above. Recommended starting model: `openai/gpt-5.4-mini`.
+Use these as `prompt` values inside `deeplineagent` payloads. Pair each prompt with a `jsonSchema` that matches the output contracts above. Recommended starting model: `openai/gpt-5.6-luna`.
 
 ### 1) Score + Fit Label Template
 
 ```json
 {
   "prompt": "You are a B2B scoring analyst.\nReturn strict JSON only:\n{\"data\":{\"score\":0,\"score_label\":\"\",\"fit_band\":\"\",\"scoring\":{\"weights\":[{\"factor\":\"\",\"weight\":0,\"evidence\":\"\",\"impact\":\"positive|negative|neutral\"}],\"confidence\":\"HIGH|MEDIUM|LOW\"},\"rationale\":\"\"}}\nRules:\n- score is integer 0-10\n- score_label format: \"Strong fit: X/10\" or \"Possible fit: X/10\" or \"Weak fit: X/10\"\n- fit_band one of: STRONG_FIT, POSSIBLE_FIT, WEAK_FIT\n- use evidence from provided context only; do not invent facts\n- default to higher recall unless strict matching is explicitly requested\nInputs:\nICP context: {{icp_context}}\nProspect payload: {{prospect_payload}}",
-  "model": "openai/gpt-5.4-mini"
+  "model": "openai/gpt-5.6-luna"
 }
 ```
 
@@ -246,7 +246,7 @@ Use these as `prompt` values inside `deeplineagent` payloads. Pair each prompt w
 ```json
 {
   "prompt": "You are an ICP qualification analyst.\nReturn strict JSON only:\n{\"data\":{\"qualification\":{\"answers\":[{\"question\":\"\",\"answer\":\"Yes|No|Unknown\",\"confidence\":\"HIGH|MEDIUM|LOW\",\"rationale\":\"\"}],\"summary\":{\"positives\":[\"\"],\"risks\":[\"\"],\"next_checks\":[\"\"]}},\"rationale\":\"\"}}\nRules:\n- keep answers short and explicit\n- each rationale must reference concrete evidence from context\n- mark Unknown when evidence is missing\n- avoid strict/exact matching unless explicitly asked\nInputs:\nICP questions: {{qualification_questions}}\nICP context: {{icp_context}}\nProspect payload: {{prospect_payload}}",
-  "model": "openai/gpt-5.4-mini"
+  "model": "openai/gpt-5.6-luna"
 }
 ```
 
@@ -255,7 +255,7 @@ Use these as `prompt` values inside `deeplineagent` payloads. Pair each prompt w
 ```json
 {
   "prompt": "You are a B2B email strategist.\nReturn strict JSON only:\n{\"data\":{\"emails\":[{\"step\":1,\"subject\":\"\",\"coreValueProp\":\"\",\"email\":\"\"}],\"sequence_rationale\":\"\"}}\nRules:\n- exactly 4 emails with step 1..4\n- each email must map to a pain or risk from qualification summary\n- concise style, no fluff, no markdown\n- personalization must reference role/company context from prospect payload\n- avoid claims not supported by inputs\nInputs:\nProduct context: {{product_context}}\nQualification output: {{qualification_output}}\nProspect payload: {{prospect_payload}}",
-  "model": "openai/gpt-5.4-mini"
+  "model": "openai/gpt-5.6-luna"
 }
 ```
 
@@ -264,7 +264,7 @@ Use these as `prompt` values inside `deeplineagent` payloads. Pair each prompt w
 ```json
 {
   "prompt": "You are a B2B subject line writer.\nReturn strict JSON only:\n{\"data\":{\"subjects\":[{\"variant\":\"\",\"angle\":\"pain|outcome|proof|curiosity\",\"why_it_matches\":\"\"}]}}\nRules:\n- create 8 variants max 7 words each\n- no clickbait, no ALL CAPS, no exclamation marks\n- tie each variant to qualification rationale\nInputs:\nQualification output: {{qualification_output}}\nProspect payload: {{prospect_payload}}",
-  "model": "openai/gpt-5.4-mini"
+  "model": "openai/gpt-5.6-luna"
 }
 ```
 
@@ -273,7 +273,7 @@ Use these as `prompt` values inside `deeplineagent` payloads. Pair each prompt w
 ```json
 {
   "prompt": "You are a cold email QA editor.\nReturn strict JSON only:\n{\"data\":{\"issues\":[{\"step\":1,\"severity\":\"HIGH|MEDIUM|LOW\",\"issue\":\"\",\"fix\":\"\"}],\"revised_emails\":[{\"step\":1,\"subject\":\"\",\"coreValueProp\":\"\",\"email\":\"\"}]}}\nRules:\n- flag vague claims, unsupported assertions, and weak personalization\n- keep original structure and tighten only where needed\nInputs:\nQualification output: {{qualification_output}}\nEmail sequence output: {{email_sequence_output}}\nProspect payload: {{prospect_payload}}",
-  "model": "openai/gpt-5.4-mini"
+  "model": "openai/gpt-5.6-luna"
 }
 ```
 

@@ -72,6 +72,8 @@ V2 returns `signals[]`, `statistics`, `method`, `config_sha256` and `scoring_eli
 
 ## Source adapters
 
+<!-- skill-tool-field: job_listings -- Accepted jobs-array payload field in the source adapter, not a callable tool. -->
+
 - Websites: `{"data":{"results":[{"url":"...","title":"...","text":"..."}]}}`, `pages`, direct text/markdown records and known `toolResponse.rawV2` wrappers.
 - Jobs: `{"result":{"listings":[{"title":"...","description":"...","url":"..."}]}}`, `jobs[].job_details`, `job_listings` and JSON:API `data[].attributes`.
 - Preserve source IDs and dates. Add a fixture and adapter for each new shape. Unsupported or malformed payloads fail.

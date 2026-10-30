@@ -1,3 +1,7 @@
+<!-- skill-tool-unavailable: sumble_person_detail -- Negative availability note: the asynchronous endpoint is disabled pending an owned polling lifecycle. -->
+
+<!-- skill-tool-unavailable: sumble_people -- Negative availability note: the asynchronous endpoint is disabled pending an owned polling lifecycle. -->
+
 # Sumble
 
 Use Sumble only when the workspace has connected its own Sumble API key.

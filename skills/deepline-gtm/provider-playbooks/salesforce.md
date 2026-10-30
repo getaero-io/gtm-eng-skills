@@ -1,3 +1,5 @@
+<!-- skill-tool-compat: salesforce_api_request -- Supported exact-ID authenticated escape hatch for custom Salesforce REST resources not covered by the typed tools. -->
+
 Use `salesforce_fetch_fields` before writing custom objects or unknown standard objects so you can confirm exact field API names and validation rules.
 
 Use `salesforce_list_contacts`, `salesforce_list_leads`, and `salesforce_list_accounts` for incremental CRM reads. They accept `modified_after` for recent changes and `next_records_url` for pagination handoff.
@@ -16,4 +18,4 @@ To log a call, email, or other activity, use `salesforce_create_task` with `who_
 
 For reads that no list tool covers (Tasks, Events, Users, OpportunityContactRoles, custom objects, filtered or joined queries), use `salesforce_query` with a SOQL `SELECT`. It returns one page per call; pass `next_records_url` with the same `soql` for the next page, and `include_deleted: true` to include deleted records. Escape single quotes in string literals as `\'`.
 
-Use the typed tools first. `salesforce_api_request` is the escape hatch for everything else: one authenticated `GET`, `POST`, `PUT`, `PATCH`, or `DELETE` to a relative REST path such as `/services/data/v60.0/sobjects/Event` (Events), `/services/data/v60.0/sobjects/OpportunityContactRole` (contact roles), `/services/data/v60.0/composite/sobjects` (batch writes of up to 200 records), or `/services/data/v60.0/analytics/reports/<reportId>` (reports). Lead conversion is not available as a REST resource; do not try to fake it with field updates.
+Use the typed tools first. The supported hidden exact-ID action `salesforce_api_request` is the escape hatch for everything else: one authenticated `GET`, `POST`, `PUT`, `PATCH`, or `DELETE` to a relative REST path such as `/services/data/v60.0/sobjects/Event` (Events), `/services/data/v60.0/sobjects/OpportunityContactRole` (contact roles), `/services/data/v60.0/composite/sobjects` (batch writes of up to 200 records), or `/services/data/v60.0/analytics/reports/<reportId>` (reports). Lead conversion is not available as a REST resource; do not try to fake it with field updates.

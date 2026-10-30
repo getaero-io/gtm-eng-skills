@@ -1,3 +1,13 @@
+<!-- skill-tool-compat: dropleads_email_verifier -- Existing exact-ID calls and Plays remain supported during the documented discovery outage; this guide does not select it for new workflows. -->
+
+<!-- skill-tool-compat: dropleads_mobile_finder -- Existing exact-ID calls and Plays remain supported during the documented discovery outage; this guide does not select it for new workflows. -->
+
+<!-- skill-tool-compat: dropleads_email_finder -- Existing exact-ID calls and Plays remain supported during the documented discovery outage; this guide does not select it for new workflows. -->
+
+<!-- skill-tool-compat: dropleads_search_people -- Existing exact-ID calls and Plays remain supported during the documented discovery outage; this guide does not select it for new workflows. -->
+
+<!-- skill-tool-compat: dropleads_get_lead_count -- Existing exact-ID calls and Plays remain supported during the documented discovery outage; this guide does not select it for new workflows. -->
+
 # Dropleads Playbook
 
 Dropleads is hidden from tool discovery because of upstream reliability issues. Choose another provider for new workflows. Exact calls and existing Plays remain supported; the guidance below applies to those existing integrations.
@@ -70,9 +80,9 @@ Dropleads geo filters (`personalCountries` / `personalStates` / `personalCities`
 
 1. Count segment (`dropleads_get_lead_count`).
 2. Sample segment (`dropleads_search_people`).
-3. Pre-score titles with `run_javascript` if looking for a specific profile (e.g. founders, GTM engineers).
+3. Pre-score titles with local JavaScript if looking for a specific profile (e.g. founders, GTM engineers).
 4. Validate work history and signals against data from an authorized source or a user-provided export.
-5. Extract signals with `run_javascript` from that data (e.g. founder detection, hiring signals).
+5. Extract signals with local JavaScript from that data (e.g. founder detection, hiring signals).
 6. Enrich emails via waterfall (`dropleads_email_finder` first, then other providers).
 7. Verify candidate emails (`dropleads_email_verifier` or `leadmagic_email_validation`).
 8. For larger or uncertain work, expand within the authorized scope after the sample quality is confirmed. This sequence is planning guidance, not a requirement to run extra discovery or enrichment when inspecting a supplied Play or its results.

@@ -97,7 +97,7 @@ If a migration needs to know "what population did this table source", `/v3/sourc
 
 ### Clay-native table actions
 
-**`lookup-row-in-other-table`** - inputs `tableId`, `fields|targetColumn`, `fields|filterOperator`, `fields|rowValue`. Not a provider call. Export the referenced table to CSV and join in a `run_javascript` pass, or query `customer_db` if the data already lives there.
+**`lookup-row-in-other-table`** - inputs `tableId`, `fields|targetColumn`, `fields|filterOperator`, `fields|rowValue`. Not a provider call. Export the referenced table to CSV and join with a native Play callback, or query `customer_db` if the data already lives there.
 
 **`route-row`** ("Send table data", Clay Labs) - inputs `type`, `tableId`, `rowData`, `nestedData`, `listData`, `isUpsertDisabled`. Writes rows into a different table, so it is not replicable as an enrich column. Produce a filtered output CSV per destination, or model the fan-out as a play.
 

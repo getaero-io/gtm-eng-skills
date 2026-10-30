@@ -99,12 +99,6 @@ deepline tools execute smartlead_search_domain --payload '{"domain_name":"exampl
 deepline tools execute smartlead_auto_generate_mailboxes --payload '{"vendor_id":1,"domains":{"example.com":{"count":5}}}'
 ```
 
-### Generic API Request
-
-```bash
-deepline tools execute smartlead_api_request --payload '{"method":"GET","path":"/v1/campaigns"}'
-```
-
 ## Response Shape Contract
 
 Deepline wraps all provider payloads in a standard result envelope: `{ data, meta }`.

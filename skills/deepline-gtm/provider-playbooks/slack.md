@@ -1,3 +1,7 @@
+<!-- skill-tool-field: slack_channel_id -- Slack metadata property returned with the HITL event payload, not a tool ID. -->
+
+<!-- skill-tool-field: slack_user_id -- Slack metadata property returned with the HITL event payload, not a tool ID. -->
+
 # slack_message_with_hitl — Agent Guidance
 
 ## Native Slack fields and methods
@@ -21,7 +25,7 @@ Native API calls do not create human-action waits. For the compact managed
 HITL card, keep using `slack_message_with_hitl`; its current inputs and outputs
 remain supported. For a Play that owns a full Block Kit layout and needs
 multiple Slack-native buttons or repeated rich-card revisions, use
-[`slack_wait_for_action`](actions/wait-for-action.md). It posts or updates one
+`slack_wait_for_action` (inspect with `deepline tools describe slack_wait_for_action`). It posts or updates one
 message revision, waits for one button, returns the original Slack `action_id`
 and `value`, and lets the Play replace that same card and wait again. It is
 optional; it does not replace or deprecate the managed HITL tool.
@@ -127,7 +131,7 @@ You can provide custom Slack Block Kit blocks to control the message layout. Whe
 
 **Do NOT include `actions` blocks** in a `slack_message_with_hitl` call — its
 interactive buttons are managed via the `buttons` field. For a Play that needs
-native Block Kit buttons, use [`slack_wait_for_action`](actions/wait-for-action.md)
+native Block Kit buttons, use `slack_wait_for_action` (inspect with `deepline tools describe slack_wait_for_action`)
 instead; it preserves the whole rich card, returns native action IDs/values,
 and re-arms the same message on each call.
 
@@ -436,119 +440,26 @@ Use the returned message reference in place of the example IDs. Empty arrays rem
 
 Next step branches: `if selected_option === "skip"` → end; otherwise `event_payload.crm` tells you which API to call.
 
-## Using HITL in a workflow
+## Qualify a lead and review an email draft
 
-A Deepline workflow is a `commands` array. Each command has an `alias`, a `tool`, and a `payload`.
+Build this flow in a TypeScript Play with two `slack_message_with_hitl` calls
+and local TypeScript between them:
 
-**Important — `row` access differs by step type:**
+1. Ask the reviewer to classify the lead with hot, warm, and disqualify buttons.
+   Carry the classification in each button's `emit` data and set an explicit
+   timeout policy.
+2. Inspect the completed interaction's `selected_option` and timeout result.
+   Return a terminal skip result when the reviewer disqualifies the lead or
+   the wait times out. Keep the original lead and decision as evidence.
+3. Construct the email draft in local TypeScript from the chosen classification.
+   Retain the draft in a variable for the next call.
+4. Ask the reviewer to approve or drop that draft with a second HITL call.
+   Pass the draft text directly as a typed value. Use `allow_edit: true` when
+   the reviewer should be able to revise it, then read the approved `final_text`.
+5. Handle drop and timeout as explicit terminal outcomes. Send an approved email
+   only through the separately authorized outbound action.
 
-| Step type                        | Access pattern                  | Example                             |
-| -------------------------------- | ------------------------------- | ----------------------------------- |
-| HITL (`slack_message_with_hitl`) | `row.<alias>.selected_option`   | `row.qualify.selected_option`       |
-| JavaScript (`run_javascript`)    | `row.<alias>.result.your_field` | `row.draft_email.result.email_body` |
-
-HITL output is stored **flat** — no `.result` wrapper. JS output is wrapped in `{ result, status, meta }`.
-
-**Template interpolation** in tool payloads uses `{{...}}` mustache syntax, NOT `${...}` JS template literals:
-
-```
-"text": "{{row.draft_email.result.email_body}}"     ← correct
-"text": "${row.draft_email.result.email_body}"       ← WRONG, won't interpolate
-```
-
-Here's a 3-step workflow: qualify a lead via HITL, branch on the decision, then post the draft email for approval.
-
-```json
-{
-  "name": "lead_qualify_and_outbound",
-  "publish": true,
-  "config": {
-    "version": 1,
-    "commands": [
-      {
-        "alias": "qualify",
-        "tool": "slack_message_with_hitl",
-        "payload": {
-          "channel": "C07V9TZ4MSQ",
-          "text": "New lead: Sarah Chen, VP Marketing at Stripe.\nEmail: sarah@stripe.com\n\nHow should we classify this lead?",
-          "buttons": [
-            {
-              "id": "hot",
-              "label": "Hot Lead",
-              "style": "primary",
-              "emit": { "qualification": "hot" }
-            },
-            {
-              "id": "warm",
-              "label": "Warm Lead",
-              "emit": { "qualification": "warm" }
-            },
-            { "id": "disqualify", "label": "Disqualify", "style": "danger" }
-          ],
-          "timeout": "2h",
-          "on_timeout": "return_null"
-        }
-      },
-      {
-        "alias": "draft_email",
-        "tool": "run_javascript",
-        "payload": {
-          "code": "const q = row.qualify; if (q.timed_out || q.selected_option === 'disqualify') return { skip: true }; const isHot = q.selected_option === 'hot'; const body = isHot ? 'Hi Sarah, I\\'d love to set up a quick demo call this week...' : 'Hi Sarah, we published a playbook you might find useful...'; return { skip: false, email_body: body, qualification: q.selected_option };"
-        }
-      },
-      {
-        "alias": "approve_email",
-        "tool": "slack_message_with_hitl",
-        "payload": {
-          "channel": "C07V9TZ4MSQ",
-          "text": "{{row.draft_email.result.email_body}}",
-          "buttons": [
-            {
-              "id": "send",
-              "label": "Approve & Send",
-              "style": "primary",
-              "emit": { "decision": "send" }
-            },
-            {
-              "id": "drop",
-              "label": "Drop",
-              "style": "danger",
-              "emit": { "decision": "drop" }
-            }
-          ],
-          "allow_edit": true,
-          "timeout": "4h",
-          "on_timeout": "return_null"
-        }
-      }
-    ]
-  }
-}
-```
-
-### How data flows between steps
-
-```
-Step 1 (qualify)                    Step 2 (draft_email)                Step 3 (approve_email)
-┌──────────────────┐               ┌──────────────────┐               ┌──────────────────┐
-│ HITL: 3 buttons  │               │ JS: reads Step 1 │               │ HITL: approve or │
-│                  │──output──────▶│ via row.qualify   │──output──────▶│ drop the email   │
-│ Waits for human  │               │ (flat, no .result)│               │ allow_edit: true  │
-└──────────────────┘               └──────────────────┘               └──────────────────┘
-```
-
-- **Step 1** posts to Slack with 3 buttons, pauses, resumes when human clicks.
-- **Step 2** is a `run_javascript` step. It reads Step 1's HITL output at `row.qualify.selected_option` (flat — no `.result`). If the human disqualified the lead or it timed out, it returns `{ skip: true }`. Otherwise it constructs an email draft.
-- **Step 3** is another HITL step. The `text` field uses `{{row.draft_email.result.email_body}}` (mustache template, `.result` because it's reading a JS step). `allow_edit: true` lets the human revise it. After approval, `row.approve_email.final_text` contains the final email body.
-
-### Key patterns
-
-**Reading prior HITL output:** `row.<alias>.selected_option` gives you the button ID. `row.<alias>.event_payload` gives you the button's emit data. `row.<alias>.final_text` gives you the (possibly edited) text. No `.result` wrapper.
-
-**Reading prior JS output:** `row.<alias>.result.your_field` — JS steps wrap output in `{ result, status, meta }`.
-
-**Template interpolation in payloads:** Use `{{row.<alias>.field}}` mustache syntax. For JS outputs: `{{row.<alias>.result.field}}`. For HITL outputs: `{{row.<alias>.selected_option}}`.
-
-**Branching:** Use a `run_javascript` step between HITL steps to inspect the prior result and decide what to do next. Return a flag like `{ skip: true }` that downstream steps can check.
-
-**Passing data forward:** You don't need to stuff lead data into every button's `emit`. The workflow engine carries all step outputs in `row`. Any step can read any prior step's output via the patterns above.
+Use the action's described result contract for each interaction. The button ID
+is `selected_option`, button data is `event_payload`, and edited text is
+`final_text`. Inspect the retained result before selecting an envelope path.
+A completed tool call by itself does not mean the reviewer approved sending.

@@ -8,7 +8,7 @@ Use Apify to read results from an existing, authorized run or dataset.
 - `apify_get_actor_run` and `apify_list_actor_runs` read run status and history.
 - `apify_get_log` reads a saved run's log.
 - `apify_get_kv_record` reads a stored key-value record.
-- `apify_check_credits` reads the account's available credits.
+- `deepline billing balance` reads the Deepline credit balance.
 - `apify_stop_actor_run` stops an existing actor run; confirm this mutation with the user.
 
 ```bash

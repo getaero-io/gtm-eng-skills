@@ -26,4 +26,4 @@ rerun recipe.
 
 Use `google_workspace_write_table` to write ordered columns and rows to a new tab
 during a running Play. It needs no completed run: create the table before writing
-completion markers. See [write-table](actions/write-table.md) for limits and retries.
+completion markers. Use `deepline tools describe google_workspace_write_table` for limits and retry inputs.

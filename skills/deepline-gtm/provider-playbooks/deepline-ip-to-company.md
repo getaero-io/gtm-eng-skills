@@ -1,8 +1,9 @@
 # Deepline IP to Company — Agent Guidance
 
-Use this managed integration when a workflow has a public IP address and needs
-company identification or firmographic data. Deepline manages the upstream
+This managed integration is temporarily unavailable for public use. Check
+`deepline tools grep deepline_ip_to_company` for current availability before
+planning company identification from public IP addresses. Deepline manages the upstream
 credential, so workspaces cannot connect or override this provider.
 
-Use `deepline_ip_to_company_find_company_by_ip` with a public IPv4 address.
+Its company-by-IP action accepts a public IPv4 address when available.
 Do not submit private, loopback, or reserved addresses.

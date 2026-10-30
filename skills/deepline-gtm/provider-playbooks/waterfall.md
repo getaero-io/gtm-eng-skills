@@ -1,3 +1,5 @@
+<!-- skill-tool-compat: run_javascript -- Historical export alias documented only to interpret existing saved results; new Play examples use native TypeScript. -->
+
 # Deepline Native — Agent Guidance
 
 ## Operation Selection
@@ -193,7 +195,7 @@ The ICP model input (Play fragment; `titles` is the validated roster from step 1
 
 ```ts
 const icpInput = {
-  model: 'openai/gpt-5.4-mini',
+  model: 'openai/gpt-5.6-luna',
   prompt: `ICP: roles with budget authority over Salesforce / GTM-systems purchasing - Marketing Ops, Sales Ops, RevOps, GTM/Business Ops, Salesforce admin/architect. Senior IC and above; exclude recruiters, finance, support, and plain AE/SDR reps. From this exact title list return ONLY matching titles as exact strings: ${JSON.stringify(titles)}. Return JSON.`,
   jsonSchema: {
     type: 'object',

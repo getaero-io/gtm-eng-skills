@@ -1,5 +1,8 @@
 # ContactOut hashed identifiers
 
+<!-- skill-tool-field: aviato_hash -- Existing per-provider hash output column, not a callable tool. -->
+<!-- skill-tool-field: limadata_hash -- Existing per-provider hash output column, not a callable tool. -->
+
 Read this before planning or running a ContactOut hashed-identifier pass. It behaves unlike every other hash provider in this skill, and the differences cost money.
 
 ## Contents

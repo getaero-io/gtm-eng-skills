@@ -1,3 +1,9 @@
+<!-- skill-tool-field: crunchbase_total_investment_usd -- Historical CompanyDB filter_type value, not an executable tool. -->
+
+<!-- skill-tool-field: crunchbase_categories -- Historical CompanyDB filter_type value, not an executable tool. -->
+
+<!-- skill-tool-field: crunchbase_investors -- Historical CompanyDB filter_type value, not an executable tool. -->
+
 Use CrustData for structured discovery and enrichment with recall-first filtering. The legacy `crustdata_*` tools are hidden from discovery and fail with a provider authorization error; use the `crustdata_v3_*` tools.
 
 - Start with free autocomplete (`crustdata_v3_company_search_autocomplete`, `crustdata_v3_person_search_autocomplete`) to discover canonical values. Confirm these hints with `deepline describe <tool-id>`.

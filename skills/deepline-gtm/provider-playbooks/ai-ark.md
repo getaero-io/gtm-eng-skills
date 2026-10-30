@@ -1,3 +1,5 @@
+<!-- skill-tool-field: account -- Nested AI Ark search-filter object, not a tool ID. -->
+
 # AI Ark Integration Guide
 
 ## Overview

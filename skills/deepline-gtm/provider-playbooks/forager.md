@@ -1,6 +1,6 @@
 # Forager Workflow Guidance
 
-Forager has 850M+ B2B person records and is especially strong for verified mobile phone numbers (200M+ database). Prefer Forager over other providers when the goal is phone number discovery.
+Use Forager for person, company, and job search, plus phone and email lookup.
 
 ## Search & Discovery
 
@@ -18,7 +18,7 @@ Forager has 850M+ B2B person records and is especially strong for verified mobil
 ## Filter Fields Use Integer IDs
 
 - `person_locations`, `person_skills`, `person_industries`, `organization_locations`, etc. all require **integer IDs**, not name strings.
-- Retrieve IDs from the lookup operations first (e.g. `forager_industries`, `forager_locations`, `forager_person_skills`).
+- Retrieve IDs from the lookup operations first (e.g. `forager_industry_autocomplete`, `forager_location_autocomplete`, `forager_person_skill_autocomplete`).
 
 ## Enrichment & Reveals
 
@@ -33,4 +33,4 @@ Use `forager_person_detail_reverse_lookup_by_email` when you already know a work
 
 - When building name-dependent workflows (e.g. email pattern generation), start from a source that returns full names before using Forager for phone/email reveals.
 - Forager person search results include `person_id` -- save this for subsequent `forager_person_detail_lookup` calls to avoid re-searching.
-- Check account balance from Forager before large batch operations.
+- Use `deepline billing balance` to check the Deepline balance before a large batch.

@@ -1,5 +1,7 @@
 # CrustData V3 guidance
 
+<!-- skill-tool-field: crustdata_person_id -- Person identifier accepted by the enrichment payload, not a tool ID. -->
+
 Use autocomplete before search when filter values are uncertain. Autocomplete is free and reduces expensive zero-result searches.
 
 Use indexed search for discovery:

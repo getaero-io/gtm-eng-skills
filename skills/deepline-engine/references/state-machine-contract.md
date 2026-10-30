@@ -169,7 +169,7 @@ paid-provider response or Production usage admission/settlement. Run that
 separate one-case check through the public SDK/API path in an owner-verified
 operator personal workspace or designated Deepline-owned internal Production
 workspace, following
-[`docs/production-paid-call-verification.md`](../../../docs/production-paid-call-verification.md).
+[post-fix verification](post-fix-verification.md).
 The acceptance uses that runbook's budget and keeps the ordinary settled
 charge; do not apply this pilot's multi-record/replay or credit-restoration
 requirements to it.

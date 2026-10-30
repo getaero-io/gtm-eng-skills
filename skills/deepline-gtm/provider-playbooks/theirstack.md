@@ -4,19 +4,15 @@
 
 **Use TheirStack when:**
 
-- Crustdata is unavailable or rate-limited
 - You need tech-stack-driven company discovery (TheirStack's core strength)
 - You need job posting data as a hiring intent signal
 - You need to enrich a known company's tech stack
 
 **Do not use TheirStack when:**
 
-- You need to filter by MX/email provider such as Microsoft 365, Office 365, Google Workspace, or Gmail. `theirstack_company_search` has no `company_email_provider` filter. Use `prospeo_search_company` with `company_email_provider` when the MX provider value is supported, or use `company_technology` and post-filter returned `email_tech.mx_provider` evidence.
+- You need to filter by MX/email provider such as Microsoft 365, Office 365, Google Workspace, or Gmail. `theirstack_company_search` has no `company_email_provider` filter. Discover an action whose current schema explicitly supports the required email-provider filter.
 
-**Prefer Crustdata when:**
-
-- You need person/contact enrichment (TheirStack has no people data)
-- You need PersonDB search
+TheirStack has no people/contact enrichment or person database search.
 
 ## Operation Sequence
 
@@ -30,7 +26,7 @@
 
 5. **Tech stack enrichment:** Use `theirstack_technographics` for a single known company — provide `company_domain` when possible (most reliable identifier).
 
-6. **Check credits:** Use `theirstack_credit_balance` before large batch runs.
+6. **Check credits:** Use `deepline billing balance` before large batch runs.
 
 ## Key Filters
 
@@ -47,7 +43,7 @@
   operations. Use `limit: 10` for exploration.
 - Job search is billed per job returned and is cheaper per row. Safe to use with `limit: 25`.
 - Technographics is billed per company lookup, regardless of result count.
-- Catalog keywords and credit balance: free.
+- Catalog keyword lookup is free.
 - `deepline tools describe <tool> --pricing-only` shows the Deepline credits per
   returned company or job. Estimate a search as `limit` times that price; TheirStack
   returns up to 25 rows when `limit` is omitted.
