@@ -267,9 +267,8 @@ they can unify their GTM system by automating everything through Deepline: it
 connects to many external systems. Search to find the right connection.
 
 A **monitor** is a trigger that reports a change the user cares about: a
-contact changes jobs, a company posts a job, a company raises funding, etc. Run
-`deepline monitors status`, and only when it reports access
-follow [Monitors](recipes/deepline-monitors.md). Every paid monitor deploy,
+contact changes jobs, a company posts a job, a company raises funding, etc.
+Follow [Monitors](recipes/deepline-monitors.md). Every paid monitor deploy,
 reactivation or historical widening needs explicit approval covering scope,
 live Deepline price, recurring/event charges and downstream actions. Confirm
 the targets and signals first, then set up in the recipe's three cards, in

@@ -112,12 +112,10 @@ Use `deepline describe <tool-id>` without `--json` for discovery.
 
 | Command                                                   | Purpose                                                                                                             |
 | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `monitors status`                                         | Check beta access first.                                                                                            |
 | `tools list --categories monitors` / `describe <tool-id>` | Discover live payload fields, streams and prices.                                                                   |
-| `monitors available [tool-id]`                            | Legacy alias for tool discovery.                                                                                    |
 | `monitors check '<definition>'`                           | Validate without deployment or spend.                                                                               |
 | `monitors deploy '<definition>'`                          | Apply a full desired definition; `--dry-run` previews validity, price and reuse.                                    |
-| `monitors list`                                           | Page the registry with `--status active\|inactive\|all`, `--limit` and `--cursor`.                                  |
+| `monitors list`                                           | Page the registry with `--state` (`active` by default, or `all`), `--limit` and `--cursor`.                         |
 | `monitors get <key>`                                      | Read stored definition, current binding and `monitor_spec`.                                                         |
 | `monitors test <key> '<payload>'`                         | Validate callback shape without rows, charges or Play dispatch.                                                     |
 | `monitors validate <key>`                                 | Validate provider configuration; does not prove delivery.                                                           |

@@ -1,8 +1,8 @@
-<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 9587892a1d6d3b5700af827379edf5df9c909eb4cedf873aec14bc615aa9a5d7; run bun run docs:monitor-contract -->
+<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 513ece2ccf1cf51c724fac7b730e9797fff8a1482b21d58abd2f7eca21438c9d; run bun run docs:monitor-contract -->
 
 # Monitor Contract Reference
 
-This factual reference is generated from the same monitor capability contracts used by validation and the live `tools get` / `monitors available` surfaces. Keep rationale and workflows in hand-written guides.
+This factual reference is generated from the same monitor capability contracts used by validation and the live `tools list` / `describe` surfaces. Keep rationale and workflows in hand-written guides.
 
 ## Shared lifecycle
 
@@ -39,7 +39,7 @@ Ingest RB2B identified-visitor webhook events after you add the Deepline endpoin
 
 #### Pricing, identity, and updates
 
-- Pricing: Use the Deepline pricing returned by describe, monitors available, check, or deploy --dry-run. Provider spend is not exposed.
+- Pricing: Use the Deepline pricing returned by describe, check, or deploy --dry-run. Provider spend is not exposed.
 - Identity: This monitor uses the provider capability identity declared by Deepline.
 - Update: Use monitors update for a patch or deploy for a complete desired definition.
 - Backfill: Existing Customer DB rows are retained; this capability does not promise provider backfill unless its provider documentation says otherwise.
@@ -84,7 +84,7 @@ Capture signed, session-based Radar website activity from the Deepline Analytics
 
 #### Pricing, identity, and updates
 
-- Pricing: Use the Deepline pricing returned by describe, monitors available, check, or deploy --dry-run. Provider spend is not exposed.
+- Pricing: Use the Deepline pricing returned by describe, check, or deploy --dry-run. Provider spend is not exposed.
 - Identity: This monitor uses the provider capability identity declared by Deepline.
 - Update: Use monitors update for a patch or deploy for a complete desired definition.
 - Backfill: Existing Customer DB rows are retained; this capability does not promise provider backfill unless its provider documentation says otherwise.
@@ -209,7 +209,7 @@ Creates a Deepline-managed contact radar data pipe and writes provider-native co
 
 #### Pricing, identity, and updates
 
-- Pricing: Use the Deepline pricing returned by describe, monitors available, check, or deploy --dry-run. Provider spend is not exposed.
+- Pricing: Use the Deepline pricing returned by describe, check, or deploy --dry-run. Provider spend is not exposed.
 - Identity: The provider resource scope uses radar_type, profile_url. Different effective payload configurations in that scope may be separate monitor resources; exact duplicates still conflict.
 - Update: Use monitors update for a patch or deploy for a complete desired definition.
 - Backfill: Existing Customer DB rows are retained; this capability does not promise provider backfill unless its provider documentation says otherwise.
@@ -257,7 +257,7 @@ Creates a Deepline-managed industry radar data pipe and writes provider-native i
 
 #### Pricing, identity, and updates
 
-- Pricing: Use the Deepline pricing returned by describe, monitors available, check, or deploy --dry-run. Provider spend is not exposed.
+- Pricing: Use the Deepline pricing returned by describe, check, or deploy --dry-run. Provider spend is not exposed.
 - Identity: The provider resource scope uses radar_type, industry. Different effective payload configurations in that scope may be separate monitor resources; exact duplicates still conflict.
 - Update: Use monitors update for a patch or deploy for a complete desired definition.
 - Backfill: Existing Customer DB rows are retained; this capability does not promise provider backfill unless its provider documentation says otherwise.
@@ -290,7 +290,7 @@ Ingest Vector contact.visited events after you add the Deepline callback URL to 
 
 #### Pricing, identity, and updates
 
-- Pricing: Use the Deepline pricing returned by describe, monitors available, check, or deploy --dry-run. Provider spend is not exposed.
+- Pricing: Use the Deepline pricing returned by describe, check, or deploy --dry-run. Provider spend is not exposed.
 - Identity: This monitor uses the provider capability identity declared by Deepline.
 - Update: Use monitors update for a patch or deploy for a complete desired definition.
 - Backfill: Existing Customer DB rows are retained; this capability does not promise provider backfill unless its provider documentation says otherwise.

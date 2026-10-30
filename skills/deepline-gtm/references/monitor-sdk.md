@@ -10,15 +10,12 @@ for the rest. This is not an
 SDK/API default: omission of `updates_since` remains future-only. Respect an
 explicit time boundary, and do not add history to billing recovery.
 `defineMonitor` gives the authoring shape type checking; it does not remove the
-access gate, approval, dry-run, or durable read-back requirements.
+approval, dry-run, or durable read-back requirements.
 
 ```ts
 import { DeeplineClient, defineMonitor } from 'deepline';
 
 const client = new DeeplineClient();
-
-const access = await client.monitors.status();
-if (!access.has_access) throw new Error(access.reason ?? 'No monitor access');
 
 // Read the live job-opening variant before authoring a definition.
 await client.getTool('deepline_native.company_job_openings');

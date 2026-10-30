@@ -1,11 +1,11 @@
 ---
 name: deepline-monitors
-description: 'ACCESS-GATED beta. Deepline Monitors are provider event feeds (job posts, email replies, funding, intent) that stream into your warehouse and trigger plays. Only use if you have monitor access: run `deepline monitors status` first; if it reports no access, do NOT use this recipe — tell the user to contact the Deepline team.'
+description: 'Deepline Monitors are provider event feeds (job posts, email replies, funding, intent) that stream into your warehouse and trigger plays.'
 ---
 
 # Deepline Monitors
 
-Monitors are **access-gated Deepline-native signal feeds**. The customer launch
+Monitors are **Deepline-native signal feeds**. The customer launch
 includes Company Radar and Contact Radar. A monitor provisions a Deepline-managed
 feed; events land in a Customer DB table. There is **no run to kick off** — it
 streams as events arrive.
@@ -37,8 +37,8 @@ For calibration, follow the artifact with one concrete recommendation and one
 question: `Want me to use that, or adjust it?` This applies even when the call is
 to leave the filter broad: the user explicitly asked to calibrate. During setup,
 a noisy sample uses the improve card in “Sample-first setup” instead. For no
-access, no sample, failure, or stop, state that outcome directly; do not invent
-a scope or results table.
+sample, failure, or stop, state that outcome directly; do not invent a scope or
+results table.
 
 ## Read the deployed monitor spec first
 
@@ -295,22 +295,6 @@ Put the recommended configuration and live Deepline credit impact in one short
 approval question. The validated dry-run explains scope and price; explicit
 confirmation authorizes the paid mutation.
 
-## Step 0 — access gate (do this first)
-
-Monitors are an access-gated beta. Before any monitor command, confirm access:
-
-```bash
-deepline monitors status
-```
-
-- **You have access** → proceed.
-- **No access** → stop. Do not run other monitor commands; tell the user to
-  contact the Deepline team to request access.
-
-It exits 0 with access and 1 without, with a reason; branch on that.
-Other failures need diagnosis, not reinterpretation as rollout
-denial.
-
 ## Explain the monitor only when useful
 
 After validation or deployment, use a sentence when the user needs the model:
@@ -545,7 +529,7 @@ shape, apply only the requested patch and read it back. Public keys and rows
 remain, but the upstream resource may be replaced; an ordinary update does not
 promise backfill.
 
-Before deployment, page `monitors list --status all` to completion. Reuse matching
+Before deployment, page `monitors list --state all` to completion. Reuse matching
 tool/scope; explicitly reactivate a disabled match rather than duplicate it.
 Inspect shared streams and known consumers: `sqlListeners.where` limits a Play's
 reaction, not ingestion charges.
