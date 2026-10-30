@@ -15,6 +15,8 @@
 }
 ```
 
+Search matches the employer by name only, through `job_company` (for example `[{ "v": "Acme", "s": "i" }]`). It has no company domain filter. `filters.company_domain` without a company name is rejected; sent with one, it is ignored and the result carries a warning. When you start from a domain, resolve the company name first. Unknown filter keys are rejected.
+
 The response is `{ prospects: [...], total: N }`. Do not expect more than 30 results per call. Use structured locations (`v`, `b`, `s`) for new payloads; older aliases remain accepted and normalized.
 
 `wiza_get_individual_reveal` reads an existing reveal. `wiza_get_credits` reads account credits. Use these operations only for data the user is authorized to access. Do not recommend Sales Navigator saved-search scraping or browser-session credential reuse.
