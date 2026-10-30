@@ -1,0 +1,6 @@
+# Python deps for scripts/scorecard, train_scorecard.py and the tests. Install into a venv in the skill dir:
+#   uv venv .venv && uv pip install --python .venv/bin/python -r scripts/requirements-scorecard.txt
+pandas>=2.2
+scikit-learn>=1.5
+pydantic>=2.6
+pyyaml>=6

@@ -96,6 +96,12 @@
       "tags": ["scoring", "implementation"],
       "providers": []
     },
+    "references/scorecard-training.md": {
+      "kind": "guide",
+      "title": "Train a Lift or Propensity Scorecard",
+      "tags": ["scoring", "training", "implementation"],
+      "providers": []
+    },
     "references/scoring-diagnostics.md": {
       "kind": "guide",
       "title": "Scoring Diagnostics",
