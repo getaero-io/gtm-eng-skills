@@ -96,7 +96,16 @@ History is a best-effort sample; say so only when it affects expectations.
 Carry each approval through its step; ask again only if scope, price, action or
 side effects exceed it. If history is unsupported, say a sample is unavailable
 and start at the destination card. Honor an explicit future-only or
-preview-only request without the sample card.
+validate-only (no charge) request without the sample card.
+
+**Sample with a preview when check offers one.** When `monitors check` returns
+`preview.available: true`, sample with `monitors preview` instead of deploying
+with history; see
+[preview samples](../references/monitor-operations.md#preview-samples). The
+Sample card covers up to three previews per signal type, each at most
+`preview.max_credits`. Otherwise sample through deployment; never deploy a
+throwaway monitor to imitate a preview.
+Preview before Sample card approval only if the user asked to see matches.
 
 Choose each signal type's first window from the volume you expect for **that
 signal** at the sample target, not from the company alone: a well-known brand
@@ -200,7 +209,7 @@ targets: a listener fires only for rows written after it exists. Start the
 stopped sample monitor with `deepline monitors start <key>`, which restarts it
 at regular execution because its priority was released, and deploy the other
 targets without `updates_since` or `controls.execution_type`; the sample already
-supplied the history. If
+supplied the history. After a preview, deploy that target like the others. If
 none is connected, say so and ask the user to connect Slack, a CRM or a
 sequencer in Dashboard → Integrations before turning it on. Never present the
 raw Customer DB table as the destination; it is only the fallback when the user
@@ -233,6 +242,9 @@ deepline plays run <play> --input @sample-event.json
   }
 }
 ```
+
+After a preview, build these events from its updates instead; see
+[preview samples](../references/monitor-operations.md#preview-samples).
 
 Run each sample row exactly once: a manual run is not deduplicated, so a second
 run repeats the action. Read the run back and confirm the action happened (the
