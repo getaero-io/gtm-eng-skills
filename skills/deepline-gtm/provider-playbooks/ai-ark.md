@@ -173,12 +173,28 @@ limitation.
 
 **Account string filters**: `domain`, `linkedin`, `socialMediaLink`, `phoneNumber`, `location`, `technology`, `naics`
 
+**Account metric filter**:
+`metric` holds `employee` and `growth` arrays of bands. Every band needs `function` and at least one of `start` and `end`. A `growth` band also needs `timeFrame`; an `employee` band accepts `timeFrame`, but it does not change results. Deepline rejects any other band before calling AI Ark, because AI Ark ignores it and returns unfiltered results, or returns 0 results for a `growth` band without `timeFrame`. `account.metric` only filters: responses contain no growth or per-department metric values.
+
+```json
+{
+  "account": {
+    "metric": {
+      "employee": [{ "function": ["sales"], "start": 10, "end": 100 }],
+      "growth": [{ "function": ["sales"], "start": 20, "timeFrame": "TWELVE" }]
+    }
+  }
+}
+```
+
 ### Common mistakes to avoid
 
 - Prefer `contact.experience.current.title` over legacy `contact.title`
 - Prefer `contact.company.previous` with AI Ark company IDs over legacy `contact.pastCompany`
 - ❌ `{ include: ["value"] }` for text filters → ✅ `{ include: { mode: "SMART", content: ["value"] } }`
 - ❌ `{ include: { mode: "SMART", content: ["value"] } }` for string filters → ✅ `{ include: ["value"] }`
+- ❌ `{ start: 20, timeFrame: "TWELVE" }` for a `metric.growth` band → ✅ `{ function: ["sales"], start: 20, timeFrame: "TWELVE" }`
+- Do not read growth or per-department numbers from search results: `account.metric` only filters, and responses do not contain those values
 
 ## Recommended Workflow
 
