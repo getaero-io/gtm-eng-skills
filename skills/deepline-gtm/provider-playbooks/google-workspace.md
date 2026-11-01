@@ -2,7 +2,8 @@ Use Google Workspace to review and improve completed Play datasets.
 
 - Export with `google_workspace_export_dataset`. Omit `spreadsheet_id` for a
   new workbook in the Play's Drive folder or supply it to add a new leftmost
-  run tab.
+  run tab. Any dataset the run finished can be exported, whether or not the
+  Play returned it; name it with `path` or `dataset_id` when the run has several.
 - Any first Google Workspace tool call automatically provisions the
   organization's private Shared Drive. Never ask the user for a Drive ID or a
   manual bootstrap step.
