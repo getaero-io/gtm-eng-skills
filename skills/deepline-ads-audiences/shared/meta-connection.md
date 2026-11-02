@@ -7,7 +7,7 @@ the ads permissions to people with a role on Deepline's own Meta app. Existing
 Login for Business connections keep working.
 
 The customer does the Meta steps; nothing on Meta's side can be done for them.
-Send them the [setup guide](https://deepline.com/docs/providers/meta-audiences/guide)
+Send them the [setup guide](https://deepline.com/docs/features/bring-your-own-keys#meta-audiences)
 and walk them through it:
 
 1. [Create a Business app](https://developers.facebook.com/apps/creation/) with
@@ -44,9 +44,9 @@ into chat; the dashboard field is the only place it goes.
 
 ## Errors
 
-| Error | Cause | Fix |
-| --- | --- | --- |
-| `(#100) Unsupported get request`, `Requires business_management permission` | A Login for Business token without the ads permissions. | Reconnect with a system user token. |
-| "This token can reach no ad accounts" | No ad account assigned to the system user. | Assign it, then select Connect with token again with the same token. |
-| `(#190)` / "Error validating access token" | Revoked or truncated token. | Generate and paste a new token. |
-| "Custom audience terms not accepted" on create | Custom Audience terms not accepted for that account. | Send the terms link from the error; the customer accepts once. |
+| Error                                                                       | Cause                                                   | Fix                                                                  |
+| --------------------------------------------------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------- |
+| `(#100) Unsupported get request`, `Requires business_management permission` | A Login for Business token without the ads permissions. | Reconnect with a system user token.                                  |
+| "This token can reach no ad accounts"                                       | No ad account assigned to the system user.              | Assign it, then select Connect with token again with the same token. |
+| `(#190)` / "Error validating access token"                                  | Revoked or truncated token.                             | Generate and paste a new token.                                      |
+| "Custom audience terms not accepted" on create                              | Custom Audience terms not accepted for that account.    | Send the terms link from the error; the customer accepts once.       |
