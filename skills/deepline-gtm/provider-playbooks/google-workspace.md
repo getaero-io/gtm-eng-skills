@@ -11,6 +11,9 @@ Use Google Workspace to review and improve completed Play datasets.
   breadcrumbs. Do not infer IDs from visible names.
 - Give every export a stable, unique `operation_key`. Reuse it only to
   reconcile the same export.
+- Any Google Sheet in the organization's Deepline Shared Drive works with
+  these tools, whoever created it. A sheet outside that Shared Drive is
+  refused; ask the user to move or create it there instead of sharing it.
 - Read cells and comments with `google_workspace_request`. Reads are fresh,
   bounded, and limited to the organization’s configured Shared Drive.
 - Write results back to existing rows with `google_workspace_update_cells`.
