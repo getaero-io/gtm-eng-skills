@@ -1,0 +1,11 @@
+{
+  "title": "Deepline Triage",
+  "documents": {
+    "SKILL.md": {
+      "kind": "entrypoint",
+      "title": "Deepline Triage",
+      "tags": ["plays", "debugging", "triage", "recovery"],
+      "providers": []
+    }
+  }
+}

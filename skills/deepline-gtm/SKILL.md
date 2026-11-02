@@ -91,6 +91,10 @@ Rules:
 
 ## 1. Choose what to run
 
+For failing, stuck, partial, or incorrect Play runs, use
+`deepline-triage` alongside this skill. It also
+discovers failures when no Play is named.
+
 - **Tool:** one operation, such as looking up a profile or validating an email.
   Use direct tool calls for isolated spot checks.
 - **Play:** TypeScript that expresses GTM work as code. It combines tools with
