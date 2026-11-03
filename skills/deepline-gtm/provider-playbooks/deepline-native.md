@@ -74,6 +74,7 @@
 - Follow up with `enrich_contact` to get email/phone for returned LinkedIn URLs.
 - Supports pagination: `page_number` and `page_size` (default 10, max 250 per page).
 - Always include `domain` when you can. That is the strongest company anchor and produced the best live results.
+- For a known company, calling `company_titles` first is strongly recommended. Select relevant roster titles for `title_filters` or `title_lists` to search titles the company actually uses. Verify returned titles and current employment; matching can be loose.
 - The upstream applies an email-domain blocklist to `domain` and can reject real companies (e.g. `asics.com`, `business.cableone.net` as "disposable email provider"). That returns `DEEPLINE_NATIVE_SEARCH_CONTACT_DOMAIN_REJECTED` (422, no charge); retry the company with `company_name` or `company_linkedin` instead of `domain`.
 - `company_name` must be at least 3 characters (upstream limit). For names like "2U", use `domain` or `company_linkedin`.
 - Prefer `title_filters` as `{name, filter}` objects. Use `title_lists` for a named list of roster titles, but it is NOT exact matching: live results include titles that merely contain a listed title (e.g. "Staff Engineer Heat Transfer Group" for "Staff Engineer"; 128 of 380 results in one run). Re-check `title` on returned rows if you need exact matches. Legacy string arrays are normalized into a single `title_lists` entry, but raw object form is clearer and more reliable.
