@@ -74,7 +74,7 @@
     },
     "references/scoring-pitfalls.md": {
       "kind": "guide",
-      "title": "Scoring Pitfalls \u2014 Confirmation-Biased Fields",
+      "title": "Scoring Pitfalls — Confirmation-Biased Fields",
       "tags": ["signals", "scoring"],
       "providers": []
     },
@@ -119,7 +119,13 @@
       "title": "Backtest and Score the Visible Account Population",
       "tags": ["scoring", "backtesting", "holdout", "evaluation"],
       "providers": []
+    },
+    "references/jev-feature-extraction.md": {
+      "kind": "guide",
+      "title": "Typed Feature Extraction with Jev",
+      "tags": ["scoring", "features", "accounts"],
+      "providers": []
     }
   },
-  "version": "2.4"
+  "version": "2.5"
 }
