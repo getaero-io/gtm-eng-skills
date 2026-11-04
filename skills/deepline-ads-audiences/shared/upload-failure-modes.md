@@ -11,6 +11,8 @@ Each one uploads cleanly and reports success, so nothing downstream surfaces it.
 - [Meta locks an audience while it ingests](#meta-locks-an-audience-while-it-ingests)
 - [Blank string fields are rejected](#blank-string-fields-are-rejected)
 - [Phone normalization](#phone-normalization)
+- [Gmail addresses need the canonical form on Google](#gmail-addresses-need-the-canonical-form-on-google)
+- [Plain names beside hashed emails](#plain-names-beside-hashed-emails)
 - [Match rate lives in contactIdInfo](#match-rate-lives-in-contactidinfo)
 - [Acceptance count is not a match rate](#acceptance-count-is-not-a-match-rate)
 - [Sheets destroys all-digit hashes](#sheets-destroys-all-digit-hashes)
@@ -82,22 +84,65 @@ This applies most often to ContactOut-pool rows, which carry no name or country.
 
 ## Phone normalization
 
-Meta's phone rule differs from its email rule: *"Remove symbols, letters, and any
-leading zeroes. You should prefix the country code if the COUNTRY field is not
-specified."* Digits only, country code included, no leading `+`.
+The two platforms hash different strings for the same number.
 
-Verify the implementation against Meta's published example instead of the prose.
-Meta documents `15559876543` hashing to
-`1ef970831d7963307784fa8688e8fce101a15685d62aa765fed23f3a2c576a4e`. A pipeline
-that reproduces that digest handles phones correctly.
+- Meta: _"Remove symbols, letters, and any leading zeroes. You should prefix the
+  country code if the COUNTRY field is not specified."_ Digits only, no `+`.
+  Meta documents `15559876543` hashing to
+  `1ef970831d7963307784fa8688e8fce101a15685d62aa765fed23f3a2c576a4e`.
+- Google: E.164 **with the leading plus**, so the hashed string is
+  `+15559876543`. Google's Data Manager formatting page: "Include the plus sign
+  (+) and the country code."
 
-Both platforms accept `phone_sha256` beside `email_sha256` on one row. Verified:
-13,236 rows carrying 10,664 email and 6,982 phone hashes uploaded to Google with
-`invalid_count: 0` and to Meta with `status=completed`.
+A pipeline that reproduces Meta's digest and hashes `+` plus the same digits for
+Google handles phones correctly. One digest sent to both platforms matches on at
+most one of them, which is why the standard file carries `phone_google` and
+`phone_meta` as separate columns. `phoneHashes()` in
+`plays/shared/audience-hash.ts` returns the pair.
+
+Provider-supplied phone hashes carry no record of which string was hashed. Keep
+them in the column of the platform the provider built them for, and never move a
+digest between columns.
+
+Both platforms accept a phone digest beside an email digest on one row.
+Verified: 13,236 rows carrying 10,664 email and 6,982 phone hashes uploaded to
+Google with `invalid_count: 0` and to Meta with `status=completed`.
 
 Hashing phones the customer already supplied costs nothing. Buying mobile numbers
 costs far more per contact than hashed emails, so treat that as a separate
 decision.
+
+## Gmail addresses need the canonical form on Google
+
+Google matches Gmail on the canonical address: the local part with every dot and
+the `+tag` removed. `jane.doe+ads@gmail.com` is matched as `janedoe@gmail.com`,
+so the literal hash never matches on Google. Meta matches the literal form the
+person registered with. Hash both forms and put both in the `email` column;
+`emailHashes()` does this and returns one digest for every other domain.
+
+Observed on a 2,493-contact B2B list: 50 source addresses were Gmail, all 50
+hashed literally, so 2% of the baseline could not match on Google. A tiny share
+of a B2B list, but a large one of a consumer list, and the fix costs nothing.
+
+## Plain names beside hashed emails
+
+Google reads a customer-list file as either fully plain or fully hashed for the
+private fields (Email, Phone, First Name, Last Name). A file with hashed emails
+and plain names is rejected: "Content in columns C, D doesn't match the column
+header", and without a Zip column, "Zip is missing. To continue, remove the
+other address columns." The names were never going to help: Google only matches
+on name when first name, last name, country and zip are all present.
+
+The damage comes from the repair. A customer who hits this error hands the file
+to a script or an assistant to "hash the names", and if that step hashes every
+column it also hashes the already-hashed email column. The file then uploads
+with no error and matches nothing.
+
+Ship email and phone digests only, unless all four address fields are known for
+the row. When they are, hash first and last name (lowercase, trimmed) and leave
+country and zip plain. `auditUploadFile()` fails a file that has plain values in
+an identifier column or a partial address block, and the audit play runs it
+before every upload.
 
 ## Match rate lives in contactIdInfo
 
@@ -109,10 +154,10 @@ adds `match_rate_percentage`. On an older build, read the raw path.
 
 Measured on one account and one source list:
 
-| Audience | Rows | Match rate |
-| --- | --- | --- |
-| Email hashes only | 10,664 | 79% |
-| Email + phone hashes | 13,236 | 84% |
+| Audience             | Rows   | Match rate |
+| -------------------- | ------ | ---------- |
+| Email hashes only    | 10,664 | 79%        |
+| Email + phone hashes | 13,236 | 84%        |
 
 Treat `null` as not yet computed, never as zero. Google can take hours. A report
 that renders `null` as 0% turns a successful upload into an apparent failure.

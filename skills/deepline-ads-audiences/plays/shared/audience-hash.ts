@@ -129,11 +129,181 @@ function wordHex(value: number): string {
   return output;
 }
 
+/**
+ * Literal normalization every platform agrees on: trim, drop internal
+ * whitespace, lowercase. This is what the person typed, minus noise.
+ */
 export function normalizeEmail(value: unknown): string | null {
   if (typeof value !== 'string') return null;
-  const normalized = value.trim().toLowerCase();
+  const normalized = value.replace(/\s+/g, '').toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) return null;
   return normalized;
+}
+
+/**
+ * Google Customer Match canonical form: for gmail.com and googlemail.com the
+ * dots and the +tag in the local part are removed before hashing. Google
+ * matches on this form, so a dotted Gmail address hashed literally never
+ * matches on Google. Other domains are left exactly as typed.
+ */
+export function googleCanonicalEmail(value: unknown): string | null {
+  const normalized = normalizeEmail(value);
+  if (!normalized) return null;
+  const at = normalized.lastIndexOf('@');
+  const local = normalized.slice(0, at);
+  const domain = normalized.slice(at + 1);
+  if (domain !== 'gmail.com' && domain !== 'googlemail.com') return normalized;
+  const canonicalLocal = local.split('+')[0]!.replace(/\./g, '');
+  return canonicalLocal ? `${canonicalLocal}@${domain}` : null;
+}
+
+/**
+ * Every SHA-256 an upload needs for one raw email: the Google canonical form
+ * first, then the literal form when it differs (Meta matches the literal). A
+ * non-Gmail address yields one hash. Each hash is computed exactly once.
+ */
+export function emailHashes(value: unknown): string[] {
+  const literal = normalizeEmail(value);
+  if (!literal) return [];
+  const canonical = googleCanonicalEmail(literal) ?? literal;
+  const hashes = [sha256Hex(canonical)];
+  if (canonical !== literal) hashes.push(sha256Hex(literal));
+  return hashes;
+}
+
+/** Digits only, country code included, 10 to 15 digits (E.164 length). */
+export function normalizePhoneDigits(value: unknown): string | null {
+  if (typeof value !== 'string' && typeof value !== 'number') return null;
+  const digits = String(value).replace(/\D/g, '').replace(/^0+/, '');
+  if (digits.length < 10 || digits.length > 15) return null;
+  return digits;
+}
+
+/**
+ * The two platforms hash different strings for the same number. Google hashes
+ * E.164 with the leading plus; Meta hashes the digits with no plus (its
+ * published example: 15559876543 ->
+ * 1ef970831d7963307784fa8688e8fce101a15685d62aa765fed23f3a2c576a4e). One
+ * digest cannot serve both, so a shared file carries one column per platform.
+ */
+export function phoneHashes(
+  value: unknown,
+): { digits: string; google: string; meta: string } | null {
+  const digits = normalizePhoneDigits(value);
+  if (!digits) return null;
+  return { digits, google: sha256Hex(`+${digits}`), meta: sha256Hex(digits) };
+}
+
+/** Google and Meta name rule: trim, lowercase; prefixes and suffixes are the caller's job. */
+export function normalizeName(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toLowerCase().replace(/\s+/g, ' ');
+  return normalized || null;
+}
+
+export type UploadColumnAudit = {
+  column: string;
+  populated: number;
+  hashed: number;
+  plain: number;
+};
+
+export type UploadFileAudit = {
+  rows: number;
+  columns: UploadColumnAudit[];
+  mixedColumns: string[];
+  plainIdentifierColumns: string[];
+  hashOfHashPairs: number;
+  incompleteAddressRows: number;
+  ok: boolean;
+};
+
+const HASHED_COLUMNS = new Set([
+  'email',
+  'email_sha256',
+  'phone',
+  'phone_sha256',
+  'phone_google',
+  'phone_google_sha256',
+  'phone_meta',
+  'phone_meta_sha256',
+  'fn',
+  'ln',
+  'first_name_sha256',
+  'last_name_sha256',
+]);
+const ADDRESS_COLUMNS: Array<[string, string[]]> = [
+  ['fn', ['fn', 'first_name_sha256']],
+  ['ln', ['ln', 'last_name_sha256']],
+  ['country', ['country', 'country_code']],
+  ['zip', ['zip', 'postal_code']],
+];
+
+/**
+ * Gate a platform upload file before it leaves Deepline. Three failures upload
+ * cleanly and match nothing: a column mixing raw values and digests (the
+ * platform re-hashes the digests), a plain-text name beside a hashed email
+ * (Google rejects the file; a re-hash step then risks hashing the email
+ * column twice), and a name block without Zip (Google ignores names unless
+ * first name, last name, country and zip are all present).
+ */
+export function auditUploadFile(
+  rows: Array<Record<string, unknown>>,
+): UploadFileAudit {
+  const columnNames = new Set<string>();
+  rows.forEach((row) =>
+    Object.keys(row).forEach((key) => columnNames.add(key)),
+  );
+  const columns: UploadColumnAudit[] = [];
+  const mixedColumns: string[] = [];
+  const plainIdentifierColumns: string[] = [];
+  const digests = new Set<string>();
+  for (const column of columnNames) {
+    let populated = 0;
+    let hashed = 0;
+    for (const row of rows) {
+      const raw = row[column];
+      if (typeof raw !== 'string' || !raw.trim()) continue;
+      populated += 1;
+      const hash = normalizeSha256(raw);
+      if (hash) {
+        hashed += 1;
+        digests.add(hash);
+      }
+    }
+    const plain = populated - hashed;
+    columns.push({ column, populated, hashed, plain });
+    if (hashed > 0 && plain > 0) mixedColumns.push(column);
+    if (HASHED_COLUMNS.has(column) && plain > 0)
+      plainIdentifierColumns.push(column);
+  }
+  let hashOfHashPairs = 0;
+  for (const digest of digests) {
+    if (digests.has(sha256Hex(digest))) hashOfHashPairs += 1;
+  }
+  let incompleteAddressRows = 0;
+  for (const row of rows) {
+    const present = ADDRESS_COLUMNS.map(([, names]) =>
+      names.some(
+        (name) => typeof row[name] === 'string' && (row[name] as string).trim(),
+      ),
+    );
+    if (present.some(Boolean) && !present.every(Boolean))
+      incompleteAddressRows += 1;
+  }
+  return {
+    rows: rows.length,
+    columns,
+    mixedColumns,
+    plainIdentifierColumns,
+    hashOfHashPairs,
+    incompleteAddressRows,
+    ok:
+      mixedColumns.length === 0 &&
+      plainIdentifierColumns.length === 0 &&
+      hashOfHashPairs === 0 &&
+      incompleteAddressRows === 0,
+  };
 }
 
 export function normalizeSha256(value: unknown): string | null {
@@ -158,9 +328,10 @@ export function auditHashRows(rows: HashInputRow[]): HashAudit {
   };
 }
 
-export function prepareHashOnlyUploadRows(
-  rows: HashInputRow[],
-): { rows: HashOnlyUploadRow[]; audit: HashAudit } {
+export function prepareHashOnlyUploadRows(rows: HashInputRow[]): {
+  rows: HashOnlyUploadRow[];
+  audit: HashAudit;
+} {
   const audit = auditHashRows(rows);
   const output: HashOnlyUploadRow[] = [];
   const seen = new Set<string>();

@@ -1,9 +1,9 @@
 import deepline from 'deepline';
 import {
   auditHashRows,
-  normalizeEmail,
+  emailHashes,
   normalizeSha256,
-  sha256Hex,
+  phoneHashes,
 } from './shared/audience-hash';
 
 type AudienceInputRow = {
@@ -20,6 +20,9 @@ type AudienceInputRow = {
   email_hashes_sha256?: string;
   aviato_hash?: string;
   limadata_hash?: string;
+  phone?: string;
+  mobile_phone?: string;
+  personal_phone?: string;
   first_name?: string;
   last_name?: string;
   company?: string;
@@ -35,6 +38,17 @@ type HashOnlyRow = {
   source_row?: string;
   provider_used: string;
   identifier_type: 'work_email' | 'provider_hash' | 'personal_email';
+};
+
+/**
+ * Google hashes "+<digits>", Meta hashes "<digits>": the same phone needs a
+ * different digest per platform, so phone rows carry one column for each.
+ */
+type PhoneHashRow = {
+  phone_google_sha256: string;
+  phone_meta_sha256: string;
+  source_row?: string;
+  provider_used: string;
 };
 
 function firstHash(
@@ -95,15 +109,37 @@ function allProviderHashes(row: AudienceInputRow): Array<{
   });
 }
 
-function personalEmails(row: AudienceInputRow): string[] {
+/**
+ * Every hash a raw personal email needs: the Google canonical form (Gmail dots
+ * and +tags removed) plus the literal form when it differs, so one file matches
+ * on both Google and Meta.
+ */
+function personalEmailHashes(row: AudienceInputRow): string[] {
   const output = [
     row.personal_email,
     ...splitMultiValue(row.personal_emails),
-  ].flatMap((value) => {
-    const normalized = normalizeEmail(value);
-    return normalized ? [normalized] : [];
-  });
+  ].flatMap((value) => emailHashes(value));
   return [...new Set(output)];
+}
+
+function phoneRows(row: AudienceInputRow, rowId: string): PhoneHashRow[] {
+  const candidates: Array<[string, unknown]> = [
+    ['mobile_phone', row.mobile_phone],
+    ['personal_phone', row.personal_phone],
+    ['phone', row.phone],
+  ];
+  const output: PhoneHashRow[] = [];
+  for (const [provider, value] of candidates) {
+    const hashes = phoneHashes(value);
+    if (!hashes) continue;
+    output.push({
+      phone_google_sha256: hashes.google,
+      phone_meta_sha256: hashes.meta,
+      source_row: rowId,
+      provider_used: provider,
+    });
+  }
+  return output;
 }
 
 function sourceRow(row: AudienceInputRow, index: number): string {
@@ -132,12 +168,11 @@ export default async function (input: { file: string }) {
   const rows = await dataset.materialize();
   const baseline: HashOnlyRow[] = [];
   const enriched: HashOnlyRow[] = [];
+  const phones: PhoneHashRow[] = [];
 
   rows.forEach((row, index) => {
     const rowId = sourceRow(row, index);
-    const workEmail = normalizeEmail(row.work_email || row.email);
-    if (workEmail) {
-      const hash = sha256Hex(workEmail);
+    for (const hash of emailHashes(row.work_email || row.email)) {
       baseline.push({
         email_sha256: hash,
         source_row: rowId,
@@ -151,6 +186,7 @@ export default async function (input: { file: string }) {
         identifier_type: 'work_email',
       });
     }
+    phones.push(...phoneRows(row, rowId));
 
     for (const providerHash of allProviderHashes(row)) {
       enriched.push({
@@ -161,9 +197,9 @@ export default async function (input: { file: string }) {
       });
     }
 
-    for (const personalEmail of personalEmails(row)) {
+    for (const hash of personalEmailHashes(row)) {
       enriched.push({
-        email_sha256: sha256Hex(personalEmail),
+        email_sha256: hash,
         source_row: rowId,
         provider_used: 'personal_email',
         identifier_type: 'personal_email',
@@ -182,10 +218,24 @@ export default async function (input: { file: string }) {
   const enrichedDataset = await deepline
     .dataset('enriched_hash_only_audience', enrichedRows)
     .run({ description: 'Enriched hash-only audience rows.' });
+  const seenPhones = new Set<string>();
+  const phoneRowsDeduped = phones.filter((row) => {
+    if (seenPhones.has(row.phone_google_sha256)) return false;
+    seenPhones.add(row.phone_google_sha256);
+    return true;
+  });
+  const phoneDataset = await deepline
+    .dataset('phone_hash_rows', phoneRowsDeduped)
+    .run({
+      description:
+        'Phone digests, one column per platform (Google: +digits, Meta: digits).',
+    });
 
   return {
     baseline_rows: baselineDataset,
     enriched_rows: enrichedDataset,
+    phone_rows: phoneDataset,
+    phone_hashes: phoneRowsDeduped.length,
     baseline_audit: baselineAudit,
     enriched_audit: enrichedAudit,
     unique_hash_lift: enrichedAudit.outputRows - baselineAudit.outputRows,

@@ -1,8 +1,8 @@
 import deepline from 'deepline';
 import {
+  emailHashes,
   normalizeEmail,
   normalizeSha256,
-  sha256Hex,
 } from './shared/audience-hash';
 
 /**
@@ -172,11 +172,12 @@ function readPersonalEmailHashes(result: unknown): string[] {
   const body = providerData(result);
   const data = asRecord(body.data ?? body);
   const found: string[] = [];
+  // Google matches the canonical Gmail form (dots and +tag removed), Meta the
+  // literal form, so a raw Gmail address contributes both digests.
   const collectPersonalEmailHash = (value: unknown) => {
-    const email = normalizeEmail(value);
-    if (!email) return;
-    const hash = sha256Hex(email);
-    if (!found.includes(hash)) found.push(hash);
+    for (const hash of emailHashes(value)) {
+      if (!found.includes(hash)) found.push(hash);
+    }
   };
 
   collectPersonalEmailHash(data.personal_email);

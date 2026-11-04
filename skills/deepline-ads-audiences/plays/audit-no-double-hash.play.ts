@@ -1,6 +1,7 @@
 import deepline from 'deepline';
 import {
   auditHashRows,
+  auditUploadFile,
   normalizeSha256,
   sha256Hex,
 } from './shared/audience-hash';
@@ -58,11 +59,16 @@ export default async function (input: {
     .map((hash) => sha256Hex(hash))
     .filter((hash) => payloadHashes.has(hash));
   const audit = auditHashRows(payloadRows);
+  // Column purity, plain names beside hashed emails, names without zip, and
+  // hash-of-hash inside the payload itself: each uploads cleanly and matches
+  // nothing, so this is the only place they can be caught.
+  const fileAudit = auditUploadFile(payloadRows);
 
   const ok =
     audit.malformedHashes === 0 &&
     audit.duplicateHashes === 0 &&
     audit.rawEmailFieldsPresent === false &&
+    fileAudit.ok &&
     missingProviderHashes.length === 0 &&
     doubleHashedProviderHashes.length === 0;
 
@@ -71,6 +77,7 @@ export default async function (input: {
       JSON.stringify({
         message: 'Audience hash audit failed.',
         audit,
+        file_audit: fileAudit,
         provider_hashes: providerHashes.size,
         missing_provider_hashes: missingProviderHashes.length,
         double_hashed_provider_hashes: doubleHashedProviderHashes.length,
@@ -86,6 +93,7 @@ export default async function (input: {
   return {
     ok: true,
     audit,
+    file_audit: fileAudit,
     provider_hashes: providerHashes.size,
     missing_provider_hashes: 0,
     double_hashed_provider_hashes: 0,

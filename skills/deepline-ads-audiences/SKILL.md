@@ -37,7 +37,7 @@ Match the request to a row in the decision matrix and read the linked file befor
 | "Make sure hashes are not double hashed"                                                                                                                    | Run the no-double-hash audit play before upload.                             | `plays/audit-no-double-hash.play.ts`                      |
 | "enrich this list", "buy personal emails/hashes", "run the ladder"                                                                                          | Run the waterfall. Each layer only sees rows still missing a hash.           | `plays/enrich-audience-waterfall.play.ts`                 |
 | "Compare enriched versus unenriched"                                                                                                                        | Build both hash-only datasets and report lift.                               | `plays/enrich-audience-waterfall.play.ts`                 |
-| "include phone numbers", "add phones"                                                                                                                       | Hash existing phones digits-only with country code.                          | `shared/upload-failure-modes.md`                          |
+| "include phone numbers", "add phones"                                                                                                                       | Hash existing phones twice: `+digits` for Google, digits for Meta.           | `shared/upload-failure-modes.md`                          |
 | "what was the match rate", "did it match"                                                                                                                   | Read `contactIdInfo.matchRatePercentage`, not the range enum.                | `shared/upload-failure-modes.md`                          |
 | "put it in a sheet", "customer will upload"                                                                                                                 | Publish the validated file to Sheets; verify by row count.                   | `shared/upload-failure-modes.md`                          |
 | "connect Meta", "Meta not connected", "(#100)", "business_management"                                                                                       | Connect Meta with a system user token; Meta login is not offered.            | `shared/meta-connection.md`                               |
@@ -236,22 +236,23 @@ Before upload, remove empty strings and malformed hashes from the payload. Deepl
 
 Valid upload row fields: `email`, `email_sha256`, `phone`, `phone_sha256`, `first_name`, `last_name`, `country_code`, `postal_code`, `company_name`, `title`, `company_domain`, `person_linkedin_url`, `external_id`.
 
-Prefer `email_sha256` when a provider returns a paid-ads-ready hash. Provider hashes must pass through exactly as lowercase 64-character hex. Do not double-hash provider hashes. When a provider returns raw personal email: trim whitespace, lowercase it, validate it with a normal email pattern, hash the normalized email with SHA-256 exactly once, and upload only `email_sha256` unless the user explicitly asked to upload raw email fields.
+Prefer `email_sha256` when a provider returns a paid-ads-ready hash. Provider hashes must pass through exactly as lowercase 64-character hex. Do not double-hash provider hashes. When a provider returns raw personal email: trim whitespace, lowercase it, validate it with a normal email pattern, hash it with SHA-256 exactly once per form (`emailHashes()` adds the Google canonical Gmail form), and upload only `email_sha256` unless the user explicitly asked to upload raw email fields.
 
 ### Standard upload file shape
 
 Use one shape for every run, so the audit, the Sheets export and both platform uploads read the same file:
 
 ```
-email,phone,fn,ln,country
+email,phone_google,phone_meta
 ```
 
-- `email` and `phone` hold 64-character lowercase SHA-256 digests, or nothing. Blank cells are deliberate: a ContactOut-pool row has no name, a phone-only row has no email.
-- Every row carries at least one of the two. Drop rows with neither.
-- `fn` and `ln` are lowercase `a-z` only. `country` is a two-letter code.
+- `email` holds 64-character lowercase SHA-256 digests, or nothing. A raw Gmail address produces two digests: Google matches the canonical form (dots and `+tag` removed from the local part), Meta matches the literal form. `emailHashes()` in `plays/shared/audience-hash.ts` returns both; never hash a Gmail address once and send it to both platforms.
+- `phone_google` is SHA-256 of `+<digits>` (E.164 with the plus) and `phone_meta` is SHA-256 of `<digits>`. The platforms hash different strings for the same number, so one phone digest cannot serve both. `phoneHashes()` returns the pair.
+- Every row carries at least one populated identifier. Drop rows with none. Blank cells are deliberate: a ContactOut-pool row has no phone, a phone-only row has no email.
+- No name, country or zip columns unless all four are known for the row. Google uses names only when first name, last name, country and zip are all present; a pre-hashed file must then hash the names too (lowercase, trimmed) and leave country and zip plain. A plain-text name beside a hashed email is rejected by the Google uploader ("content doesn't match the column header"), and a repair step that re-hashes the file risks hashing the email column twice, which uploads cleanly and matches nothing.
 - Keep a parallel `..._lineage.csv` with a `source` column naming the layer that produced each hash.
 
-Before uploading, assert that each column holds one identifier type and that no value is the SHA-256 of another value in the file. Both failures upload cleanly and match nothing. → Read `shared/upload-failure-modes.md`.
+Before uploading, run `plays/audit-no-double-hash.play.ts`. It asserts that each column holds one identifier type, that no identifier column holds plain text, that any address block is complete, and that no value is the SHA-256 of another value in the file. Each of those failures uploads cleanly and matches nothing. → Read `shared/upload-failure-modes.md`.
 
 ### Normalize LinkedIn URLs (drop encoded internal-identifier URLs)
 
