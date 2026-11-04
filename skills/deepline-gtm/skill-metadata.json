@@ -49,6 +49,12 @@
       "tags": ["reference", "monitors"],
       "providers": []
     },
+    "references/industry-radars.md": {
+      "kind": "reference",
+      "title": "Industry Radars",
+      "tags": ["reference", "monitors"],
+      "providers": []
+    },
     "recipes/developer-signals.md": {
       "kind": "specialized-workflow",
       "title": "Developer Signals",

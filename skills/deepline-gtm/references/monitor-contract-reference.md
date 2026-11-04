@@ -1,4 +1,4 @@
-<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 513ece2ccf1cf51c724fac7b730e9797fff8a1482b21d58abd2f7eca21438c9d; run bun run docs:monitor-contract -->
+<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 8f557292bd8778939ac26407cd8a6be91b862051bc390edf3be5772c02ed16b6; run bun run docs:monitor-contract -->
 
 # Monitor Contract Reference
 
@@ -237,22 +237,61 @@ Creates a Deepline-managed industry radar data pipe and writes provider-native i
 }
 ```
 
+#### Track job openings in a market
+
+```json
+{
+  "key": "revops-job-openings-us",
+  "tool": "deepline_native.industry_radar",
+  "payload": {
+    "industry": "revenue operations",
+    "countries": ["United States"],
+    "radar_type": "industry_job_openings"
+  }
+}
+```
+
+#### Track every new funding round
+
+```json
+{
+  "key": "funding-rounds",
+  "tool": "deepline_native.industry_radar",
+  "payload": {
+    "radar_type": "industry_funding_rounds"
+  }
+}
+```
+
+#### Track newly founded companies
+
+```json
+{
+  "key": "new-companies",
+  "tool": "deepline_native.industry_radar",
+  "payload": {
+    "radar_type": "industry_new_companies"
+  }
+}
+```
+
 ### Outputs
 
-| Stream                        | Customer DB table                                             | Meaning                                                                                  |
-| ----------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `industry_mentions`           | `deepline_native.deepline_native_industry_mentions`           | Streams news and web mentions across an industry into your warehouse and triggers plays. |
-| `industry_job_openings`       | `deepline_native.deepline_native_industry_job_openings`       | Streams new job postings across an industry into your warehouse and triggers plays.      |
-| `industry_funding_rounds`     | `deepline_native.deepline_native_industry_funding_rounds`     | DeeplineNativeIndustryFundingRoundsRow                                                   |
-| `industry_funding_references` | `deepline_native.deepline_native_industry_funding_references` | DeeplineNativeIndustryFundingReferencesRow                                               |
+| Stream                        | Customer DB table                                             | Meaning                                                                                                               |
+| ----------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `industry_mentions`           | `deepline_native.deepline_native_industry_mentions`           | Streams news and web mentions across an industry into your warehouse and triggers plays.                              |
+| `industry_job_openings`       | `deepline_native.deepline_native_industry_job_openings`       | Streams new job postings across an industry into your warehouse and triggers plays.                                   |
+| `industry_funding_rounds`     | `deepline_native.deepline_native_industry_funding_rounds`     | Streams every newly announced funding round, with the company and round size, into your warehouse and triggers plays. |
+| `industry_funding_references` | `deepline_native.deepline_native_industry_funding_references` | Source article URLs for each funding round, one row per reference.                                                    |
+| `industry_new_companies`      | `deepline_native.deepline_native_industry_new_companies`      | Streams newly founded companies and their founders into your warehouse and triggers plays.                            |
 
 #### Fields
 
 | Field           | Semantics                                                                                                                                                                                                                                                                                                     |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `radar_type`    | Deepline industry radar output family. The selected value determines the derived output tables.                                                                                                                                                                                                               |
-| `industry`      | Industry or market segment used to create or seed the upstream radar.                                                                                                                                                                                                                                         |
-| `countries`     | Optional for 'industry_job_openings' only. Array of country names to filter job postings by location. Maximum 5 countries allowed. Examples: 'United States', 'Canada', 'United Kingdom'.                                                                                                                     |
+| `industry`      | Keyword or phrase that scopes the feed. Required for industry_mentions and industry_job_openings. Not accepted for industry_funding_rounds or industry_new_companies, which are global feeds of every new funding round or newly founded company.                                                             |
+| `countries`     | Optional for industry_job_openings only: up to 5 country names that job postings must be located in, such as "United States" or "Canada".                                                                                                                                                                     |
 | `updates_since` | Optional permanent radar starting point. Use an RFC3339 timestamp with a time zone to receive qualifying historical findings from that instant. Omit to start at radar creation. The timestamp must be in the past and within five calendar years. Historical processing can continue for the first 24 hours. |
 
 #### Pricing, identity, and updates

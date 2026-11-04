@@ -6,7 +6,8 @@ description: 'Deepline Monitors are provider event feeds (job posts, email repli
 # Deepline Monitors
 
 Monitors are **Deepline-native signal feeds**. The customer launch
-includes Company Radar and Contact Radar. A monitor provisions a Deepline-managed
+includes Company Radar, Contact Radar and Industry Radar (see
+[Industry radars](#industry-radars)). A monitor provisions a Deepline-managed
 feed; events land in a Customer DB table. There is **no run to kick off** — it
 streams as events arrive.
 
@@ -78,7 +79,7 @@ this order (copy in “Sample-first setup”):
 1. **Sample.** Ask to pull a small sample so that we can confirm it looks
    correct. The sample covers **one target per signal type**, not every
    target: pick the target most likely to produce a match for that signal (the
-   largest or most reviewed company). Two signal types, such as reviews and
+   largest or most active company). Two signal types, such as job openings and
    social posts, need two samples. Name no company in the card: approval covers
    the sample deployment, the volume-based loop below, and moving on to the next
    most likely target when one comes back empty, without asking again, until
@@ -95,8 +96,11 @@ Never show history dates, windows, polling or replacement mechanics to the user.
 History is a best-effort sample; say so only when it affects expectations.
 Carry each approval through its step; ask again only if scope, price, action or
 side effects exceed it. If history is unsupported, say a sample is unavailable
-and start at the destination card. Honor an explicit future-only or
-validate-only (no charge) request without the sample card.
+and start at the destination card. Treat company reviews (`company_reviews`)
+and industry new companies (`industry_new_companies`) the same way: their
+history can take hours to arrive, so never offer or try a sample, and deploy
+them without `updates_since` or priority. Honor an explicit future-only or validate-only
+(no charge) request without the sample card.
 
 **Sample with a preview when check offers one.** When `monitors check` returns
 `preview.available: true`, sample with `monitors preview` instead of deploying
@@ -109,7 +113,7 @@ Preview before Sample card approval only if the user asked to see matches.
 
 Choose each signal type's first window from the volume you expect for **that
 signal** at the sample target, not from the company alone: a well-known brand
-can be mentioned daily and reviewed a few times a year. Judge it from company
+can be mentioned daily and promote staff a few times a year. Judge it from company
 size, the brand's prominence for that signal, filter breadth and rows already in
 the shared stream; when unsure, use moderate.
 
@@ -117,8 +121,8 @@ the shared stream; when unsure, use moderate.
 | --------------- | -------------------------------------------------------------------------------- | -------- | -------------------- | --------------- |
 | Very high       | likes and comments on a well-known brand's posts; mentions of a well-known brand | 1 day    | 7 days               | 3 minutes       |
 | High            | mentions of a mid-size company; job openings at a large company                  | 3 days   | 7 → 30 days          | 3 minutes       |
-| Moderate        | reviews of a well-known product; filtered roles at mid-size companies            | 30 days  | 180 → 365 → 730 days | 2 minutes       |
-| Sparse          | executive hires, funding, a niche product's reviews, small companies             | 180 days | 365 → 730 days       | 2 minutes       |
+| Moderate        | promotions at a large company; filtered roles at mid-size companies              | 30 days  | 180 → 365 → 730 days | 2 minutes       |
+| Sparse          | executive hires, funding, small companies                                        | 180 days | 365 → 730 days       | 2 minutes       |
 
 Busy signals stop at 7 or 30 days: one that finds nothing in that window most
 likely has no coverage, and a longer pull is where an unexpected bill comes from.
@@ -306,6 +310,14 @@ when a deployment check exposes an unaffordable or invalid configuration too.
 Put the recommended configuration and live Deepline credit impact in one short
 approval question. The validated dry-run explains scope and price; explicit
 confirmation authorizes the paid mutation.
+
+## Industry radars
+
+`deepline_native.industry_radar` watches a market (a keyword, a role, or every
+new funding round or company) instead of named accounts. Before setting one up,
+read [industry radars](../references/industry-radars.md): which types take a
+keyword, which are global feeds, and how the sample and destination steps
+change.
 
 ## Explain the monitor only when useful
 
