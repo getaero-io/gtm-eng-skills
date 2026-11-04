@@ -1,6 +1,6 @@
 # Run logs and events
 
-<!-- Generated from CLI help, the runtime event catalog and packages/sdk/src/client.ts JSDoc. Do not edit manually. -->
+<!-- Generated from CLI help, the runtime event catalog and packages/sdk/src/client-core.ts JSDoc. Do not edit manually. -->
 
 ## Query retained logs
 
