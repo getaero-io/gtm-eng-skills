@@ -72,7 +72,7 @@
 - Synchronous. Returns LinkedIn URLs and profile/title data only. There is no request option to reveal contact data: `professional_email`, `personal_email`, `mobile_phone`, `phone_numbers`, and `email_verified` are present in each person but always empty, and every returned profile still bills. Use `enrich_contact` / `enrich_phone` on the rows you keep.
 - Treat it as a company-scoped LinkedIn candidate finder, not a clean org-chart API. It is good at surfacing plausible current people at a company, but broad title queries can still return adjacent or support roles.
 - Follow up with `enrich_contact` to get email/phone for returned LinkedIn URLs.
-- Supports pagination: `page_number` and `page_size` (default 10, max 250 per page).
+- Pagination: `page_size` accepts 1–250 contacts per page (default 10); `page_number` accepts 1–100 (default 1). To retrieve more than 250 contacts, keep `page_size: 250` and increment `page_number` for each request.
 - Always include `domain` when you can. That is the strongest company anchor and produced the best live results.
 - For a known company, calling `company_titles` first is strongly recommended. Select relevant roster titles for `title_filters` or `title_lists` to search titles the company actually uses. Verify returned titles and current employment; matching can be loose.
 - The upstream applies an email-domain blocklist to `domain` and can reject real companies (e.g. `asics.com`, `business.cableone.net` as "disposable email provider"). That returns `DEEPLINE_NATIVE_SEARCH_CONTACT_DOMAIN_REJECTED` (422, no charge); retry the company with `company_name` or `company_linkedin` instead of `domain`.
