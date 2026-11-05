@@ -2,14 +2,16 @@
 
 ## Operation Selection
 
-| Goal                           | Operation        |
-| ------------------------------ | ---------------- |
-| Find contacts at a company     | `prospector`     |
-| Enrich a single contact        | `enrich_contact` |
-| Look up phone numbers          | `enrich_phone`   |
-| Enrich a company record        | `enrich_company` |
-| Detect job changes (preferred) | `job_change`     |
-| People and LinkedIn profile search | `search_contact` |
+| Goal                                          | Operation                    |
+| --------------------------------------------- | ---------------------------- |
+| Find contacts at a company                    | `prospector`                 |
+| Enrich a single contact                       | `enrich_contact`             |
+| Look up phone numbers                         | `enrich_phone`               |
+| Enrich a company record                       | `enrich_company`             |
+| Detect job changes (preferred)                | `job_change`                 |
+| People and LinkedIn profile search            | `search_contact`             |
+| Get a company's available job titles for free | `company_titles`             |
+| Search companies for free with SQL            | `free_simple_company_search` |
 
 ## Provider Positioning
 
@@ -72,10 +74,12 @@
 - **Standard pricing: `0.56` Deepline credits per contact returned (post-deduct, billed on success). Zero returned contacts are free. Deepline `422` schema validation errors, such as `title_lists[0].titles` not being an array, happen before provider execution and should not bill.** A `page_size: 10` call that returns 10 contacts costs `5.6` credits — keep `page_size` small (`1-3`) for targeted lookups.
 - Synchronous. Returns LinkedIn URLs and profile/title data only. There is no request option to reveal contact data: `professional_email`, `personal_email`, `mobile_phone`, `phone_numbers`, and `email_verified` are present in each person but always empty, and every returned profile still bills. Use `enrich_contact` / `enrich_phone` on the rows you keep.
 - Treat returned profiles as candidates to verify. It is good at surfacing plausible current people at a company, but broad title queries can still return adjacent or support roles.
-- Follow up with `enrich_contact` to get email/phone for returned LinkedIn URLs.
+- To enrich selected results through Waterfall, pass the returned `linkedin_url` as `linkedin` to `enrich_contact`. Email enrichment costs `0.98` Deepline credits when a usable email is returned. Set `include_phones: true` for an additional `3.5` Deepline credits when phone data is returned: up to `4.48` Deepline credits for email plus phone. For phone-only enrichment, use `enrich_phone`, billed `3.5` Deepline credits per distinct returned number. These charges are additional to search. Redacted fields do not guarantee an available channel; this is a separate enrichment lookup, with no reveal-by-person-ID endpoint or search unlock flag in the documented API.
 - Pagination: `page_size` accepts 1–250 contacts per page (default 10); `page_number` accepts 1–100 (default 1). To retrieve more than 250 contacts, keep `page_size: 250` and increment `page_number` for each request.
 - For a company-specific search, prefer `domain` as the company anchor. Omit it when searching a company set.
-- For a known company, calling `company_titles` first is strongly recommended. Select relevant roster titles for `title_filters` or `title_lists` to search titles the company actually uses. Verify returned titles and current employment; matching can be loose.
+- `company_titles` returns the available current title roster at a known company for free. Select relevant titles and pass them in `title_lists`. Verify returned titles and current employment; matching can be loose.
+- `free_simple_company_search` offers free SQL company search by industry, location, headcount, founding year, name, or domain. Use its returned domains as company anchors for people search. To discover values in that company corpus, use bounded aggregates such as `SELECT industry, COUNT(*) AS n FROM companies GROUP BY industry ORDER BY n DESC LIMIT 100`. Its industry taxonomy is separate from Waterfall people-search filters.
+- For other people-search filter values, inspect the `company_employee_ranges` enum in `deepline describe search_contact` and the [Waterfall filter reference](https://docs.waterfall.io/v1/search-contact-filters) for department values. This integration normalizes seniorities to `Director`, `Manager`, `Entry`, `Senior`, or `Partner`; broader upstream-documented values may be dropped. Choose `company_industries` from Waterfall's [supported industry list](https://waterfall-io-public.s3.us-east-1.amazonaws.com/industries.txt), such as `Software Development`. Countries use full names such as `United States` or `France`. The integration exposes no country autocomplete/facet endpoint. Free-company-search industry values are not automatically interchangeable with Waterfall's list.
 - The upstream applies an email-domain blocklist to `domain` and can reject real companies (e.g. `asics.com`, `business.cableone.net` as "disposable email provider"). That returns `DEEPLINE_NATIVE_SEARCH_CONTACT_DOMAIN_REJECTED` (422, no charge); retry the company with `company_name` or `company_linkedin` instead of `domain`.
 - `company_name` must be at least 3 characters (upstream limit). For names like "2U", use `domain` or `company_linkedin`.
 - Prefer `title_filters` as `{name, filter}` objects. Use `title_lists` for a named list of roster titles, but it is NOT exact matching: live results include titles that merely contain a listed title (e.g. "Staff Engineer Heat Transfer Group" for "Staff Engineer"; 128 of 380 results in one run). Re-check `title` on returned rows if you need exact matches. Legacy string arrays are normalized into a single `title_lists` entry, but raw object form is clearer and more reliable.
