@@ -9,18 +9,18 @@
 | Look up phone numbers          | `enrich_phone`   |
 | Enrich a company record        | `enrich_company` |
 | Detect job changes (preferred) | `job_change`     |
-| Company-scoped LinkedIn lookup | `search_contact` |
+| People and LinkedIn profile search | `search_contact` |
 
 ## Provider Positioning
 
 - **`job_change`**: preferred job-change provider — charges only on confirmed moves.
-- **`search_contact`**: secondary people search. **Standard managed pricing** — `0.56` Deepline credits per contact returned on successful calls. Zero returned contacts are free. Deepline `422` schema validation errors are rejected before provider execution and should not bill. Use it for company-scoped LinkedIn candidate discovery; check current catalog options and pricing before selecting a provider.
+- **`search_contact`**: secondary people search. **Standard managed pricing** — `0.56` Deepline credits per contact returned on successful calls. Zero returned contacts are free. Deepline `422` schema validation errors are rejected before provider execution and should not bill. Use it for company-specific or company-set LinkedIn candidate discovery; check current catalog options and pricing before selecting a provider.
 - **`prospector` / `enrich_contact`**: use for company-scoped prospecting and contact enrichment.
 - **`enrich_company`**: `0.98` Deepline credits per call. Use when firmographic data is required and other sources have been exhausted.
 
 ## Key Behaviors
 
-- Rate budget split: `search_contact` uses the dedicated search key/budget (`60 RPM`).
+- Rate budget split: `search_contact` uses the dedicated shared search-account budget (`300 RPM`); per-workspace limits come from `deepline billing entitlements`.
 - Rate budget split: `prospector`, `enrich_contact`, `enrich_phone`, `enrich_company`, `job_change`, and related finder calls use the enrichment key/budget (`200 RPM`).
 - When planning provider waterfalls inside a Play, do not treat `search_contact` and the enrichment-style Waterfall actions as one shared bucket.
 
@@ -66,14 +66,15 @@
 
 - Workspace-specific included usage, remaining quota, reset time, rate limits, and overage price come from `deepline billing entitlements`; those terms take precedence over the standard prices below.
 
-- Use for company-scoped LinkedIn candidate discovery. Discover available alternatives through `deepline search --type tools`.
-- Uses the dedicated Waterfall search key/budget (`60 RPM`), separate from the higher-throughput enrichment key.
+- Search a known LinkedIn profile, people at one company, or people across companies by HQ country, industry, or headcount. Company-set mode requires `experience_start_date` or `experience_start_date_new_hire` (`YYYY-MM-DD`) and nonempty `title_filters` or `title_lists`. No company domain is required in this mode.
+- Example: `{"company_location_countries":["United States"],"title_filters":[{"name":"gtm","filter":"GTM Engineer"}],"experience_start_date":"2020-01-01","page_size":10}`. This finds profiles within that date range; it does not establish the total number of GTM engineers worldwide.
+- Uses the dedicated shared search-account budget (`300 RPM`), separate from enrichment. Per-workspace entitlement limits apply in addition to that shared budget.
 - **Standard pricing: `0.56` Deepline credits per contact returned (post-deduct, billed on success). Zero returned contacts are free. Deepline `422` schema validation errors, such as `title_lists[0].titles` not being an array, happen before provider execution and should not bill.** A `page_size: 10` call that returns 10 contacts costs `5.6` credits — keep `page_size` small (`1-3`) for targeted lookups.
 - Synchronous. Returns LinkedIn URLs and profile/title data only. There is no request option to reveal contact data: `professional_email`, `personal_email`, `mobile_phone`, `phone_numbers`, and `email_verified` are present in each person but always empty, and every returned profile still bills. Use `enrich_contact` / `enrich_phone` on the rows you keep.
-- Treat it as a company-scoped LinkedIn candidate finder, not a clean org-chart API. It is good at surfacing plausible current people at a company, but broad title queries can still return adjacent or support roles.
+- Treat returned profiles as candidates to verify. It is good at surfacing plausible current people at a company, but broad title queries can still return adjacent or support roles.
 - Follow up with `enrich_contact` to get email/phone for returned LinkedIn URLs.
 - Pagination: `page_size` accepts 1–250 contacts per page (default 10); `page_number` accepts 1–100 (default 1). To retrieve more than 250 contacts, keep `page_size: 250` and increment `page_number` for each request.
-- Always include `domain` when you can. That is the strongest company anchor and produced the best live results.
+- For a company-specific search, prefer `domain` as the company anchor. Omit it when searching a company set.
 - For a known company, calling `company_titles` first is strongly recommended. Select relevant roster titles for `title_filters` or `title_lists` to search titles the company actually uses. Verify returned titles and current employment; matching can be loose.
 - The upstream applies an email-domain blocklist to `domain` and can reject real companies (e.g. `asics.com`, `business.cableone.net` as "disposable email provider"). That returns `DEEPLINE_NATIVE_SEARCH_CONTACT_DOMAIN_REJECTED` (422, no charge); retry the company with `company_name` or `company_linkedin` instead of `domain`.
 - `company_name` must be at least 3 characters (upstream limit). For names like "2U", use `domain` or `company_linkedin`.
