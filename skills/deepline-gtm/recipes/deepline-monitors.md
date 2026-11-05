@@ -167,7 +167,7 @@ setup, before asking anything else. Its stored rows remain.
 1. Stop it with `deepline monitors stop <key>`. The stop returns a Monitor Job;
    wait for it with `deepline monitors jobs wait <job id>`.
 2. Confirm `deepline monitors get <key>` reads `inactive`.
-3. Release its priority slot, which a stopped monitor still holds:
+3. Remove its priority, so a later restart runs at regular execution:
 
 ```bash
 deepline monitors update <key> '{"controls":{"execution_type":null}}'
@@ -211,7 +211,7 @@ the chosen step as a Play with a `sqlListeners` trigger on the monitor's stream
 and publish it **before** starting the sample monitor or deploying the other
 targets: a listener fires only for rows written after it exists. Start the
 stopped sample monitor with `deepline monitors start <key>`, which restarts it
-at regular execution because its priority was released, and deploy the other
+at regular execution because its priority was removed, and deploy the other
 targets without `updates_since` or `controls.execution_type`; the sample already
 supplied the history. After a preview, deploy that target like the others. If
 none is connected, say so and ask the user to connect Slack, a CRM or a

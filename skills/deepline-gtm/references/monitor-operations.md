@@ -237,10 +237,9 @@ one shape. See "Monitors as code (SDK)".
 Use `controls.execution_type: "priority"` only for an urgent preview or
 calibration, such as the setup sample radar, and never for the targets turned on
 after it. Deepline adds the provider-facing marker; do not put
-`custom_fields` in `payload`. Regular and bulk creation stay normal. An org has
-ten active-or-in-flight priority slots. At the cap, report it and get the
-user's choice; never delete a customer radar automatically. To retain a radar
-but release its slot, patch `{"controls":{"execution_type":null}}`.
+`custom_fields` in `payload`. Regular and bulk creation stay normal. To keep a
+stopped radar but return it to regular execution, patch
+`{"controls":{"execution_type":null}}`.
 
 ```json
 {
