@@ -1,6 +1,10 @@
 # Meta Audiences
 
-Use these tools for Meta customer-list custom audiences.
+Use these tools for Meta customer-list custom audiences and Conversions API events.
+
+- `meta_audiences_send_conversion_events` sends standard or custom events to an explicit pixel/dataset ID, with hashed matching identifiers and optional estimated lifetime value. See its tool documentation for event fields, permissions, deduplication, and test-event verification.
+- Collect `_fbc` and `_fbp` from the actual visitor's first-party browser cookies at signup/action time, before invoking a Play. Forward only those values as `request_context.cookies._fbc` / `_fbp`, or map them to `user_data.fbc` / `fbp`. Preserve them unchanged and unhashed through enrichment, batching and retries. A server-side Play cannot recover a visitor's browser cookies later; never substitute a worker/Deepline session or enrichment data. Omit unavailable cookies. Only `fbc` may be derived from a real `fbclid` plus its original observation time; never synthesize `fbp`.
+- `meta_audiences_get_conversion_quality` reads web-event match quality, identifier coverage, event coverage, deduplication feedback, freshness, and additional conversions reported. It requires Dataset Quality access, which is separate from audience access. See its tool documentation for permissions and metric selection.
 
 - Pick the ad account first: call `meta_audiences_list_ad_accounts` and confirm the target by `name`. Only accounts with `enabled: true` can be targeted; `is_default` marks the one an omitted `ad_account_id` resolves to. Either pass that account's `id`, or omit `ad_account_id` and read the account the call used back from `data.ad_account_id` (`data.ad_account_source` says `explicit`, `default`, or `sole`). Never copy an ad account id from old runs, files, or another workspace: it can belong to a customer.
 - Create one custom audience per segment and then keep syncing member files into the same audience ID.
