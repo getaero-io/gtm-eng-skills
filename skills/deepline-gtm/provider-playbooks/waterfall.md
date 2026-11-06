@@ -18,7 +18,7 @@
 
 - **`company_titles`**: free. Returns every current job title Waterfall has for a domain. Use before contact discovery when you want LLM-assisted ICP matching against the real title list rather than guessing keyword filters - then feed matched titles to `search_contact` via `title_lists`. See the ICP title-match pipeline pattern below.
 - **`job_change`**: preferred job-change provider — charges only on confirmed moves.
-- **`search_contact`**: secondary people search. **Standard managed pricing** — `0.56` Deepline credits per contact returned on successful calls. Zero returned contacts are free. Deepline `422` schema validation errors are rejected before provider execution and should not bill. Use it for company-specific or company-set LinkedIn candidate discovery; check current catalog options and pricing before selecting a provider.
+- **`search_contact` (Deepline Native People Search)** finds employee profiles by company or across a filtered company set. Search is free within an eligible workspace’s remaining allowance. Use `deepline describe search_contact` for the workspace’s current rate and allowance. Zero results and validation failures before provider execution are free.
 - **`prospector` / `enrich_contact`**: use for company-scoped prospecting and contact enrichment.
 - **`enrich_company`**: use sparingly — `0.98` Deepline credits per call. Only when firmographic data is required and other sources have been exhausted.
 
