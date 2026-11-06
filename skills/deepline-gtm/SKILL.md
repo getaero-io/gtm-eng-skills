@@ -140,14 +140,14 @@ discovers failures when no Play is named.
   by input, so a loop keeps one id. Return an object (`return { rows }`).
   `deepline plays --help --verbose` has the authoring rules.
 - **Memory-heavy Plays:** diagnose the actual memory boundary and retain the
-  original code for a faithful reproduction. Production uses the standard
-  sandbox; automatic headroom is being evaluated in isolated Preview. Use pages
+  original code for a faithful reproduction. Select a fixed sandbox profile for
+  the measured peak; automatic headroom is evaluated in isolated Preview. Use pages
   and durable checkpoints for large inputs. For file transforms, stream input and
   output through disk and pass paths plus compact receipts to subprocesses;
   Node and Python share the sandbox's memory limit. Persist output artifacts
   before checkpointing, because scratch files can disappear on resume.
   Inline `ctx.runPlay` shares its parent's sandbox memory; `ctx.runPlayAsync`
-  launches an independent run. In Preview, select `runtime.size: 'large'` for
+  launches an independent run. Select `runtime.size: 'large'` for
   4 GiB / 2 CPU or `runtime.size: 'xlarge'`
   for 8 GiB / 4 CPU in its static config. `standard` remains the default at
   1 GiB / 1 CPU. Compute pricing follows the workspace plan; use
