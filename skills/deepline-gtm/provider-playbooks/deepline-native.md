@@ -1,3 +1,5 @@
+<!-- skill-tool-compat: run_javascript -- Historical export alias documented only to interpret existing saved results; new Play examples use native TypeScript. -->
+
 # Deepline Native — Agent Guidance
 
 ## Operation Selection
@@ -17,6 +19,7 @@
 
 - **`job_change`**: preferred job-change provider — charges only on confirmed moves.
 - **`search_contact` (Deepline Native People Search)** finds employee profiles by company or across a filtered company set. Search is free within an eligible workspace’s remaining allowance. Use `deepline describe search_contact` for the workspace’s current rate and allowance. Zero results and validation failures before provider execution are free.
+- **`company_titles`**: free. Returns every current job title available for a domain. Use before contact discovery when you want LLM-assisted ICP matching against the real title list rather than guessing keyword filters - then feed matched titles to `search_contact` via `title_lists`. See the ICP title-match pipeline pattern below.
 - **`prospector` / `enrich_contact`**: use for company-scoped prospecting and contact enrichment.
 - **`enrich_company`**: `0.98` Deepline credits per call. Use when firmographic data is required and other sources have been exhausted.
 
@@ -24,7 +27,7 @@
 
 - Rate budget split: `search_contact` uses the dedicated shared search-account budget (`300 RPM`); per-workspace limits come from `deepline billing entitlements`.
 - Rate budget split: `prospector`, `enrich_contact`, `enrich_phone`, `enrich_company`, `job_change`, and related finder calls use the enrichment key/budget (`200 RPM`).
-- When planning provider waterfalls inside a Play, do not treat `search_contact` and the enrichment-style Waterfall actions as one shared bucket.
+- When planning provider waterfalls inside a Play, do not treat `search_contact` and the enrichment actions as one shared bucket.
 
 ### Launcher operations (prospector, enrich_contact, enrich_phone, enrich_company)
 
@@ -32,11 +35,25 @@
 - The result includes `job_id` if you need to re-fetch later via finder operations.
 - Finder endpoints (`*_finder`) are available for explicit polling by `job_id`.
 
-### Synchronous operations (job_change, search_contact)
+### Synchronous operations (job_change, search_contact, company_titles)
 
 - Return results immediately. No job_id, no polling needed.
 
 ## Operation-Specific Notes
+
+### company_titles
+
+- Free. No per-call charge - counts only against the rate limit (same shared bucket as `search_contact`, 300 RPM).
+- Input: `domain` (recommended) and/or `company_linkedin` handle. At least one is required.
+- Output: `output.titles` - a flat string array of current job titles at the company (e.g. `["Head of Sales", "VP Engineering", "Software Engineer"]`).
+- Returns 404-category error when the company is not in the title database - handle gracefully.
+- **Primary use case:** feed `output.titles` to an LLM step with your ICP criteria. The LLM returns the subset of titles that match. Then pass those exact titles as `title_lists` to `search_contact` (the title_lists-capable contact tool), giving you real titles rather than guessed keyword patterns. See the ICP title-match pipeline below.
+- Do not use `title_filters` (boolean expressions) on the contact follow-up - use `title_lists` (verbatim roster strings) so the match is tighter. It is still not exact: re-check returned titles.
+
+```bash
+deepline tools execute company_titles --payload '{"domain":"stripe.com"}'
+# output.titles: ["Head of Revenue Operations", "VP Sales", "Account Executive", ...]
+```
 
 ### prospector
 
@@ -74,12 +91,12 @@
 - **Standard pricing: `0.56` Deepline credits per contact returned (post-deduct, billed on success). Zero returned contacts are free. Deepline `422` schema validation errors, such as `title_lists[0].titles` not being an array, happen before provider execution and should not bill.** A `page_size: 10` call that returns 10 contacts costs `5.6` credits — keep `page_size` small (`1-3`) for targeted lookups.
 - Synchronous. Returns LinkedIn URLs and profile/title data only. There is no request option to reveal contact data: `professional_email`, `personal_email`, `mobile_phone`, `phone_numbers`, and `email_verified` are present in each person but always empty, and every returned profile still bills. Use `enrich_contact` / `enrich_phone` on the rows you keep.
 - Treat returned profiles as candidates to verify. It is good at surfacing plausible current people at a company, but broad title queries can still return adjacent or support roles.
-- To enrich selected results through Waterfall, pass the returned `linkedin_url` as `linkedin` to `enrich_contact`. Email enrichment costs `0.98` Deepline credits when a usable email is returned. Set `include_phones: true` for an additional `3.5` Deepline credits when phone data is returned: up to `4.48` Deepline credits for email plus phone. For phone-only enrichment, use `enrich_phone`, billed `3.5` Deepline credits per distinct returned number. These charges are additional to search. Redacted fields do not guarantee an available channel; this is a separate enrichment lookup, with no reveal-by-person-ID endpoint or search unlock flag in the documented API.
+- To enrich selected results, pass the returned `linkedin_url` as `linkedin` to `enrich_contact`. Email enrichment costs `0.98` Deepline credits when a usable email is returned. Set `include_phones: true` for an additional `3.5` Deepline credits when phone data is returned: up to `4.48` Deepline credits for email plus phone. For phone-only enrichment, use `enrich_phone`, billed `3.5` Deepline credits per distinct returned number. These charges are additional to search. Redacted fields do not guarantee an available channel; this is a separate enrichment lookup, with no reveal-by-person-ID endpoint or search unlock flag in the documented API.
 - Request subsequent pages by incrementing `page_number`.
 - For a company-specific search, prefer `domain` as the company anchor. Omit it when searching a company set.
 - `company_titles` returns the available current title roster at a known company for free. Select relevant titles and pass them in `title_lists`. Verify returned titles and current employment; matching can be loose.
-- `free_simple_company_search` offers free SQL company search by industry, location, headcount, founding year, name, or domain. Use its returned domains as company anchors for people search. To discover values in that company corpus, use bounded aggregates such as `SELECT industry, COUNT(*) AS n FROM companies GROUP BY industry ORDER BY n DESC LIMIT 100`. Its industry taxonomy is separate from Waterfall people-search filters.
-- For other people-search filter values, inspect the `company_employee_ranges` enum in `deepline describe search_contact` and the [Waterfall filter reference](https://docs.waterfall.io/v1/search-contact-filters) for department values. Seniorities accept only `Director`, `Manager`, `Senior`, `Entry`, or `Partner` and reject any other value; filter VP, C-level, founder, or owner roles with `title_filters`. Choose `company_industries` from Waterfall's [supported industry list](https://waterfall-io-public.s3.us-east-1.amazonaws.com/industries.txt), such as `Software Development`. Countries use full names such as `United States` or `France`, from Waterfall's [country list](https://waterfall-io-public.s3.us-east-1.amazonaws.com/waterfall_location_country.txt); current names such as `Czechia` or `Côte d'Ivoire` are mapped to the spelling the API accepts, and the API accepts no spelling of the Democratic Republic of the Congo. The integration exposes no country autocomplete/facet endpoint. A result's `id` is regenerated on every request, even for the same profile; identify people by `linkedin_url`. Free-company-search industry values are not automatically interchangeable with Waterfall's list.
+- `free_simple_company_search` offers free SQL company search by industry, location, headcount, founding year, name, or domain. Use its returned domains as company anchors for people search. To discover values in that company corpus, use bounded aggregates such as `SELECT industry, COUNT(*) AS n FROM companies GROUP BY industry ORDER BY n DESC LIMIT 100`. Its industry taxonomy is separate from the `search_contact` filters.
+- For other people-search filter values, inspect the `company_employee_ranges` enum in `deepline describe search_contact`. Departments accept `Leadership`, `Engineering`, `Product Management`, `Sales`, `Marketing`, `Customer Success`, `Finance`, `Accounting`, `Legal`, `Human Resources`, `Information Technology`, `Operations`, `Education`, `Other`. Seniorities accept only `Director`, `Manager`, `Senior`, `Entry`, or `Partner` and reject any other value; filter VP, C-level, founder, or owner roles with `title_filters`. Choose `company_industries` from the [supported industry list](https://deepline.com/people-search-industries.txt), such as `Software Development`. Countries use full names such as `United States` or `France`, from the [accepted country list](https://deepline.com/people-search-countries.txt); current names such as `Czechia` are mapped to the accepted spelling. The integration exposes no country autocomplete/facet endpoint. A result's `id` is regenerated on every request, even for the same profile; identify people by `linkedin_url`. Pages can come back shorter than `page_size`, and a small page can come back empty mid-results, because duplicates and bad records are dropped after the page is cut, so a short page does not mean the end. To collect a full list, use `page_size` 25 or more and keep paging until a page is empty. Free-company-search industry values are not automatically interchangeable with the people-search list.
 - The upstream applies an email-domain blocklist to `domain` and can reject real companies (e.g. `asics.com`, `business.cableone.net` as "disposable email provider"). That returns `DEEPLINE_NATIVE_SEARCH_CONTACT_DOMAIN_REJECTED` (422, no charge); retry the company with `company_name` or `company_linkedin` instead of `domain`.
 - `company_name` must be at least 3 characters (upstream limit). For names like "2U", use `domain` or `company_linkedin`.
 - Prefer `title_filters` as `{name, filter}` objects. Use `title_lists` for a named list of roster titles, but it is NOT exact matching: live results include titles that merely contain a listed title (e.g. "Staff Engineer Heat Transfer Group" for "Staff Engineer"; 128 of 380 results in one run). Re-check `title` on returned rows if you need exact matches. Legacy string arrays are normalized into a single `title_lists` entry, but raw object form is clearer and more reliable.
@@ -98,6 +115,156 @@
 - Result is nested under `output.company.*` — not top-level.
 
 ## Common Patterns
+
+### ICP title-match pipeline (company_titles -> LLM filter -> find qualified titles)
+
+This is the **"find qualified titles"** campaign: the user has a list of companies and an
+ICP described in plain English ("marketing ops / RevOps people who buy Salesforce",
+"VP/Head of Sales at B2B SaaS"), and wants the real people who hold those roles -
+without guessing keyword filters. It is the cheapest correct path because step 1 is
+free and step 2 is a single small LLM call per company; you only spend on contacts at
+the very end, and only for the tier the user actually needs.
+
+1. `company_titles` - get every current title at the company (free, synchronous)
+2. `deeplineagent` - given the title list + ICP criteria, return the matching titles as exact strings
+3. `search_contact` with `title_lists` set to those matched titles - find the people
+
+Provider rules from prior live verification (the Play recipe below is not a new live verification):
+
+- **Use `title_lists`, not `title_filters`.** `title_lists` returns holders of each title
+  you pass (OR across the list). The matched titles come straight from `company_titles`,
+  so they are the company's own verbatim strings and resolve well. It is **not** exact
+  full-string matching, though: live runs return titles that only contain a listed title
+  (e.g. "Staff Engineer Heat Transfer Group" for "Staff Engineer"; 128 of 380 rows in one
+  run). If you need exact holders, drop returned rows whose `title` is not in your list.
+  `title_filters` is boolean keyword/substring matching - only reach for it when you did
+  NOT qualify against the real roster and want a broad keyword sweep.
+- **`title_lists` is supported by `search_contact`, NOT by `prospector`.** Verified live:
+  `prospector` returns `422 unexpected key 'title_lists'` - its schema only accepts
+  `title_filter`/`title_filters` and `limit`. (Deepline's prospector parser does not wire
+  `title_lists` through.) Use
+  `search_contact` for the matched-title step.
+- **Raise `page_size` for big title lists.** `search_contact` paginates; the default page
+  is small. If you pass many titles, set `page_size` high enough (or page with
+  `page_number`) so holders aren't silently truncated.
+- **Pass arrays as typed values inside the Play.** Keep the roster and matched
+  titles as string arrays, not CSV placeholder substitutions. Verify the returned
+  shape before selecting fields; a malformed response is not an empty roster.
+  For inspection of historical exports only: `company_titles` was stored at
+  `result.data.output.titles`, and `deeplineagent` JSON at `result.object.<field>`.
+  The old `run_javascript` aliases were already unwrapped at
+  `row.titles.result.data.output.titles` and `row.icp_match.object.matched_titles`.
+  Those wrapper paths are not a current Play response contract. The old CSV recipe
+  flattened arrays into JSON strings to work around interpolation and sliced the
+  matched list to 100; retain the complete roster and matches in new Plays and
+  batch requests if the described tool contract requires a limit.
+
+**Play workflow: roster → ICP matching → exact-title contact lookup**
+
+Use a supplied Play when it fits. Otherwise find a maintained workflow with
+`deepline plays search "qualified titles"` and inspect it with
+`deepline describe <play-ref>`. For custom authoring, confirm the
+cached tool hints `company_titles`, `deeplineagent`, and
+`deepline_native_search_contact` using `deepline describe <tool-id>`.
+Do not substitute IDs based on provider names.
+
+Build `qualified-titles.play.ts` as a default-exported async function of its
+input (`import deepline from 'deepline'`, then
+`export default async function (input: { csv: string })`); top-level play code
+is rejected. Read `companies.csv` through `deepline.csv(input.csv, { required: ['domain'] })` and
+materialize the work with `deepline.dataset('companies', companies)`. Within its row
+resolver, use `deepline.tools.execute({ id, tool, input, description })` for each
+provider call, with the following steps:
+
+1. **`titles` / `company_titles`**: pass `{ domain: row.domain }` (free).
+   Extract the provider's `output.titles` using the described response contract.
+   Preserve the roster. A known company-not-found response can produce an explicit
+   no-match row; other failures stay visible.
+2. **`icp_match` / `deeplineagent`**: use the payload below with the roster in the
+   local `titles` array. Preserve both `matched_titles` and `reasoning`. Validate
+   that every match is an exact member of the original roster before buying
+   contacts; stop the row on a malformed or invented match.
+3. **`contacts` / `deepline_native_search_contact`**: only when matches are
+   nonempty, pass `{ domain: row.domain, title_lists: [{ name: 'icp', titles:
+matchedTitles }], page_size: 50, page_number: 1 }`. Keep `matchedTitles` as a
+   real string array. Page with `page_number` until the requested holders are
+   retrieved or the authorized scope is reached; report any partial coverage.
+   Re-check returned titles against the matched roster before using the contacts.
+4. Retain company inputs, roster, matched titles, reasoning, and `output.persons`
+   evidence. Materialize a contact dataset with one row per returned person,
+   including the source domain and `linkedin_url`, when a flat contact export is
+   needed. Return an object of dataset handles from the play function rather than
+   an unbounded inline result.
+
+The ICP model input (Play fragment; `titles` is the validated roster from step 1):
+
+```ts
+const icpInput = {
+  model: 'openai/gpt-5.6-luna',
+  prompt: `ICP: roles with budget authority over Salesforce / GTM-systems purchasing - Marketing Ops, Sales Ops, RevOps, GTM/Business Ops, Salesforce admin/architect. Senior IC and above; exclude recruiters, finance, support, and plain AE/SDR reps. From this exact title list return ONLY matching titles as exact strings: ${JSON.stringify(titles)}. Return JSON.`,
+  jsonSchema: {
+    type: 'object',
+    properties: {
+      matched_titles: { type: 'array', items: { type: 'string' } },
+      reasoning: { type: 'string' },
+    },
+    required: ['matched_titles', 'reasoning'],
+    additionalProperties: false,
+  },
+};
+```
+
+Use declared result getters when available; otherwise inspect the current
+`toolResponse.rawV2` contract before accessing provider-specific fields. Do not
+guess new response paths from the historical CSV wrappers above.
+
+After authoring and checking the selected contracts:
+
+```bash
+deepline plays check qualified-titles.play.ts
+deepline plays run --file qualified-titles.play.ts --csv companies.csv --watch
+```
+
+For larger or uncertain authorized work, test a representative input before
+scaling. A small supplied Play needs no additional pilot or repeated approval.
+Inspect the existing run with `deepline runs get <run-id>`, then use its
+full-result/export commands to save company evidence and `contact_rows.csv`.
+Inspection does not authorize rerunning, paid fallback enrichment, or repair.
+For historical `contacts.csv` exports using the old wrapper shape, the existing
+`python3 .skills/deepline-gtm/scripts/flatten-search-contact-persons.py contacts.csv
+--contacts-col contacts > contact_rows.csv` helper remains a local conversion
+option (use the installed skill's copy outside this repo). New Play exports do
+not need that legacy wrapper conversion.
+
+**Tiered contact reveal - only buy what the user needs.** Step 3 above is the cheapest
+tier. Use the contact channels already authorized by the user; ask only when the
+channel choice or additional spend is unspecified. Add only the steps they need:
+
+| Tier          | Tool                                        | Cost / result  | Returns                                          |
+| ------------- | ------------------------------------------- | -------------- | ------------------------------------------------ |
+| LinkedIn only | `search_contact`                            | cheapest       | name, title, LinkedIn URL (email/phone redacted) |
+| + work email  | `enrich_contact` on the kept `linkedin_url` | + email cost   | adds verified email                              |
+| + phone       | `enrich_phone` on priority contacts only    | most expensive | adds phone                                       |
+
+Run the email/phone steps only on the rows the user keeps - never blanket-enrich the
+full set. (Do not quote raw provider per-credit prices to customers; surface only
+Deepline-facing cost tiers.)
+
+**Single-company quick check:**
+
+```bash
+# Step 1 - get titles
+deepline tools execute company_titles --payload '{"domain":"acme.com"}'
+
+# Step 2 - LLM picks ICP-matching titles from the list (deeplineagent in the Play)
+
+# Step 3 - search_contact with exact matched titles
+deepline tools execute deepline_native_search_contact --payload '{
+  "domain": "acme.com",
+  "title_lists": [{"name":"icp","titles":["Head of Revenue Operations","VP Sales"]}],
+  "page_size": 10
+}'
+```
 
 ### Prospect + Enrich flow
 
@@ -184,3 +351,4 @@ do not rerun, add paid enrichment, or repair the workflow just to retrieve resul
 - Do not loop finder endpoints more than 20 times — jobs that don't complete in ~5 minutes have failed.
 - Do not run `prospector` without a title filter — results will be unbounded.
 - Do not read `enrich_company` result at top level — data is nested under `output.company.*`.
+- Do not pass `company_titles` output into `title_filters` (boolean keyword expressions) - use `title_lists` (exact string arrays) on `search_contact` so the match uses the actual titles returned, not keywords derived from them (still re-check returned titles; matching is not exact). Note `prospector` does not accept `title_lists`; use `search_contact` for the matched-title step.
