@@ -139,6 +139,22 @@ discovers failures when no Play is named.
   call's `id` is a fixed name for that call site: Deepline keys repeated calls
   by input, so a loop keeps one id. Return an object (`return { rows }`).
   `deepline plays --help --verbose` has the authoring rules.
+- **Memory-heavy Plays:** diagnose the actual memory boundary and retain the
+  original code for a faithful reproduction. Production uses the standard
+  sandbox; automatic headroom is being evaluated in isolated Preview. Use pages
+  and durable checkpoints for large inputs. For file transforms, stream input and
+  output through disk and pass paths plus compact receipts to subprocesses;
+  Node and Python share the sandbox's memory limit. Persist output artifacts
+  before checkpointing, because scratch files can disappear on resume.
+  Inline `ctx.runPlay` shares its parent's sandbox memory; `ctx.runPlayAsync`
+  launches an independent run. In Preview, select `runtime.size: 'large'` for
+  4 GiB / 2 CPU or `runtime.size: 'xlarge'`
+  for 8 GiB / 4 CPU in its static config. `standard` remains the default at
+  1 GiB / 1 CPU. Compute pricing follows the workspace plan; use
+  `deepline billing quote --sandbox-timeout 30m --sandbox-size large` to compare
+  the session ceiling. Select a larger profile for a measured single-step
+  memory peak, and keep resumability in the job design; more memory does not
+  make a full-account transform checkpoint or resume automatically.
 - **A Play or run was supplied:** use it. Do not rediscover or replace it.
 
 For outreach copy, read [writing outreach](writing-outreach.md).
