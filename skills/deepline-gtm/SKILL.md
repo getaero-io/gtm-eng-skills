@@ -147,11 +147,11 @@ discovers failures when no Play is named.
   Node and Python share the sandbox's memory limit. Persist output artifacts
   before checkpointing, because scratch files can disappear on resume.
   Inline `ctx.runPlay` shares its parent's sandbox memory; `ctx.runPlayAsync`
-  launches an independent run. Select `runtime.size: 'large'` for
-  4 GiB / 2 CPU or `runtime.size: 'xlarge'`
-  for 8 GiB / 4 CPU in its static config. `standard` remains the default at
-  1 GiB / 1 CPU. Compute pricing follows the workspace plan; use
-  `deepline billing quote --sandbox-timeout 30m --sandbox-size large` to compare
+  launches an independent run. In static config, `runtime.size: '4gb'` or
+  `'large'` selects 4 GiB / 2 CPU; `'8gb'` or `'xlarge'` selects 8 GiB / 4 CPU.
+  The default is `'standard'` or `'1gb'` at 1 GiB / 1 CPU. Each alias selects
+  the same resources and price as its named profile. Use
+  `deepline billing quote --sandbox-timeout 30m --sandbox-size 4gb` to compare
   the session ceiling. Select a larger profile for a measured single-step
   memory peak, and keep resumability in the job design; more memory does not
   make a full-account transform checkpoint or resume automatically.
