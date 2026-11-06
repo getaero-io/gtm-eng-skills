@@ -39,7 +39,8 @@ Optional flags:
 
 - `reveal_emails: true` — include email addresses in response (default: true)
 - `reveal_phones: true` — include phone numbers (default: true)
-- `signals: true` — also fetch job-change and promotion signals (billed per matched signal)
+- `signals: true` — also return promotion and company-change signals under `signals` (1 extra Lusha credit)
+- `include_company_profile: false` — skip the full company profile under `company` (saves 1 Lusha credit per found person; `company` then has only `name`, `fqdn` and `mainIndustry`)
 
 For an email-only lookup, always pass `reveal_phones: false`. Lusha reveals phones by default and charges 5 Lusha credits per revealed phone versus 1 per email, so omitting the flag pays for phones you did not ask for:
 
@@ -53,7 +54,7 @@ For an email-only lookup, always pass `reveal_phones: false`. Lusha reveals phon
 
 ### lusha_enrich_company
 
-Enriches a company from domain, name, or Lusha company ID. Returns size, revenue, industry, technologies.
+Enriches a company from domain, name, or Lusha company ID (`v3Id` / `v3CompanyId` from a current result). Returns size, revenue, industry, technologies.
 
 ```json
 {
