@@ -12,7 +12,7 @@ Use Apify to read results from an existing, authorized run or dataset.
 - `apify_stop_actor_run` stops an existing actor run; confirm this mutation with the user.
 
 ```bash
-deepline tools execute apify_get_dataset_items --payload '{"datasetId":"existing-authorized-dataset","limit":10,"offset":0}'
+deepline run apify_get_dataset_items --input '{"datasetId":"existing-authorized-dataset","limit":10,"offset":0}'
 ```
 
 ## SDK/API actor execution

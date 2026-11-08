@@ -25,17 +25,19 @@ Do not start with a paid people search here. The roster answers "what titles exi
 
 ## Steps
 
-Author this as one play over the company list, one column per step. For a single company, run the same tools with `deepline tools execute`.
+Author this as one play over the company list, one column per step. For a single company, run the same tools one at a time with `deepline run <tool-id> --input '{...}'`.
 
 1. **Get each company's title roster.** `company_titles` with the company domain. It is free.
 2. **Flatten the roster to a plain list of strings.** The tool declares no getters, so read one persisted row to see where the titles landed (recent runs put them under `output.titles`) before writing the extraction.
 3. **Filter the roster to the ICP.** One `deeplineagent` call per company with a `jsonSchema` of `{matched_titles: string[], reasoning: string}`. Spell out what to include and exclude, for example "Marketing Ops, Sales Ops, RevOps, Salesforce admin or architect; senior IC and above; exclude recruiters, finance, support, and plain reps", and tell it to return only exact strings from the list. Pass the full roster; do not trim it first.
 4. **Find the holders of the matched titles.** `search_contact` with the domain and `title_lists: [{"name": "icp", "titles": [...]}]`. `titles` must be a real array when the call runs; a CSV cell that only looks like JSON is rejected before the provider is called. Raise `page_size` (default 10, maximum 250) or paginate when many titles matched, or the results are cut off without warning.
 5. **Re-check every returned title.** Title-list matching is not exact: results include titles that only contain a listed one, such as "Staff Engineer Heat Transfer Group" for "Staff Engineer" (128 of 380 rows in one run). Each returned row is billed, so drop rows whose `title` is not in the matched list before paying for anything else.
-6. **Flatten to one row per contact.** One company yields many people, so this is a file step, not another column. The script is in this skill's `scripts/` directory:
+6. **Flatten to one row per contact.** One company yields many people, so this is a file step, not another column. Save the play's rows to a new file for each run, then flatten its `contacts` column with the script in this skill's `scripts/` directory:
 
    ```bash
-   python3 scripts/flatten-search-contact-persons.py contacts.csv --contacts-col contacts > contact_rows.csv
+   RUN=$(date +%Y%m%d-%H%M%S)
+   deepline run find-titles.play.ts --input '{"csv":"companies.csv"}' --csv-out "contacts-$RUN.csv"
+   python3 scripts/flatten-search-contact-persons.py "contacts-$RUN.csv" --contacts-col contacts > "contact_rows-$RUN.csv"
    ```
 
 7. **Reveal contact data only on the rows the user keeps.** Step 4 returns names, titles, and LinkedIn URLs, never an email or a phone. Ask which channels the user needs, then run the prebuilt email or phone batch play from the skill's working rules on the kept rows. Never enrich the whole set by default.

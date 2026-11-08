@@ -102,8 +102,7 @@ The contract for a type gives you everything you need to deploy and to filter:
 - **pricing** — live Deepline price, charge timing, and pricing basis.
 - **a deploy example** — `deepline monitors deploy '<def>'`.
 
-A monitor type is deployed, not executed: `deepline tools execute <monitor-type>`
-is rejected and points you at `deepline monitors deploy`.
+A monitor type is deployed with `deepline monitors deploy`, never run.
 
 ## Command set
 

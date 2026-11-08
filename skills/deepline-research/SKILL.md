@@ -55,9 +55,8 @@ Portions of the query-design, public-source fanout, and consolidation approach a
 
 This skill owns pre-research and source planning. Once the source plan is clear, it may hand off to:
 
-- `deepline-gtm`: execute GTM sourcing, enrichment, waterfalls, personalization, contact discovery, or CRM activation.
+- `deepline-gtm`: execute GTM sourcing, enrichment, waterfalls, personalization, contact discovery, or CRM activation, and build, wrap, fork, run, inspect, or automate the final repeatable workflow/play.
 - `deepline-analytics`: query warehouse/semantic-layer metrics and RevOps/customer datasets.
-- `deepline-plays`: build, wrap, fork, run, inspect, or automate the final repeatable workflow/play.
 
 ## Standard Flow
 
@@ -166,7 +165,7 @@ python3 "$SKILL_ROOT/scripts/query_design.py" "$OBJECTIVE" --depth default
 
 Use the plan (fields explained in `references/query-design.md`) to decide: query type and source tiers; the cleaned core subject; Reddit global/review/problem variants; X literal keyword, compound-term, shorter-keyword, and strongest-token fallbacks; video/transcript and caption queries; web, dataset, and GitHub discovery queries; CRM, warehouse, workflow, support, and custom-language private queries; and the supplemental keys to extract after phase-one retrieval.
 
-For production Deepline implementation, port this helper to the runtime language or call equivalent logic before `deepline tools execute` or a Play.
+For production Deepline implementation, port this helper to the runtime language or call equivalent logic before `deepline run` on a tool or Play.
 
 ### 4.5. Required Coverage Gate
 
@@ -224,7 +223,7 @@ If a source family is not present in Deepline, mark it as a provider gap and pro
 
 ### 6. Probe Coverage When Useful
 
-Use free/low-cost probes first. For paid probes, ask before running unless the user already approved a specific pilot budget. A good probe is one entity, one query, or one row (`limit: 1` or `numResults: 3`) against one source, so coverage and cost are attributable, with the raw output path or run id saved for later workflow design.
+Use free/low-cost probes first. For paid probes, show the `deepline run <tool-id> --input '{...}' --dry-run` price and ask before running unless the user already approved a specific pilot budget. A good probe is one entity, one query, or one row (`limit: 1` or `numResults: 3`) against one source, so coverage and cost are attributable, with the data file path and id from each receipt saved for later workflow design.
 
 At scale, use a Deepline Play rather than ad hoc loops so the run and persisted results remain inspectable.
 
@@ -334,7 +333,7 @@ Match `last30days` cleanup rules:
 
 Before any full paid run, include: providers/tools; the pilot result or the reason a pilot is not possible; full-run scope; Deepline credit estimate/range; max spend cap; and the exact approval question.
 
-If the user approves, execute through a Deepline Play or a targeted `deepline tools execute` call as appropriate.
+If the user approves, execute with `deepline run` on a Deepline Play or a targeted tool, as appropriate.
 
 ## Finish Criteria
 

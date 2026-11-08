@@ -228,7 +228,7 @@ After the user approves, run the published Play once per eligible row with the
 event it would have received:
 
 ```bash
-deepline plays run <play> --input @sample-event.json
+deepline run <play> --input-file sample-event.json
 ```
 
 ```json

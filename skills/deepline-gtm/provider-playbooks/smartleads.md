@@ -24,92 +24,108 @@ Use Smartlead for outbound email campaign management. Full lifecycle from campai
 ### Campaigns
 
 ```bash
-deepline tools execute smartlead_list_campaigns --payload '{}'
-deepline tools execute smartlead_create_campaign --payload '{"name":"Insurance Brokerage - Book Assessment"}'
-deepline tools execute smartlead_get_campaign --payload '{"campaign_id":12345678}'
+deepline run smartlead_list_campaigns --input '{}'
+deepline run smartlead_create_campaign --input '{"name":"Insurance Brokerage - Book Assessment"}' --dry-run
+deepline run smartlead_create_campaign --input '{"name":"Insurance Brokerage - Book Assessment"}'
+deepline run smartlead_get_campaign --input '{"campaign_id":12345678}'
 # smartlead_clone_campaign is disabled pending live contract verification.
-deepline tools execute smartlead_update_campaign_status --payload '{"campaign_id":12345678,"status":"START"}'
-deepline tools execute smartlead_delete_campaign --payload '{"campaign_id":12345678}'
+deepline run smartlead_update_campaign_status --input '{"campaign_id":12345678,"status":"START"}' --dry-run
+deepline run smartlead_update_campaign_status --input '{"campaign_id":12345678,"status":"START"}'
+deepline run smartlead_delete_campaign --input '{"campaign_id":12345678}' --dry-run
+deepline run smartlead_delete_campaign --input '{"campaign_id":12345678}'
 ```
 
 ### Leads
 
 ```bash
-deepline tools execute smartlead_push_to_campaign --payload '{"campaign_id":"12345678","lead_list":[{"email":"jane@example.com","first_name":"Jane","last_name":"Lovelace","company_name":"Acme Corp","custom_fields":{"tag":"demo"}}]}'
-deepline tools execute smartlead_list_campaign_leads --payload '{"campaign_id":12345678,"offset":0,"limit":100}'
-deepline tools execute smartlead_fetch_lead_by_email --payload '{"email":"jane@example.com"}'
-deepline tools execute smartlead_update_lead_by_campaign --payload '{"campaign_id":12345678,"lead_id":1,"email":"jane@example.com","first_name":"Updated"}'
-deepline tools execute smartlead_pause_lead_by_campaign --payload '{"campaign_id":12345678,"lead_id":1}'
-deepline tools execute smartlead_resume_lead_by_campaign --payload '{"campaign_id":12345678,"lead_id":1}'
-deepline tools execute smartlead_unsubscribe_lead --payload '{"lead_id":1}'
-deepline tools execute smartlead_export_campaign_leads --payload '{"campaign_id":12345678}'
+deepline run smartlead_push_to_campaign --input '{"campaign_id":"12345678","lead_list":[{"email":"jane@example.com","first_name":"Jane","last_name":"Lovelace","company_name":"Acme Corp","custom_fields":{"tag":"demo"}}]}' --dry-run
+deepline run smartlead_push_to_campaign --input '{"campaign_id":"12345678","lead_list":[{"email":"jane@example.com","first_name":"Jane","last_name":"Lovelace","company_name":"Acme Corp","custom_fields":{"tag":"demo"}}]}'
+deepline run smartlead_list_campaign_leads --input '{"campaign_id":12345678,"offset":0,"limit":100}'
+deepline run smartlead_fetch_lead_by_email --input '{"email":"jane@example.com"}'
+deepline run smartlead_update_lead_by_campaign --input '{"campaign_id":12345678,"lead_id":1,"email":"jane@example.com","first_name":"Updated"}' --dry-run
+deepline run smartlead_update_lead_by_campaign --input '{"campaign_id":12345678,"lead_id":1,"email":"jane@example.com","first_name":"Updated"}'
+deepline run smartlead_pause_lead_by_campaign --input '{"campaign_id":12345678,"lead_id":1}' --dry-run
+deepline run smartlead_pause_lead_by_campaign --input '{"campaign_id":12345678,"lead_id":1}'
+deepline run smartlead_resume_lead_by_campaign --input '{"campaign_id":12345678,"lead_id":1}' --dry-run
+deepline run smartlead_resume_lead_by_campaign --input '{"campaign_id":12345678,"lead_id":1}'
+deepline run smartlead_unsubscribe_lead --input '{"lead_id":1}' --dry-run
+deepline run smartlead_unsubscribe_lead --input '{"lead_id":1}'
+deepline run smartlead_export_campaign_leads --input '{"campaign_id":12345678}'
 ```
 
 ### Sequences
 
 ```bash
-deepline tools execute smartlead_fetch_campaign_sequences --payload '{"campaign_id":12345678}'
-deepline tools execute smartlead_save_campaign_sequences --payload '{"campaign_id":12345678,"sequences":[{"seq_number":1,"seq_delay_details":{"delay_in_days":0},"seq_variants":[{"email_body":"<p>Hello Ada</p>","variant_label":"A","subject":"Quick question"}]},{"seq_number":2,"seq_delay_details":{"delay_in_days":3},"seq_variants":[{"email_body":"<p>Following up</p>","variant_label":"A","subject":"Re: Quick question"}]}]}'
+deepline run smartlead_fetch_campaign_sequences --input '{"campaign_id":12345678}'
+deepline run smartlead_save_campaign_sequences --input '{"campaign_id":12345678,"sequences":[{"seq_number":1,"seq_delay_details":{"delay_in_days":0},"seq_variants":[{"email_body":"<p>Hello Ada</p>","variant_label":"A","subject":"Quick question"}]},{"seq_number":2,"seq_delay_details":{"delay_in_days":3},"seq_variants":[{"email_body":"<p>Following up</p>","variant_label":"A","subject":"Re: Quick question"}]}]}' --dry-run
+deepline run smartlead_save_campaign_sequences --input '{"campaign_id":12345678,"sequences":[{"seq_number":1,"seq_delay_details":{"delay_in_days":0},"seq_variants":[{"email_body":"<p>Hello Ada</p>","variant_label":"A","subject":"Quick question"}]},{"seq_number":2,"seq_delay_details":{"delay_in_days":3},"seq_variants":[{"email_body":"<p>Following up</p>","variant_label":"A","subject":"Re: Quick question"}]}]}'
 ```
 
 ### Schedule and Settings
 
 ```bash
-deepline tools execute smartlead_update_campaign_schedule --payload '{"campaign_id":12345678,"timezone":"America/New_York","days_of_the_week":[1,2,3,4,5],"start_hour":"09:00","end_hour":"17:00","min_time_btw_emails":5,"max_new_leads_per_day":20}'
-deepline tools execute smartlead_update_campaign_settings --payload '{"campaign_id":12345678,"track_settings":["DONT_TRACK_EMAIL_OPEN"],"stop_lead_settings":"REPLY_TO_AN_EMAIL"}'
+deepline run smartlead_update_campaign_schedule --input '{"campaign_id":12345678,"timezone":"America/New_York","days_of_the_week":[1,2,3,4,5],"start_hour":"09:00","end_hour":"17:00","min_time_btw_emails":5,"max_new_leads_per_day":20}' --dry-run
+deepline run smartlead_update_campaign_schedule --input '{"campaign_id":12345678,"timezone":"America/New_York","days_of_the_week":[1,2,3,4,5],"start_hour":"09:00","end_hour":"17:00","min_time_btw_emails":5,"max_new_leads_per_day":20}'
+deepline run smartlead_update_campaign_settings --input '{"campaign_id":12345678,"track_settings":["DONT_TRACK_EMAIL_OPEN"],"stop_lead_settings":"REPLY_TO_AN_EMAIL"}' --dry-run
+deepline run smartlead_update_campaign_settings --input '{"campaign_id":12345678,"track_settings":["DONT_TRACK_EMAIL_OPEN"],"stop_lead_settings":"REPLY_TO_AN_EMAIL"}'
 ```
 
 ### Analytics
 
 ```bash
-deepline tools execute smartlead_get_campaign_stats --payload '{"campaign_id":12345678}'
-deepline tools execute smartlead_get_campaign_analytics --payload '{"campaign_id":12345678}'
-deepline tools execute smartlead_get_campaign_analytics_by_date --payload '{"campaign_id":12345678,"start_date":"2026-01-01","end_date":"2026-01-30"}'
-deepline tools execute smartlead_get_lead_statistics --payload '{"campaign_id":12345678}'
+deepline run smartlead_get_campaign_stats --input '{"campaign_id":12345678}'
+deepline run smartlead_get_campaign_analytics --input '{"campaign_id":12345678}'
+deepline run smartlead_get_campaign_analytics_by_date --input '{"campaign_id":12345678,"start_date":"2026-01-01","end_date":"2026-01-30"}'
+deepline run smartlead_get_lead_statistics --input '{"campaign_id":12345678}'
 ```
 
 ### Email Accounts
 
 ```bash
-deepline tools execute smartlead_list_email_accounts --payload '{}'
-deepline tools execute smartlead_add_campaign_email_account --payload '{"campaign_id":12345678,"email_account_ids":[1,2,3]}'
-deepline tools execute smartlead_remove_campaign_email_account --payload '{"campaign_id":12345678,"email_account_ids":[3]}'
-deepline tools execute smartlead_update_email_account_warmup --payload '{"email_account_id":1,"warmup_enabled":true,"total_warmup_per_day":20,"daily_rampup":2,"reply_rate_percentage":30}'
+deepline run smartlead_list_email_accounts --input '{}'
+deepline run smartlead_add_campaign_email_account --input '{"campaign_id":12345678,"email_account_ids":[1,2,3]}' --dry-run
+deepline run smartlead_add_campaign_email_account --input '{"campaign_id":12345678,"email_account_ids":[1,2,3]}'
+deepline run smartlead_remove_campaign_email_account --input '{"campaign_id":12345678,"email_account_ids":[3]}' --dry-run
+deepline run smartlead_remove_campaign_email_account --input '{"campaign_id":12345678,"email_account_ids":[3]}'
+deepline run smartlead_update_email_account_warmup --input '{"email_account_id":1,"warmup_enabled":true,"total_warmup_per_day":20,"daily_rampup":2,"reply_rate_percentage":30}' --dry-run
+deepline run smartlead_update_email_account_warmup --input '{"email_account_id":1,"warmup_enabled":true,"total_warmup_per_day":20,"daily_rampup":2,"reply_rate_percentage":30}'
 ```
 
 ### Block List
 
 ```bash
-deepline tools execute smartlead_add_domain_block_list --payload '{"domain_block_list":["competitor.com","spam@bad.org"]}'
-deepline tools execute smartlead_get_block_list --payload '{"limit":50,"filter_email_or_domain":"example.com"}'
+deepline run smartlead_add_domain_block_list --input '{"domain_block_list":["competitor.com","spam@bad.org"]}' --dry-run
+deepline run smartlead_add_domain_block_list --input '{"domain_block_list":["competitor.com","spam@bad.org"]}'
+deepline run smartlead_get_block_list --input '{"limit":50,"filter_email_or_domain":"example.com"}'
 ```
 
 ### Smart Delivery
 
 ```bash
-deepline tools execute smartlead_get_delivery_test --payload '{"test_id":1}'
+deepline run smartlead_get_delivery_test --input '{"test_id":1}'
 # smartlead_create_delivery_test and smartlead_get_delivery_score are disabled pending live contract verification.
 ```
 
 ### Smart Senders (Domains)
 
 ```bash
-deepline tools execute smartlead_search_domain --payload '{"domain_name":"example.com","vendor_id":1}'
+deepline run smartlead_search_domain --input '{"domain_name":"example.com","vendor_id":1}'
 # smartlead_add_domain and smartlead_verify_domain are disabled pending live contract verification.
-deepline tools execute smartlead_auto_generate_mailboxes --payload '{"vendor_id":1,"domains":{"example.com":{"count":5}}}'
+deepline run smartlead_auto_generate_mailboxes --input '{"vendor_id":1,"domains":{"example.com":{"count":5}}}' --dry-run
+deepline run smartlead_auto_generate_mailboxes --input '{"vendor_id":1,"domains":{"example.com":{"count":5}}}'
 ```
 
 ## Response Shape Contract
 
-Deepline wraps all provider payloads in a standard result envelope: `{ data, meta }`.
+`deepline run` saves the tool response as the data file its receipt names (`--json-out <path>` chooses the file). Its contents by tool:
 
-- `smartlead_list_campaigns` -> `result.data` is an array of Smartlead campaign objects with stable `id`, `name`, and `status` fields plus the upstream metadata returned by Smartlead.
-- `smartlead_get_campaign_stats` -> `result.data` contains `{ sent, opened, clicked, replied, bounced }`, mapped from Smartlead `/analytics` root counters.
-- `smartlead_push_to_campaign` -> `result.data` contains `{ pushed, failed, results }`.
-- `smartlead_create_campaign` -> `result.data` includes `{ ok, id, name, created_at }`.
-- `smartlead_export_campaign_leads` -> `result.data` is raw CSV text.
-- `smartlead_list_campaign_leads` -> `result.data` is a paginated list of lead objects.
-- `smartlead_get_campaign_analytics_by_date` -> `result.data` contains daily stats breakdown.
+- `smartlead_list_campaigns` -> an array of Smartlead campaign objects with stable `id`, `name`, and `status` fields plus the upstream metadata returned by Smartlead.
+- `smartlead_get_campaign_stats` -> contains `{ sent, opened, clicked, replied, bounced }`, mapped from Smartlead `/analytics` root counters.
+- `smartlead_push_to_campaign` -> contains `{ pushed, failed, results }`.
+- `smartlead_create_campaign` -> includes `{ ok, id, name, created_at }`.
+- `smartlead_export_campaign_leads` -> raw CSV text.
+- `smartlead_list_campaign_leads` -> a paginated list of lead objects.
+- `smartlead_get_campaign_analytics_by_date` -> contains daily stats breakdown.
 
 ## Gotchas
 
@@ -127,7 +143,7 @@ Deepline wraps all provider payloads in a standard result envelope: `{ data, met
 - **Block list entries:** Each entry must be a valid domain (`example.com`) or email address (`user@example.com`). URLs with protocol prefixes or paths are rejected.
 - **Lead fetch by email:** Smartlead returns HTTP `200 {}` for missing or malformed emails. Deepline converts that upstream empty-object case into `no_result`.
 - **Campaign unsubscribe:** Smartlead can return HTTP `200 {"ok":false}` for an unknown lead. Deepline treats that as an explicit failure rather than a successful unsubscribe.
-- **Campaign lead export:** The export endpoint returns `text/csv`, so downstream steps should parse `result.data` as CSV text, not JSON.
+- **Campaign lead export:** The export endpoint returns `text/csv`, so downstream steps should parse the data as CSV text, not JSON.
 - **Webhook event types:** `EMAIL_SENT`, `EMAIL_OPEN`, `EMAIL_LINK_CLICK`, `EMAIL_REPLY`, `LEAD_UNSUBSCRIBED`, `LEAD_CATEGORY_UPDATED`.
 - **Campaign IDs:** Accepted as integer or numeric string. Non-numeric strings are rejected.
 - **Reply thread:** `reply_email_time` must be a full ISO datetime (e.g. `2026-01-15T09:30:00.000Z`). Date-only strings are rejected.

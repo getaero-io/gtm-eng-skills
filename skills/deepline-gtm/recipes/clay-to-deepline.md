@@ -262,7 +262,7 @@ For provider and AI columns, run a pilot. Then export it and compare each column
 
 ```bash
 node $S check  <dir>                                                               # step 1: compile only, no spend
-deepline plays run <dir>/plays/<table>.play.ts --input '{"csv":"<dir>/seeds/<table>.csv"}' --max-credits <cap>   # step 2: pilot rows
+deepline run <dir>/plays/<table>.play.ts --input '{"csv":"<dir>/seeds/<table>.csv"}' --max-credits <cap>   # step 2: pilot rows
 deepline runs export <run-id> --out pilot.csv
 deepline csv show pilot.csv --summary                                               # fill rate for each column
 ```

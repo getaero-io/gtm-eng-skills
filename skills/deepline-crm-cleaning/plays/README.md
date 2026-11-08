@@ -52,10 +52,10 @@ Domain-repair records need `id`, `source:{system,scope_id}`, and company `proper
 Create `audit-input.json` with the approved `records_file`, `as_of`, and policy options. After approval, start the checked source:
 
 ```sh
-deepline plays run --file ./audit-crm-snapshot.play.ts --input @audit-input.json --json
+deepline run ./audit-crm-snapshot.play.ts --input-file audit-input.json
 ```
 
-Export output datasets with the returned export commands. Inspect failed rows and coverage before claiming completion. Keep inventory order unchanged when verifying its hash.
+Read the output datasets from the data file the receipt names. Inspect failed rows and coverage before claiming completion. Keep inventory order unchanged when verifying its hash.
 
 Dataset rows contain `record_json` and run-specific `row_id` values. Repeated execution of one run reuses its keys. Separate runs retain separate evidence. Run output contains dataset references and fixed counts; detailed records remain in datasets.
 

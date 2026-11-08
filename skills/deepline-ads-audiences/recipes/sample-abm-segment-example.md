@@ -14,10 +14,10 @@ The source audience is a high-priority B2B segment from CRM or Salesforce title 
 
 Observed provider planning numbers from the example run:
 
-| Layer                               | Example result                  |
-| ----------------------------------- | ------------------------------- |
-| LimaData hashed personal-email hits | low double-digit row lift       |
-| Aviato hashed personal-email hits   | low-to-mid double-digit lift    |
+| Layer                               | Example result                          |
+| ----------------------------------- | --------------------------------------- |
+| LimaData hashed personal-email hits | low double-digit row lift               |
+| Aviato hashed personal-email hits   | low-to-mid double-digit lift            |
 | Raw personal-email fallback         | run only after explicit budget approval |
 
 Do not treat these as Deepline benchmarks. They are example-run planning numbers that help agents preserve the intended shape of the workflow.
@@ -46,49 +46,39 @@ Before enrichment or upload, confirm:
 
 ## Play Path
 
-Confirm the play surface first:
+Create the working directory from the project root, then run the play commands from this skill's folder so `./plays/...` resolves. If `deepline run --help` reports an unknown command, ask the user to update the Deepline CLI (https://code.deepline.com/INSTALL.md) before continuing.
 
 ```bash
-deepline --help
-deepline plays --help
+WORKDIR="$PWD/deepline/data/<segment>-ads-audience" && mkdir -p "$WORKDIR" && echo "$WORKDIR"
 ```
 
-If `deepline plays` is unavailable, stop and ask for the Deepline SDK CLI to be installed or updated. Do not replace this recipe with older enrichment or tool-execution command paths.
-
-Build baseline and enriched objects:
+Build baseline and enriched objects. The build returns two datasets, `baseline_rows` and `enriched_rows`; write each to its own CSV in the same run:
 
 ```bash
-deepline plays check .skills/deepline-ads-audiences/plays/build-hash-only-audience.play.ts
-deepline plays run --file .skills/deepline-ads-audiences/plays/build-hash-only-audience.play.ts --input '{"file":"'"$WORKDIR"'/source.csv"}' --watch
+deepline plays check ./plays/build-hash-only-audience.play.ts
+deepline run ./plays/build-hash-only-audience.play.ts --input '{"file":"'"$WORKDIR"'/source.csv"}' --csv-out baseline_rows="$WORKDIR/unenriched_hash_only.csv" --csv-out enriched_rows="$WORKDIR/enriched_hash_only.csv"
 ```
 
-Export the datasets from the build run:
+Audit the enriched payload against the provider hash columns in the source CSV:
 
 ```bash
-deepline runs export <build-run-id> --dataset baseline_hash_only_audience --out "$WORKDIR/unenriched_hash_only.csv"
-deepline runs export <build-run-id> --dataset enriched_hash_only_audience --out "$WORKDIR/enriched_hash_only.csv"
-```
-
-Audit the enriched payload:
-
-```bash
-deepline plays check .skills/deepline-ads-audiences/plays/audit-no-double-hash.play.ts
-deepline plays run --file .skills/deepline-ads-audiences/plays/audit-no-double-hash.play.ts --input '{"payloadFile":"'"$WORKDIR"'/enriched_hash_only.csv","providerHashFile":"'"$WORKDIR"'/provider_hashes.csv","providerHashColumns":["aviato_hash","limadata_hash","email_sha256","hashed_personal_email_sha256"]}' --watch
+deepline plays check ./plays/audit-no-double-hash.play.ts
+deepline run ./plays/audit-no-double-hash.play.ts --input '{"payloadFile":"'"$WORKDIR"'/enriched_hash_only.csv","providerHashFile":"'"$WORKDIR"'/source.csv","providerHashColumns":["aviato_hash","limadata_hash","email_sha256","hashed_personal_email_sha256"]}'
 ```
 
 Upload enriched and unenriched as separate objects. Use the Google-only play for the Google comparison and the combined play when a Meta Custom Audience ID is available:
 
 ```bash
-deepline plays check .skills/deepline-ads-audiences/plays/upload-google-hash-only-audience.play.ts
-deepline plays run --file .skills/deepline-ads-audiences/plays/upload-google-hash-only-audience.play.ts --input '{"file":"'"$WORKDIR"'/unenriched_hash_only.csv","account_id":"<google_customer_id_without_dashes>","audience_name":"High-priority segment unenriched hash-only <date>"}' --watch
-deepline plays run --file .skills/deepline-ads-audiences/plays/upload-google-hash-only-audience.play.ts --input '{"file":"'"$WORKDIR"'/enriched_hash_only.csv","account_id":"<google_customer_id_without_dashes>","audience_name":"High-priority segment enriched hash-only <date>"}' --watch
+deepline plays check ./plays/upload-google-hash-only-audience.play.ts
+deepline run ./plays/upload-google-hash-only-audience.play.ts --input '{"file":"'"$WORKDIR"'/unenriched_hash_only.csv","account_id":"<google_customer_id_without_dashes>","audience_name":"High-priority segment unenriched hash-only <date>"}'
+deepline run ./plays/upload-google-hash-only-audience.play.ts --input '{"file":"'"$WORKDIR"'/enriched_hash_only.csv","account_id":"<google_customer_id_without_dashes>","audience_name":"High-priority segment enriched hash-only <date>"}'
 ```
 
 ## Acceptance Criteria
 
 The run is complete only when:
 
-- The play run IDs and exported files are reported.
+- The play run IDs and output files are reported.
 - The source count, LinkedIn URL count, baseline work-email count, and provider coverage counts are reported.
 - Provider hashes are passed through as lowercase 64-character SHA-256 values.
 - Raw personal emails, if any, are normalized and hashed exactly once.

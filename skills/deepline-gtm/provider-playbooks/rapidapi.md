@@ -13,15 +13,15 @@ Use RapidAPI when a registered marketplace listing covers the data you need. Rap
 
 ```bash
 # See which listings and endpoints are registered
-deepline tools execute rapidapi_list_listings --payload '{}'
+deepline run rapidapi_list_listings --input '{}'
 ```
 
 ```bash
 # Typed Google web search, one page (about 20 results)
-deepline tools execute rapidapi_google_web_search --payload '{"query":"best laptop 2026","pages":1,"country":"us"}'
+deepline run rapidapi_google_web_search --input '{"query":"best laptop 2026","pages":1,"country":"us"}'
 ```
 
 ```bash
 # Generic call to a registered listing endpoint
-deepline tools execute rapidapi_request --payload '{"host":"real-time-google-search-api","path":"/api/v1/google-search/image","query":{"q":"best laptop 2026"}}'
+deepline run rapidapi_request --input '{"host":"real-time-google-search-api","path":"/api/v1/google-search/image","query":{"q":"best laptop 2026"}}'
 ```

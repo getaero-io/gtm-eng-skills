@@ -187,9 +187,9 @@ function isDeeplineToolUse(toolUse) {
 function classifyCommand(command) {
   if (!command) return 'running';
   if (/\b(deepline|dl)\s+enrich\b/.test(command)) return 'enrich';
-  if (/\b(deepline|dl)\s+tools\s+describe\b/.test(command))
+  if (/\b(deepline|dl)\s+(tools\s+)?describe\b/.test(command))
     return 'tools_describe';
-  if (/\b(deepline|dl)\s+tools\s+execute\b/.test(command))
+  if (/\b(deepline|dl)\s+(tools\s+execute|plays\s+run|run)\s/.test(command))
     return 'tools_execute';
   if (/\b(deepline|dl)\s+tools\s+(search|list)\b/.test(command))
     return 'tools_search';
@@ -234,8 +234,13 @@ function parseRowCount(command) {
 }
 
 function extractCsvPath(command) {
+  // `deepline run <play> --input '{"csv":"leads.csv"}'` names the CSV inside its JSON.
+  const runCsv = command.match(
+    /--input\s+\S*?\{[^}]*?\\?"csv\\?"\s*:\s*\\?"([^"\\]+)/,
+  );
+  if (runCsv) return runCsv[1];
   const patterns = [
-    /--input\s+("([^"]+)"|'([^']+)'|(\S+))/,
+    /--input\s+(?![\s'"]*\{)("([^"]+)"|'([^']+)'|(\S+))/,
     /--csv\s+("([^"]+)"|'([^']+)'|(\S+))/,
     /--output\s+("([^"]+)"|'([^']+)'|(\S+))/,
   ];
@@ -248,7 +253,8 @@ function extractCsvPath(command) {
 
 function extractExecutedTools(command) {
   const out = [];
-  const execRe = /(?:deepline|dl)\s+tools\s+execute\s+([a-zA-Z0-9_:-]+)/g;
+  const execRe =
+    /(?:deepline|dl)\s+(?:tools\s+execute|plays\s+run|run)\s+([a-zA-Z0-9_.:/@-]+)/g;
   let m = execRe.exec(command);
   while (m) {
     out.push(m[1]);
@@ -265,15 +271,16 @@ function extractExecutedTools(command) {
 
 function extractToolsDescribeTarget(command) {
   const m = command.match(
-    /(?:deepline|dl)\s+tools\s+describe\s+([a-zA-Z0-9_:-]+)/,
+    /(?:deepline|dl)\s+(?:tools\s+)?describe\s+([a-zA-Z0-9_.:/@-]+)/,
   );
   return m ? m[1] : '';
 }
 
-function extractPayloadPreview(command) {
-  const idx = command.indexOf('--payload');
-  if (idx < 0) return '';
-  let raw = command.slice(idx + '--payload'.length).trim();
+// The value after `--input`, `--input-file` (`deepline run`) or `--payload` (older forms).
+function extractInputValue(command) {
+  const flag = command.match(/--(?:input-file|input|payload)(?=[\s=])[\s=]*/);
+  if (!flag) return '';
+  let raw = command.slice(flag.index + flag[0].length).trim();
   if (!raw) return '';
   const nextFlag = raw.search(/\s--[a-zA-Z0-9_-]+/);
   if (nextFlag > 0) raw = raw.slice(0, nextFlag).trim();
@@ -283,23 +290,18 @@ function extractPayloadPreview(command) {
   ) {
     raw = raw.slice(1, -1).trim();
   }
+  return raw;
+}
+
+function extractPayloadPreview(command) {
+  const raw = extractInputValue(command);
+  if (!raw) return '';
   return truncateText(raw.replace(/\s+/g, ' '), 18);
 }
 
 function extractPayloadQuery(command) {
-  const idx = command.indexOf('--payload');
-  if (idx < 0) return '';
-  let raw = command.slice(idx + '--payload'.length).trim();
+  const raw = extractInputValue(command);
   if (!raw) return '';
-  const nextFlag = raw.search(/\s--[a-zA-Z0-9_-]+/);
-  if (nextFlag > 0) raw = raw.slice(0, nextFlag).trim();
-  if (
-    (raw.startsWith('"') && raw.endsWith('"')) ||
-    (raw.startsWith("'") && raw.endsWith("'"))
-  ) {
-    raw = raw.slice(1, -1).trim();
-  }
-
   try {
     const parsed = JSON.parse(raw);
     if (
@@ -325,7 +327,11 @@ function getProviderLabel(toolId) {
     (a, b) => b.length - a.length,
   );
   for (const prefix of prefixes) {
-    if (toolId === prefix || toolId.startsWith(`${prefix}_`))
+    if (
+      toolId === prefix ||
+      toolId.startsWith(`${prefix}_`) ||
+      toolId.startsWith(`${prefix}.`)
+    )
       return PROVIDER_LABELS[prefix];
   }
   return null;

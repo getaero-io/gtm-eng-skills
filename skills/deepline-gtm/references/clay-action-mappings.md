@@ -244,7 +244,7 @@ Clay's Mixrank source fetches a pre-built list from a configured Mixrank query. 
 ### Pass 1 — Generate company list (`crustdata_v3_company_search`)
 
 ```python
-import json, subprocess, csv
+import csv, io, json, subprocess
 
 # CrustData filter payload — translate from Clay's Mixrank source config
 # Check the Clay table config or ask the user for the original filter criteria
@@ -261,41 +261,47 @@ payload = {
     "limit": 100,
 }
 
+payload["fields"] = ["basic_info", "locations"]  # response groups to return
+
+columns = ["basic_info.name", "basic_info.primary_domain",
+           "basic_info.professional_network_url", "basic_info.employee_count_range",
+           "locations.headquarters", "locations.country"]
 result = subprocess.run(
-    ["deepline", "tools", "execute", "crustdata_v3_company_search",
-     "--payload", json.dumps(payload), "--json"],
-    capture_output=True, text=True
+    ["deepline", "run", "crustdata_v3_company_search",
+     "--input", json.dumps(payload),
+     "--fields", ",".join("companies." + c for c in columns),
+     "--csv-out", "-"],
+    capture_output=True, text=True, check=True
 )
-response_json = json.loads(result.stdout)
-accounts = response_json.get("result", {}).get("data", [])
-# Fields vary by CrustData result shape; preserve company name, domain,
-# LinkedIn URL, HQ, employee count, funding, and category fields when present.
+accounts = list(csv.DictReader(io.StringIO(result.stdout)))
+# Each row: accounts[0]["basic_info.name"], accounts[0]["basic_info.primary_domain"], ...
 ```
 
 **CrustData output → Clay field mapping:**
 
-| CrustData field                  | Clay formula field                                      |
-| -------------------------------- | ------------------------------------------------------- |
-| `company_name` / `name`          | Name                                                    |
-| `domain` / `company_domain`      | Domain                                                  |
-| `linkedin_url`                   | LinkedIn URL                                            |
-| `hq_location` / `city` + `state` | Location                                                |
-| `organization_country`           | Country                                                 |
-| —                                | Size, Description, Primary Industry, Type (need Pass 2) |
+| CrustData row path                    | Clay formula field                                |
+| ------------------------------------- | ------------------------------------------------- |
+| `basic_info.name`                     | Name                                              |
+| `basic_info.primary_domain`           | Domain                                            |
+| `basic_info.professional_network_url` | LinkedIn URL                                      |
+| `basic_info.employee_count_range`     | Size                                              |
+| `locations.headquarters`              | Location                                          |
+| `locations.country`                   | Country                                           |
+| —                                     | Description, Primary Industry, Type (need Pass 2) |
 
 ### Pass 2 — Enrich missing fields (`prospeo_enrich_company`, optional)
 
-Only needed if downstream passes reference `Description`, `Primary Industry`, `Size`, or `Type`.
+Only needed if downstream passes reference `Description`, `Primary Industry`, or `Type`.
 
 ```python
 # For each company from Pass 1 that lacks description/industry:
 result = subprocess.run(
-    ["deepline", "tools", "execute", "prospeo_enrich_company",
-     "--payload", json.dumps({"website": domain}), "--json"],
-    capture_output=True, text=True
+    ["deepline", "run", "prospeo_enrich_company",
+     "--input", json.dumps({"website": domain}), "--json-out", "-"],
+    capture_output=True, text=True, check=True
 )
-enriched = json.loads(result.stdout).get("result", {}).get("company", {})
-# Fields: description, employee_count, employee_range (= Size), industry categories, company_type
+enriched = json.loads(result.stdout).get("company", {})
+# Fields: description, employee_count, employee_range (= Size), industry, type
 ```
 
 ### Cost comparison
@@ -309,7 +315,7 @@ enriched = json.loads(result.stdout).get("result", {}).get("company", {})
 
 1. What filters did the Clay Mixrank source use? (location, size, industry, tech stack) — visible in the Clay source config or ask the user
 2. How many companies total? Use a narrow pilot or count-like query before paging.
-3. Does the pipeline actually use `Description`, `Industry`, `Size`, `Type`? If not, skip Pass 2.
+3. Does the pipeline actually use `Description`, `Industry`, `Type`? If not, skip Pass 2.
 
 ---
 
@@ -487,24 +493,26 @@ Clay ships 27 HubSpot actions plus a Salesforce package, and this file does not 
 
 ### `add-lead-to-campaign` (Smartlead)
 
-Use `smartlead_push_to_campaign`:
+Use `smartlead_push_to_campaign`. A single CLI push takes literal values for one
+lead; check it with `--dry-run`, then run the same command
+without it once the user approves the write:
 
 ```bash
-deepline tools execute smartlead_push_to_campaign --payload '{
-  "campaign_id": "<campaign_id>",
+deepline run smartlead_push_to_campaign --dry-run --input '{
+  "campaign_id": "12345",
   "lead_list": [
     {
-      "email": "{{final_email}}",
-      "first_name": "{{first_name}}",
-      "last_name": "{{last_name}}",
-      "company_name": "{{company_name}}",
-      "linkedin_profile": "{{linkedin_url}}"
+      "email": "ada@example.com",
+      "first_name": "Ada",
+      "last_name": "Lovelace",
+      "company_name": "Example Co",
+      "linkedin_profile": "https://www.linkedin.com/in/ada-lovelace-example"
     }
   ]
 }'
 ```
 
-Or as a play column:
+Per-row pushes belong in a play column, which reads each row's values:
 
 ```ts
 .withColumn('campaign_push', 'smartlead_push_to_campaign', { campaign_id: '<campaign_id>', lead_list: [{ email: '{{final_email}}', first_name: '{{first_name}}', last_name: '{{last_name}}', company_name: '{{company_name}}' }] })
@@ -513,12 +521,14 @@ Or as a play column:
 
 ### `add-lead-to-campaign` (Instantly)
 
-Use `instantly_add_to_campaign`:
+Use `instantly_add_to_campaign`. As with Smartlead, check a single literal lead
+with `--dry-run` first, run it for real only after the user approves the write,
+and put per-row pushes in a play column:
 
 ```bash
-deepline tools execute instantly_add_to_campaign --payload '{
-  "campaign_id": "<campaign_id>",
-  "leads": [{"email": "{{final_email}}", "first_name": "{{first_name}}", "last_name": "{{last_name}}", "company_name": "{{company_name}}"}]
+deepline run instantly_add_to_campaign --dry-run --input '{
+  "campaign_id": "8f3c2a1e-5b7d-4e9a-9c1f-2d6e8a4b7c30",
+  "leads": [{"email": "ada@example.com", "first_name": "Ada", "last_name": "Lovelace", "company_name": "Example Co"}]
 }'
 ```
 

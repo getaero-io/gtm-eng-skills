@@ -288,11 +288,11 @@ deepline tools execute deepline_native_search_contact --payload '{
 
 ```bash
 deepline describe deepline_native_job_change
-deepline tools execute deepline_native_job_change --payload '{"company_domain":"stripe.com","professional_email":"jane@stripe.com"}'
-deepline tools execute deepline_native_search_contact --payload '{"domain":"stripe.com","title_filters":[{"name":"eng","filter":"VP Engineering OR Head of Engineering"}],"page_size":5}'
-deepline tools execute deepline_native_search_contact --payload '{"domain":"hubspot.com","title_filters":[{"name":"sales-leadership","filter":"VP Sales OR Head of Sales OR Director of Sales"}],"page_size":3}'
-deepline tools execute deepline_native_search_contact --payload '{"domain":"openai.com","title_filters":[{"name":"eng-leadership","filter":"VP Engineering OR Head of Engineering OR Director of Engineering"}],"page_size":3}'
-deepline tools execute deepline_native_enrich_company --payload '{"domain":"stripe.com"}'
+deepline run deepline_native_job_change --input '{"company_domain":"stripe.com","professional_email":"jane@stripe.com"}'
+deepline run deepline_native_search_contact --input '{"domain":"stripe.com","title_filters":[{"name":"eng","filter":"VP Engineering OR Head of Engineering"}],"page_size":5}'
+deepline run deepline_native_search_contact --input '{"domain":"hubspot.com","title_filters":[{"name":"sales-leadership","filter":"VP Sales OR Head of Sales OR Director of Sales"}],"page_size":3}'
+deepline run deepline_native_search_contact --input '{"domain":"openai.com","title_filters":[{"name":"eng-leadership","filter":"VP Engineering OR Head of Engineering OR Director of Engineering"}],"page_size":3}'
+deepline run deepline_native_enrich_company --input '{"domain":"stripe.com"}'
 ```
 
 ### CSV job-change Play
@@ -331,7 +331,7 @@ export default async function (input: { csv: string }) {
 
 ```bash
 deepline plays check job-change.play.ts
-deepline plays run --file job-change.play.ts --csv contacts.csv --watch
+deepline run job-change.play.ts --input '{"csv":"contacts.csv"}'
 ```
 
 Run only within the requested scope. For larger or uncertain authorized batches,

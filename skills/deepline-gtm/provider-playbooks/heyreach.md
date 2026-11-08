@@ -6,9 +6,12 @@ Use HeyReach for outbound activation after qualification and verification are co
 - Pull campaign stats after insert operations to confirm downstream effects.
 
 ```bash
-deepline tools execute heyreach_list_campaigns --payload '{}'
+deepline run heyreach_list_campaigns --input '{}'
 ```
 
 ```bash
-deepline tools execute heyreach_add_to_campaign --payload '{"campaign_id":"12345","contacts":[{"linkedin_url":"https://www.linkedin.com/in/example","first_name":"Ada","last_name":"Lovelace","email":"ada@example.com"}]}'
+# Check the input and price; nothing is sent to HeyReach
+deepline run heyreach_add_to_campaign --input '{"campaign_id":"12345","contacts":[{"linkedin_url":"https://www.linkedin.com/in/example","first_name":"Ada","last_name":"Lovelace","email":"ada@example.com"}]}' --dry-run
+# Send it
+deepline run heyreach_add_to_campaign --input '{"campaign_id":"12345","contacts":[{"linkedin_url":"https://www.linkedin.com/in/example","first_name":"Ada","last_name":"Lovelace","email":"ada@example.com"}]}'
 ```

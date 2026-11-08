@@ -61,7 +61,7 @@ Label every edge as `inferred`, `sourced`, or `manual`, with its basis and quali
 
 When the user asks about spend, show only Deepline-facing credits or estimates from the tool catalog. Do not discuss supplier-side cost structure.
 
-**Spend-safe order:** CRM first, then free sources, then broad paid sources, then surgical paid gap-fill for missing senior people only. Each step deduplicates against prior results so you do not pay to rediscover data the customer already owns. `deepline tools describe <tool> --pricing-only` shows what each tool costs.
+**Spend-safe order:** CRM first, then free sources, then broad paid sources, then surgical paid gap-fill for missing senior people only. Each step deduplicates against prior results so you do not pay to rediscover data the customer already owns. `deepline run <tool-id> --input '{...}' --dry-run` shows what a call costs without sending it.
 
 **Before running any paid source:** check your CRM for contacts already at this company. If HubSpot, Salesforce, or another CRM is connected, discover the live CRM tool contract first instead of guessing operation names:
 
@@ -70,7 +70,7 @@ deepline search "company domain -> CRM account and its contacts" --categories cr
 deepline describe TOOL_ID_FROM_SEARCH
 ```
 
-Then execute the discovered CRM contact/account query with the exact schema from `deepline describe`. Pull name, title, email, phone, LinkedIn URL, account/company, owner, lifecycle or stage, and last activity when the CRM exposes them.
+Then run the discovered CRM contact/account query with `deepline run <tool-id> --input '{...}'`, using the exact schema from `deepline describe`. Pull name, title, email, phone, LinkedIn URL, account/company, owner, lifecycle or stage, and last activity when the CRM exposes them.
 
 Merge CRM results first. In the org chart, give CRM contacts a **CRM badge** and `+50` priority score, because you have verified data and a relationship. No need to re-enrich them. If no CRM is connected or no contact-search operation is available, skip this and start at Source 1.
 
@@ -137,23 +137,22 @@ Use this instead of the company-wide search when the request centers on one indi
 
 Run sources cheapest-first. Each step deduplicates against prior results - only net-new people advance.
 
-Use a descriptive, task-named working directory under `deepline/data/` so the user can find the outputs later, not a timestamped or random path:
+Use a descriptive, task-named working directory under `deepline/data/` so the user can find the outputs later, not a timestamped or random path. Give each pass's files a run stamp so a later pass writes new files beside the earlier ones:
 
 ```bash
 WORK_DIR="deepline/data/${COMPANY_SLUG}-orgchart"   # e.g. deepline/data/ramp-orgchart
+RUN=$(date +%Y%m%d-%H%M%S)
 mkdir -p "$WORK_DIR"
-echo "company_domain,company_name" > "$WORK_DIR/accounts.csv"
-echo "\"$DOMAIN\",\"$COMPANY\"" >> "$WORK_DIR/accounts.csv"
 ```
 
-**Source 1: role-targeted contact discovery.** The prebuilt covers this step, one call per seniority tier:
+**Source 1: role-targeted contact discovery.** The prebuilt covers this step, one call per seniority tier, each saved to the working directory:
 
 ```bash
-deepline plays run prebuilt/company-to-contact --input '{"domain": "'"$DOMAIN"'", "roles": ["CEO", "CTO", "CFO", "COO", "CMO", "CRO", "Founder"], "seniority": "C-Level"}'
-deepline plays run prebuilt/company-to-contact --input '{"domain": "'"$DOMAIN"'", "roles": ["VP", "SVP"], "seniority": "VP"}'
+deepline run prebuilt/company-to-contact --input '{"domain": "'"$DOMAIN"'", "roles": ["CEO", "CTO", "CFO", "COO", "CMO", "CRO", "Founder"], "seniority": "C-Level", "limit": 10}' --json-out "$WORK_DIR/contacts-c-level-$RUN.json"
+deepline run prebuilt/company-to-contact --input '{"domain": "'"$DOMAIN"'", "roles": ["VP", "SVP"], "seniority": "VP", "limit": 10}' --json-out "$WORK_DIR/contacts-vp-$RUN.json"
 ```
 
-Expected: ~25-35 people.
+Each file's `contacts` list holds the people; merge those. Expected: up to `limit` people per run (3 by default, 10 at most).
 
 **Source 2: the wider roster.** Find the people-search and employee-list tools and prebuilts for a company, and confirm each one's current Deepline credits before running it:
 
@@ -391,7 +390,7 @@ Before delivery, verify no duplicate node IDs, dangling selected parents, self-l
 - Jargon badges like "ZoomInfo Likely"
 - Hero metrics layout with identical cards
 
-Save to `deepline/data/{company-slug}-orgchart/{company}-orgchart.html` (same descriptive working dir as the data, so the chart and its backing CSVs live together and the user can find them).
+Save to `deepline/data/{company-slug}-orgchart/{company}-orgchart.html` (same descriptive working dir as the data, so the chart and its backing data files live together and the user can find them).
 
 ## Priority scoring
 

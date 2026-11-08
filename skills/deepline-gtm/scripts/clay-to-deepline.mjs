@@ -1905,7 +1905,7 @@ function compileWorkspace() {
 
 // ---------------------------------------------------------------- sample (paid only when you run it)
 // One column and everything it reads, as its own play plus an N-row seed: pilot a waterfall without the table's
-// CRM writes or unrelated paid columns. `deepline plays run` it with --max-credits.
+// CRM writes or unrelated paid columns. `deepline run` it with --max-credits.
 function sampleColumn() {
   const [tableId, column] = [opt('table'), opt('column')];
   const n = Number(opt('rows', '3'));
@@ -2007,7 +2007,7 @@ function sampleColumn() {
       rows: chosen.length,
       columns: rep.length,
       tools: rep.filter((x) => x.tool).map((x) => x.tool),
-      run: `deepline plays run ${dir}/plays/${name}.play.ts --input '{"csv":"${dir}/seeds/${name}.csv"}' --max-credits <cap>`,
+      run: `deepline run ${dir}/plays/${name}.play.ts --input '{"csv":"${dir}/seeds/${name}.csv"}' --max-credits <cap>`,
     }),
   );
 }

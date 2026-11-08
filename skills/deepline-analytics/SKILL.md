@@ -17,7 +17,7 @@ deepline -h
 
 Run `deepline` when it is available. If the shell reports that command is missing, use `<workspace-root>/.deepline/runtime/bin/deepline` (or the npm-created `.cmd` shim on Windows). If neither exists, follow `https://code.deepline.com/INSTALL.md` to set up Deepline.
 
-Use this skill to answer customer analytics questions through Deepline's warehouse and semantic-layer tools. The goal is not just to run SQL; it is to preserve the customer's business definitions by starting from the semantic layer, validating the query path, and reporting exactly what metric definitions and filters were used.
+Use this skill to answer customer analytics questions through Deepline's warehouse and semantic-layer tools. The goal is to preserve the customer's business definitions by starting from the semantic layer, validating the query path, and reporting exactly what metric definitions and filters were used.
 
 ## Before You Start
 
@@ -60,13 +60,13 @@ That dashboard does not use `AERO_DB.ANALYTICS*` dbt/transformed models. If you 
 
 ## Standard Loop
 
-`snowflake_get_semantic_layer` and `snowflake_run_semantic_query` are Deepline tool IDs invoked with `deepline tools execute ...`; do not search for MCP/deferred tool names first.
+`snowflake_get_semantic_layer` and `snowflake_run_semantic_query` are Deepline tool IDs invoked with `deepline run <tool-id> --input '{...}'`; do not search for MCP/deferred tool names first.
 
 1. **Confirm workspace context.** If the result depends on customer setup, run `deepline auth status` to see which workspace receives the query.
-2. **Inspect the semantic layer.** Run `deepline tools execute snowflake_get_semantic_layer ...` before constructing payloads: `includeYaml: false` for a quick table list, `includeYaml: true` when choosing exact metrics, dimensions, or filters.
+2. **Inspect the semantic layer.** Run `deepline run snowflake_get_semantic_layer --input '{"includeYaml": false}'` for a quick table list (`data.tables`), and `{"includeYaml": true}` when choosing exact metrics, dimensions, or filters.
 3. **Map the user's words to semantic objects.** Choose one semantic `table_name`, named `metrics`, named `dimensions` or `time_dimensions`, and named `filters` from the YAML. Do not invent them.
 4. **Pilot the smallest useful query.** One metric and a low `rowLimit`, for example `{"type": "metrics", "params": {"table_name": "OPPORTUNITY", "metrics": ["num_opportunities"]}, "rowLimit": 1}`; expand after it succeeds. This cheaply catches missing credentials, missing semantic objects, and warehouse schema drift.
-5. **Inspect returned SQL and rows.** `snowflake_run_semantic_query` returns result rows and the rendered SQL. The SQL is the audit trail and the safest starting point for a raw-SQL fallback.
+5. **Inspect returned SQL and rows.** `snowflake_run_semantic_query` returns result rows (`data.rows`) and the rendered SQL (`data.sql`). The SQL is the audit trail and the safest starting point for a raw-SQL fallback.
 6. **Answer in business terms.** Name the metric, grouping dimensions, filters/base filters, row limits, and caveats. If the tool says results were limited, say so.
 
 ## Fastest Metric Path
@@ -74,11 +74,21 @@ That dashboard does not use `AERO_DB.ANALYTICS*` dbt/transformed models. If you 
 For a customer metric question where the semantic table is knowable from the wording, use this exact CLI path. Do not call ToolSearch, look for MCP tools, or write raw SQL first.
 
 1. Confirm the workspace: `deepline auth status`.
-2. Read the semantic layer: `deepline tools execute snowflake_get_semantic_layer --payload '{"includeYaml": true}'`.
+2. Save the semantic layer and extract its YAML from `data.yaml`:
+
+   ```bash
+   STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+   deepline run snowflake_get_semantic_layer --input '{"includeYaml": true}' \
+     --json-out "semantic-layer-$STAMP.json"
+   jq -r .data.yaml "semantic-layer-$STAMP.json" > "semantic-layer-$STAMP.yaml"
+   ```
+
+   Do not open the whole YAML with `Read` or `cat`; large semantic YAML can exceed tool read limits. Search `semantic-layer-$STAMP.yaml` with `grep -n` for the table, metric, dimension, and filter names you need.
+
 3. Run the semantic query with both the user-facing label and the sortable date-start dimension. For other metrics, replace only `table_name`, `metrics`, and dimensions after confirming names in the semantic layer.
 
    ```bash
-   deepline tools execute snowflake_run_semantic_query --payload '{
+   deepline run snowflake_run_semantic_query --input '{
      "type": "metrics",
      "params": {
        "table_name": "OPPORTUNITY",
@@ -86,11 +96,11 @@ For a customer metric question where the semantic table is knowable from the wor
        "dimensions": ["discovery_quarter_label", "discovery_quarter_start"]
      },
      "rowLimit": 100
-   }'
+   }' --json-out "pipeline-$STAMP.json" --csv-out "pipeline-$STAMP.csv" \
+     --fields data.sql,data.limited,data.rowCount
    ```
 
-4. Read the result rows directly from the response. Select latest periods by sorting `DISCOVERY_QUARTER_START` descending; `rowLimit` is not ordering. Do not chase `extracted_csv` files, shell-sort CSV artifacts, or rerun the semantic query unless the response is unavailable.
-5. Do not open saved transcript files, `tool-results/*.txt`, or full semantic-layer blobs with `Read`, `cat`, or ad hoc Python just to confirm names; large semantic YAML can exceed tool read limits. Use the current command output, targeted text search, or rerun with `includeYaml: false` for a table list before requesting full YAML.
+4. Read the rows from `pipeline-$STAMP.csv` and the rendered SQL, `limited`, and `rowCount` from the receipt. Select latest periods by sorting on `DISCOVERY_QUARTER_START` descending; `rowLimit` is not ordering. Do not rerun the semantic query unless those files are unavailable.
 
 ## Semantic Query Contract
 

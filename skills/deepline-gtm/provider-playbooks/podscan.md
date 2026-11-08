@@ -48,7 +48,7 @@ paid). The connector applies a conservative shared limit and surfaces upstream
 429s. For multi-query or paginated work, call the tools through
 `deepline.tools.execute({ id, tool, input, description })` inside a Play so Deepline
 owns provider pacing and retries. Run an authorized local workflow with
-`deepline plays run --file podcast-research.play.ts --input '{"query":"customer interviews"}' --watch`
+`deepline run podcast-research.play.ts --input '{"query":"customer interviews"}'`
 after authoring it with that input contract; a supplied Play needs no extra pilot
 run. Use `deepline runs get <run-id>` to inspect existing results, not a
 fresh search or paid repair. Do not bypass provider limits with an external loop.

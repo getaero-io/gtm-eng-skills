@@ -18,7 +18,7 @@ Run `deepline` when it is available. If the shell reports that command is missin
 
 Build high-quality ABM paid ads audiences from first-party customer or prospect lists. This skill is for paid ads audience upload and evaluation, not outbound.
 
-Names in this skill are starting hints. Run `deepline search "contact list -> ad platform custom audience" --type tools` and `deepline describe <tool_id>` before executing because tool names and payload shapes can change. Tool search takes a task: one sentence stating the input you have -> the result you need, not keywords. There is no `--prefix` flag.
+Names in this skill are starting hints. Run `deepline search "contact list -> ad platform custom audience" --type tools` and `deepline describe <tool_id>` before running, because tool names and input shapes can change. Tool search takes a task: one sentence stating the input you have -> the result you need, not keywords.
 
 ## Before You Start
 
@@ -85,36 +85,34 @@ Choose the coverage mode before spending credits and record it in the run notes.
 
 ## Shareable Plays
 
-`plays/` holds copyable play templates. Use them when the user asks for a repeatable or shareable workflow, not just a one-off CLI run. Run them with `deepline plays`; check `deepline --help` and `deepline plays --help` when the installed surface is unclear. If `deepline plays` is unavailable, stop and ask for the Deepline SDK CLI to be installed or updated instead of approximating the upload through older command paths.
+`plays/` holds copyable play templates. Use them when the user asks for a repeatable or shareable workflow, not just a one-off CLI run. Run a play file with `deepline run ./plays/<play>.play.ts --input '{...}'` from this skill's folder. If `deepline run --help` reports an unknown command, ask the user to update the Deepline CLI (https://code.deepline.com/INSTALL.md) before continuing.
 
 | Play                                                      | Purpose                                                                                                                                                        | Input                                                                                                                                                                     |
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `plays/build-hash-only-audience.play.ts`                  | Build baseline and enriched hash-only datasets from source CSV rows. Raw emails are normalized and hashed once. Provider hashes pass through as lowercase hex. | `{ "file": "input.csv" }`                                                                                                                                                 |
-| `plays/audit-no-double-hash.play.ts`                      | Verify the final upload payload is hash-only, deduped, populated, includes provider hashes as-is, and does not contain hash-of-hash mistakes.                  | `{ "payloadFile": "upload.csv", "providerHashFile": "provider-hashes.csv", "providerHashColumns": ["aviato_hash", "limadata_hash"] }`                                     |
+| `plays/audit-no-double-hash.play.ts`                      | Verify the final upload payload is hash-only, deduped, populated, includes provider hashes as-is, and does not contain hash-of-hash mistakes.                  | `{ "payloadFile": "upload.csv", "providerHashFile": "source.csv", "providerHashColumns": ["aviato_hash", "limadata_hash"] }`                                              |
 | `plays/build-contactout-hash-pool.play.ts`                | Batch LinkedIn URLs through ContactOut hashed identifiers into a deduped hash pool. Reports matched profiles, net-new hashes, and per-chunk results.           | `{ "file": "contacts.csv", "limit": 100 }`                                                                                                                                |
 | `plays/upload-google-hash-only-audience.play.ts`          | Create a Google Customer Match list, upload hash-only rows, and read status back.                                                                              | `{ "file": "upload.csv", "account_id": "1234567890", "audience_name": "Segment enriched 2026-06-09" }`                                                                    |
 | `plays/upload-facebook-google-hash-only-audience.play.ts` | Upload the same validated hash-only rows to Google and an existing Meta/Facebook Custom Audience.                                                              | `{ "file": "upload.csv", "google_account_id": "1234567890", "meta_ad_account_id": "act_123", "meta_audience_id": "456", "audience_name": "Segment enriched 2026-06-09" }` |
 | `plays/report-google-coverage-lift.play.ts`               | After Google match rates populate, calculate coverage lift, estimated matched identifiers, spend efficiency, and a follow-up note.                             | Full shape in the example below.                                                                                                                                          |
 
-Recommended sequence: build, audit, upload (Google, or Facebook and Google), then the coverage report. Before using an upload play, run account discovery from Step 2 and confirm the selected Google Ads account name and ID with the user. Run `check` before `run` for each play, pass the input from the table, and export dataset outputs after a run:
+Recommended sequence: build, audit, upload (Google, or Facebook and Google), then the coverage report. Before using an upload play, run account discovery from Step 2 and confirm the selected Google Ads account name and ID with the user. Run `check` before `run` for each play and pass the input from the table. The build play returns two datasets, `baseline_rows` and `enriched_rows`; its two `--csv-out` flags write each to its own CSV in the same run. The audit's `providerHashFile` is any CSV holding the provider hash columns, such as the build's source CSV.
 
 ```bash
 deepline plays check ./plays/build-hash-only-audience.play.ts
-deepline plays run --file ./plays/build-hash-only-audience.play.ts --input '{"file":"source.csv"}' --watch
+deepline run ./plays/build-hash-only-audience.play.ts --input '{"file":"source.csv"}' --csv-out baseline_rows=baseline_hash_only.csv --csv-out enriched_rows=enriched_hash_only.csv
 
 deepline plays check ./plays/audit-no-double-hash.play.ts
-deepline plays run --file ./plays/audit-no-double-hash.play.ts --input '{"payloadFile":"enriched_hash_only.csv","providerHashFile":"provider_hashes.csv","providerHashColumns":["aviato_hash","limadata_hash"]}' --watch
+deepline run ./plays/audit-no-double-hash.play.ts --input '{"payloadFile":"enriched_hash_only.csv","providerHashFile":"source.csv","providerHashColumns":["aviato_hash","limadata_hash"]}'
 
 deepline plays check ./plays/upload-google-hash-only-audience.play.ts
-deepline plays run --file ./plays/upload-google-hash-only-audience.play.ts --input '{"file":"enriched_hash_only.csv","account_id":"1234567890","audience_name":"ABM enriched hash-only 2026-06-09"}' --watch
+deepline run ./plays/upload-google-hash-only-audience.play.ts --input '{"file":"enriched_hash_only.csv","account_id":"1234567890","audience_name":"ABM enriched hash-only 2026-06-09"}'
 
 deepline plays check ./plays/upload-facebook-google-hash-only-audience.play.ts
-deepline plays run --file ./plays/upload-facebook-google-hash-only-audience.play.ts --input '{"file":"enriched_hash_only.csv","audience_name":"ABM enriched hash-only 2026-06-09","google_account_id":"1234567890","meta_ad_account_id":"act_123","meta_audience_id":"456"}' --watch
+deepline run ./plays/upload-facebook-google-hash-only-audience.play.ts --input '{"file":"enriched_hash_only.csv","audience_name":"ABM enriched hash-only 2026-06-09","google_account_id":"1234567890","meta_ad_account_id":"act_123","meta_audience_id":"456"}'
 
 deepline plays check ./plays/report-google-coverage-lift.play.ts
-deepline plays run --file ./plays/report-google-coverage-lift.play.ts --input '{"account_name":"Customer Google Ads","account_id":"1234567890","segment_name":"High-priority target-account audience","source_rows":20000,"baseline":{"label":"L1 work hash-only","audience_id":"1111111111","match_rate_pct":23,"uploaded_rows":13935},"comparisons":[{"label":"L2 Lima+Aviato hash-only","audience_id":"2222222222","match_rate_pct":35,"uploaded_rows":18386,"deepline_spend_usd":51.47},{"label":"L3 all hashes only","audience_id":"3333333333","match_rate_pct":43,"uploaded_rows":24787},{"label":"L4 all hashes + details","audience_id":"4444444444","match_rate_pct":42,"uploaded_rows":24787},{"label":"L5 LeadMagic top100 fallback","audience_id":"5555555555","match_rate_pct":44,"uploaded_rows":17016},{"label":"L6 GTM LinkedIn + Lima/Aviato","audience_id":"6666666666","match_rate_pct":45,"uploaded_rows":17064}],"spend":{"low_cost_hash_usd":51.47,"contact_fallback_usd":218.37,"total_usd":269.84},"recommendation_label":"L6 GTM LinkedIn + Lima/Aviato"}' --watch
-
-deepline runs export <run-id> --out audience-output.csv
+deepline run ./plays/report-google-coverage-lift.play.ts --input '{"account_name":"Customer Google Ads","account_id":"1234567890","segment_name":"High-priority target-account audience","source_rows":20000,"baseline":{"label":"L1 work hash-only","audience_id":"1111111111","match_rate_pct":23,"uploaded_rows":13935},"comparisons":[{"label":"L2 Lima+Aviato hash-only","audience_id":"2222222222","match_rate_pct":35,"uploaded_rows":18386,"deepline_spend_usd":51.47},{"label":"L3 all hashes only","audience_id":"3333333333","match_rate_pct":43,"uploaded_rows":24787},{"label":"L4 all hashes + details","audience_id":"4444444444","match_rate_pct":42,"uploaded_rows":24787},{"label":"L5 LeadMagic top100 fallback","audience_id":"5555555555","match_rate_pct":44,"uploaded_rows":17016},{"label":"L6 GTM LinkedIn + Lima/Aviato","audience_id":"6666666666","match_rate_pct":45,"uploaded_rows":17064}],"spend":{"low_cost_hash_usd":51.47,"contact_fallback_usd":218.37,"total_usd":269.84},"recommendation_label":"L6 GTM LinkedIn + Lima/Aviato"}'
 ```
 
 ## Step 1: Confirm Rights
@@ -134,23 +132,23 @@ Run account discovery before every live upload. Do not guess account IDs from pr
 
 ```bash
 deepline search "connected ad platform logins -> ad account IDs" --type tools
-deepline tools list | grep -Ei "account|audience"
+deepline tools grep audience
 ```
 
 2. If a platform exposes a direct account discovery tool or endpoint, use it first. Record account name, account ID, platform, permission status, and whether customer list upload is supported.
 
-   Meta uses the new token-based connection: the customer's long-lived system-user access token is stored in Dashboard → Integrations → Meta Audiences and is used server-side for discovery and writes. Call `meta_audiences_list_ad_accounts` to discover live accounts through that saved token and confirm the account by `name`. Use a row with `enabled: true`; `is_default: true` marks the workspace default, and `custom_audience_terms_accepted: false` means creation will fail until someone accepts Meta's terms. Then either pass that row's `id` as `ad_account_id`, or omit `ad_account_id` to use the workspace default and read the account the call used back from `data.ad_account_id` in the create, list, status, or sync response. Never put the Meta token in a CLI payload or chat, and never grep old runs, CSVs, or notes for Meta account IDs: they can belong to customers.
+   Meta uses the new token-based connection: the customer's long-lived system-user access token is stored in Dashboard → Integrations → Meta Audiences and is used server-side for discovery and writes. Call `meta_audiences_list_ad_accounts` to discover live accounts through that saved token and confirm the account by `name`. Use a row with `enabled: true`; `is_default: true` marks the workspace default, and `custom_audience_terms_accepted: false` means creation will fail until someone accepts Meta's terms. Then either pass that row's `id` as `ad_account_id`, or omit `ad_account_id` to use the workspace default and read the account the call used back from `data.ad_account_id` in the create, list, status, or sync response. Never put the Meta token in CLI input or chat, and never grep old runs, CSVs, or notes for Meta account IDs: they can belong to customers.
 
 ```bash
-deepline tools execute meta_audiences_list_ad_accounts --payload '{}'
+deepline run meta_audiences_list_ad_accounts --input '{}'
 ```
 
 3. If no direct discovery tool is exposed, ask the user for the account ID and name, then validate it before upload:
 
 ```bash
-deepline tools execute google_ads_audiences_list_audiences --payload '{"account_id":"1234567890","page_size":10}'
-deepline tools execute meta_audiences_list_audiences --payload '{"ad_account_id":"1234567890"}'
-deepline tools execute linkedin_ads_audiences_list_audiences --payload '{"account_id":"urn:li:sponsoredAccount:123456789"}'
+deepline run google_ads_audiences_list_audiences --input '{"account_id":"1234567890","page_size":10}'
+deepline run meta_audiences_list_audiences --input '{"ad_account_id":"1234567890"}'
+deepline run linkedin_ads_audiences_list_audiences --input '{"account_id":"urn:li:sponsoredAccount:123456789"}'
 ```
 
 4. Show the discovered choices back to the user as `Account Name (Account ID)`, grouped by platform. If there is more than one plausible account, ask which one to use before creating audiences.
@@ -178,7 +176,7 @@ ContactOut converts LinkedIn URLs straight into hashed emails, but it does not w
 
 - Send set: rows with a verified LinkedIn URL. Exclude rows that already have a hash for `cost_effective`, include them for `max_coverage`.
 - Batch 5 to 100 per call. A zero-match chunk returns HTTP 404 and is not billed.
-- Bill and report from `matches_found`, never the hash-list length.
+- Bill and report from `matches_found`, never the hash-list length; one matched profile can return several hashes.
 - Merge into the audience-level hash pool, not per-row `email_sha256` cells.
 - Read `shared/contactout-hash-pool.md` before planning or running a pass.
 
@@ -279,36 +277,36 @@ Before live upload, write a small audit with:
 Create one audience per platform per object, named so the account UI makes the test clear: `<customer or segment> enriched <date>` and `<customer or segment> unenriched <date>`. Then upload each object separately. Current starting hints:
 
 ```bash
-deepline tools execute google_ads_audiences_create_audience --payload '{"account_id":"1234567890","name":"Example enriched hash-only","membership_life_span_days":540,"upload_key_types":["CONTACT_ID"]}'
-deepline tools execute google_ads_audiences_sync_audience_members --payload '{"account_id":"1234567890","audience_id":"1111111111","mode":"append","terms_of_service_accepted":true,"consent":{"ad_user_data":"GRANTED","ad_personalization":"GRANTED"},"rows":[{"email_sha256":"973dfe463ec85785f5f95af5ba3906eedb2d931c24e69824a89ea65dba4e813b"}]}'
+deepline run google_ads_audiences_create_audience --input '{"account_id":"1234567890","name":"Example enriched hash-only","membership_life_span_days":540,"upload_key_types":["CONTACT_ID"]}'
+deepline run google_ads_audiences_sync_audience_members --input '{"account_id":"1234567890","audience_id":"1111111111","mode":"append","terms_of_service_accepted":true,"consent":{"ad_user_data":"GRANTED","ad_personalization":"GRANTED"},"rows":[{"email_sha256":"973dfe463ec85785f5f95af5ba3906eedb2d931c24e69824a89ea65dba4e813b"}]}'
 
-deepline tools execute meta_audiences_create_audience --payload '{"ad_account_id":"1234567890","name":"Example enriched hash-only","customer_file_source":"BOTH_USER_AND_PARTNER_PROVIDED"}'
-deepline tools execute meta_audiences_sync_audience_members --payload '{"ad_account_id":"1234567890","audience_id":"1111111111","mode":"replace","rows":[{"email_sha256":"973dfe463ec85785f5f95af5ba3906eedb2d931c24e69824a89ea65dba4e813b"}]}'
+deepline run meta_audiences_create_audience --input '{"ad_account_id":"1234567890","name":"Example enriched hash-only","customer_file_source":"BOTH_USER_AND_PARTNER_PROVIDED"}'
+deepline run meta_audiences_sync_audience_members --input '{"ad_account_id":"1234567890","audience_id":"1111111111","mode":"replace","rows":[{"email_sha256":"973dfe463ec85785f5f95af5ba3906eedb2d931c24e69824a89ea65dba4e813b"}]}'
 
-deepline tools execute linkedin_ads_audiences_create_audience --payload '{"account_id":"urn:li:sponsoredAccount:123456789","name":"Example enriched hash-only","audience_kind":"contacts"}'
-deepline tools execute linkedin_ads_audiences_sync_audience_members --payload '{"account_id":"urn:li:sponsoredAccount:123456789","audience_id":"1111111111","mode":"replace","rows":[{"email_sha256":"973dfe463ec85785f5f95af5ba3906eedb2d931c24e69824a89ea65dba4e813b"}]}'
+deepline run linkedin_ads_audiences_create_audience --input '{"account_id":"urn:li:sponsoredAccount:123456789","name":"Example enriched hash-only","audience_kind":"contacts"}'
+deepline run linkedin_ads_audiences_sync_audience_members --input '{"account_id":"urn:li:sponsoredAccount:123456789","audience_id":"1111111111","mode":"replace","rows":[{"email_sha256":"973dfe463ec85785f5f95af5ba3906eedb2d931c24e69824a89ea65dba4e813b"}]}'
 ```
 
 Use `append` for Google when uploading into a newly created empty audience if `replace` returns provider-side Data Manager payload errors. Report that clearly because it indicates connector behavior that should be fixed.
 
 ### Upload the whole audience in one call
 
-Meta locks an audience on write and rejects later writes with HTTP 422 until ingestion finishes, so a batched loop leaves the audience holding part of the list. Send every row in one `sync_audience_members` call, and pass the payload as `--payload @file.json` because inline JSON exceeds the shell argument limit.
+Meta locks an audience on write and rejects later writes with HTTP 422 until ingestion finishes, so a batched loop leaves the audience holding part of the list. Send every row in one `sync_audience_members` call. To upload a validated CSV, run the upload play: it maps the file and sends every row in one call. To call `meta_audiences_sync_audience_members` directly, write one JSON object with `ad_account_id`, `audience_id`, `mode` and `rows` to `sync.json`, each row holding only the valid fields from Step 4, and run `deepline run meta_audiences_sync_audience_members --input-file sync.json`. A real audience inline exceeds the shell argument limit.
 
 Omit blank string fields rather than sending `""`; the schema declares `minLength: 1` and an empty value fails the whole batch. → Read `shared/upload-failure-modes.md`.
 
 ## Step 6: Verify and Report
 
-Read Google's match rate from `ingestedUserListInfo.contactIdInfo.matchRatePercentage`. The `matchRateRange` enum beside it stays unset, so reading the enum alone reports `null` for an audience with a real rate. Never render `null` as 0%. Meta exposes no per-audience match rate.
+Read Google's match rate from `data.audience.match_rate_percentage` in the status response, which Deepline copies from Google's `contactIdInfo.matchRatePercentage`. The `match_rate_range` enum beside it often stays unset, so reading the enum alone reports `null` for an audience with a real rate. Never render `null` as 0%. Meta exposes no per-audience match rate.
 
 `uploaded_count` and `invalid_count` describe whether rows parsed, not whether people matched. Report acceptance and match rate separately. → Read `shared/upload-failure-modes.md`.
 
 Run status checks after upload:
 
 ```bash
-deepline tools execute google_ads_audiences_get_audience_status --payload '{"account_id":"1234567890","audience_id":"1111111111"}'
-deepline tools execute meta_audiences_get_audience_status --payload '{"ad_account_id":"1234567890","audience_id":"1111111111"}'
-deepline tools execute linkedin_ads_audiences_get_audience_status --payload '{"account_id":"urn:li:sponsoredAccount:123456789","audience_id":"1111111111"}'
+deepline run google_ads_audiences_get_audience_status --input '{"account_id":"1234567890","audience_id":"1111111111"}' --fields data.audience.match_rate_percentage,data.audience.match_rate_range,data.audience.membership_status
+deepline run meta_audiences_get_audience_status --input '{"ad_account_id":"1234567890","audience_id":"1111111111"}'
+deepline run linkedin_ads_audiences_get_audience_status --input '{"account_id":"urn:li:sponsoredAccount:123456789","audience_id":"1111111111"}'
 ```
 
 Final answer format:

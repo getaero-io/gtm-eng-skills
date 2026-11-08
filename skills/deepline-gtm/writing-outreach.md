@@ -151,86 +151,117 @@ Notes:
 
 ## Recommended Workflow
 
+Write the two columns as a play, `qualify.play.ts`. A play reads only its
+input, so the ICP and product context arrive as input fields:
+
+```ts
+import deepline from 'deepline';
+
+// The output contracts above, as JSON Schemas.
+const strictObject = (properties: Record<string, object>) => ({
+  type: 'object',
+  properties,
+  required: Object.keys(properties),
+  additionalProperties: false,
+});
+const QUALIFICATION_SCHEMA = strictObject({
+  data: strictObject({
+    score: { type: 'number' },
+    score_label: { type: 'string' },
+    fit_band: { type: 'string' },
+    rationale: { type: 'string' },
+  }),
+});
+const SEQUENCE_SCHEMA = strictObject({
+  data: strictObject({
+    emails: {
+      type: 'array',
+      items: strictObject({
+        step: { type: 'number' },
+        subject: { type: 'string' },
+        coreValueProp: { type: 'string' },
+        email: { type: 'string' },
+      }),
+    },
+    sequence_rationale: { type: 'string' },
+  }),
+});
+
+export const config = {
+  name: 'qualify-and-sequence',
+  description:
+    'Qualify prospects against the ICP and write a 4-step email sequence.',
+};
+
+export default async function (input: {
+  csv: string;
+  icp: string;
+  product: string;
+}) {
+  const prospects = await deepline
+    .dataset('prospects', await deepline.csv(input.csv))
+    .withColumn('qualification_output', async (row) => {
+      const result = await deepline.tools.execute({
+        id: 'qualification',
+        tool: 'deeplineagent',
+        input: {
+          model: 'openai/gpt-5.6-luna',
+          prompt: `You are a B2B qualification analyst. Use only the provided evidence.
+ICP context:
+${input.icp}
+Prospect payload:
+${row.prospect_payload}`,
+          jsonSchema: QUALIFICATION_SCHEMA,
+        },
+        description: 'Score this prospect against the ICP.',
+      });
+      return result.toolResponse.rawV2.result.object;
+    })
+    .withColumn('email_sequence_output', async (row) => {
+      const result = await deepline.tools.execute({
+        id: 'email_sequence',
+        tool: 'deeplineagent',
+        input: {
+          model: 'openai/gpt-5.6-luna',
+          prompt: `You are a B2B email strategist. Write 4 concise emails tied to the qualification output and product context.
+Product context:
+${input.product}
+Qualification payload:
+${JSON.stringify(row.qualification_output)}
+Prospect payload:
+${row.prospect_payload}`,
+          jsonSchema: SEQUENCE_SCHEMA,
+        },
+        description: 'Write a 4-step email sequence for this prospect.',
+      });
+      return result.toolResponse.rawV2.result.object;
+    })
+    .run({ key: 'id' });
+  return { prospects };
+}
+```
+
+Seed one prospect, then check and run the play:
+
 ```bash
 deepline describe deeplineagent
 
-ICP_CONTEXT=$(cat ./context/icp.md)
-PRODUCT_CONTEXT=$(cat ./context/product_context.md)
+cat > ./qualification_email_seed.csv <<'CSV'
+id,prospect_payload
+cloudera-rfoster,"{""person"":{""firstName"":""Rachael"",""lastName"":""Foster"",""title"":""Vice President AMER Field Marketing, Public Sector, Services, & Community""},""company"":{""name"":""Cloudera"",""domain"":""cloudera.com""}}"
+CSV
 
-QUAL_WITH=$(jq -nc --arg icp "$ICP_CONTEXT" '{
-  alias: "qualification_output",
-  tool: "deeplineagent",
-  payload: {
-    model: "openai/gpt-5.6-luna",
-    prompt: ("You are a B2B qualification analyst. Use only the provided evidence. Inputs:\nICP context:\n" + $icp + "\nProspect payload:\n{{prospect_payload}}"),
-    jsonSchema: {
-      type: "object",
-      properties: {
-        data: {
-          type: "object",
-          properties: {
-            score: { type: "number" },
-            score_label: { type: "string" },
-            fit_band: { type: "string" },
-            rationale: { type: "string" }
-          },
-          required: ["score", "score_label", "fit_band", "rationale"],
-          additionalProperties: false
-        }
-      },
-      required: ["data"],
-      additionalProperties: false
-    }
-  }
-}')
+jq -n --rawfile icp ./context/icp.md --rawfile product ./context/product_context.md \
+  '{csv: "qualification_email_seed.csv", icp: $icp, product: $product}' > ./qualify-input.json
 
-SEQ_WITH=$(jq -nc --arg product "$PRODUCT_CONTEXT" '{
-  alias: "email_sequence_output",
-  tool: "deeplineagent",
-  payload: {
-    model: "openai/gpt-5.6-luna",
-    prompt: ("You are a B2B email strategist. Write 4 concise emails tied to the qualification output and product context.\nProduct context:\n" + $product + "\nQualification payload:\n{{qualification_output}}\nProspect payload:\n{{prospect_payload}}"),
-    jsonSchema: {
-      type: "object",
-      properties: {
-        data: {
-          type: "object",
-          properties: {
-            emails: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  step: { type: "number" },
-                  subject: { type: "string" },
-                  coreValueProp: { type: "string" },
-                  email: { type: "string" }
-                },
-                required: ["step", "subject", "coreValueProp", "email"],
-                additionalProperties: false
-              }
-            },
-            sequence_rationale: { type: "string" }
-          },
-          required: ["emails", "sequence_rationale"],
-          additionalProperties: false
-        }
-      },
-      required: ["data"],
-      additionalProperties: false
-    }
-  }
-}')
-
-printf "prospect_payload\n{\"person\":{\"firstName\":\"Rachael\",\"lastName\":\"Foster\",\"title\":\"Vice President AMER Field Marketing, Public Sector, Services, & Community\"},\"company\":{\"name\":\"Cloudera\",\"domain\":\"cloudera.com\"}}\n" > ./qualification_email_seed.csv
-
-# Run both columns as a custom play over the seed CSV (one withColumn per
-# payload above) — `deepline plays --help` covers authoring.
+deepline plays check qualify.play.ts
+deepline run qualify.play.ts --input-file ./qualify-input.json \
+  --csv-out "qualified-$(date +%Y%m%d-%H%M%S).csv"
 ```
 
 ## Prompt Templates (Copy/Paste)
 
-Use these as `prompt` values inside `deeplineagent` payloads. Pair each prompt with a `jsonSchema` that matches the output contracts above. Recommended starting model: `openai/gpt-5.6-luna`.
+Use these as `prompt` values in `deeplineagent` input. Pair each prompt with a `jsonSchema` that matches the output contracts above. Recommended starting model: `openai/gpt-5.6-luna`.
 
 ### 1) Score + Fit Label Template
 
@@ -327,10 +358,10 @@ as described in `deepline runs export --help`.
 `deepline csv` is local inspection only. Inspect the existing export and run
 before proposing recomputation. A new run or forced refresh needs execution
 authority and may spend again; completed receipt reuse is not a free-rerun
-guarantee. See `deepline plays run --help` and `deepline runs rerun --help`.
+guarantee. See `deepline run --help` and `deepline runs rerun --help`.
 
 ### CLI-only debug posture
 
-- Use these commands for local inspection, not re-execution. Deterministic
+- These commands inspect local files; they run nothing. Deterministic
   processing is allowed; preserve the original and label derived outputs.
-- If you need to add columns or add providers, use a prebuilt play from `deepline search` or a custom play instead of extending this page.
+- To add columns or providers, use a prebuilt play from `deepline search` or a custom play.

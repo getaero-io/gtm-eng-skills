@@ -52,7 +52,7 @@ translating. Do not blindly rename tools while keeping these older filters.
 ### Examples
 
 ```bash
-deepline tools execute crustdata_v3_company_search_autocomplete --input '{"field":"taxonomy.professional_network_industry","query":"software","limit":5}'
+deepline run crustdata_v3_company_search_autocomplete --input '{"field":"taxonomy.professional_network_industry","query":"software","limit":5}'
 ```
 
 Historical search payload for interpreting existing CompanyDB work (not a V3
@@ -103,7 +103,7 @@ export default async function (input: { csv: string }) {
 
 ```bash
 deepline plays check company-lookup.play.ts
-deepline plays run --file company-lookup.play.ts --csv accounts.csv --watch
+deepline run company-lookup.play.ts --input '{"csv":"accounts.csv"}'
 ```
 
 V3's `basic_info.name` replaces the historical autocomplete field `company_name`;

@@ -19,10 +19,10 @@ Skip this recipe for:
 
 ## Inputs
 
-Start with a project-local working directory because enrichment outputs are paid artifacts:
+Start with a project-local working directory because enrichment outputs are paid artifacts. Run this from the project root; the play commands below run from this skill's folder, so `./plays/...` resolves and `$WORKDIR` stays absolute:
 
 ```bash
-WORKDIR="deepline/data/<customer>-ads-audience" && mkdir -p "$WORKDIR" && echo "$WORKDIR"
+WORKDIR="$PWD/deepline/data/<customer>-ads-audience" && mkdir -p "$WORKDIR" && echo "$WORKDIR"
 ```
 
 The source CSV should preserve lineage fields:
@@ -67,34 +67,20 @@ If the user asks for "max coverage", "highest match rate", "keep increasing cove
 
 ## Build Hash-Only Payload
 
-Confirm the play surface before building files:
+Use the bundled play when the CSV already contains first-party emails plus provider hash or personal email columns. It returns two datasets, `baseline_rows` and `enriched_rows`; write each to its own CSV in the same run:
 
 ```bash
-deepline --help
-deepline plays --help
+deepline run ./plays/build-hash-only-audience.play.ts --input '{"file":"'"$WORKDIR"'/source.csv"}' --csv-out baseline_rows="$WORKDIR/baseline_hash_only.csv" --csv-out enriched_rows="$WORKDIR/enriched_hash_only.csv"
 ```
 
-If `deepline plays` is unavailable, stop and ask for the Deepline SDK CLI to be installed or updated. Do not build upload payloads through older command paths.
-
-Use the bundled play when the CSV already contains first-party emails plus provider hash or personal email columns:
-
-```bash
-deepline plays run --file .skills/deepline-ads-audiences/plays/build-hash-only-audience.play.ts --input '{"file":"'"$WORKDIR"'/source.csv"}' --watch
-```
-
-Export both datasets after the run:
-
-```bash
-deepline runs export <run-id> --dataset baseline_hash_only_audience --out "$WORKDIR/baseline_hash_only.csv"
-deepline runs export <run-id> --dataset enriched_hash_only_audience --out "$WORKDIR/enriched_hash_only.csv"
-```
+If `deepline run --help` reports an unknown command, ask the user to update the Deepline CLI (https://code.deepline.com/INSTALL.md) before continuing.
 
 ## Audit Before Upload
 
-Run the no-double-hash audit. This catches the most expensive silent failure: hashing a provider hash again and uploading a valid-looking but useless identifier.
+Run the no-double-hash audit. This catches the most expensive silent failure: hashing a provider hash again and uploading a valid-looking but useless identifier. `providerHashFile` is the source CSV, which holds the provider hash columns:
 
 ```bash
-deepline plays run --file .skills/deepline-ads-audiences/plays/audit-no-double-hash.play.ts --input '{"payloadFile":"'"$WORKDIR"'/enriched_hash_only.csv","providerHashFile":"'"$WORKDIR"'/provider_hashes.csv","providerHashColumns":["aviato_hash","limadata_hash","email_sha256","hashed_personal_email_sha256"]}' --watch
+deepline run ./plays/audit-no-double-hash.play.ts --input '{"payloadFile":"'"$WORKDIR"'/enriched_hash_only.csv","providerHashFile":"'"$WORKDIR"'/source.csv","providerHashColumns":["aviato_hash","limadata_hash","email_sha256","hashed_personal_email_sha256"]}'
 ```
 
 Pass criteria:
@@ -119,7 +105,7 @@ deepline search "hashed emails and phones -> custom audience upload" --type tool
 Use the combined play when both channel IDs are ready:
 
 ```bash
-deepline plays run --file .skills/deepline-ads-audiences/plays/upload-facebook-google-hash-only-audience.play.ts --input '{"file":"'"$WORKDIR"'/enriched_hash_only.csv","audience_name":"<segment> enriched hash-only <date>","google_account_id":"<google_customer_id_without_dashes>","meta_ad_account_id":"act_<meta_ad_account_id>","meta_audience_id":"<existing_meta_custom_audience_id>"}' --watch
+deepline run ./plays/upload-facebook-google-hash-only-audience.play.ts --input '{"file":"'"$WORKDIR"'/enriched_hash_only.csv","audience_name":"<segment> enriched hash-only <date>","google_account_id":"<google_customer_id_without_dashes>","meta_ad_account_id":"act_<meta_ad_account_id>","meta_audience_id":"<existing_meta_custom_audience_id>"}'
 ```
 
 Notes:

@@ -70,7 +70,7 @@ export default async function (input: { csv: string }) {
 
 ```bash
 deepline plays check email-verify.play.ts
-deepline plays run --file email-verify.play.ts --csv contacts.csv --watch
+deepline run email-verify.play.ts --input '{"csv":"contacts.csv"}'
 ```
 
 Validation, authentication, billing, and unexpected execution failures remain

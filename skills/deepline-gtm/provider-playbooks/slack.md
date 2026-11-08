@@ -12,7 +12,7 @@ objects; known field validation still provides early errors. Use
 `slack_api_call` with `{ "method": "chat.update", "params": { ... } }` when
 Slack's method or content contract is newer than the local schemas. Its
 argument object passes through without a Slack field allowlist, and its
-description is available through the same `tools search` / `describe`
+description is available through the same `deepline search` / `deepline describe`
 discovery path. Authentication still comes from the workspace connection.
 
 For `slack_api_call` in Plays, use a stable `id` per intended operation.

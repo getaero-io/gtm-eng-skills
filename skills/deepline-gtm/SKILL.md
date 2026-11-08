@@ -174,24 +174,28 @@ Open one when the task matches:
 ## 2. Run it
 
 ```bash
-deepline describe <name>                         # inputs, outputs, price
-deepline tools execute <tool-id> --input '{...}'  # one provider operation
-deepline plays run <play> --input '{...}'         # waits; --no-wait returns the run ID
-deepline plays check <file>                       # required before running local source
+deepline describe <name>                                     # inputs, outputs, price
+deepline run <name> --input '{...}' --dry-run                # checks input, shows price; sends nothing
+deepline run <name> --input '{...}' --json-out <new-path>    # a tool or a Play; waits for the result
+deepline run <play> --input '{"csv":"leads.csv"}' --csv-out <new-path>  # a batch Play over a CSV
+deepline plays check <file>                                  # required before running local source
 ```
 
-Describe before the first call. After a timeout, reconnect with
-`deepline runs tail <run-id>`; do not launch the run again. Let the first
-search finish before starting parallel Deepline commands.
+Describe before the first call. Name an output path for anything you
+deliver; `deepline run --help` covers output, waiting, reuse and exit codes.
+After a timeout, reconnect with `deepline runs watch <run-id>`; do not launch
+the run again. Let the first search finish before starting parallel Deepline
+commands.
 
 ## 3. Get results
 
-A tool returns its result as output; `--out <path>` writes rows to a CSV.
-A Play stores each dataset in a database table:
+The receipt names the data file. Play datasets also persist in database
+tables. For a large run, or one you did not just run, filter, join and
+aggregate them with read-only SQL:
 
 ```bash
 deepline runs get <run-id>                                         # status, tables, suggested commands
-deepline db query --sql "<suggested SQL>"                          # filter, join, aggregate before downloading
+deepline db query --sql "<suggested SQL>"                          # filter, join, aggregate
 deepline runs export <run-id> --dataset <name> --out <file.csv>    # complete rows; --format json for nested evidence
 deepline runs logs <run-id>
 deepline runs receipt <run-id> --key '<receipt-key>'                # a saved tool result, by the key kept in the row
@@ -200,12 +204,12 @@ deepline runs logs <run-id> --kind receipt.completed --payloads  # saved tool re
 
 Save a contract with `deepline describe <name> --out contract.md`.
 
-For tool results in a Play, use the exact declared getters listed by
-`deepline describe`. Other fields live under `toolResponse.rawV2`, preserving
-the provider/tool adapter envelope. `.data` and `.data.data` are different;
-`view: "data"` does not flatten rawV2. Inspect the original retained Play
-response and assert required fields on a pilot before bulk execution. An
-extraction mismatch is not a provider miss, invalid email, or business hold.
+In a Play, read a tool result through the exact getters `deepline describe`
+lists; other fields are in `result.toolResponse.rawV2`, with the provider/tool
+adapter envelope kept. `.data` and `.data.data` are different, and
+`view: "data"` keeps rawV2's nesting. Inspect the original retained response
+and assert required fields on a pilot before bulk execution. An extraction
+mismatch is not a provider miss, invalid email, or business hold.
 
 Keep the table and run filter from the suggested SQL. Inspect column types and
 sample values before querying; after a type error, look at the data. A preview
@@ -246,8 +250,8 @@ Approve full run?
 ```
 
 Out of credits: stop paid work, quote the returned `top_up_command` and
-`checkout_command` exactly, and wait for approval. Exact charge:
-`deepline billing usage --request-id <job_id>`; a held or pending charge is not final.
+`checkout_command` exactly, and wait for approval. An exact charge is the
+billing command the receipt lists; a held or pending charge is not final.
 
 ## 5. Deliver results
 

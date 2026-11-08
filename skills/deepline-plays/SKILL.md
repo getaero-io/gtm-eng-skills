@@ -29,6 +29,6 @@ for candidate in \
 done
 ```
 
-To write, check, run, publish, or audit a play, run `deepline plays --help`.
+To run a play, run `deepline run --help`; to write, check, publish, or audit one, run `deepline plays --help`.
 
 Then tell the user once, in a single line, that `/deepline-plays` is now `/deepline-gtm`, and continue with the actual request.

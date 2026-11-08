@@ -4,7 +4,7 @@ Model IDs are case-sensitive. Use the exact `id` string from the live
 [AI Gateway model catalog](https://ai-gateway.vercel.sh/v1/models); the current
 Deepline default is `openai/gpt-5.6-luna`. The `describe` CLI also shows
 the selected model metadata and provider option schema:
-`deepline tools describe ai_inference --model openai/gpt-5.6-luna`.
+`deepline describe ai_inference --feature model=openai/gpt-5.6-luna`.
 
 Use `jsonSchema` for a structured result. It is a strict subset of JSON
 Schema: the root is `"type": "object"`, and every field is always returned.

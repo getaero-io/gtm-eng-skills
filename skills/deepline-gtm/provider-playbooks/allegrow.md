@@ -36,7 +36,7 @@ hints using `deepline describe <tool-id>`, then call them inside
 the Play via `deepline.tools.execute({ id, tool, input, description })`.
 For a custom CSV Play that reads `deepline.csv(input.csv)`, check it with
 `deepline plays check validate-email.play.ts` and run the authorized input
-with `deepline plays run --file validate-email.play.ts --csv contacts.csv --watch`.
+with `deepline run validate-email.play.ts --input '{"csv":"contacts.csv"}'`.
 Pilot only for larger or uncertain authorized work; do not require an extra run
 or repeated approval for a small supplied Play. Inspect retained results with
 `deepline runs get <run-id>` and its result/export commands, without paid

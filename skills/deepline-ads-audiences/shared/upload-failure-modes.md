@@ -65,8 +65,9 @@ and the audience keeps part of the list while the run appears to progress.
   `maxItems: 300000`. Verified: 10,664 rows in one call completed in 16 seconds;
   the same list in 2,000-row batches wedged on the second batch. Google accepted
   the same list in one call with no lock, so one call is correct on both.
-- Pass large payloads as `--payload @file.json`. Inline JSON for a real audience
-  exceeds the shell argument limit and fails with
+- Pass a large input as a file: `--input-file sync.json`, one JSON object
+  holding the account, audience, mode and `rows` (SKILL.md Step 5). Inline JSON
+  for a real audience exceeds the shell argument limit and fails with
   `OSError: [Errno 7] Argument list too long` before reaching Deepline.
 - Do not resume a half-landed batched run with `append`. The source file may have
   changed. Create a new audience and `replace` once.
@@ -148,9 +149,9 @@ before every upload.
 
 Google reports the match rate as a percentage at
 `ingestedUserListInfo.contactIdInfo.matchRatePercentage`. The `matchRateRange`
-enum beside it stays unset, so a caller reading only the enum reports `null` for
-an audience with a real rate. Deepline fixed this in `deepline-api` #4311, which
-adds `match_rate_percentage`. On an older build, read the raw path.
+enum beside it often stays unset, so a caller reading only the enum reports
+`null` for an audience with a real rate. Deepline's status response copies the
+percentage to `data.audience.match_rate_percentage`.
 
 Measured on one account and one source list:
 
