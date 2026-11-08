@@ -25,10 +25,6 @@
 
 ## Key Behaviors
 
-- Rate budget split: `search_contact` uses the dedicated shared search-account budget (`300 RPM`); per-workspace limits come from `deepline billing entitlements`.
-- Rate budget split: `prospector`, `enrich_contact`, `enrich_phone`, `enrich_company`, `job_change`, and related finder calls use the enrichment key/budget (`200 RPM`).
-- When planning provider waterfalls inside a Play, do not treat `search_contact` and the enrichment actions as one shared bucket.
-
 ### Launcher operations (prospector, enrich_contact, enrich_phone, enrich_company)
 
 - These are async but the executor waits for completion and returns the final payload.
@@ -43,7 +39,7 @@
 
 ### company_titles
 
-- Free. No per-call charge - counts only against the rate limit (same shared bucket as `search_contact`, 300 RPM).
+- Free to call.
 - Input: `domain` (recommended) and/or `company_linkedin` handle. At least one is required.
 - Output: `output.titles` - a flat string array of current job titles at the company (e.g. `["Head of Sales", "VP Engineering", "Software Engineer"]`).
 - Returns 404-category error when the company is not in the title database - handle gracefully.
@@ -87,7 +83,6 @@ deepline tools execute company_titles --payload '{"domain":"stripe.com"}'
 
 - Search a known LinkedIn profile, people at one company, or people across companies by HQ country, industry, or headcount. Company-set mode requires `experience_start_date` or `experience_start_date_new_hire` (`YYYY-MM-DD`) and nonempty `title_filters` or `title_lists`. No company domain is required in this mode.
 - Example: `{"company_location_countries":["United States"],"title_filters":[{"name":"gtm","filter":"GTM Engineer"}],"experience_start_date":"2020-01-01","page_size":10}`. This finds profiles within that date range; it does not establish the total number of GTM engineers worldwide.
-- Uses the dedicated shared search-account budget (`300 RPM`), separate from enrichment. Per-workspace entitlement limits apply in addition to that shared budget.
 - **Standard pricing: `0.56` Deepline credits per contact returned (post-deduct, billed on success). Zero returned contacts are free. Deepline `422` schema validation errors, such as `title_lists[0].titles` not being an array, happen before provider execution and should not bill.** A `page_size: 10` call that returns 10 contacts costs `5.6` credits — keep `page_size` small (`1-3`) for targeted lookups.
 - Synchronous. Returns LinkedIn URLs and profile/title data only. There is no request option to reveal contact data: `professional_email`, `personal_email`, `mobile_phone`, `phone_numbers`, and `email_verified` are present in each person but always empty, and every returned profile still bills. Use `enrich_contact` / `enrich_phone` on the rows you keep.
 - Treat returned profiles as candidates to verify. It is good at surfacing plausible current people at a company, but broad title queries can still return adjacent or support roles.
