@@ -1,4 +1,4 @@
-<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: 8f557292bd8778939ac26407cd8a6be91b862051bc390edf3be5772c02ed16b6; run bun run docs:monitor-contract -->
+<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: da2552d0baf4cf210b53e909db9b53fd1d2591b1a9612fcbe05ab0c6a20854d5; run bun run docs:monitor-contract -->
 
 # Monitor Contract Reference
 
@@ -237,7 +237,7 @@ Creates a Deepline-managed industry radar data pipe and writes provider-native i
 }
 ```
 
-#### Track job openings in a market
+#### Track job openings in an industry
 
 ```json
 {

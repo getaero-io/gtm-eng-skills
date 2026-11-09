@@ -313,7 +313,7 @@ confirmation authorizes the paid mutation.
 
 ## Industry radars
 
-`deepline_native.industry_radar` watches a market (a keyword, a role, or every
+`deepline_native.industry_radar` watches an industry (a keyword, a role, or every
 new funding round or company) instead of named accounts. Before setting one up,
 read [industry radars](../references/industry-radars.md): which types take a
 keyword, which are global feeds, and how the sample and destination steps

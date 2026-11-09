@@ -1,6 +1,6 @@
 # Industry radars
 
-`deepline_native.industry_radar` watches a market instead of a named company or
+`deepline_native.industry_radar` watches an industry instead of a named company or
 person. Use it when the request names a topic, a role or "every new" funding
 round or company rather than target accounts. Read its live contract with
 `deepline describe deepline_native.industry_radar --json` (or the per-type
