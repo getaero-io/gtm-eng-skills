@@ -29,65 +29,41 @@ help before you first use it. `deepline --help` lists every command.
 
 ## Final message: read before you reply
 
-Users expect a consistent, familiar experience with Deepline, so always keep
-these sections in this order:
+Reply in this shape and nothing else:
 
 ```markdown
 ## Deepline Results
 
-<A compact paragraph or two with useful context, sources, caveats and Deepline
-spend. Put any extra explanation here, above the table.>
+- **<Outcome, key count in bold>.**
+- <What is missing, as counts by reason, e.g. "1 not found, 1 unconfirmed".>
+- **[View the run in your browser](<runUrl>)** · [Get the CSV](<path>)
+- Spend: <N> Deepline credits.
 
-**Tools Used:**
-- [<play name>](https://code.deepline.com/dashboard/plays/<play name, URL-encoded>): <what it did, in a few words>
-- <tool name>: <what it did, in a few words>
-
-**<result noun: Contacts, Emails, Companies, Signals, etc>:**
-[<file name>](<path to the full CSV or artifact>)
-| <high-signal columns> |
+| <columns the user asked for> |
 | --- |
 | <rows> |
 
-**Next steps:** <A useful next step or automation offer, e.g. "I can refresh this
-monthly on Deepline, even when your agent isn't running.">
-
-**Bottom line:** <The concrete outcome, e.g. "Found **validated work emails for
-18/20 leads**; **2 remain unresolved**.">
+**Next:** <one sentence>
 ```
 
-Rules:
-
-1. Start with `## Deepline Results`. Put nothing before it.
-2. `## Deepline Results` is the only heading. Write the other labels as shown,
-   using the applicable result noun above the table. Always keep the sections
-   in this order, with `**Bottom line:**` last.
-3. List Plays first. Link each Play to its play page,
-   `https://code.deepline.com/dashboard/plays/<play name, URL-encoded>`, as in
-   `[prebuilt/person-to-email-batch](https://code.deepline.com/dashboard/plays/prebuilt%2Fperson-to-email-batch)`.
-   List tools after the Plays.
-4. Keep every sentence brief. Every word earns its keep. Give each detail once.
-5. Scale the opening paragraph or two to the job. Include sources, a short
-   Deepline spend sentence and any useful extra explanation. Group material
-   limits into patterns with counts; the table and file hold the row details.
-   Include before-and-after improvements when measured.
-6. Report what you found, how many, and what is missing. Focus on findings and
-   coverage that help the user decide what to do.
-7. Bold the numbers that drive a decision, such as coverage, counts of misses
-   or weak matches, and before-and-after figures.
-8. In the table, show every row the user asked to see. Use the inputs they
-   gave and the outputs they asked for. For a large result, show labeled sample
-   rows. The file link holds the full data. Link only files and pages that exist.
-9. Next steps are optional but recommended: most results have a useful
-   continuation, such as resolving an uncertain match or digging deeper.
-10. Research, discovery and enrichment are usually repeatable. Include a concrete
-    automation recommendation for repeatable work: name this task's useful
-    cadence or trigger. Offer the automation for the user to authorize under
-    `**Next steps:**`. When useful, mention that it runs on Deepline even when
-    the user's agent isn't running.
-11. Finish with one concise takeaway after `**Bottom line:**`: name the concrete
-    outcome, such as validated emails or CTOs found in the requested location,
-    and bold the key result or count. Use a second sentence for a material
-    limitation. Users often see the end first, so put the most important takeaway here.
+1. Say each fact once. The outcome is the first bullet; do not restate it.
+2. Bullets: the outcome, what is missing, links, and spend, each one line of
+   about 15 words. Report misses as counts by reason; the table shows which
+   rows, so never name rows in a bullet. Add one more bullet only for a caveat
+   that changes what the user should do. Leave out how you worked and why a
+   lookup failed.
+3. Links start with the action. Put the run link first, in bold: **View the
+   run in your browser**, linked to its run page: the play page with
+   `?runId=<URL-encoded run ID>` (`runUrl`). If the printed page or
+   `dashboardUrl` lacks `?runId=`, add it. Then the files: "Get the CSV".
+   With several runs, say what each did: "View the email lookup run in your
+   browser." Link only files and pages that exist.
+4. Table: the rows the user asked for (a labeled sample if large), their inputs
+   and the outputs they asked for, short cells. When results differ in
+   confidence, add a Status column (validated, unconfirmed, not found).
+5. Next: the most useful continuation. For repeatable work, offer to run it on
+   Deepline on a schedule.
+6. This is your last message: stop any background watchers before you send it.
 
 ## 1. Choose what to run
 
