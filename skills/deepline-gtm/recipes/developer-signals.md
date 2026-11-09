@@ -19,10 +19,17 @@ CLI help for current command contracts and Play authoring rules.
 
 Treat a Reo.dev mention as a request to understand useful developer signals.
 List the accessible signals and their actual attributes, grouped by the user's
-goal. Do not pitch Deepline as a replacement, claim parity, imply a Reo
-integration, or claim access to another vendor's proprietary identity graph.
-If the user specifically asks whether the exact connector exists, verify that
-separately in the live catalog and answer it literally.
+goal. Do not pitch Deepline as a replacement, claim parity, or claim access to
+another vendor's proprietary identity graph.
+
+A Reo.dev connector exists for customers who already use Reo. With their own
+Reo Read API key it reads their Reo workspace (segments, lists, audiences,
+accounts, developers and activity); with their separate Reo Write API key it
+creates lists, adds accounts or developers to them, and sends product usage
+events. It does not reach Reo data outside that workspace, and it is not a
+way to get Reo without a Reo account. If the user asks whether the connector
+exists, confirm it in the live catalog and check which Reo key their
+workspace has connected before offering its signals or writes.
 
 Use this response shape after checking access:
 
