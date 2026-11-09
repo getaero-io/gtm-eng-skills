@@ -16,24 +16,20 @@
 
 ## Company candidates
 
-Use `score-crm-company-candidates.play.ts` with canonical company records. It compares every pair in at most 1000 records. It returns Jaro-Winkler name scores and shared eligible domain keys. It preserves hosted-site boundaries; it does not remove legal suffixes or infer aliases.
+Use `score-crm-company-candidates.play.ts` with canonical company records. It compares every pair in at most 1000 records. Exact normalized names and eligible shared domains retrieve review candidates directly. For other names, lexical similarity, shared tokens and generated acronyms retrieve candidates before Jev (`ai_evaluate`, model `typesafe-ai/jev`) judges name variants using supplied country, address and account grain. Unrelated pairs make no model call. No maintained alias or legal-suffix dictionary is required.
 
-The default threshold, 0.88, controls retrieval. It is not a match probability or merge threshold. All returned pairs remain unresolved; omitted pairs remain unassessed.
+The default `name_similarity_threshold`, 0.88, applies to Jev's name-variant probability for retrieval. It does not establish entity identity or authorize merging. Jaro-Winkler scores remain diagnostic observations in the existing pair tuples. All candidates remain unresolved; omitted pairs remain unassessed.
 
-Export `inventory`, `pair_groups`, and `metadata`. Join pair indices to the inventory and decode flags with `metadata.pair_group_schema`. Check legal identifiers, addresses, and dated relationships before deciding identity.
-
-Report candidate recall and review volume on separate labeled data. For more than 1000 records, test a method that selects likely pairs before scoring. Arbitrary batches miss duplicates across batches.
+Export `inventory`, `pair_groups`, `identity_judgments`, and `metadata`. Join pair indices to the inventory and decode flags with `metadata.pair_group_schema`. Each identity-judgment group contains `[right_record_index, name_variant_probability, basis]` tuples. Check legal identifiers, addresses, and dated relationships before deciding identity.
 
 ## Contact proposals
 
-Use `resolve-crm-contact-duplicates.play.ts`. Map `last_name` to `surname`; supply only supported fields and omit unavailable values. Keep labels out of the input. Export `record_inventory`, `pairs`, `clusters`, and `metadata`.
+Use `resolve-crm-contact-duplicates.play.ts`. Map `last_name` to `surname`; supply only supported fields and omit unavailable values. Keep labels out of input. Export `record_inventory`, `pairs`, `clusters`, and `metadata`.
 
-Inspect the default policy in `plays/shared/duplicates.ts`. Set tested overrides through the `policy_json` object string. Retain the effective policy and hash. Default thresholds are provisional; they are not proven for the deployment population.
+Exact identifiers and compatible names with independent birth-date, email or city corroboration retain deterministic fast paths. Cheap name, email and date checks retrieve the remaining candidate pairs. Jev judges ambiguous name compatibility and whether an email identifies an individual; these judgments support the evidence rules rather than replacing them. Recognize nicknames, reordered names, initials and transliterations without maintaining name or mailbox vocabularies. Names alone cannot establish CRM identity.
 
-Contact decision features use the lower of the two directional sequence-matcher scores. Record IDs and input order do not affect the decision. This conservative rule can leave more pairs unresolved.
+Compatibility and individual-mailbox probabilities use a provisional 0.5 decision boundary. Validate the complete policy on independent deployment data; this is not a claimed 95% identity probability. Missing evidence remains unknown. Conflicting birth dates, explicit distinct decisions and rejected conflicting full names hold the proposed group. An unknown edge does not veto an otherwise supported group. Keep probabilities, effective policy and hash. `policy_json` remains accepted: lexical and date controls apply, and an explicitly supplied `shared_email_locals` exclusion remains binding. The live resolver does not use the legacy offline resolver's built-in mailbox list.
 
-Without birth dates and cities, matching needs email agreement and supporting names. A changed work email can remain unresolved. Review English shared-inbox terms for the locale. Exact short names can match; unequal names below three characters get no fuzzy score. Birth-date conflicts hold the pair and connected group for review.
-
-The Play compares pairs quadratically and accepts at most 5000 contacts. Pairs outside candidate generation remain unassessed. Deprecated policy controls have no decision effect. It does not establish employment, company identity, or safe native merge behavior.
+Contact resolution accepts at most 5000 records and compares pairs quadratically. Both matching Plays make metered model calls and transfer supplied identity fields to the evaluation provider. Agree on cohort size, data transfer and cost limits before execution, then pilot at most two records. Repeated identical field pairs reuse one evaluation per run. `max_evaluations` defaults to 1000 unique ambiguous field pairs after fast paths and candidate filtering. Both Plays count unique candidate states incrementally before any model call and fail the whole cohort when it is exceeded; increase it only within the approved run budget. For large cohorts, design and evaluate candidate selection explicitly; arbitrary batches miss cross-batch duplicates. Neither Play performs CRM merges or establishes safe native merge behavior.
 
 **Complete when:** report candidate recall, decision precision and recall, group errors, and unresolved pair and record coverage separately. Accuracy claims need independent labels.

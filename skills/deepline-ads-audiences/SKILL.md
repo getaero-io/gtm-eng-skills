@@ -224,7 +224,7 @@ Do not make quoted domain (`"{{domain}}"`) the first query. It helps occasional 
 Validate candidates before using them:
 
 1. Keep only `linkedin.com/in/` URLs and strip query params/trailing slashes.
-2. Reject search results where the profile title does not contain a first-name match and a last-name match. Allow common nicknames and meaningful first-name prefixes; do not accept single-letter last-name initials as validated.
+2. Compare the supplied and profile names. For non-exact names, use Jev through `ai_evaluate` to judge nickname, spelling and credential variants; retain the probability and require independent employer or other identity corroboration. A shared initial or a name substring alone does not validate identity.
 3. Use company/title evidence as supporting evidence, not as identity proof.
 4. For ambiguous candidates, validate first name, last name, current company, and headline against an authorized source or user-provided export before merging. If the evidence is insufficient, leave the identity unresolved.
 

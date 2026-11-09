@@ -1,18 +1,27 @@
 import { definePlay } from 'deepline';
-import { resolve_records_stream } from './shared/duplicates';
+import { resolve_contacts_with_jev } from './shared/identity-evaluation';
 import { readRecords, recordRows, objectJson } from './shared/io';
 
 export default definePlay(
   'crm-resolve-contact-duplicates',
-  async (ctx, input: { records_file: string; policy_json?: string }) => {
+  async (
+    ctx,
+    input: {
+      records_file: string;
+      policy_json?: string;
+      max_evaluations?: number;
+    },
+  ) => {
     const records = await readRecords(
       await ctx.csv<{ record_json: string }>(input.records_file),
     );
-    const result = resolve_records_stream(
+    const result = await resolve_contacts_with_jev(
+      ctx,
       records,
       input.policy_json
         ? objectJson(input.policy_json, 'policy_json')
         : undefined,
+      input.max_evaluations,
     );
     const { pairs, pair_count, clusters, record_ids, ...metadata } = result;
     return {
@@ -51,6 +60,6 @@ export default definePlay(
   },
   {
     description:
-      'Resolve contact duplicate candidates, quarantine conflicting clusters and retain unassessed coverage.',
+      'Use Jev to compare contact identities, including name variants and shared inboxes, and quarantine conflicting groups. Return proposals without CRM mutations.',
   },
 );

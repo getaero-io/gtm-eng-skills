@@ -88,7 +88,7 @@ Use cleaned account/company aliases and validate identity before merging:
 Accept a candidate only when:
 
 - URL is `linkedin.com/in/`;
-- first and last name match, allowing common nicknames;
+- first and last names are compatible: accept exact names, filter unrelated family names, then use Jev through `ai_evaluate` to judge nicknames, initials, spelling variants and credentials against the supplied profile evidence, and retain its probability; require independent employer or other identity corroboration for non-exact names;
 - company/title evidence supports the match;
 - ambiguous results are profile-scraped and revalidated before merge.
 

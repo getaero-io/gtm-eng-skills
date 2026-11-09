@@ -80,16 +80,16 @@ Give each metric its numerator, denominator, population, time window, source, an
 
 ## Bundled Plays
 
-| Play                             | Scope                                                       |
-| -------------------------------- | ----------------------------------------------------------- |
-| `audit-crm-snapshot`             | Audit observed fields and links in a snapshot               |
-| `collect-hubspot-companies`      | Read and reconcile the company inventory                    |
-| `sample-hubspot-crm`             | Sample companies and their associated contacts              |
-| `classify-company-domains`       | Classify URL roles                                          |
-| `collect-domain-evidence`        | Collect DNS, MX, website, and legal-page evidence           |
-| `plan-crm-domain-repairs`        | Prepare supported URL replacements                          |
-| `score-crm-company-candidates`   | Find similar names with Jaro-Winkler and shared domain keys |
-| `resolve-crm-contact-duplicates` | Propose person matches and hold conflicting groups          |
-| `evaluate-crm-cleaning`          | Grade frozen cases or validate receipts                     |
+| Play                             | Scope                                                              |
+| -------------------------------- | ------------------------------------------------------------------ |
+| `audit-crm-snapshot`             | Audit observed fields and links in a snapshot                      |
+| `collect-hubspot-companies`      | Read and reconcile the company inventory                           |
+| `sample-hubspot-crm`             | Sample companies and their associated contacts                     |
+| `classify-company-domains`       | Classify URL roles                                                 |
+| `collect-domain-evidence`        | Collect DNS, MX, website, and legal-page evidence                  |
+| `plan-crm-domain-repairs`        | Prepare supported URL replacements                                 |
+| `score-crm-company-candidates`   | Retrieve review candidates with Jev name judgments and domain keys |
+| `resolve-crm-contact-duplicates` | Use Jev to propose person matches and hold conflicting groups      |
+| `evaluate-crm-cleaning`          | Grade frozen cases or validate receipts                            |
 
-These TypeScript Plays return datasets and fixed counts. Inspect failed rows before claiming completion. They do not perform live merges, paid enrichment, record-creation enforcement, scheduled monitoring, or parent discovery. Those jobs require the selected recipe, verified capabilities, and the safety rule above.
+These TypeScript Plays return datasets and fixed counts. Inspect failed rows before claiming completion. The two matching Plays use exact and corroborated fast paths, then metered Jev evaluation for ambiguous candidates. Candidate filtering and call budgets bound model work; see the dedupe job for the evidence policy. They do not perform live merges, paid enrichment, record-creation enforcement, scheduled monitoring, or parent discovery. Those jobs require the selected recipe, verified capabilities, and the safety rule above.

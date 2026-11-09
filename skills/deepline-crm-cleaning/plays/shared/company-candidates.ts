@@ -273,8 +273,19 @@ function decodeFlags(mask: number, flags: Record<string, number>): string[] {
     .filter(([, bit]) => (mask & bit) !== 0)
     .map(([name]) => name);
 }
-function pair(a: Company, b: Company, score: number, threshold: number) {
-  const { retrieval_mask, review_mask } = pairCodes(a, b, score, threshold);
+function pair(
+  a: Company,
+  b: Company,
+  score: number,
+  threshold: number,
+  retrievalScore = score,
+) {
+  const { retrieval_mask, review_mask } = pairCodes(
+    a,
+    b,
+    retrievalScore,
+    threshold,
+  );
   return {
     pair_id: sha256(canonicalJson([identity(a), identity(b)])),
     left: { id: a.id, source: a.source },
@@ -304,7 +315,14 @@ function pair(a: Company, b: Company, score: number, threshold: number) {
   };
 }
 
-export function score_company_candidates(records: unknown[], policy?: unknown) {
+export function score_company_candidates(
+  records: unknown[],
+  policy?: unknown,
+  semanticScore?: (
+    left: Company & { record_index: number },
+    right: Company & { record_index: number },
+  ) => number,
+) {
   if (!Array.isArray(records) || records.length > COMPANY_MAX_RECORDS)
     throw new Error(
       `Expected at most ${COMPANY_MAX_RECORDS} company records; partition explicitly and evaluate cross-partition coverage for larger inputs`,
@@ -358,6 +376,7 @@ export function score_company_candidates(records: unknown[], policy?: unknown) {
   };
   const pair_space = (inventory.length * (inventory.length - 1)) / 2;
   const scores = new Float64Array(pair_space);
+  const retrievalScores = new Float64Array(pair_space);
   let index = 0,
     generated_pair_count = 0,
     candidate_group_count = 0,
@@ -371,9 +390,11 @@ export function score_company_candidates(records: unknown[], policy?: unknown) {
         a.normalized_name && b.normalized_name
           ? jaro_winkler(a.normalized_name, b.normalized_name)
           : NaN;
-      scores[index++] = score;
+      scores[index] = score;
+      const retrievalScore = semanticScore ? semanticScore(a, b) : score;
+      retrievalScores[index++] = retrievalScore;
       if (!Number.isNaN(score)) name_scored_pair_count++;
-      if (selected(a, b, score, name_similarity_threshold)) {
+      if (selected(a, b, retrievalScore, name_similarity_threshold)) {
         generated_pair_count++;
         groupSelected = true;
       }
@@ -386,9 +407,10 @@ export function score_company_candidates(records: unknown[], policy?: unknown) {
       for (let j = i + 1; j < inventory.length; j++) {
         const a = inventory[i],
           b = inventory[j],
-          score = scores[index++];
-        if (selected(a, b, score, name_similarity_threshold))
-          yield pair(a, b, score, name_similarity_threshold);
+          score = scores[index],
+          retrievalScore = retrievalScores[index++];
+        if (selected(a, b, retrievalScore, name_similarity_threshold))
+          yield pair(a, b, score, name_similarity_threshold, retrievalScore);
       }
     }
   }
@@ -399,12 +421,14 @@ export function score_company_candidates(records: unknown[], policy?: unknown) {
       for (let j = i + 1; j < inventory.length; j++) {
         const a = inventory[i],
           b = inventory[j],
-          score = scores[index++];
-        if (!selected(a, b, score, name_similarity_threshold)) continue;
+          score = scores[index],
+          retrievalScore = retrievalScores[index++];
+        if (!selected(a, b, retrievalScore, name_similarity_threshold))
+          continue;
         const { retrieval_mask, review_mask } = pairCodes(
           a,
           b,
-          score,
+          retrievalScore,
           name_similarity_threshold,
         );
         candidates.push([

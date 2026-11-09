@@ -61,6 +61,8 @@ Label every edge as `inferred`, `sourced`, or `manual`, with its basis and quali
 
 When the user asks about spend, show only Deepline-facing credits or estimates from the tool catalog. Do not discuss supplier-side cost structure.
 
+Match exact source person IDs or canonical profile URLs first. Collapse exact normalized name-and-employer repeats when no profile, email, role or location evidence conflicts. Filter unrelated names before using Jev for remaining cross-source people; use Jev through `ai_evaluate` to compare names and employment evidence in context. Keep shared-name coworkers and uncertain matches separate, and retain probabilities with source-ID mappings.
+
 **Spend-safe order:** CRM first, then free sources, then broad paid sources, then surgical paid gap-fill for missing senior people only. Each step deduplicates against prior results so you do not pay to rediscover data the customer already owns. `deepline run <tool-id> --input '{...}' --dry-run` shows what a call costs without sending it.
 
 **Before running any paid source:** check your CRM for contacts already at this company. If HubSpot, Salesforce, or another CRM is connected, discover the live CRM tool contract first instead of guessing operation names:

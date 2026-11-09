@@ -5,7 +5,7 @@ Use this for local SMB discovery like dentists, plumbers, med spas, agencies, or
 Each step says what to get. Find the tool or prebuilt play for it with `deepline search "<what you have -> what you need>"`, then read its inputs and price with `deepline describe <tool>` or `deepline describe <play>`.
 
 1. **Discover businesses with a Maps-style local search.** Search by category and place, such as "dentists in Austin, TX". Run one query with a small limit, read the rows, and tune the query before widening. When the target is a map boundary or a radius around a point, use a search that takes an area or coordinates instead of a place name.
-2. **Keep one structured row per business:** name, address, phone, website, rating, and the Maps listing URL or id. Overlapping queries return the same business twice; dedupe on the listing id, or on phone plus address.
+2. **Keep one structured row per business:** name, address, phone, website, rating, and the Maps listing URL or id. Overlapping queries return the same business twice; collapse exact repeats by listing id. For different listings, use Jev through `ai_evaluate` to compare business names, addresses and phones in context; a shared phone or address alone can belong to separate locations or businesses. Retain uncertain matches for review.
 3. **Resolve the owner and legal entity when the storefront is not enough.** For US businesses, business-registry records give the registered entity, its addresses, and the owner or principal, and a person lookup then reaches that owner directly. Skip this step when the storefront phone or a shared inbox is all the campaign needs.
 4. **Recover a contact email.**
    - Start with the business website and its contact page when the row has a normal homepage.

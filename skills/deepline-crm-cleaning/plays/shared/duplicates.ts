@@ -448,23 +448,39 @@ function* pairsOf<T>(rows: T[]): Generator<[T, T]> {
   for (let a = 0; a < rows.length; a++)
     for (let b = a + 1; b < rows.length; b++) yield [rows[a], rows[b]];
 }
-export function resolve_records_stream(
-  rows: Row[],
-  suppliedPolicy: Row | null = null,
-): Row & { pairs: Iterable<Row>; pair_count: number } {
+export function validate_contact_cohort(rows: Row[]): Row[] {
   if (!Array.isArray(rows) || rows.length > MAX_RECORDS)
     throw new Error(
       `Local quadratic policy supports at most ${MAX_RECORDS} records; explicitly design blocking for larger cohorts`,
     );
-  const policy = resolve_policy(suppliedPolicy),
-    records = rows
-      .map(normalize)
-      .sort((a, b) => compare_codepoints(a.id, b.id));
+  const records = rows
+    .map(normalize)
+    .sort((a, b) => compare_codepoints(a.id, b.id));
   const byId = new Map<string, Row>(records.map((r) => [r.id, r]));
   if (byId.size !== records.length)
     throw new Error('Repeated ids: use one explicit scoped cohort');
   if (new Set(records.map((r) => canonicalJson(r.scope))).size > 1)
     throw new Error('Mixed source scopes; run each tenant independently');
+  return records;
+}
+export function resolve_records_stream(
+  rows: Row[],
+  suppliedPolicy: Row | null = null,
+  assess?: (
+    left: Row,
+    right: Row,
+    observed: Row,
+  ) =>
+    | {
+        decision: string;
+        reasons: string[];
+        evidence: Row;
+      }
+    | undefined,
+): Row & { pairs: Iterable<Row>; pair_count: number } {
+  const policy = resolve_policy(suppliedPolicy);
+  const records = validate_contact_cohort(rows);
+  const byId = new Map<string, Row>(records.map((r) => [r.id, r]));
   const pairs = new Map<string, Row>(),
     key = (a: string, b: string) => canonicalJson([a, b]);
   const components = new Map<string, Set<string>>(
@@ -476,13 +492,17 @@ export function resolve_records_stream(
         right = records[b],
         ev = evidence(left, right, policy);
       if (ev.candidate) {
-        const [decision, reasons] = decide(ev, policy);
+        const assessment = assess?.(left, right, ev);
+        const [decision, reasons] = assessment
+          ? [assessment.decision, assessment.reasons]
+          : decide(ev, policy);
         pairs.set(key(left.id, right.id), {
           left_id: left.id,
           right_id: right.id,
           candidate: true,
           decision,
           reasons,
+          ...(assessment ? { semantic_evidence: assessment.evidence } : {}),
         });
       }
     }
@@ -506,9 +526,11 @@ export function resolve_records_stream(
     for (const [a, b] of pairsOf(cluster)) {
       const ev = evidence(byId.get(a)!, byId.get(b)!, policy);
       if (
-        ev.observed_name_conflict ||
         ev.observed_dob_conflict ||
-        decide(ev, policy)[0] === 'distinct'
+        (assess
+          ? pairs.get(key(a, b))?.decision === 'distinct' ||
+            pairs.get(key(a, b))?.semantic_evidence?.cannot_link === true
+          : ev.observed_name_conflict || decide(ev, policy)[0] === 'distinct')
       ) {
         conflict = true;
         break;

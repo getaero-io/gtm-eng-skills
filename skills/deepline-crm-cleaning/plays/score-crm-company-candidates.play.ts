@@ -1,8 +1,6 @@
 import { definePlay } from 'deepline';
-import {
-  COMPANY_MAX_RECORDS,
-  score_company_candidates,
-} from './shared/company-candidates';
+import { COMPANY_MAX_RECORDS } from './shared/company-candidates';
+import { score_companies_with_jev } from './shared/identity-evaluation';
 import { recordStream, recordRows } from './shared/io';
 import type { JsonObject } from './shared/json';
 
@@ -10,7 +8,11 @@ export default definePlay(
   'crm-score-company-candidates',
   async (
     ctx,
-    input: { records_file: string; name_similarity_threshold?: number },
+    input: {
+      records_file: string;
+      name_similarity_threshold?: number;
+      max_evaluations?: number;
+    },
   ) => {
     const records: JsonObject[] = [];
     for await (const record of recordStream(
@@ -22,11 +24,11 @@ export default definePlay(
         );
       records.push(record);
     }
-    const result = score_company_candidates(
+    const result = await score_companies_with_jev(
+      ctx,
       records,
-      input.name_similarity_threshold === undefined
-        ? undefined
-        : { name_similarity_threshold: input.name_similarity_threshold },
+      input.name_similarity_threshold,
+      input.max_evaluations,
     );
     return {
       record_count: result.metadata.record_count,
@@ -50,11 +52,17 @@ export default definePlay(
         )
         .run({ key: 'row_id' }),
       crm_mutations: 0,
+      identity_judgments: await ctx
+        .dataset(
+          'company_identity_judgments',
+          recordRows(result.judgments, ctx.run.id),
+        )
+        .run({ key: 'row_id' }),
       auto_merge_allowed: false,
     };
   },
   {
     description:
-      'Score up to 1,000 companies with Jaro-Winkler name similarity and eligible domains. Retain review candidates and unresolved coverage without merging or inferring hierarchy.',
+      'Retrieve company review candidates with Jev name-variant judgments and eligible domains. Preserve diagnostic name scores without merging or inferring hierarchy.',
   },
 );
