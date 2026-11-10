@@ -1,6 +1,6 @@
 ---
 name: clay-to-deepline
-description: "Move Clay tables, workflows and functions to Deepline Plays, and compare what the same run costs in Clay and in Deepline. Use for any Clay migration, Clay export or bookmarklet JSON, Clay CLI workspace, \"convert this Clay table\", Clay credit cost, or \"is Deepline cheaper than Clay\". Reads a Clay CLI export or a bookmarklet / clay-extract.py JSON file. Makes the Plays, proves formula parity on real rows, and prices both sides."
+description: "Move Clay tables, workflows, functions and Signals to Deepline Plays and Monitors, and compare what the same run costs in Clay and in Deepline. Use for any Clay migration, Clay export or bookmarklet JSON, Clay CLI workspace, \"convert this Clay table\", Clay credit cost, or \"is Deepline cheaper than Clay\". Reads a Clay CLI export or a bookmarklet / clay-extract.py JSON file. Makes the Plays, proves formula parity on real rows, and prices both sides."
 ---
 
 # Clay to Deepline

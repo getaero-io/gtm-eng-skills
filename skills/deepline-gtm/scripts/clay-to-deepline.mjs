@@ -7,11 +7,13 @@
 //   node clay-to-deepline.mjs parity  <dir>                                 # formula cells vs Clay's stored values
 //   node clay-to-deepline.mjs workflow-cost <dir> <wf_id> [--limit N]       # Clay-metered credits per completed workflow run
 //   node clay-to-deepline.mjs check   <dir>                                 # deepline plays check on every play (free)
+//   node clay-to-deepline.mjs signals <dir> [--signals td_a,td_b]           # Clay Signals -> Monitor Fleet drafts + report
 //   node clay-to-deepline.mjs selftest                                      # Clay-semantics assertions, no network
 //
 // Requires: `clay` CLI logged in to the source workspace (`clay workspaces switch <id>`), `deepline` CLI for
-// compile (tool schemas via `deepline describe`) and check. No npm dependencies.
+// compile (tool schemas via `deepline describe`), check and signals. No npm dependencies.
 import { execFileSync, spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -3168,7 +3170,692 @@ async function selftest() {
     );
     eq(resolvePlan(d, 'launch').plan, 'launch', 'plan: --plan flag wins');
   }
+  {
+    eq(
+      [
+        'https://www.Acme.com/jobs?x=1',
+        'acme.com',
+        'https://linkedin.com/company/acme',
+        'a@acme.com',
+        'n/a',
+      ].map(normDomain),
+      ['acme.com', 'acme.com', '', '', ''],
+      'signals: domain normalization rejects LinkedIn URLs and emails',
+    );
+    eq(
+      normProfile('linkedin.com/in/ada-l/?utm=1'),
+      'https://www.linkedin.com/in/ada-l',
+      'signals: profile URL normalized',
+    );
+    eq(
+      normProfile('https://notlinkedin.com/in/alice'),
+      '',
+      'signals: lookalike LinkedIn hosts are rejected',
+    );
+    eq(
+      signalCsv([['a,b', 'c"d', '']]),
+      '"a,b","c""d",\n',
+      'signals: audit CSV quotes commas and quotes',
+    );
+    const cell = (value) => ({ status: 'success', value });
+    const columns = [
+      { id: 'f_li', name: 'Linkedin URL' },
+      { id: 'f_web', name: 'Website URL' },
+      { id: 'f_co', name: 'Company Domain' },
+      { id: 'f_person', name: 'LinkedIn Profile' },
+      { id: 'f_flag', name: 'Priority' },
+    ];
+    const table = { table: { id: 't_x', viewId: 'gv_x' }, audiences: null };
+    const post = planSignal(
+      {
+        id: 'td_abcDEF12345',
+        input: table,
+        runStatus: 'Active',
+        filter: null,
+        signal: {
+          type: 'JobPost',
+          inputs: {
+            companyIdentifier: { pathAsFormula: '{{f_li}}' },
+            filters: {
+              startFrom: 'ClayTableOfCompanies',
+              job_title_keywords: ['VP Sales', 'Head of Sales'],
+              seniority: ['Director'],
+              locations: ['France'],
+              has_recruiter: false,
+            },
+          },
+        },
+      },
+      columns,
+      [
+        {
+          cells: {
+            f_li: cell('https://linkedin.com/company/a'),
+            f_web: cell('https://a.com/'),
+          },
+        },
+        {
+          cells: {
+            f_li: cell('https://linkedin.com/company/a2'),
+            f_web: cell('www.a.com'),
+          },
+        },
+        {
+          cells: {
+            f_li: cell('https://linkedin.com/company/b'),
+            f_web: { status: 'empty' },
+          },
+        },
+        // Seen on a real table: one stray domain in the LinkedIn column must not make it the domain source.
+        { cells: { f_li: cell('stray.com'), f_web: cell('a.com') } },
+        // Clay does not watch a row with no identifier, even though its website is valid.
+        {
+          id: 'r_unwatched',
+          cells: { f_li: { status: 'empty' }, f_web: cell('c.com') },
+        },
+      ],
+    );
+    eq(
+      [
+        post.status,
+        post.domainColumn,
+        post.seedRows,
+        post.invalidRows,
+        post.payload.job_titles,
+        post.payload.seniorities,
+        Object.keys(post.unmapped).sort(),
+      ],
+      [
+        'drafted',
+        'Website URL',
+        1,
+        2,
+        '"VP Sales" OR "Head of Sales"',
+        undefined,
+        ['locations', 'seniority'],
+      ],
+      'signals: LinkedIn-keyed company signal uses a real domain; titles override seniority',
+    );
+    const change = planSignal(
+      {
+        id: 'td_jobchange01',
+        input: table,
+        runStatus: 'Preview',
+        filter: { items: [{ dataPath: ['confidence'] }] },
+        signal: {
+          type: 'JobChange',
+          inputs: { personIdentifier: { pathAsFormula: '{{f_person}}' } },
+        },
+      },
+      columns,
+      [
+        {
+          cells: {
+            f_person: cell('https://linkedin.com/in/ada'),
+            f_co: cell('acme.com'),
+            f_flag: cell(false),
+          },
+        },
+        {
+          cells: {
+            f_person: cell('https://www.linkedin.com/in/ADA/'),
+            f_co: cell('acme.com'),
+          },
+        },
+        { cells: { f_person: cell('not a url'), f_co: cell('acme.com') } },
+      ],
+    );
+    eq(
+      [
+        change.status,
+        change.seedRows,
+        change.invalidRows,
+        change.seed[0].linkedin_url,
+        change.payload.profile_url,
+        'event filter' in change.unmapped,
+        change.audit[1].at(-1),
+      ],
+      [
+        'drafted',
+        1,
+        1,
+        'https://www.linkedin.com/in/ada',
+        '{{linkedin_url}}',
+        true,
+        'false',
+      ],
+      'signals: person seed dedupes by profile and event filter is reported',
+    );
+    eq(
+      planSignal(
+        {
+          id: 'td_x',
+          input: table,
+          signal: {
+            type: 'JobChange',
+            inputs: { personIdentifier: { pathAsFormula: '{{f_e}}?.["url"]' } },
+          },
+        },
+        columns,
+        [],
+      ).status,
+      'skipped',
+      'signals: nested identifier is skipped, not guessed',
+    );
+    eq(
+      [
+        signalSkipReason({
+          signal: { type: 'CompanyTopicIntent' },
+          input: table,
+        }),
+        signalSkipReason({
+          signal: { type: 'JobPost' },
+          input: { table: null, audiences: { segmentIds: ['ALL'] } },
+        }),
+        signalSkipReason({ signal: { type: 'JobPost' }, input: table }),
+      ].map(Boolean),
+      [true, true, false],
+      'signals: no-equivalent and audience signals are skipped before any export',
+    );
+    const dupes = signalDuplicates([
+      {
+        id: 'td_old',
+        runStatus: 'Paused',
+        createdAt: '2026-01-01',
+        input: table,
+        filter: null,
+        signal: { type: 'JobChange', inputs: { a: 1 } },
+      },
+      {
+        id: 'td_new',
+        runStatus: 'Active',
+        createdAt: '2026-02-01',
+        input: table,
+        filter: null,
+        signal: { type: 'JobChange', inputs: { a: 1 } },
+      },
+      {
+        id: 'td_other',
+        runStatus: 'Active',
+        createdAt: '2026-03-01',
+        input: table,
+        filter: null,
+        signal: { type: 'JobChange', inputs: { a: 2 } },
+      },
+    ]);
+    eq(
+      [...dupes],
+      [['td_old', 'td_new']],
+      'signals: an identical signal collapses onto the running one',
+    );
+    eq(
+      signalSql('storage.t', [{ row_key: 'k', domain: "o'neil.com\0" }])[1],
+      "insert into storage.t (row_key, domain) values\n('k', 'o''neil.com')\non conflict (row_key) do nothing;\n",
+      'signals: seed SQL escapes quotes and strips NUL',
+    );
+    eq(
+      signalSql('storage.t', [{ row_key: 'k', domain: 'a.com' }])[0],
+      'create table storage.t (row_key text primary key, domain text);\n',
+      'signals: a re-export fails instead of merging into an existing table',
+    );
+  }
   console.log('selftest ok');
+}
+
+// ---------------------------------------------------------------- signals (read-only; drafts Fleets, never deploys)
+const SIGNAL_MONITORS = {
+  JobChange: {
+    tool: 'deepline_native.contact_radar',
+    radar: 'contact_job_changes',
+    id: 'personIdentifier',
+    grain: 'person',
+  },
+  Promotion: {
+    tool: 'deepline_native.company_radar',
+    radar: 'company_promotions',
+    id: 'personIdentifier',
+    grain: 'company',
+  },
+  NewHire: {
+    tool: 'deepline_native.company_radar',
+    radar: 'company_new_hires',
+    id: 'companyIdentifier',
+    grain: 'company',
+  },
+  JobPost: {
+    tool: 'deepline_native.company_radar',
+    radar: 'company_job_openings',
+    id: 'companyIdentifier',
+    grain: 'company',
+  },
+  News: {
+    tool: 'deepline_native.company_radar',
+    radar: 'company_mentions',
+    id: 'companyDomain',
+    grain: 'company',
+  },
+};
+const SIGNAL_NO_MONITOR = {
+  PersonTopicIntent: 'Deepline has no topic-intent monitor.',
+  CompanyTopicIntent: 'Deepline has no topic-intent monitor.',
+  Custom: 'A Custom signal watches an arbitrary action. Rebuild it as a Play.',
+  LinkedinPostMentions:
+    'Clay discontinued this type. Consider a company_social_engagements monitor.',
+};
+// Clay seniority -> Deepline `seniorities`. Values with no honest match stay out and are reported.
+const SIGNAL_SENIORITY = {
+  founder: 'Owner',
+  owner: 'Owner',
+  partner: 'Partner',
+  'c-suite': 'CXO',
+  executive: 'CXO',
+  vp: 'Vice President',
+  director: 'Director',
+  manager: 'Manager',
+  senior: 'Senior',
+  entry: 'Entry',
+  'entry level': 'Entry',
+  intern: 'Training',
+  internship: 'Training',
+};
+// Search plumbing, not intent: these do not change which events a signal is looking for.
+const SIGNAL_PLUMBING = new Set([
+  'startFrom',
+  'start_from_method',
+  'company_identifier',
+  'company_record_id',
+  'company_table_id',
+  'exclude_job_identifiers',
+  'limit',
+  'limit_per_company',
+  'autoAdvanceEarliestPublishDate',
+]);
+const normDomain = (v) => {
+  const host = String(v ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/^[a-z]+:\/\//, '')
+    .split(/[/?#]/)[0]
+    .replace(/:\d+$/, '')
+    .replace(/^www\./, '');
+  return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host) &&
+    !/(^|\.)linkedin\.com$/.test(host)
+    ? host
+    : '';
+};
+const normProfile = (v) => {
+  const m =
+    /^(?:https?:\/\/)?(?:[a-z0-9-]+\.)?linkedin\.com\/in\/([^/?#\s]+)/i.exec(
+      String(v ?? '').trim(),
+    );
+  return m ? `https://www.linkedin.com/in/${m[1]}` : '';
+};
+function signalSkipReason(s) {
+  const type = s.signal?.type;
+  if (!SIGNAL_MONITORS[type])
+    return SIGNAL_NO_MONITOR[type] ?? `No monitor mapping for ${type}.`;
+  // ponytail: audience records need a per-entity export; add it when an audience-based signal has to move.
+  if (s.input?.audiences)
+    return 'Audience-based signal. Export the segment by hand, then use the same Fleet shape.';
+  if (!s.input?.table) return 'The signal has no watched table.';
+  return null;
+}
+// Identical watches bill twice in Clay and would bill twice here. Keep the one that is running.
+function signalDuplicates(details) {
+  const kept = new Map();
+  const dupes = new Map();
+  const order = [...details].sort(
+    (a, b) =>
+      (a.runStatus === 'Active' ? 0 : 1) - (b.runStatus === 'Active' ? 0 : 1) ||
+      String(a.createdAt).localeCompare(String(b.createdAt)),
+  );
+  for (const s of order) {
+    const key = JSON.stringify([
+      s.signal?.type,
+      s.input,
+      s.signal?.inputs,
+      s.filter,
+    ]);
+    if (kept.has(key)) dupes.set(s.id, kept.get(key));
+    else kept.set(key, s.id);
+  }
+  return dupes;
+}
+function signalFilters(filters) {
+  const isSet = (v) =>
+    !(
+      v == null ||
+      v === false ||
+      v === '' ||
+      (typeof v === 'object' && !Object.keys(v).length)
+    );
+  const f = Object.fromEntries(
+    Object.entries(filters ?? {}).filter(
+      ([k, v]) => isSet(v) && !SIGNAL_PLUMBING.has(k),
+    ),
+  );
+  const payload = {};
+  // Terms are placed in a quoted expression inside a Handlebars template, so these characters cannot pass through.
+  const titles = f.job_title_keywords;
+  if (titles?.every((t) => !/["{}]/.test(t))) {
+    payload.job_titles = titles.map((t) => `"${t}"`).join(' OR ');
+    delete f.job_title_keywords;
+  } else if (!titles) delete f.job_title_mode;
+  if (f.job_title_seniority_match_mode === 'exact')
+    delete f.job_title_seniority_match_mode;
+  const levelKey = ['job_title_seniority_levels_v2', 'seniority'].find(
+    (k) => f[k],
+  );
+  // `job_titles` overrides `seniorities` on the monitor, so sending both would imply a filter that does not apply.
+  if (levelKey && !payload.job_titles) {
+    const levels = f[levelKey];
+    const mapped = levels.map((l) => SIGNAL_SENIORITY[String(l).toLowerCase()]);
+    payload.seniorities = [...new Set(mapped.filter(Boolean))];
+    if (!payload.seniorities.length) delete payload.seniorities;
+    const lost = levels.filter((_, i) => !mapped[i]);
+    if (lost.length) f[levelKey] = lost;
+    else delete f[levelKey];
+  }
+  return { payload, unmapped: f };
+}
+function planSignal(s, columns, rows) {
+  const m = SIGNAL_MONITORS[s.signal.type];
+  const inputs = s.signal.inputs ?? {};
+  const plainField = (ref) =>
+    /^\{\{(f_\w+)\}\}$/.exec(String(ref?.pathAsFormula ?? '').trim())?.[1];
+  const text = (row, f) => {
+    const c = row.cells?.[f];
+    return c?.status === 'success' &&
+      ['string', 'number'].includes(typeof c.value)
+      ? String(c.value).trim()
+      : '';
+  };
+  // Identifiers use `text`. A view can filter on anything, so the audit keeps booleans, objects and cell states.
+  const auditText = (row, f) => {
+    const c = row.cells?.[f];
+    if (c?.status !== 'success')
+      return c?.status && c.status !== 'empty' ? `[${c.status}]` : '';
+    return typeof c.value === 'object' && c.value !== null
+      ? JSON.stringify(c.value)
+      : String(c.value ?? '');
+  };
+  const skip = (reason) => ({ status: 'skipped', reason });
+  const idField = plainField(inputs[m.id]);
+  // ponytail: `rows list` has no structured `fields`; a nested identifier needs `rows get` per row.
+  if (m.grain === 'person' && !idField)
+    return skip(
+      `Identifier ${inputs[m.id]?.pathAsFormula} is nested. Export it by hand.`,
+    );
+  const score = (f) => rows.filter((r) => normDomain(text(r, f))).length;
+  const signalFields = [
+    plainField(inputs.initialCompanyIdentifier),
+    idField,
+  ].filter(Boolean);
+  const named = columns
+    .filter(
+      (c) =>
+        /domain|website|\burl\b/i.test(c.name) &&
+        !/linkedin|e-?mail|previous|new company/i.test(c.name),
+    )
+    .map((c) => c.id)
+    .sort((a, b) => score(b) - score(a));
+  // A single stray domain must not qualify a column of LinkedIn URLs, so most filled values have to be domains.
+  const mostlyDomains = (f) =>
+    score(f) * 2 > rows.filter((r) => text(r, f)).length;
+  const domainField =
+    signalFields.find(mostlyDomains) ?? named.find(mostlyDomains);
+  if (!domainField)
+    return skip(
+      'No column has valid company domains, which every monitor here requires.',
+    );
+
+  const seed = new Map();
+  // Every source row behind a seed row, so a view filter or a person-level Play filter can still be applied.
+  const audit = [['row_key', 'clay_row_id', ...columns.map((c) => c.name)]];
+  let invalidRows = 0;
+  for (const r of rows) {
+    const domain = normDomain(text(r, domainField));
+    const linkedin_url =
+      m.grain === 'person' ? normProfile(text(r, idField)) : '';
+    // Clay silently does not watch a row with an empty identifier, even when another column could resolve it.
+    if (
+      !domain ||
+      (idField && !text(r, idField)) ||
+      (m.grain === 'person' && !linkedin_url)
+    ) {
+      invalidRows++;
+      continue;
+    }
+    const identity = m.grain === 'person' ? linkedin_url.toLowerCase() : domain;
+    const row_key = createHash('sha256')
+      .update(identity)
+      .digest('hex')
+      .slice(0, 16);
+    audit.push([row_key, r.id, ...columns.map((c) => auditText(r, c.id))]);
+    if (!seed.has(row_key))
+      seed.set(row_key, {
+        row_key,
+        ...(m.grain === 'person' ? { linkedin_url } : {}),
+        domain,
+      });
+  }
+  if (!seed.size)
+    return skip('No watched row has the identifiers a monitor requires.');
+
+  const { payload: filterPayload, unmapped } = signalFilters(inputs.filters);
+  if (s.filter?.items?.length) unmapped['event filter'] = s.filter;
+  const domainColumn = columns.find((c) => c.id === domainField)?.name;
+  const warnings = [
+    `Seeded every table row. The CLI cannot read view ${s.input.table.viewId}, so use the audit CSV to remove rows outside that view from the seed table before deploying.`,
+  ];
+  if (!idField)
+    warnings.push(
+      `Identifier ${inputs[m.id]?.pathAsFormula} is nested, so rows Clay could not watch may be included. Check the audit CSV.`,
+    );
+  if (domainField !== signalFields[0])
+    warnings.push(
+      `Domains come from "${domainColumn}", a column the Clay signal did not use. Confirm it.`,
+    );
+  if (inputs.lookBackTimeWindowInMonths)
+    warnings.push(
+      'Clay lookback was not carried over. Set updates_since only if you want past events again, and expect to pay for them.',
+    );
+  if (s.signal.type === 'Promotion')
+    warnings.push(
+      'Clay watches people, this monitor watches their companies. Filter to tracked people in the Play; every company promotion is still charged.',
+    );
+  if (s.signal.type === 'News')
+    warnings.push(
+      'company_mentions has no topic filter, so all mentions are charged. Funding exists only as the global industry_funding_rounds feed.',
+    );
+  if (!['Active', 'Preview'].includes(s.runStatus))
+    warnings.push(
+      `The Clay signal is ${s.runStatus}. Confirm it should move at all.`,
+    );
+
+  const slug = `${m.radar}-${s.id.slice(-8)}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-');
+  return {
+    status: 'drafted',
+    tool: m.tool,
+    radar: m.radar,
+    fleet: `clay-${slug}`,
+    table: `clay_signal_${slug.replaceAll('-', '_')}`,
+    domainColumn,
+    totalRows: rows.length,
+    seedRows: seed.size,
+    invalidRows,
+    payload: {
+      radar_type: m.radar,
+      ...(m.grain === 'person' ? { profile_url: '{{linkedin_url}}' } : {}),
+      domain: '{{domain}}',
+      ...filterPayload,
+    },
+    unmapped,
+    warnings,
+    seed: [...seed.values()],
+    audit,
+  };
+}
+// Returns [create, insert, ...]. `deepline db query` takes one statement per file. The create has no
+// `if not exists`: a re-export must not merge into a table, because inserts cannot remove or correct a target.
+function signalSql(table, seed) {
+  const cols = Object.keys(seed[0]);
+  const lit = (v) =>
+    `'${String(v).replaceAll('\0', '').replaceAll("'", "''")}'`;
+  const files = [
+    `create table ${table} (${cols
+      .map((c) => `${c} text${c === 'row_key' ? ' primary key' : ''}`)
+      .join(', ')});\n`,
+  ];
+  for (let i = 0; i < seed.length; i += 500)
+    files.push(
+      `insert into ${table} (${cols.join(', ')}) values\n${seed
+        .slice(i, i + 500)
+        .map((r) => `(${cols.map((c) => lit(r[c])).join(', ')})`)
+        .join(',\n')}\non conflict (row_key) do nothing;\n`,
+    );
+  return files;
+}
+const signalCsv = (rows) =>
+  rows
+    .map((row) =>
+      row
+        .map((v) =>
+          /[",\r\n]/.test(v) ? `"${String(v).replaceAll('"', '""')}"` : v,
+        )
+        .join(','),
+    )
+    .join('\n') + '\n';
+async function allTableRows(tableId) {
+  const rows = [];
+  let cursor;
+  let truncated = false;
+  do {
+    const page = await clay(
+      'tables',
+      'rows',
+      'list',
+      tableId,
+      '--limit',
+      '100',
+      ...(cursor ? ['--cursor', cursor] : []),
+    );
+    rows.push(...page.data);
+    cursor = page.cursor;
+    truncated ||= Boolean(page.truncated);
+  } while (cursor);
+  return { rows, truncated };
+}
+async function signalsToFleets() {
+  const out = `${dir}/signals`;
+  // Files from an earlier export would otherwise be run alongside the new ones.
+  if (fs.existsSync(out))
+    throw new Error(`${out} already exists. Use a new <dir> for each export.`);
+  const only = opt('signals')?.split(',');
+  const list = (await clay('signals', 'list')).data.filter(
+    (s) => !only || only.includes(s.id),
+  );
+  const details = await pool(list, 4, (s) => clay('signals', 'get', s.id));
+  const dupes = signalDuplicates(details);
+  const workspace = details[0]?.workspace ?? null;
+  const cache = new Map();
+  const tableData = (id) => {
+    if (!cache.has(id))
+      cache.set(
+        id,
+        Promise.all([allTableRows(id), clay('tables', 'columns', 'list', id)]),
+      );
+    return cache.get(id);
+  };
+  const report = [];
+  for (const s of details) {
+    const base = {
+      id: s.id,
+      name: s.name,
+      type: s.signal?.type,
+      runStatus: s.runStatus,
+      watches: s.input,
+    };
+    const reason = dupes.has(s.id)
+      ? `Duplicate of ${dupes.get(s.id)}.`
+      : signalSkipReason(s);
+    if (reason) {
+      report.push({ ...base, status: 'skipped', reason });
+      continue;
+    }
+    const [{ rows, truncated }, cols] = await tableData(s.input.table.id);
+    if (truncated) {
+      report.push({
+        ...base,
+        status: 'skipped',
+        reason:
+          'Clay returned only a sample of this bulk enrichment table. Export the full list by hand.',
+      });
+      continue;
+    }
+    const { seed, audit, ...plan } = planSignal(s, cols.data, rows);
+    if (plan.status === 'drafted') {
+      fs.mkdirSync(`${out}/fleets`, { recursive: true });
+      const file = `${out}/fleets/${plan.fleet}.fleet.json`;
+      try {
+        for (const args of [
+          [
+            'init',
+            plan.fleet,
+            '--source',
+            `storage.${plan.table}`,
+            '--key',
+            'row_key',
+            '--tool',
+            plan.tool,
+            '--payload',
+            JSON.stringify(plan.payload),
+            '--limit',
+            String(plan.seedRows),
+            '--out',
+            file,
+          ],
+          ['lint', '--file', file],
+        ])
+          execFileSync('deepline', ['monitors', 'fleets', ...args], {
+            stdio: 'pipe',
+          });
+      } catch (e) {
+        plan.status = 'blocked';
+        fs.rmSync(file, { force: true });
+        plan.reason = `Fleet validation failed: ${String(e.stderr || e.message).slice(0, 400)}`;
+      }
+      if (plan.status === 'drafted') {
+        fs.mkdirSync(`${out}/seeds`, { recursive: true });
+        fs.mkdirSync(`${out}/rows`, { recursive: true });
+        fs.writeFileSync(`${out}/rows/${plan.table}.csv`, signalCsv(audit));
+        signalSql(`storage.${plan.table}`, seed).forEach((sql, i) =>
+          fs.writeFileSync(
+            `${out}/seeds/${plan.table}.${String(i).padStart(3, '0')}.sql`,
+            sql,
+          ),
+        );
+      }
+    }
+    report.push({ ...base, ...plan });
+  }
+  writeJson(`${out}/report.json`, { workspace, signals: report });
+  console.table(
+    report.map((r) => ({
+      id: r.id,
+      type: r.type,
+      status: r.status,
+      seedRows: r.seedRows ?? '',
+      invalidRows: r.invalidRows ?? '',
+      unmapped: Object.keys(r.unmapped ?? {}).join(', '),
+      reason: r.reason ?? '',
+    })),
+  );
+  console.log(
+    `Clay workspace: ${workspace?.name ?? 'unknown'}. Report: ${out}/report.json. Nothing was deployed.`,
+  );
 }
 
 const cmds = {
@@ -3180,11 +3867,12 @@ const cmds = {
   import: importExtracts,
   cost,
   'workflow-cost': workflowCost,
+  signals: signalsToFleets,
   selftest,
 };
 if (!cmds[cmd] || (!dir && cmd !== 'selftest')) {
   console.error(
-    'usage: clay-to-deepline.mjs <export|import|compile|parity|check|cost|workflow-cost> <dir> [extract.json ...] [--rows N] [--tables t_a,t_b] [--plan launch|growth|legacy] [--pricing file] | selftest',
+    'usage: clay-to-deepline.mjs <export|import|compile|parity|check|cost|workflow-cost|signals> <dir> [extract.json ...] [--rows N] [--tables t_a,t_b] [--signals td_a,td_b] [--plan launch|growth|legacy] [--pricing file] | selftest',
   );
   process.exit(2);
 }

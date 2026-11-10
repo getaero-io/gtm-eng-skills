@@ -1,6 +1,6 @@
 ---
 name: clay-to-deepline
-description: 'Move Clay tables, workflows and functions to Deepline Plays, and compare what the same run costs in Clay and in Deepline. Use for any Clay migration, Clay export or bookmarklet JSON, Clay CLI workspace, "convert this Clay table", Clay credit cost, or "is Deepline cheaper than Clay". Reads a Clay CLI export or a bookmarklet / clay-extract.py JSON file. Makes the Plays, proves formula parity on real rows, and prices both sides.'
+description: 'Move Clay tables, workflows, functions and Signals to Deepline Plays and Monitors, and compare what the same run costs in Clay and in Deepline. Use for any Clay migration, Clay export or bookmarklet JSON, Clay CLI workspace, "convert this Clay table", Clay credit cost, or "is Deepline cheaper than Clay". Reads a Clay CLI export or a bookmarklet / clay-extract.py JSON file. Makes the Plays, proves formula parity on real rows, and prices both sides.'
 ---
 
 # Clay to Deepline
@@ -44,6 +44,7 @@ node $S check   <dir>                            # deepline plays check on every
 node $S cost    <dir> [--plan launch|growth|legacy] [--pricing file.json]   # Clay cost and Deepline cost, per column
 node $S workflow-cost <dir> wf_xxx [--limit 50] # Clay-metered credits for each completed workflow run
 node $S sample  <dir> --table t_x --column "Work Email" --row-ids r_a,r_b   # one column and its inputs as a pilot play
+node $S signals <dir> [--signals td_a,td_b]      # Clay Signals to Monitor Fleet drafts and a gap report. See section 9.
 node $S selftest                                 # Clay-semantics assertions, no network
 ```
 
@@ -204,6 +205,20 @@ See the Functions section of [clay-extraction.md](../references/clay-extraction.
 
 **Triggers and routing.** A table with a webhook trigger, a CRM write, or a campaign push needs a play with triggers.
 Run `deepline plays --help`. Use the extracted config as the source.
+
+**Clay Signals.** `signals <dir>` reads each Signal and its watched rows. It writes `signals/report.json`, one `signals/fleets/*.fleet.json` for each convertible Signal, `signals/seeds/*.sql`, and `signals/rows/*.csv`, which holds every source column for each seeded row. It is read-only against Clay and deploys nothing. Use a new `<dir>` for each export. The command refuses to reuse one.
+
+Show the report to the user first. Each Signal is `drafted`, `skipped` or `blocked`. `unmapped` lists Clay settings with no monitor input. A filter moved to the Play does not reduce the findings you pay for.
+
+Then, after approval:
+
+1. Run each seed file, in order, with `deepline db query --sql @<file>`. The create file fails if the table exists. Inserts cannot remove or correct a target, so reconcile a re-export by hand.
+2. The Clay CLI cannot read a view, so the seed holds the whole table. Use `signals/rows/<table>.csv` to find the rows outside the view, then delete their `row_key` from the seed table. Keep a `row_key` if any row in the view shares it.
+3. Run `deepline monitors fleets deploy --file <fleet> --dry-run`. Show the plan. Deploy only after approval.
+4. Add a Play with a `sqlListeners` trigger. Anything that read Clay's event table reads the monitor's table instead.
+5. Run both sides until they agree. Pause the Clay Signal with `clay signals pause`. Do not delete it.
+
+Topic intent, Custom, web intent and audience-based Signals are not converted. `monitors preview` supports only `company_new_hires`, so job-opening volume cannot be sampled before deploying. Roll out a small Fleet first.
 
 **Unknown action.** Do not guess from the action name. Use this order:
 
