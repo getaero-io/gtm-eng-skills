@@ -27,6 +27,9 @@ Search and help are how you learn Deepline. Search finds what to run;
 outputs and cost, with `--verbose` for field-level detail. Read a command's
 help before you first use it. `deepline --help` lists every command.
 
+When search returns a relevant doc, read it with `deepline describe <doc id>`
+before you start: docs have steps you haven't thought of or may miss.
+
 ## Final message: read before you reply
 
 Reply in this shape and nothing else:

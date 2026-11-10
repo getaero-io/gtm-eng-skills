@@ -1,5 +1,7 @@
 ---
 name: deepline-feedback
+# Retired: kept as an alias, left out of deepline search.
+stub: true
 description: 'Retired. Reporting feedback and sharing a session are documented by the CLI itself: run `deepline feedback send --help` and `deepline sessions send --help`. Kept only so installed CLIs that still list this skill keep syncing.'
 disable-model-invocation: false
 ---

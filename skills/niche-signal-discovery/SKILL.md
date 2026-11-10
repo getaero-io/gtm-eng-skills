@@ -1,5 +1,7 @@
 ---
 name: niche-signal-discovery
+# Retired: kept as an alias, left out of deepline search.
+stub: true
 disable-model-invocation: false
 description: 'Deprecated alias. This skill was renamed to `deepline-scoring`. Use when a user or script still invokes `/niche-signal-discovery`: immediately load and follow the `deepline-scoring` skill instead. Triggers: ICP analysis, niche signals, won vs lost analysis, differential signals, signal discovery, ICP signal report, account scoring signals, lead scoring, first-party signals, buyer signals.'
 ---

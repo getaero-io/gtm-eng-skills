@@ -1,5 +1,7 @@
 ---
 name: deepline-pre-research
+# Retired: kept as an alias, left out of deepline search.
+stub: true
 description: 'Deprecated alias. This skill was renamed to `deepline-research`. Use when a user or script still invokes `/deepline-pre-research`: immediately load and follow the `deepline-research` skill instead. Triggers: pre-research, source discovery, provider strategy, research data sources, ScrapeCreators, X/Twitter data, Reddit comments, public and private datasets, CRM data, workflow data, custom language, messaging language, pain language.'
 ---
 
