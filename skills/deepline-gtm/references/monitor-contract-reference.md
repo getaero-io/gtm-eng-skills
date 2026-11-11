@@ -1,4 +1,4 @@
-<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: da2552d0baf4cf210b53e909db9b53fd1d2591b1a9612fcbe05ab0c6a20854d5; run bun run docs:monitor-contract -->
+<!-- GENERATED FROM ProviderMonitorCapabilityDefinition; content-sha256: d3faad008a86a4a9b4430a54610b815b677039ba732542b787f5b911bed9f16b; run bun run docs:monitor-contract -->
 
 # Monitor Contract Reference
 
