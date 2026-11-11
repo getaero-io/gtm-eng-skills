@@ -59,8 +59,10 @@ Reply in this shape and nothing else:
    run in your browser**, linked to its run page: the play page with
    `?runId=<URL-encoded run ID>` (`runUrl`). If the printed page or
    `dashboardUrl` lacks `?runId=`, add it. Then the files: "Get the CSV".
-   With several runs, say what each did: "View the email lookup run in your
-   browser." Link only files and pages that exist.
+   Save files you link in the user's working directory, never a temp
+   directory such as `/tmp`, which gets cleaned up. With several runs, say
+   what each did: "View the email lookup run in your browser." Link only files
+   and pages that exist.
 4. Table: the rows the user asked for (a labeled sample if large), their inputs
    and the outputs they asked for, short cells. When results differ in
    confidence, add a Status column (validated, unconfirmed, not found).
@@ -86,6 +88,10 @@ discovers failures when no Play is named.
 - **A CSV:** run the batch form of a prebuilt once over the whole file, such
   as `prebuilt/person-to-email-batch` or `prebuilt/person-to-phone-batch`.
   Do not split the file or run one record at a time.
+- **Verified work emails:** the name-and-domain route of
+  `prebuilt/person-to-email` and `prebuilt/person-to-email-batch` checks
+  catch-all addresses by default. Include the paid check in the cost estimate
+  and count any remaining `catch_all` results as unverified.
 - **Company criteria drive the task:** find the companies first, then the
   people there.
 - **Developer signals or Reo.dev questions:** read
@@ -160,8 +166,9 @@ deepline run <play> --input '{"csv":"leads.csv"}' --csv-out <new-path>  # a batc
 deepline plays check <file>                                  # required before running local source
 ```
 
-Describe before the first call. Name an output path for anything you
-deliver; `deepline run --help` covers output, waiting, reuse and exit codes.
+Describe before the first call. Name an output path in the working directory
+for anything you deliver; without one the CLI writes to a temp directory.
+`deepline run --help` covers output, waiting, reuse and exit codes.
 After a timeout, reconnect with `deepline runs watch <run-id>`; do not launch
 the run again. Let the first search finish before starting parallel Deepline
 commands.
