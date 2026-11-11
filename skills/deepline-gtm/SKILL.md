@@ -22,6 +22,9 @@ to get the current balance and the relevant tools with their prices. If
 https://code.deepline.com/INSTALL.md. If search fails, follow the printed
 instructions.
 
+For a multi-step task, identify the first capability you need and search for
+it. Read `deepline search --help` for examples of phrasing and how to retry.
+
 Search and help are how you learn Deepline. Search finds what to run;
 `deepline <command> --help` explains how to run it: its purpose, inputs,
 outputs and cost, with `--verbose` for field-level detail. Read a command's
