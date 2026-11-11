@@ -1,5 +1,3 @@
-<!-- skill-tool-field: people -- Attio object API name in the object payload field, not a tool ID. -->
-
 # Attio CRM — Agent Guidance
 
 ## Quick Reference
