@@ -35,7 +35,7 @@ Adapt the [monitor setup](../recipes/deepline-monitors.md) like this:
 
 ```json
 {
-  "key": "<signal>-sample",
+  "key": "<signal>",
   "tool": "deepline_native.industry_radar",
   "payload": {
     "radar_type": "<radar type>",

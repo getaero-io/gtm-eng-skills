@@ -133,7 +133,7 @@ set `updates_since` to the first window's start:
 
 ```json
 {
-  "key": "<target>-<signal>-sample",
+  "key": "<target>-<signal>",
   "tool": "deepline_native.company_radar",
   "payload": {
     "domain": "<target domain>",
@@ -213,7 +213,8 @@ targets: a listener fires only for rows written after it exists. Start the
 stopped sample monitor with `deepline monitors start <key>`, which restarts it
 at regular execution because its priority was removed, and deploy the other
 targets without `updates_since` or `controls.execution_type`; the sample already
-supplied the history. After a preview, deploy that target like the others. If
+supplied the history. Never deploy a second monitor for the sample's target: a
+stopped monitor keeps its target, so that deploy is refused. After a preview, deploy that target like the others. If
 none is connected, say so and ask the user to connect Slack, a CRM or a
 sequencer in Dashboard → Integrations before turning it on. Never present the
 raw Customer DB table as the destination; it is only the fallback when the user
