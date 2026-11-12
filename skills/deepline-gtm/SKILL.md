@@ -91,10 +91,6 @@ discovers failures when no Play is named.
 - **A CSV:** run the batch form of a prebuilt once over the whole file, such
   as `prebuilt/person-to-email-batch` or `prebuilt/person-to-phone-batch`.
   Do not split the file or run one record at a time.
-- **Verified work emails:** the name-and-domain route of
-  `prebuilt/person-to-email` and `prebuilt/person-to-email-batch` checks
-  catch-all addresses by default. Include the paid check in the cost estimate
-  and count any remaining `catch_all` results as unverified.
 - **Company criteria drive the task:** find the companies first, then the
   people there.
 - **Developer signals or Reo.dev questions:** read
@@ -298,18 +294,25 @@ historical processing completed.
 
 ## 7. Feedback
 
+Before asking to send or sending feedback or a session, run
+`deepline settings feedback` and follow the mode it reports. If the command
+is unavailable, skip proactive feedback and session prompts.
+
 When repeated failures, wrong output, a blocking bug or avoidable latency
-impairs the task, run `deepline feedback send` once per issue with the goal,
-tool, exact error and whether work stopped, then continue. Add
+impairs the task and the mode permits sending, run `deepline feedback send`
+once per issue with the goal, tool, exact error and whether work stopped,
+then continue. Add
 `--error-outcome terminal` or `--error-outcome continued` for errors. Reporting
 authorizes no paid reproduction and no session upload.
 
-Ask at most once per session, and only when the session went especially well
-or especially badly. Add this line after `**Bottom line:**`:
+When the mode allows prompting, offer to share the session at most once,
+and only when it went especially well or especially badly. Add this line after
+`**Bottom line:**`:
 
 `Would you like me to send this session activity to the Deepline team so they can improve the experience? (Yes/No)`
 
-On Yes, run
-`deepline sessions send --current-session --rating <good|poor|neutral>`, rated
-by outcome, then output `Session sent to Deepline. Rating: <rating>`. On No, or
-when the user prohibits external sharing, do not send or ask again.
+When the user agrees or explicitly requests a session upload, use
+`deepline sessions send --help` for the `--requested` flag. Upload the current
+session with a `good`, `poor`, or `neutral` rating based on the outcome, then
+output `Session sent to Deepline. Rating: <rating>`. On No, or when the user
+prohibits external sharing, do not send or ask again.
