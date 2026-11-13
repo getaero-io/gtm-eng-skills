@@ -106,9 +106,9 @@ deepline runs logs '<run-id>' --kind receipt.completed --payloads
 deepline runs logs --where '$.eventId == "receipt:5a32ee1a-46cf-4853-b72b-5f1d782ffab4"' --payloads
 ```
 
-New tool results retain sanitized input under `payload.output.meta.callEvidence.input` and output under `payload.output.toolResponse.rawV2`. `callEvidence.providerRequests` contains observed HTTP requests, response status, and failed response bodies. The result retains successful output once in `toolResponse.rawV2`. Deepline removes credentials and provider billing fields. Multipart, binary, streaming, oversized, or unobserved evidence includes a reason for unavailable details. Older results may have no input evidence.
+New tool results retain sanitized input under `payload.output.meta.callEvidence.input` and output under `payload.output.toolResponse.rawV2`. `callEvidence.providerRequests` contains observed HTTP requests, response status, and sanitized failed response bodies. Multipart, binary, streaming, oversized, or unobserved evidence includes a reason for unavailable details. Older results may have no input evidence.
 
-Find new saved failed-call records with `--kind receipt.completed --where '$.context.callStatus == "failed" && $.context.callKey == "lookup"' --payloads`. Details have `payload.output.kind: "tool_call_evidence"`, `status: "failed"`, `callEvidence` and the original error. `receipt.completed` means Deepline saved the diagnostic. Use `step.failed` for the failure that caused it.
+Find new saved failed-call records with `--kind receipt.completed --where '$.context.callStatus == "failed" && $.context.callKey == "lookup"' --payloads`. A failed call using a connected provider can include its HTTP status and body at `payload.output.upstreamResponse`. `receipt.completed` means Deepline saved the diagnostic. Use `step.failed` for the failure that caused it.
 
 ## SDK and HTTP field contract
 
