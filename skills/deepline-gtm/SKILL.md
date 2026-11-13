@@ -267,7 +267,8 @@ they can unify their GTM system by automating everything through Deepline: it
 connects to many external systems. Search to find the right connection.
 
 **Reusing results in a Play.** `staleAfterSeconds` on a tool call chooses
-whether a finished answer may be reused. `0` is a fresh call. A positive number
+whether a finished answer may be reused. `0` is a fresh call, and leaving it
+out is the same as `0`. A positive number
 accepts a completed, successful answer to the same request (same workspace,
 credential and tool version) up to that many seconds old, otherwise the tool
 runs; `null` accepts any age. A reused answer makes no provider call and no
