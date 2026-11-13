@@ -274,7 +274,10 @@ credential and tool version) up to that many seconds old, otherwise the tool
 runs; `null` accepts any age. A reused answer makes no provider call and no
 provider charge. This holds for every tool: a positive window on a write, send
 or purchase skips a repeat of it on purpose, so use `0` when a repeat is wanted
-and re-read after a write with `0`. A repeat is skipped only after an
+and re-read after a write with `0`. Only these need `0`: event waits, Google
+Workspace tools, Customer DB SQL that changes data, live datasets, `fetch`
+other than GET/HEAD/OPTIONS, and `customerDb.query`; `deepline plays check`
+names the fix. A repeat is skipped only after an
 earlier call has finished; overlapping calls both run, so use a provider
 idempotency key when a send must happen once. Failed, empty and unfinished answers are
 never reused. Resuming a run always returns its own finished calls. Results

@@ -10,18 +10,22 @@ AI Ark provides company search, people search, reverse lookup, mobile phone find
 **Auth:** `X-TOKEN` header with API key.
 **Rate limit:** AI Ark documents a default limit of 5 requests per second per API token. Deepline queues calls at that rate within its provider scope; the queue hint does not coordinate separate organizations that use their own tokens. If AI Ark returns HTTP 429, wait for its `Retry-After` value before retrying. [AI Ark rate-limit guidance](https://docs.ai-ark.com/docs/ai-agents).
 
-## Credit Costs
+## Pricing and credential lane
 
-| Operation                      | Cost | Unit            |
-| ------------------------------ | ---- | --------------- |
-| Company Search                 | 0.1  | per result      |
-| People Search                  | 0.5  | per result      |
-| Reverse People Lookup          | 0.5  | per request     |
-| Mobile Phone Finder            | 5.0  | per request     |
-| Export People (with Email)     | ~0.5 | per email found |
-| Personality Analysis           | TBD  | coming soon     |
-| Email Finder                   | ~0.5 | per email found |
-| Polling / Statistics / Results | 0    | free            |
+`deepline describe <tool>` and `deepline run <tool> --dry-run` show the
+current Deepline rate. Managed async email finding/export settles from terminal
+`statistics.found`; misses add no Deepline email charge. People Search is charged
+separately. An initial hold is an estimate, not a final charge. Statistics and
+results reads add no Deepline credits. With your own AI Ark credentials,
+Deepline charges no tool credits; provider usage still counts against your
+AI Ark account.
+
+[AI Ark's current public contract](https://docs.ai-ark.com/docs/ai-agents)
+differs from Deepline's retained settlement policy: the provider documents
+1 AI Ark credit per found valid email for Find Emails, and 0.5 per exported
+person plus 0.5 per found valid email for Export. These are provider units,
+not Deepline credits. Use describe for the Deepline price, rather than
+converting the provider's tariff.
 
 ## Filter Structure (CRITICAL)
 
@@ -208,16 +212,23 @@ limitation.
 
 **Path A — Export People (recommended for bulk verified email pulls):**
 
-1. `ai_ark_export_people` with filters + optional webhook → returns `trackId`.
-2. Poll `ai_ark_export_statistics` until `state: "DONE"`.
+1. `ai_ark_export_people` with filters + required real HTTPS webhook → returns `trackId`.
+2. With `wait_for_completion: false`, save the returned job `trackId`. Poll `ai_ark_export_statistics` until `state: "DONE"`.
 3. Fetch results via `ai_ark_export_results` (paginated).
 
 **Path B — Find Emails from Search:**
 
 1. Run `ai_ark_people_search` first → response includes a `trackId`.
 2. `ai_ark_find_emails` with that `trackId` and a `webhook` URL (single-use, expires in 6 hours).
-3. Poll `ai_ark_email_finder_statistics` until `state: "DONE"`.
+3. With `wait_for_completion: false`, save the returned job `trackId`. Poll `ai_ark_email_finder_statistics` until `state: "DONE"`.
 4. Fetch results via `ai_ark_email_finder_results` (paginated).
+
+Both launchers require your real HTTPS webhook even when you consume results
+by polling. Deepline does not provide a callback. Omitted or true
+`wait_for_completion` waits and fetches results; if the wait ends while pending,
+retain the returned job `trackId` and poll instead of submitting again.
+Repeated statistics/results reads do not submit new email jobs. Handle webhook
+duplicates by job `trackId` and result `refId`.
 
 ### Identity Resolution
 
@@ -237,7 +248,7 @@ All search/list endpoints use zero-based pagination with `page` and `size` param
 
 ## Error Handling
 
-- **409 Conflict**: Export or email-finder result pages were requested while the async job is still processing. Poll statistics first.
+- **409 Conflict**: The job is still processing; Deepline returns `running` and `state: "PROCESSING"`, not a terminal email miss. Poll statistics first. Email Finder may also return readable partial pages with unfinished items in `PROCESSING`; these are not final misses.
 - **404 Not Found**: Profile not found (personality analysis).
 - **429 Too Many Requests**: Rate limit exceeded. Honor the response's `Retry-After` header when present; otherwise use a short exponential backoff. Do not assume a fixed 60-second reset window.
 
@@ -245,5 +256,5 @@ All search/list endpoints use zero-based pagination with `page` and `size` param
 
 - Export People: max 10,000 results per export.
 - Find Emails trackId: single-use, expires 6 hours after the People Search that generated it.
-- Webhooks: auto-retry up to 30 times. Use HTTPS endpoints and respond `200` immediately.
+- Webhooks can be redelivered. Use a real HTTPS endpoint, respond `200` promptly, and deduplicate by job `trackId` and result `refId`.
 - Undocumented endpoints in the vendor docs snapshot are intentionally not exposed here.
