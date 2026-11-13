@@ -14,7 +14,7 @@ Each step says what to get. Find the tool or prebuilt play for it with `deepline
    - Accept contact data from a social profile only when the profile matches the business on at least two of: name, address, phone, website or booking link, Maps listing.
 5. **Scale it as a play.** Once each step works on a sample, run the list through a play so every row keeps its source columns and the run can be exported.
 
-Deepline has prebuilt plays for parts of steps 3 and 4. `deepline search "local business -> owner name" --type prebuilts` and `deepline search "local business -> contact email" --type prebuilts` list them; read each one's inputs with `deepline describe` before choosing it over a tool.
+Deepline has prebuilt plays and tools for parts of steps 3 and 4. `deepline search "storefront business name and street address -> owner name"` and `deepline search "local business -> contact email"` list both; read each one's inputs with `deepline describe` before choosing.
 
 ```bash
 deepline search "a business category and a city -> each business's name, phone, address and website"

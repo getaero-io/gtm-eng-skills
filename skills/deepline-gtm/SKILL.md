@@ -23,7 +23,11 @@ https://code.deepline.com/INSTALL.md. If search fails, follow the printed
 instructions.
 
 For a multi-step task, identify the first capability you need and search for
-it. Read `deepline search --help` for examples of phrasing and how to retry.
+it. Search matches your words against what each tool takes and returns.
+Describing the data, like "<what you have> -> <the final result you need>",
+works better than naming a method or a middle step, and rephrasing the query
+often turns up different tools.
+`deepline search --help` has examples.
 
 Search and help are how you learn Deepline. Search finds what to run;
 `deepline <command> --help` explains how to run it: its purpose, inputs,
@@ -79,28 +83,38 @@ For failing, stuck, partial, or incorrect Play runs, use
 `deepline-triage` alongside this skill. It also
 discovers failures when no Play is named.
 
+**Decide the task's shape first.**
+
+- **Find everything** (a complete list: every company that matches, everything
+  a source holds about an account): completeness matters most. It usually pays
+  to cast a wide net: try a few different searches and complementary sources,
+  and merge what you find.
+- **Fill in fields for given rows** (one value per row: an email per person, a
+  domain per company): coverage matters. After a first pass, it's usually worth
+  a different search or source for the rows that are still empty before you
+  wrap up.
+- **Company criteria drive the task:** find the companies first, then the
+  people there.
+
+Either way, save the first pass as the deliverable before trying more, keep it
+current as later passes finish, and leave time to deliver.
+
+Then choose what to run:
+
 - **Tool:** one operation, such as looking up a profile or validating an email.
   Use direct tool calls for isolated spot checks.
 - **Play:** TypeScript that expresses GTM work as code. It combines tools with
   custom logic and processes batches. Deepline handles provider rate limits and
   retries, persists progress and results, and supports recovery after failures.
 - **A tool or prebuilt Play covers the task:** use it directly.
+- **Prefer sources that return evidence** for each answer, such as a source URL
+  or a verified status, over lists without it. Report unverified results, such
+  as catch-all emails, apart from verified ones.
 - **A workflow or batch:** use a supplied Play, reuse or adapt a suitable
   prebuilt, or author one when none fits. Do not process a batch by looping
   direct tool calls.
-- **A CSV:** run the batch form of a prebuilt once over the whole file, such
-  as `prebuilt/person-to-email-batch` or `prebuilt/person-to-phone-batch`.
-  Do not split the file or run one record at a time.
-- **Company criteria drive the task:** find the companies first, then the
-  people there.
-- **Developer signals or Reo.dev questions:** read
-  [developer signals](recipes/developer-signals.md) for accessible signal
-  coverage, identity mapping and account scoring. Do not claim vendor
-  replacement or offer inaccessible sources.
-- **Finding a person's LinkedIn URL from a name:** keep a URL only when the
-  first and last name on the returned profile match the input. Mark the rest
-  unresolved; a paid person lookup by name and company domain is the last
-  fallback.
+- **A CSV:** run the batch form of a prebuilt once over the whole file. Do not
+  split the file or run one record at a time.
 - **The task names a provider:** search for that provider. The provider names
   in this skill description are a bounded discovery hint. For a supplied tool
   ID, use `deepline describe <tool-id>`; absence from discovery does not prove
@@ -123,29 +137,14 @@ discovers failures when no Play is named.
   call's `id` is a fixed name for that call site: Deepline keys repeated calls
   by input, so a loop keeps one id. Return an object (`return { rows }`).
   `deepline plays --help --verbose` has the authoring rules.
-- **Memory-heavy Plays:** diagnose the actual memory boundary and retain the
-  original code for a faithful reproduction. Select a fixed sandbox profile for
-  the measured peak; automatic headroom is evaluated in isolated Preview. Use pages
-  and durable checkpoints for large inputs. For file transforms, stream input and
-  output through disk and pass paths plus compact receipts to subprocesses;
-  Node and Python share the sandbox's memory limit. Persist output artifacts
-  before checkpointing, because scratch files can disappear on resume.
-  Inline `ctx.runPlay` shares its parent's sandbox memory; `ctx.runPlayAsync`
-  launches an independent run. In static config, `runtime.size: '4gb'` or
-  `'large'` selects 4 GiB / 2 CPU; `'8gb'` or `'xlarge'` selects 8 GiB / 4 CPU.
-  The default is `'standard'` or `'1gb'` at 1 GiB / 1 CPU. Each alias selects
-  the same resources and price as its named profile. Use
-  `deepline billing quote --sandbox-timeout 30m --sandbox-size 4gb` to compare
-  the session ceiling. Select a larger profile for a measured single-step
-  memory peak, and keep resumability in the job design; more memory does not
-  make a full-account transform checkpoint or resume automatically.
+- **Large inputs or memory-heavy Plays:** read the Runtime section of
+  `deepline plays --help --verbose` before choosing a sandbox size.
 - **A Play or run was supplied:** use it. Do not rediscover or replace it.
-
-For outreach copy, read [writing outreach](writing-outreach.md).
 
 ### Specialized recipes
 
 Open one when the task matches:
+[outreach copy](writing-outreach.md),
 [account org chart](recipes/account-orgchart.md),
 [build TAM](recipes/build-tam.md),
 [Clay conversion](recipes/clay-to-deepline.md),
@@ -169,7 +168,11 @@ Describe before the first call. Name an output path in the working directory
 for anything you deliver; without one the CLI writes to a temp directory.
 `deepline run --help` covers output, waiting, reuse and exit codes.
 After a timeout, reconnect with `deepline runs watch <run-id>`; do not launch
-the run again. Let the first search finish before starting parallel Deepline
+the run again. If a call fails validation, read `deepline describe <name>` and
+retry with the right input; if a step errors on every call, search for another
+tool. Before a long run, check the tool's rate limit against the number of
+rows, and check a running job with `deepline runs get <run-id>` rather than
+sleeping. Let the first search finish before starting parallel Deepline
 commands.
 
 ## 3. Get results
@@ -189,12 +192,10 @@ deepline runs logs <run-id> --kind receipt.completed --payloads  # saved tool re
 
 Save a contract with `deepline describe <name> --out contract.md`.
 
-In a Play, read a tool result through the exact getters `deepline describe`
-lists; other fields are in `result.toolResponse.rawV2`, with the provider/tool
-adapter envelope kept. `.data` and `.data.data` are different, and
-`view: "data"` keeps rawV2's nesting. Inspect the original retained response
-and assert required fields on a pilot before bulk execution. An extraction
-mismatch is not a provider miss, invalid email, or business hold.
+In a Play, read a tool result through the getters `deepline describe` lists;
+`deepline tools describe --help` explains the rest of the response. Inspect
+the original retained response and assert required fields on a pilot before
+bulk execution. An extraction mismatch is not a provider miss.
 
 Keep the table and run filter from the suggested SQL. Inspect column types and
 sample values before querying; after a type error, look at the data. A preview
@@ -240,16 +241,6 @@ billing command the receipt lists; a held or pending charge is not final.
 
 ## 5. Deliver results
 
-**Typical coverage, validated results only:** work email about 75%, mobile
-about 60%, LinkedIn URL and company domain about 90%. Count catch-all or
-unverified emails separately. If a first pass lands well below these, run a
-second pass on the misses only, using a different route, and set an explicit
-credit budget for it first, sized from the cost per row you observed. A
-budget the user already gave you counts, if enough remains. Do not rerun rows
-that already succeeded. If a step errors on every
-call, search for another tool. Stop and report the gap with the cheapest next
-step when the budget is spent.
-
 Export the complete requested population to the requested path and filename,
 then verify row count, identity and requested columns. Keep every supplied row,
 including misses, and its evidence and lineage fields. Write CSVs with a CSV
@@ -277,20 +268,9 @@ connects to many external systems. Search to find the right connection.
 
 A **monitor** is a trigger that reports a change the user cares about: a
 contact changes jobs, a company posts a job, a company raises funding, etc.
-Follow [Monitors](recipes/deepline-monitors.md). Every paid monitor deploy,
-reactivation or historical widening needs explicit approval covering scope,
-live Deepline price, recurring/event charges and downstream actions. Confirm
-the targets and signals first, then set up in the recipe's three cards, in
-order: pull a small sample (one target per signal type) so that we can confirm
-it looks correct, offering concrete changes when it is mostly noise; ask where
-matches go (Slack, CRM or outreach sequencer); then offer to send the sample
-through that action.
-Every monitor ends in an action: recommend a connected one while listing the
-others, or ask the user to connect one. State the live per-match price; never
-show history dates, and keep the volume-sized backfill sequence and polling
-timing internal. Do not ask again for a step already approved. Follow the
-recipe for effective dates and failure checks. A setup timeout does not prove
-historical processing completed.
+Set one up by following [Monitors](recipes/deepline-monitors.md). Every paid
+monitor deploy, reactivation or historical widening needs explicit approval
+covering scope, live Deepline price, recurring charges and downstream actions.
 
 ## 7. Feedback
 
