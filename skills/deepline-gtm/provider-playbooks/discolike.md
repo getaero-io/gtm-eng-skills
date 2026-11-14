@@ -1,34 +1,62 @@
 # DiscoLike Integration Guide
 
-Use DiscoLike for website-first company discovery and domain intelligence.
+DiscoLike indexes companies by their website (87M+ business domains, 60 languages). Its edge is the long tail: small and local businesses such as law firms, medical and dental practices, contractors, agencies, and other SMBs that have a website but little LinkedIn or funding footprint. Reach for it when person- or LinkedIn-first providers return nothing for a small company.
 
-## Best entry points
+## Pick the right tool
 
-1. `discolike_count` when you want a fast volume estimate for supported search filters like phrase, category, geography, technology, or business model before paying to retrieve a large result set.
-2. `discolike_discover` when you have seed domains or a natural-language ICP.
-3. `discolike_bizdata` when you already know the domain and need a firmographic profile.
-4. `discolike_search_indexed_contacts` when you want indexed contacts from DiscoLike's contact dataset at known company domains or matching contact/company filters.
-5. `discolike_generate_candidate_contacts` when you want ContaGen-style open-web research to generate candidate contacts at known company domains using DiscoLike-configured BYOK model and search-provider integrations.
-6. `discolike_run_company_research` when you want Claygent-style arbitrary company research: run one prompt per domain against company context and optional web search.
+| You have | You want | Use |
+| --- | --- | --- |
+| A company name, optionally city, state, zip, country, or phone | Its website domain | `discolike_match` |
+| A domain | Firmographics (name, address, phone, industry, size, revenue range, socials) | `discolike_bizdata`, or `discolike_append_bizdata` for up to 10,000 domains in one call |
+| An ICP description, filters, or seed domains | A list of similar companies | `discolike_count` first (free), then `discolike_discover` |
+| Company domains, or an ICP description such as "roofers in Texas" | People with a validated work email | `discolike_find_contacts` |
+| A person's name, optionally company or domain | Which company they are at, and their title | `discolike_match_contact` (free) |
+| A domain | Related domains | `discolike_vendors`, `discolike_publiclink`, `discolike_subsidiaries`, `discolike_redirects` |
+| A domain | Footprint size or growth | `discolike_score`, `discolike_growth` |
+| A URL | Page text | `discolike_extract` |
+| A set of domains | Clusters of similar companies | `discolike_segment` |
+| Domains plus a question | An AI-researched answer per company | `discolike_run_company_research` |
 
-## Segment behavior
+## Company match (name + geo)
 
-`discolike_segment` is public and synchronous from the agent perspective: it submits DiscoLike's async segment job, polls the provider status endpoint, and returns the completed segment rows when available.
+`discolike_match` resolves a company name to ranked domain candidates, each with a `match_confidence` from 0 to 100 and a full BizData profile. Use it as a fallback when other providers can't find a domain for a small business, or as a first pass for local businesses.
 
-If the sync wait times out, call `discolike_get_segment_status` with the returned `task_id` to retrieve the provider result later. This is a free read-only job-ID action for tasks created by the same organization. Billing separately tracks accepted provider work until terminal usage is known; no result cache resumes the task.
+- Pass the clean company name in `name`. Add `city`, `state` (code or full name), `zip_code`, `country` (ISO-2), or `phone` to separate businesses with common names, such as "Smith & Associates" in Austin and in Denver.
+- `local_mode: true` keeps state and country during DiscoLike's filter relaxation, so it won't return a same-named company in another state.
+- `strict: true` requires an exact normalized name match.
+- `min_match_confidence` (50-100) drops weak candidates. Use about 80 when writing the domain back without review.
+- No match means an empty result, which bills nothing. You pay one record per returned match.
 
-## Contact generation behavior
+## Discovery
 
-`discolike_search_indexed_contacts` searches DiscoLike's indexed contact/persona data.
+- `discolike_count` is free. Run it before `discolike_discover` to size a list.
+- `discolike_discover` accepts seed `domain`s (lookalikes), `icp_text`, or `icp_prompt` (natural language converted to filters), plus filters such as `phrase_match`, `category`, `tech_stack`, `country`, `state`, `employee_range`, `revenue_range`, and `business_model`. Each returned company bills one record.
 
-To leave specific people out, pass `exclude_persona_ids` (up to 1,000 DiscoLike `persona_id` values, for example from earlier calls to this tool when paging through a market). DiscoLike exclusion lists accept only persona IDs and domains, so LinkedIn URLs, emails, or names cannot be excluded. Deepline creates a temporary exclusion list for that one search and deletes it afterwards; callers never manage lists. If DiscoLike does not confirm the deletion, the call fails as retryable and is not charged.
+## Contacts
 
-`discolike_generate_candidate_contacts` is the ContaGen path: it submits `POST /contacts/discover/generate`, then polls DiscoGen status until terminal results are available or the caller's wait budget expires. Use it only when candidate open-web contact discovery is acceptable. Treat generated `email`, `linkedin_url`, phone, and identity fields as candidates until validated.
+`discolike_find_contacts` finds people and validates their work emails in one call. It works well for small businesses that LinkedIn-first tools cover poorly.
 
-`discolike_run_company_research` is the Claygent-like path: it submits `POST /discogen/process`, runs an arbitrary prompt against each company domain, and polls DiscoGen status for final results.
+- Choose companies with `companies.source`:
+  - `domains`: a list of up to 10,000 company domains. No company charge.
+  - `prompt`: `icp_text` (for example "family law firms in Austin with 1 to 50 employees") and/or `filters` (`filter_industry`, `sub_industry`, `filter_country`, `filter_state`, `employee_range`, `revenue_range`, and their `negate_` forms). Locations and sizes written in `icp_text` become filters; the result shows them in `applied_company_filters`.
+  - `lookalike`: `persona_ids` or `linkedin_urls` of example people. It finds similar people at similar companies.
+- Describe who you want in `people.fit` (plain language, default "Senior executives and decision makers"). There are no seniority or source controls.
+- `max_companies` (required) is the number of companies that must deliver a contact. `per_company` (default 10) caps contacts per company. Set `email_cap_usd` to cap spend.
+- Every returned contact has `email_status` `Validated` or `Validated (catch-all resolved)`. Both are verified mailboxes, so you don't need to verify them again.
+- Pricing: only validated contacts bill, plus one company record for each company that delivers on `prompt` and `lookalike` runs. Deepline holds the run's maximum cost before it starts and settles to what it actually spent.
+- The call waits up to `max_wait_ms` (default 2 minutes). If the run is still working, the result has `status: running` and an `id`. Read it later with `discolike_get_contacts_run` (`rows_offset`/`rows_limit` page companies). Use `discolike_get_contacts_run_events` for a progress feed, and `discolike_cancel_contacts_run` to stop it. Contacts delivered before a cancel stay charged.
+- Reuse the same `create_key` to get the existing run back instead of starting a new one.
 
-Inspect the Deepline price estimate for DiscoGen/ContaGen before execution. If the caller omits `integration_id`, Deepline uses the managed LLM config, OpenAI `gpt-5-nano`; if the caller omits `search_context_size`, Deepline uses `low`. Caller-selected model/search overrides, high search context, and `web_search: true` are blocked on the managed shared-key path. Website/profile context modes cost more than domain mode because they add company-context usage on top of the task launch.
+`discolike_match_contact` finds a named person in DiscoLike's contact index. It returns name, title, company domain and name, and `match_score`. It returns no email, phone, or LinkedIn, and it is free.
 
-## Pricing caveat
+`discolike_search_indexed_contacts` and `discolike_generate_candidate_contacts` call DiscoLike endpoints that stop working after 2026-12-31. Use `discolike_find_contacts` for new workflows. Treat emails, LinkedIn URLs, and phones returned by `discolike_generate_candidate_contacts` as unvalidated candidates.
 
-Deepline credit pricing for these actions is generated from the provider pricing metadata and rendered on the public provider pages.
+## Async tools
+
+`discolike_segment`, `discolike_generate_candidate_contacts`, and `discolike_run_company_research` submit a DiscoLike task and wait for it to finish. If the wait times out, call `discolike_get_segment_status` or `discolike_get_discogen_status` with the returned `task_id`. Status checks are free. `discolike_segment` needs at least 5 domains.
+
+DiscoGen tools (`discolike_generate_candidate_contacts`, `discolike_run_company_research`) run on a Deepline-managed model (OpenAI `gpt-5-nano`, low search context). Caller model and search overrides, high search context, and `web_search: true` are blocked. Website and profile context modes cost more than `domain` mode.
+
+## Pricing
+
+DiscoLike bills per returned record, with no per-query fee. Deepline charges per returned company record on discovery, match, enrichment, and relationship tools, and per validated contact on `discolike_find_contacts`. `discolike_count`, `discolike_match_contact`, contacts run reads, and status checks are free.
