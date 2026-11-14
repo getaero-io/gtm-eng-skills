@@ -1,0 +1,123 @@
+{
+  "$comment": [
+    "THE PATTERN SET AS DATA, because prose is a lossy channel for code.",
+    "The first delivery of these patterns was a Markdown document with the regexes inline. The",
+    "recipient could not use it: extracting regexes from a rendered document mangles them, and a",
+    "hand-transcribed regex is a regex that will drift from the one that was measured. So the",
+    "patterns live here, in a file that can be fetched, diffed, hashed and tested, and the",
+    "specification prose points at it instead of restating it.",
+    "",
+    "SEVERITY. `block` means publication stops and a human may waive it with a recorded reason.",
+    "Injection detection is heuristic AND blocking, which is a deliberate exception to the rule",
+    "that nothing heuristic blocks - see the reasoning in the spec. `report` never blocks.",
+    "",
+    "FLAGS. Every regex is intended to run case-insensitive and nothing else. Bounded gaps of the",
+    "form [^.\\n]{0,N} keep a match inside one sentence; without them, distant unrelated words",
+    "combine into false positives. Do not replace them with .* when porting."
+  ],
+  "version": "injection-patterns/1.0.0",
+  "flags": [
+    "IGNORECASE"
+  ],
+  "measured": {
+    "recall_fixture": "contracts/fixtures/full-depth-drive/safety-block/SKILL.md",
+    "recall": "7 of 7 pattern ids fire; covers all six findings the fixture's transcript states",
+    "precision_corpus": "30 clean skills, 52 files including references/",
+    "false_positives": 0
+  },
+  "patterns": [
+    {
+      "id": "reviewer_addressed",
+      "severity": "block",
+      "label": "instruction addressed to the reviewer",
+      "regex": "\\b(?:reviewer|automated\\s+review\\w*|security\\s+team|moderator)\\b[^.\\n]{0,80}(?:instruction|approved|pre-?approved|skip|clear|assign|score)|(?:already\\s+been\\s+approved|pre-?approved|skip\\s+the\\s+review)",
+      "rationale": "A skill instructs an INSTALLER. It has no legitimate reason to address a reviewer, a security team or a scanner at all, so the addressee is the discriminator rather than the words. Do not try to enumerate the claims an attacker might make.",
+      "creator_message": "This text gives instructions to whoever reviews the skill rather than to whoever installs it. A skill body should only ever address the person running it."
+    },
+    {
+      "id": "ignore_prior_instructions",
+      "severity": "block",
+      "label": "override of prior instructions",
+      "regex": "\\bignore\\s+(?:any\\s+|all\\s+)?(?:previous|prior|earlier|above|preceding)\\s+(?:instruction|direction|rule|guidance)",
+      "rationale": "No legitimate skill body needs to countermand instructions it cannot see.",
+      "creator_message": "This text tells the reader to disregard instructions it cannot see. Remove it - a skill describes its own steps and never overrides anything outside itself."
+    },
+    {
+      "id": "credential_solicitation",
+      "severity": "block",
+      "label": "instruction to collect a credential into the conversation",
+      "regex": "\\b(?:ask|have|request|prompt|get|tell)\\b[^.\\n]{0,40}\\b(?:paste|enter|type|share|provide|send)[^.\\n]{0,60}\\b(?:api[ _-]?key|password|secret|token|credential)|\\b(?:paste|enter|type)\\b[^.\\n]{0,60}\\b(?:api[ _-]?key|password|credential)[^.\\n]{0,40}\\b(?:in|into)\\s+(?:the\\s+)?(?:chat|conversation|message|prompt)",
+      "rationale": "A DIFFERENT resolver from the credential scan, and both must exist: that one finds a credential VALUE present in the package, this finds an instruction to obtain one where no value appears. The discriminator is INTO THE CONVERSATION - a skill may legitimately require that the installer has a key configured in their workspace. Configured versus pasted is the line.",
+      "creator_message": "This step asks the person running the skill to paste a credential into the conversation. Have them configure it in their workspace instead, so the secret never passes through a message."
+    },
+    {
+      "id": "concealment",
+      "severity": "block",
+      "label": "instruction to conceal an action from the operator",
+      "regex": "\\b(?:do\\s+not|don't|never)\\s+(?:tell|inform|notify|mention|disclose|reveal)[^.\\n]{0,30}\\b(?:the\\s+)?(?:user|operator|installer|owner|them)|\\bdo\\s+this\\s+silently\\b|\\bwithout\\s+(?:telling|informing|notifying)\\b",
+      "rationale": "The strongest signal in the set, and it replaces the obvious one. Matching the exfiltration URL is weak: an endpoint is dual-use and an attacker changes it for free. Concealment is not dual-use - no legitimate skill instructs concealment from its own operator, whatever is being concealed. Leave host portability to the endpoint resolver.",
+      "creator_message": "This step tells the reader to hide an action from the person running the skill. Anything a skill does should be visible to whoever runs it."
+    },
+    {
+      "id": "fabrication",
+      "severity": "block",
+      "label": "instruction to invent data and label it verified",
+      "regex": "\\b(?:generate|invent|make\\s+up|fabricate|synthesi[sz]e)\\b[^.\\n]{0,60}\\bmark\\s+(?:it\\s+|them\\s+)?(?:as\\s+)?(?:verified|confirmed|validated)|\\b(?:never\\s+say|always\\s+report\\s+success)\\b|\\bso\\s+the\\s+numbers\\s+(?:always\\s+)?look\\b",
+      "rationale": "The pattern most at risk of firing on legitimate content, because good skills discuss inference, confidence and refusing to guess. Measured at 0 false positives over 52 clean files rather than assumed safe. What it targets is inventing a value AND asserting it is verified, or forbidding an honest failure report.",
+      "creator_message": "This step produces a value and reports it as verified without checking it. A skill should be able to say it could not find something."
+    },
+    {
+      "id": "hidden_channel_directive",
+      "severity": "block",
+      "label": "directive inside a construct the reader cannot see",
+      "regex": null,
+      "structural": {
+        "regions": [
+          "<!--(.*?)-->"
+        ],
+        "region_flags": [
+          "DOTALL"
+        ],
+        "directive_regex": "\\b(?:assign|score|recommend|clear|approve|ignore|do\\s+not\\s+read|skip)\\b"
+      },
+      "rationale": "STRUCTURAL, not lexical. Text in a non-rendering construct is invisible to a human reading rendered markdown and fully visible to a parser, and that asymmetry IS the attack. So a directive inside such a construct blocks regardless of what it says, because nothing legitimate addresses a reader who cannot see the text. THE CLASS IS THE REQUIREMENT, not the one member the fixture exercises: extend to zero-width and bidirectional-override characters, styling that hides text, long base64 or hex blobs in prose, and frontmatter keys nothing consumes. PUBLISHED SCOPE IS NARROWER THAN THE CLASS, AND THAT IS A KNOWN LIMIT, NOT THE RULE. This file ships in the public repo so a creator can see why a finding fired, which necessarily tells a reader which constructs are enumerated here — today one: the HTML comment. Anyone reading it can pick a construct that is not listed. Publishing less is not the answer: a blocking check a creator cannot inspect is one they cannot act on, and the payload shapes are not secret to an attacker who tests against the door. The answer is that THE SERVER-SIDE IMPLEMENTATION MUST COVER THE CLASS MORE WIDELY THAN THIS LIST — every non-rendering construct that a markdown reader does not display and a parser does, which at minimum includes HTML comments, zero-width and bidi control characters, `display:none` and comparable inline styling, HTML attributes carrying prose, and content beyond a truncation boundary. Conformance to this file is the FLOOR for an implementation, never the ceiling, and an implementation that matches only what is enumerated here is conformant and insufficient.",
+      "creator_message": "There are instructions in a comment, where a reader cannot see them. Put anything the skill needs in the visible body."
+    },
+    {
+      "id": "promotional_stuffing",
+      "severity": "report",
+      "label": "keyword-stuffed or superlative description",
+      "regex": null,
+      "density": {
+        "field": "description",
+        "term_regex": "\\b(?:#1|best|ever|finest|greatest|unlimited|guaranteed?|ultimate|top[- ]rated|must[- ]have|world[- ]class|unbeatable|revolutionary|game[- ]?chang\\w+)\\b",
+        "distinct_terms_threshold": 3,
+        "threshold_justification": "Distinct superlatives per description measured on the clean corpus: 28 skills have 0, 2 have 1. The adversarial fixture has 7. A threshold of 3 sits in a real gap between the populations rather than being tuned until the fixture passed."
+      },
+      "rejected_signals": [
+        {
+          "signal": "any token repeated 3 or more times in the description",
+          "measured": "fired on 30 of 52 clean files",
+          "why_it_fails": "'Keyword-stuffed' reads like a repetition metric, but an account skill's description says 'account' four times because that is what it is about. Repetition of the subject noun is what a good description looks like and no threshold separates it from stuffing. Removed entirely."
+        },
+        {
+          "signal": "presence of any single superlative",
+          "measured": "fired on 7 of 52 clean files",
+          "why_it_fails": "All seven were 'the best' inside ordinary sentences such as 'the best available evidence'. Presence is not the signal; density is."
+        }
+      ],
+      "rationale": "A quality judgement, not a safety one. REPORT only - this is the one finding in the set that must never block.",
+      "creator_message": "The description reads as promotional rather than descriptive. Say what the skill does and when to use it; a router matches on the job, not on adjectives."
+    }
+  ],
+  "scan_scope": {
+    "rule": "Every recognised text entry, never SKILL.md alone.",
+    "measured": "A clean SKILL.md carrying the identical payload in references/notes.md yields 0 findings scanned alone against 12 blocking scanned fully.",
+    "note": "Case 9 is a bare .md and never exercises the archive path, so it cannot demonstrate the requirement it motivates. Case 9b exists for that.",
+    "finding_requirement": "Every finding must carry the path of the entry it came from, or a reviewer cannot act on it."
+  },
+  "operating_rules": [
+    "Run mechanically on raw bytes. A scan that hands adversarial text to a model for classification has already given the attacker what they wanted. If model-based classification is ever added, the content must arrive framed as data, and there must be a test that fails if submitted source reaches a model context - a search that finds no such path today is not a check that fails tomorrow.",
+    "Scan before storing, and render submitted content as inert text on every surface that shows it to a human. Finding 5 exists because a construct invisible in one view is visible in another."
+  ]
+}
