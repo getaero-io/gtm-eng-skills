@@ -34,13 +34,13 @@ authorize adding the fallback routes listed here.
 **For every Clay action, the selection order is:**
 
 1. **Native play first** — check if a native Deepline play covers the action (they're stable, multi-provider, and cost-optimized). Current native plays: `name-and-domain-to-email-waterfall`, `company-to-contact`, and `person-to-phone`.
-2. **Search for a dedicated tool** — `deepline search "<input you have -> result you need>" --type tools` before hardcoding any individual provider tool. New tools are added regularly. Examples: `deepline search "person profile -> ICP qualification" --type tools`, `deepline search "email -> validation status" --type tools`, `deepline search "lead list -> leads added to a campaign" --type tools`.
+2. **Search for a dedicated tool** — `deepline search "<input you have -> result you need>"` before hardcoding any individual provider tool. New tools are added regularly. Examples: `deepline search "person profile -> ICP qualification"`, `deepline search "email -> validation status"`, `deepline search "lead list -> leads added to a campaign"`.
 3. **Verify the tool exists** - `deepline describe <tool_id>`. If it errors, the tool doesn't exist yet - use the `deeplineagent` fallback from this doc.
 4. **Use the mapping below as a fallback** — when no native play or dedicated tool exists.
 
 ```bash
 # Standard discovery pattern before writing any play column
-deepline search "<input you have -> result you need>" --type tools     # find current options
+deepline search "<input you have -> result you need>"     # find current options
 deepline describe <candidate_tool_id> # verify it exists + see payload schema
 ```
 
@@ -167,7 +167,7 @@ The entire Clay waterfall group collapses to one native play. The play owns its 
 
 ```
 
-**Alternative individual providers** (use `deepline search "name and company domain -> work email" --type tools` to see current list):
+**Alternative individual providers** (use `deepline search "name and company domain -> work email"` to see current list):
 
 - `icypeas_email_search` — 700M+ profiles, strong LinkedIn coverage; useful as a step if native play misses
 - Run `deepline describe icypeas_email_search` to verify tool exists before using
@@ -200,7 +200,7 @@ Alternative — `zerobounce_validate` (more detailed sub_status, better for catc
 
 Check `.status` and `.sub_status`. Use `zerobounce_validate` for each email; Deepline disables ZeroBounce batch validation because the upstream batch endpoint currently returns 403 Access denied from Deepline egress.
 
-Run `deepline search "email -> validation status" --type tools` to see all current options.
+Run `deepline search "email -> validation status"` to see all current options.
 
 ---
 
@@ -410,8 +410,8 @@ Reference structured output fields in downstream passes as `{{col_name.field}}`.
 Octave `ca_*` agents are proprietary Clay integrations. Before defaulting to `deeplineagent`, check whether Deepline has added a native equivalent:
 
 ```bash
-deepline search "person profile -> ICP qualification" --type tools
-deepline search "prospect and messaging -> generated email sequence" --type tools
+deepline search "person profile -> ICP qualification"
+deepline search "prospect and messaging -> generated email sequence"
 ```
 
 If search finds a native tool for the action, use it directly — it will be faster and more accurate than the `deeplineagent` fallbacks below. The patterns below are **fallbacks for when no native tool is available**.

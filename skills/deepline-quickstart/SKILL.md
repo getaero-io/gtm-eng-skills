@@ -21,7 +21,7 @@ Run quick demos with a maintained Play.
 2. Search for a maintained Play and inspect its input and output contract:
 
    ```bash
-   deepline search "<input you have -> result you need>" --type prebuilts
+   deepline search "<input you have -> result you need>"
    deepline describe prebuilt/<play-from-search>
    ```
 
@@ -43,7 +43,7 @@ columns. Run a representative pilot before the full file, showing the
 `--dry-run` price and confirming the spend before the paid run:
 
 ```bash
-deepline search "<input you have -> result you need>" --type prebuilts
+deepline search "<input you have -> result you need>"
 deepline describe prebuilt/<batch-play-from-search>
 deepline plays check prebuilt/<batch-play-from-search>
 WORKDIR="deepline/data/quickstart-pilot" && mkdir -p "$WORKDIR"

@@ -135,17 +135,17 @@ SDK V2 users can get the same plan by prompting the installed Deepline GTM skill
 
 ### 4. Search For Deepline Candidate Tools
 
-Run several focused searches, usually in parallel after that standalone first command. `deepline search --type tools` takes a task, not keywords: one sentence stating the input you have -> the result you need. Read the default search output without `--json`; there is no `--prefix` flag. For CRM/private data, search for the records you need, as in the last two examples.
+Run several focused searches, usually in parallel after that standalone first command. `deepline search` takes a task, not keywords: one sentence stating the input you have -> the result you need. Read the default search output without `--json`; there is no `--prefix` flag. For CRM/private data, search for the records you need, as in the last two examples.
 
 ```bash
-deepline search "topic -> recent web and news sources" --type tools --categories research
-deepline search "topic -> recent social posts and comments" --type tools --categories research
-deepline search "Facebook page URL -> profile and contact email" --type tools
-deepline search "Instagram handle -> profile bio and links" --type tools
-deepline search "company domains -> firmographics, funding, technographics and open jobs" --type tools --categories company_search
-deepline search "connected CRM or warehouse -> account, workflow and usage records" --type tools --categories crm,data_warehouse
-deepline search "account domains -> CRM accounts, contacts and deals" --type tools
-deepline search "SQL question -> warehouse query result" --type tools
+deepline search "topic -> recent web and news sources" --categories research
+deepline search "topic -> recent social posts and comments" --categories research
+deepline search "Facebook page URL -> profile and contact email"
+deepline search "Instagram handle -> profile bio and links"
+deepline search "company domains -> firmographics, funding, technographics and open jobs" --categories company_search
+deepline search "connected CRM or warehouse -> account, workflow and usage records" --categories crm,data_warehouse
+deepline search "account domains -> CRM accounts, contacts and deals"
+deepline search "SQL question -> warehouse query result"
 ```
 
 ### 4.25. Design Queries Before Running Tools

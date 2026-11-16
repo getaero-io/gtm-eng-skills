@@ -57,7 +57,7 @@ Create a durable task directory for contracts, observations and exports:
 WORKDIR="deepline/data/developer-signals"
 mkdir -p "$WORKDIR"
 deepline preflight --json
-deepline search "repository, package and developer profiles -> developer activity and company identity" --type tools,prebuilts
+deepline search "repository, package and developer profiles -> developer activity and company identity"
 ```
 
 Await preflight before parallel discovery. Names below are starting hints;
@@ -83,10 +83,10 @@ source file alone is not proof of access.
 Discovery starting points:
 
 ```bash
-deepline search "public API URL -> JSON response" --type tools
-deepline search "Hacker News product mentions -> stories comments and authors" --type tools
-deepline search "GitHub developer profile -> LinkedIn profile and company" --type plays,tools
-deepline search "company domain -> owned GitHub repositories" --type tools
+deepline search "public API URL -> JSON response"
+deepline search "Hacker News product mentions -> stories comments and authors"
+deepline search "GitHub developer profile -> LinkedIn profile and company"
+deepline search "company domain -> owned GitHub repositories"
 ```
 
 Keep only the subset that passes these checks. Do not offer unconnected

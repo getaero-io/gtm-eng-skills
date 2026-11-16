@@ -17,7 +17,7 @@ then let a Play react.” Read the live tool contract before using this example.
 ### Optional: test the closest real signal
 
 A paid current-signal probe is optional and needs approval of its live price.
-Discover one with `deepline search "<tracked subject -> exact signal>" --type tools`;
+Discover one with `deepline search "<tracked subject -> exact signal>"`;
 prefer the monitor's provider. It must match both the event and its timing:
 a contact's current profile does not prove a job change; a separate REST read
 does not prove webhook delivery. If no faithful probe exists, say so. Inspect
@@ -84,7 +84,7 @@ Browse them, then read one type's exact filters + stream columns:
 ```bash
 # Browse the monitor types you can deploy
 deepline tools list --categories monitors
-deepline search "company domains -> ongoing company event feed" --type tools
+deepline search "company domains -> ongoing company event feed"
 
 # Read one specific monitor variant's full contract
 deepline describe deepline_native.company_job_openings

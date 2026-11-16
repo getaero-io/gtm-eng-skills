@@ -225,7 +225,7 @@ Topic intent, Custom, web intent and audience-based Signals are not converted. `
 1. The job-based table in [clay-api-surface.md](../references/clay-api-surface.md#map-by-job-not-by-provider-name). It covers about 85% of real usage.
 2. The payload reference [clay-action-mappings.md](../references/clay-action-mappings.md). It has no phone or CRM rows. Verify each tool id.
 3. The Clay action catalog in `clay-api-surface.md`, for the real input schema.
-4. `deepline search "<input you have -> result you need>" --type tools`, then `deepline describe <tool>`.
+4. `deepline search "<input you have -> result you need>"`, then `deepline describe <tool>`.
 5. If no tool fits, use `deeplineagent` with a `jsonSchema`.
 
 Common mappings: email waterfall with `validate-email` is `name-and-domain-to-email-waterfall`. A phone column is `prebuilt/person-to-phone`; it needs a name and a domain, but many Clay finders need only a LinkedIn URL.

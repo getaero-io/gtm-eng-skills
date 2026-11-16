@@ -2,6 +2,8 @@
 
 <!-- skill-tool-field: slack_user_id -- Slack metadata property returned with the HITL event payload, not a tool ID. -->
 
+<!-- skill-tool-field: slack_user_name -- Slack metadata property returned with the HITL event payload, not a tool ID. -->
+
 # slack_message_with_hitl — Agent Guidance
 
 ## Native Slack fields and methods
@@ -254,9 +256,31 @@ When a human clicks a button, the workflow resumes with this output:
 ```
 
 - `selected_option` — the `id` of the button that was clicked.
-- `event_payload` — the button's `emit` data merged with Slack signal metadata (`selected_option`, `final_text`, `edited`, `slack_user_id`, `slack_channel_id`, etc). If the button has no `emit`, event_payload only contains the signal metadata. **Merge precedence:** `emit` keys overwrite signal metadata keys on collision — avoid using `selected_option`, `final_text`, `edited`, `slack_user_id`, or `slack_channel_id` as emit keys.
+- `event_payload` — the button's `emit` data merged with Slack signal metadata (`selected_option`, `final_text`, `edited`, `slack_user_id`, `slack_channel_id`, etc). If the button has no `emit`, event_payload only contains the signal metadata. **Merge precedence:** `emit` keys overwrite signal metadata keys on collision — avoid using `selected_option`, `final_text`, `edited`, `slack_user_id`, `slack_user_name`, `slack_channel_id`, or `state_values` as emit keys.
 - `final_text` — the message text at the time of the click (may differ from the original if the human used Edit).
 - `edited` — whether the human modified the draft text before clicking.
+- `state_values` — Slack's `state.values` at the click, present when the card has `input` blocks: `block_id -> action_id -> element state`. Present in both the result and `event_payload`. It can be absent even after a click, when the Play resumes from the stored interaction record instead of the live click (for example, on a replay after a retry). Treat a missing value as unknown, not as unedited.
+- `slack_user_name` — the clicker's Slack handle. Use `slack_get_user` with `slack_user_id` for a display or real name.
+
+## Inline input blocks
+
+To let a reviewer edit text in the card itself, without the Edit modal, add an `input` block to `blocks`. Set explicit `block_id` and `action_id` so the value is easy to read:
+
+```json
+{
+  "type": "input",
+  "block_id": "draft",
+  "label": { "type": "plain_text", "text": "Draft" },
+  "element": {
+    "type": "plain_text_input",
+    "action_id": "draft_text",
+    "multiline": true,
+    "initial_value": "Hi Sarah, ..."
+  }
+}
+```
+
+When the reviewer clicks a button, read the typed text at `state_values.draft.draft_text.value`. If `state_values` is missing, do not fall back to sending the original draft; stop or ask again. `final_text` and `edited` still describe only the `text` draft and the Edit modal; they do not change for inline inputs.
 
 Branch on `selected_option` in the next workflow step to decide what to do.
 

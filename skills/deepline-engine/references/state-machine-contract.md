@@ -43,11 +43,11 @@ When a transition is nonterminal, its output supplies the next state's input. Us
 Treat each state transformation as a callable Play, not a helper function hidden inside the engine. Before writing one:
 
 ```bash
-deepline search "<transition input -> transition outcome>" --type plays
+deepline search "<transition input -> transition outcome>"
 deepline describe <owned-or-prebuilt-candidate>
 ```
 
-`--type plays` includes Plays created in the user's workspace as well as prebuilts. Search by the transformation's outcome and input contract, not a guessed name. Prefer an exact owned or prebuilt contract over new code. Record why each candidate fits or fails; a similar title is not enough.
+Search results include Plays created in the user's workspace as well as prebuilts. Search by the transformation's outcome and input contract, not a guessed name. Prefer an exact owned or prebuilt contract over new code. Record why each candidate fits or fails; a similar title is not enough.
 
 The orchestrator composes the selected Play with `deepline.runPlay`. That boundary accepts scalar child Plays only. A child that uses `deepline.dataset()`, `deepline.csv()`, a Runtime Sheet, an event wait, or an explicit timeout owns a separate lifecycle and cannot be used as an inline transition. When no compatible Play exists, author a scalar transition Play and include it in the engine's automatic dependency-ordered check and publication workflow.
 

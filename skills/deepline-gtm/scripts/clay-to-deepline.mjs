@@ -1465,7 +1465,7 @@ function compileTable(
     if (!candidates.length) {
       const why =
         REVIEW[key] ||
-        `No Deepline mapping for Clay action ${key}: run \`deepline search "<input> -> <output>" --type tools\` and add it to ACTIONS.`;
+        `No Deepline mapping for Clay action ${key}: run \`deepline search "<input> -> <output>"\` and add it to ACTIONS.`;
       report.push({
         ...rec,
         kind: 'action',

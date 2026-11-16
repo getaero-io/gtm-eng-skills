@@ -72,8 +72,8 @@ Tool names in this skill are starting hints. Discover the live Workspace tools
 and confirm their contracts before first use:
 
 ```bash
-deepline search "Play run dataset -> spreadsheet" --type tools
-deepline search "spreadsheet ID -> its rows and comments" --type tools
+deepline search "Play run dataset -> spreadsheet"
+deepline search "spreadsheet ID -> its rows and comments"
 deepline describe google_workspace_export_dataset
 deepline describe google_workspace_request
 ```
