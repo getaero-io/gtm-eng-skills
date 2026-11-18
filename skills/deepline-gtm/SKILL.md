@@ -136,6 +136,10 @@ Then choose what to run:
   Call tools with `deepline.tools.execute({ id, tool, input, description })`. A
   call's `id` is a fixed name for that call site: Deepline keys repeated calls
   by input, so a loop keeps one id. Return an object (`return { rows }`).
+  Users see dataset columns in the order you declare them, so write row keys
+  and `withColumn`s with the most important columns first and ids last. The
+  run page uses the order of the run being viewed. Prefix a column with `_` to
+  keep it but hide it from the run page.
   `deepline plays --help --verbose` has the authoring rules.
 - **Large inputs or memory-heavy Plays:** read the Runtime section of
   `deepline plays --help --verbose` before choosing a sandbox size.

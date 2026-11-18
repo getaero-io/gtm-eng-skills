@@ -12,6 +12,8 @@ Use Parallel for managed research/extraction runs without custom orchestration.
 - `parallel_search_mcp` is only for an explicitly requested lightweight lookup where zero provider spend matters more than reliability or REST-side controls.
 - `parallel_fetch_mcp` is only for directly reading a small set of URLs during that same exploratory session.
 - Use `parallel_run_task` when you need synthesized, schema-shaped outputs from multiple sources.
+- Use `parallel_decisions` for cheap batched true/false (`noul`), `choice`, and `score` tagging of one entity, such as a company website, with up to 100 questions per call. It is priced per request, so batch every question about one entity into a single call and send unrelated entities separately.
+- In `parallel_decisions` results, handle `{"type":"refusal"}` as its own outcome, never as false, the first choice, or a zero score. A low `noul` can mean missing evidence rather than proof the statement is false; when that matters, use a `choice` question with an explicit `unknown` option.
 - Call `parallel_run_task` first. If it finishes quickly, use that result.
 - If `parallel_run_task` returns pending or times out, keep the `run_id` and use `parallel_get_task_run_result` later to fetch the final output.
 - Keep monitor/stream endpoints out of default flows unless a user explicitly needs them.
