@@ -1,0 +1,262 @@
+{
+  "_comment": "Copy this beside your working files, then edit. Every flat-rate value here is a placeholder. A provider type of 'none' means NO PROVIDER IS AVAILABLE for that leg \u2014 never use it to switch off a field the installer is not interested in. What gets attempted is decided per record by the skip flags at run time, so give every field a provider can reach a leg. An http leg names `key_env`, the environment variable holding that provider's key \u2014 no credential ever goes in this file. A leg's `skip` names the caller opt-out that switches it off; omit `skip` for an ENABLING lookup that should run only when a leg downstream requires its field. Every deepline_tool / deepline_play id below was confirmed with `deepline tools describe` / `deepline plays describe` (2026-09).",
+  "name": "Contact enrichment cascade",
+  "_comment_tuning": "All three below are optional and shown at their defaults.",
+  "verified_statuses": [
+    "deliverable",
+    "valid"
+  ],
+  "capture_prefix": "person_",
+  "sentinels": [
+    "n/a",
+    "none",
+    "null"
+  ],
+  "callback": {
+    "enabled": true
+  },
+  "legs": [
+    {
+      "_comment": "An ENABLING lookup that can also be requested. It carries `want` (opt-IN, default off) rather than `skip`, because it exists for the legs after it rather than for its own sake \u2014 it fires whenever something downstream requires a domain, and otherwise only when a caller asks with want_company_domain. crustdata_v3_company_enrich takes `names` as an array, so the field is written as a one-item list. 0.8 Deepline credits per result.",
+      "key": "company_domain",
+      "field": "company_domain",
+      "want": "want_company_domain",
+      "source": "crustdata",
+      "tool_name": "Company domain",
+      "requires": [
+        "company_name"
+      ],
+      "provider": {
+        "type": "deepline_tool",
+        "tool": "crustdata_v3_company_enrich"
+      },
+      "tool_inputs": {
+        "names": [
+          "company_name"
+        ]
+      },
+      "input_static": {
+        "exact_match": true
+      },
+      "out_paths": [
+        "matches.company_data.basic_info.primary_domain",
+        "matches.company_data.basic_info.website"
+      ]
+    },
+    {
+      "_comment": "A flat-rate provider that finds the pivot from name + company. This is the valuable shape: it lands BEFORE the pivot and unlocks every leg that needs a profile URL. generic_http_request returns the provider body under `data`.",
+      "key": "contact_linkedin_flat",
+      "field": "contact_linkedin",
+      "skip": "skip_linkedin",
+      "source": "flat_provider_a",
+      "tool_name": "Contact LinkedIn (flat-rate)",
+      "requires": [
+        "company_domain"
+      ],
+      "provider": {
+        "type": "http",
+        "method": "POST",
+        "url": "https://api.example-provider.test/v1/person-linkedin-url",
+        "key_env": "FLAT_PROVIDER_A_KEY",
+        "key_header": "x-api-key",
+        "body": {
+          "name": "contact_name",
+          "company": "company_name"
+        }
+      },
+      "out_paths": [
+        "data.result.linkedin_url",
+        "data.linkedin_url"
+      ]
+    },
+    {
+      "_comment": "The credit-billed pivot finder: a Deepline waterfall play. Paying for the profile URL here is what turns the flat-rate email and phone legs behind it from unreachable to free.",
+      "key": "contact_linkedin_paid",
+      "field": "contact_linkedin",
+      "skip": "skip_linkedin",
+      "source": "deepline_waterfall",
+      "tool_name": "Contact LinkedIn (Deepline waterfall)",
+      "requires": [
+        "first_name",
+        "last_name",
+        "company_domain"
+      ],
+      "provider": {
+        "type": "deepline_play",
+        "play": "prebuilt/person-to-linkedin-harvestapi"
+      },
+      "tool_inputs": {
+        "first_name": "first_name",
+        "last_name": "last_name",
+        "domain": "company_domain",
+        "company_name": "company_name"
+      },
+      "out_paths": [
+        "linkedin_url"
+      ]
+    },
+    {
+      "_comment": "Flat-rate email, keyed off the pivot. `requires` is what makes this SKIP rather than fire and die when the pivot was never found.",
+      "key": "email_flat",
+      "field": "contact_email",
+      "skip": "skip_email",
+      "source": "flat_provider_a",
+      "tool_name": "Work email (flat-rate)",
+      "requires": [
+        "contact_linkedin"
+      ],
+      "provider": {
+        "type": "http",
+        "method": "POST",
+        "url": "https://api.example-provider.test/v1/person-email",
+        "key_env": "FLAT_PROVIDER_A_KEY",
+        "key_header": "x-api-key",
+        "body": {
+          "person_linkedin_url": "contact_linkedin"
+        }
+      },
+      "out_paths": [
+        "data.email",
+        "data.result.email"
+      ],
+      "capture": {
+        "person_all_emails_json": "data.all_emails"
+      }
+    },
+    {
+      "_comment": "A GET provider: query parameters rather than a JSON body. The KEY is the provider's own parameter name (theirs, from their spec) and the VALUE is our record field. A Bearer-style provider sets key_header Authorization and key_prefix 'Bearer '.",
+      "key": "email_flat_b",
+      "field": "contact_email",
+      "skip": "skip_email",
+      "source": "flat_provider_b",
+      "tool_name": "Work email (second flat-rate)",
+      "requires": [
+        "company_domain"
+      ],
+      "provider": {
+        "type": "http",
+        "method": "GET",
+        "url": "https://api.example-provider-b.test/v1/email/search",
+        "key_env": "FLAT_PROVIDER_B_KEY",
+        "key_header": "Authorization",
+        "key_prefix": "Bearer ",
+        "query": {
+          "full_name": "contact_name",
+          "domain": "company_domain"
+        }
+      },
+      "out_paths": [
+        "data.data.email",
+        "data.email"
+      ]
+    },
+    {
+      "_comment": "The credit-billed fallback: Deepline's email waterfall play. It runs only when every flat-rate leg above came back empty, which is the one boundary where cost-ascending ordering actually saves money.",
+      "key": "email_fallback",
+      "field": "contact_email",
+      "skip": "skip_email",
+      "source": "deepline_waterfall",
+      "tool_name": "Work email (Deepline waterfall)",
+      "requires": [
+        "first_name",
+        "last_name",
+        "company_domain"
+      ],
+      "provider": {
+        "type": "deepline_play",
+        "play": "prebuilt/name-and-domain-to-email-waterfall"
+      },
+      "tool_inputs": {
+        "first_name": "first_name",
+        "last_name": "last_name",
+        "domain": "company_domain",
+        "company_name": "company_name",
+        "linkedin_url": "contact_linkedin"
+      },
+      "out_paths": [
+        "email"
+      ],
+      "capture": {
+        "person_email_waterfall_provider": "email_source"
+      }
+    },
+    {
+      "key": "phone_flat",
+      "field": "contact_phone",
+      "skip": "skip_phone",
+      "source": "flat_provider_a",
+      "tool_name": "Mobile phone (flat-rate)",
+      "requires": [
+        "contact_linkedin"
+      ],
+      "provider": {
+        "type": "http",
+        "method": "POST",
+        "url": "https://api.example-provider.test/v1/person-phone",
+        "key_env": "FLAT_PROVIDER_A_KEY",
+        "key_header": "x-api-key",
+        "body": {
+          "person_linkedin_url": "contact_linkedin"
+        }
+      },
+      "out_paths": [
+        "data.phone",
+        "data.result.phone"
+      ]
+    },
+    {
+      "_comment": "Phone is usually the dearest field \u2014 and the leg is still built. It fires only on a record that wants a phone and whose free lookup missed, and skip_phone stops it entirely. prebuilt/person-to-phone needs only a name; the LinkedIn URL and domain are passed when known.",
+      "key": "phone_fallback",
+      "field": "contact_phone",
+      "skip": "skip_phone",
+      "source": "deepline_waterfall",
+      "tool_name": "Mobile phone (Deepline waterfall)",
+      "requires": [
+        "first_name",
+        "last_name"
+      ],
+      "provider": {
+        "type": "deepline_play",
+        "play": "prebuilt/person-to-phone"
+      },
+      "tool_inputs": {
+        "first_name": "first_name",
+        "last_name": "last_name",
+        "domain": "company_domain",
+        "linkedin_url": "contact_linkedin"
+      },
+      "out_paths": [
+        "phone"
+      ],
+      "capture": {
+        "person_phone_line_type": "phone_line_type"
+      }
+    },
+    {
+      "_comment": "Verification reports, it never rewrites. The address is always emitted; the verdict decides whether contact_email_verified_only is populated. zerobounce_validate, 0.28 Deepline credits per result; catch-all comes back as status catch-all and is not in verified_statuses.",
+      "key": "email_verify",
+      "field": "contact_email_verify_status",
+      "skip": "skip_email",
+      "source": "zerobounce",
+      "tool_name": "Verify email",
+      "requires": [
+        "contact_email"
+      ],
+      "provider": {
+        "type": "deepline_tool",
+        "tool": "zerobounce_validate"
+      },
+      "tool_inputs": {
+        "email": "contact_email"
+      },
+      "out_paths": [
+        "status"
+      ],
+      "capture": {
+        "contact_email_verify_sub_status": "sub_status",
+        "contact_email_free": "free_email"
+      }
+    }
+  ],
+  "_comment_enabler": "Every field a provider can reach gets a leg, and every leg carries a skip flag so a caller can both request and suppress it per record. A leg still fires when a downstream leg REQUIRES its field, flag or no flag \u2014 otherwise the downstream leg could never run. Omit `skip` entirely only for a field nobody should ever be able to request."
+}
