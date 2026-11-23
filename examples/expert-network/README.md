@@ -1,68 +1,57 @@
-# Expert networks, built with coding agents
+# Build an expert network with Deepline
 
-Deepline gives coding agents the APIs, execution and database to find, recruit, manage and engage an expert network in one place. This example uses lawyers and management consultants who create scenarios, tasks and evaluations.
+Find good people, help them produce useful work, and give them a reason to return.
 
-**The goal is more activated and retained experts:** people who produce accepted work, then return to produce more.
+Deepline lets a coding agent build and run that process in one place:
 
-| Deepline provides | What the agent builds with it |
+| Part | What it does |
 |---|---|
-| API Aggregation | Search people, research experience, verify contact data and enroll eligible contacts in Lemlist. |
-| Durable Execution | Run Plays as tracked steps. Save results, recover interrupted handoffs and reconcile uncertain external writes. |
-| Database | Keep identity, evidence, state, contributions and relationship history together. Use that record to choose the next action. |
+| **API Aggregation** | Connects people search, profile research, verified emails and Lemlist. |
+| **Durable Execution** | Runs Plays, saves progress and supports recovery when a step fails. |
+| **Database** | Keeps each expert's evidence, status and work history together. |
 
-![Start with five experts](diagrams/expert-flow-d2.png)
+You set the rules. The agent writes the Plays. GitHub keeps the code.
 
-Start with five experts and one real task. Make the decisions yourself. Give the coding agent the cases, evidence and decisions. Have it automate the repeated steps, keeping unclear cases for human review. GitHub holds the Plays and their history; Deepline runs them.
-
-## What is included
-
-All **14 project Plays**, their shared code, SQL schemas, tests, synthetic CSV/JSON inputs, metric calculator, deployment and recovery utilities, research notes and editable diagrams are included. This is a reusable example, with no customer records, workspace IDs, campaign IDs, private run receipts or private document links.
-
-There are two independent systems:
-
-- **Synthetic lifecycle:** eight Plays model discovery through contribution review and learning. They read supplied evidence and return recommendations. They do not send messages, assign work, sign terms or pay experts.
-- **Provider-backed recruiting:** six Plays search when the queue is below 100, check role and verified email, and enroll eligible contacts in a **paused** Lemlist campaign. These calls use real providers when deployed. No campaign, schedule or live deployment is included.
-
-The recruiting queue does not automatically feed the synthetic lifecycle. Domain-fit research, platform events, payment feeds and repeat-work outreach remain integration work. Enrollment is not delivery; a verified email is not expert qualification.
-
-## Read the example
-
-| Document | Contents |
-|---|---|
-| [Quick guide](editorial/SIMPLE.md) | Data, actions, tools and outcomes for six motions |
-| [Play catalog](PLAYS.md) | Every Play, inputs, outputs, dependencies and credit caps |
-| [Setup](SETUP.md) | Local tests, fixture generation, schemas, publish order, bounded pilot and recovery |
-| [Design](DESIGN.md) | State machine, data contracts, replay, concurrency and integration boundaries |
-| [Complete workflow](WORKFLOW.md) | Demand, discovery, screening, outreach, onboarding, creation, review and retention |
-| [Recruiting](refill/README.md) | Below-100 policy, filters, queue states and leasing |
-| [Qualification and enrollment](refill/ENROLLMENT.md) | Evidence gates, suppression, outbox and reconciliation |
-| [Outreach contract](refill/outreach-contract.md) | What must exist before real messages can be sent |
-| [Metrics](METRICS.md) | North-star definition and a submetric for every state and workflow |
-| [Data decisions](editorial/DATA-DECISIONS.md) | Which fields solve which recruiting and retention problems |
-| [Research](RESEARCH.md) | Public sources, tool choices, cost model and limits |
-| [Detailed research notes](editorial/RECRUITMENT-RESEARCH.md) | Dated source coverage, routes and illustrative costs |
-| [Verification](VERIFICATION.md) | Reproducible local checks and live verification checklist |
-| [Diagram options](diagrams/OPTIONS.md) | D2, Excalidraw, SVG/PNG and architecture HTML |
-
-## Try it locally
-
-From this folder, with Node.js, npm and Python 3 installed:
-
-```sh
-npm ci
-npm test
-python3 csv-input.py --expert syn-expert-1 --episode demo-2026-11-19 --out /tmp/erm-input.json
-python3 metrics/calculate.py --help
+```mermaid
+flowchart LR
+  Find[Find people] --> Qualify[Check fit]
+  Qualify --> Invite[Invite and onboard]
+  Invite --> Work[Get accepted work]
+  Work --> Return[Offer suitable work again]
+  Return --> Work
 ```
 
-Tests use synthetic data and mocked providers. They do not require credentials or contact anyone. See [SETUP.md](SETUP.md) before publishing or calling providers.
+## What the system needs to know
 
-## Build it over time
+| Motion | Data → action | Outcome |
+|---|---|---|
+| Find | Task needs, specialty and experience → search and research profiles | Relevant candidates |
+| Recruit | Role evidence, verified email and a real offer → check suppression and enroll in Lemlist | Interested experts |
+| Onboard | Terms, access and availability → resolve the missing prerequisite | Ready to work |
+| Review | Submission, rubric and reviewer feedback → accept or request a specific revision | First accepted contribution |
+| Retain | Quality, payment status and suitable demand → resolve issues and offer more work | Repeat contribution |
 
-1. Work with five experts. Record evidence, offer terms, blockers, reviewer feedback and next opportunities.
-2. Implement the repeated decisions as small Plays. Preserve why each decision was made.
-3. Replace one CSV at a time with platform events. Keep stable expert, task, artifact and event IDs.
-4. Compare recommendations with human decisions. Connect external actions only after their rules and recovery paths are clear.
-5. Improve the step that blocks accepted work or repeat contribution. A full queue is not the outcome.
+**Success means activated and retained experts.** Activation is the first accepted production contribution. Retention means accepted work in a later period. Each step has a [measure](METRICS.md).
 
-This package was extracted from an iterative prototype. The public version replaces deployment identifiers and excludes operational/customer evidence. Source research is a dated design input, not a promise of current provider pricing or predictive accuracy.
+## What runs today
+
+All **14 Plays** are included:
+
+- **Recruiting:** search when the queue is below 100, verify current role and email, then add eligible contacts to a **paused** Lemlist campaign.
+- **Lifecycle demo:** synthetic inputs model qualification, onboarding, matching, review and follow-up recommendations.
+
+The two flows are separate. Task-specific fit review, live platform/payment events, message sending and repeat offers still need integration. The example contains no customer data or configured live destination.
+
+## Start with five experts
+
+Pick one task. Work with five people yourself. Record your decisions and the reasons they stall or return. Ask the coding agent to automate the repeated steps, keeping unclear cases for review. Replace the CSVs with real events as the process becomes clear.
+
+To run the local tests:
+
+```sh
+cd examples/expert-network
+npm ci
+npm test
+```
+
+Tests use synthetic data and mocked providers. Read [Setup](SETUP.md) to deploy, or [All 14 Plays](PLAYS.md) to inspect the code.
