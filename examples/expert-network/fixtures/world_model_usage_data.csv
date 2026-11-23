@@ -1,0 +1,4 @@
+eventId,taskId,worldId,acceptedUses,abandonmentCount,feedback
+syn-event-1,syn-task-1,syn-world-law,12,2,Useful branching choices; clarify the evidence available at each step.
+syn-event-2,syn-task-2,syn-world-consulting,12,2,Useful branching choices; clarify the evidence available at each step.
+syn-event-3,syn-task-3,syn-world-law,12,2,Useful branching choices; clarify the evidence available at each step.

@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {roleFit,emailFit,contacts,isCampaignMember,CAMPAIGN} from './enrollment-policy';
+const c={profile:'https://www.linkedin.com/in/fixture',domain:'lw.com',vertical:'law'};
+const p={linkedin_url:c.profile,full_name:'Test Person',title:'Associate',company_domain:'lw.com',needs_verification:false,company_found:true};
+assert(roleFit(c,p));
+for(const change of [{company_domain:'other.com'},{needs_verification:true},{title:'Associate Director of Finance'},{linkedin_url:'https://www.linkedin.com/in/wrong'}]) assert(!roleFit(c,{...p,...change}));
+const e={email:'fixture@lw.com',email_validated:true,email_validation_status:'valid'};
+assert(emailFit(c.domain,e));
+for(const change of [{email:'fixture@example.org'},{email_validated:false},{email_validation_status:'catch_all'},{email:null}]) assert(!emailFit(c.domain,{...e,...change}));
+assert.deepEqual(contacts({toolResponse:{rawV2:{data:[],total:0}}}),[]);
+assert.throws(()=>contacts({toolResponse:{rawV2:{data:[],total:10}}}));
+const member={email:e.email,linkedinUrl:c.profile,campaigns:[{campaignId:CAMPAIGN,leadId:'lead-fixture'}]};
+assert(isCampaignMember([member],e.email,c.profile));
+assert(!isCampaignMember([{...member,campaigns:[{campaignId:'other',leadId:'lead-fixture'}]}],e.email,c.profile));
+assert(!isCampaignMember([member],e.email,'https://www.linkedin.com/in/wrong'));
+console.log('PASS: role, identity, employer, email validation and incomplete contact evidence fail closed.');

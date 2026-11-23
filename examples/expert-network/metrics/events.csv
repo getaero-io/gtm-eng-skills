@@ -1,0 +1,14 @@
+event_id,expert_id,event_type,occurred_at,artifact_id,artifact_type,is_synthetic
+syn-1,syn-a,expert_ready,2026-09-01T00:00:00Z,,,true
+syn-2,syn-a,artifact_accepted,2026-09-04T00:00:00Z,syn-art-a1,production,true
+syn-3,syn-a,artifact_accepted,2026-10-10T00:00:00Z,syn-art-a2,production,true
+syn-4,syn-a,artifact_accepted,2026-11-05T00:00:00Z,syn-art-a3,production,true
+syn-5,syn-b,expert_ready,2026-11-01T00:00:00Z,,,true
+syn-6,syn-b,artifact_accepted,2026-11-10T00:00:00Z,syn-art-b1,production,true
+syn-7,syn-c,expert_ready,2026-09-01T00:00:00Z,,,true
+syn-8,syn-c,artifact_accepted,2026-09-05T00:00:00Z,syn-art-c1,production,true
+syn-9,syn-c,artifact_accepted,2026-10-01T00:00:00Z,syn-art-c2,production,true
+syn-10,syn-d,expert_ready,2026-09-01T00:00:00Z,,,true
+syn-11,syn-d,artifact_accepted,2026-11-01T00:00:00Z,syn-practice-d1,practice,true
+syn-4,syn-a,artifact_accepted,2026-11-05T00:00:00Z,syn-art-a3,production,true
+syn-12,syn-a,artifact_accepted,2026-11-06T00:00:00Z,syn-art-a3,production,true

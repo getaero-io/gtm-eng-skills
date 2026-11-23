@@ -1,0 +1,25 @@
+stateDiagram-v2
+    [*] --> discover
+    discover --> qualify: identity and source reviewed
+    discover --> waiting: identity unresolved
+    qualify --> recruit: reviewer approves credentials and specialty
+    qualify --> waiting: review incomplete
+    qualify --> declined: reviewer rejects
+    recruit --> onboard: interest and consent recorded
+    recruit --> waiting: response or consent pending
+    recruit --> declined: expert declines
+    onboard --> match: agreement, conflicts, orientation, availability recorded
+    onboard --> waiting: prerequisite missing
+    match --> review: approved task matches specialty and capacity
+    match --> waiting: match or brief unresolved
+    review --> learn: human accepts submission
+    review --> waiting: submission pending or revision requested
+    learn --> complete: relationship evidence and next action recorded
+    complete --> [*]
+    waiting --> [*]
+    declined --> [*]
+    note right of waiting
+      Episode stops without assuming an external action happened.
+      New evidence requires a new episode ID and full snapshot.
+      Production event adapters and automatic continuation are not installed.
+    end note

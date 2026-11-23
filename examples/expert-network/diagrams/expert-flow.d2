@@ -1,0 +1,29 @@
+direction: right
+vars: {
+  d2-config: {
+    theme-id: 0
+    pad: 35
+  }
+}
+classes: {
+  step: {
+    style: {
+      fill: "#f8f9fa"
+      stroke: "#495057"
+      border-radius: 12
+      font-size: 23
+    }
+    width: 230
+    height: 110
+  }
+}
+find: "Find five experts" { class: step; style.fill: "#e7f5ff" }
+agree: "Agree on work" { class: step; style.fill: "#fff4e6" }
+work: "Get useful work" { class: step; style.fill: "#ebfbee" }
+return: "Invite them back" { class: step; style.fill: "#ebfbee" }
+find -> agree -> work -> return
+return -> agree: Learn from the results {
+  style.stroke: "#868e96"
+  style.stroke-dash: 5
+  style.font-size: 18
+}

@@ -153,6 +153,8 @@ Free tier includes 100 credits (~300 enrichments). [Sign up here](https://code.d
 
 ## Usage Examples
 
+For a complete system with source code, see [Expert networks](examples/expert-network): 14 Plays for recruiting and managing experts, with synthetic inputs, database schemas, tests, metrics and workflow diagrams.
+
 ### Build a TAM
 
 > "Build a TAM of VP Sales and CROs at 50-500 person SaaS companies in the US"

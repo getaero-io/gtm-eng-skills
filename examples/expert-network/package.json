@@ -1,0 +1,9 @@
+{
+  "name": "expert-network-example",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "test": "tsx engine.test.ts && tsx refill/policy.test.ts && tsx refill/enrollment-policy.test.ts && tsx refill/enrollment-flow.test.ts && python3 -m unittest discover -s metrics -p 'test_*.py'"
+  },
+  "devDependencies": { "tsx": "4.20.6", "playwright": "1.56.1" }
+}
