@@ -4,22 +4,11 @@ Find good people, help them produce useful work, and give them a reason to retur
 
 Deepline lets a coding agent build and run that process in one place:
 
-| Part | What it does |
-|---|---|
-| **API Aggregation** | Connects people search, profile research, verified emails and Lemlist. |
-| **Durable Execution** | Runs Plays, saves progress and supports recovery when a step fails. |
-| **Database** | Keeps each expert's evidence, status and work history together. |
+![A coding agent uses Deepline API Aggregation to connect tools, Durable Execution to run steps and recover progress, and the Database to keep expert evidence and history.](diagrams/deepline-platform.png)
 
-You set the rules. The agent writes the Plays. GitHub keeps the code.
+## How experts move through the process
 
-```mermaid
-flowchart LR
-  Find[Find people] --> Qualify[Check fit]
-  Qualify --> Invite[Invite and onboard]
-  Invite --> Work[Get accepted work]
-  Work --> Return[Offer suitable work again]
-  Return --> Work
-```
+![Find people, agree on work, review their contribution and invite them back. First accepted production work activates an expert; later accepted work shows retention.](diagrams/expert-flow.png)
 
 ## What the system needs to know
 
