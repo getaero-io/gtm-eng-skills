@@ -1,0 +1,48 @@
+{
+  "episodeId": "demo-2026-11-19",
+  "payload": {
+    "synthetic": true,
+    "expert": {
+      "expertId": "syn-expert-2",
+      "name": "Morgan Example",
+      "vertical": "consulting",
+      "specialty": "pricing_strategy",
+      "sourceRef": "synthetic://expert-source/2",
+      "identityReviewed": true,
+      "credentialReviewed": true,
+      "qualification": "approved",
+      "response": "interested",
+      "consent": true,
+      "conflictsCleared": true,
+      "agreementSigned": true,
+      "trainingComplete": true,
+      "availabilityHours": 6
+    },
+    "task": {
+      "taskId": "syn-task-2",
+      "worldId": "syn-world-consulting",
+      "vertical": "consulting",
+      "specialty": "pricing_strategy",
+      "brief": "Create a fictional SaaS pricing case with churn and segment constraints.",
+      "rubric": "Check internal consistency, evidence, alternatives, explicit assumptions, and reproducibility.",
+      "referenceAnswer": "Synthetic reference: identify constraints, compare two options, justify the selected option.",
+      "hours": 3,
+      "assignmentApproved": true,
+      "submissionId": "syn-submission-2",
+      "review": "revision",
+      "reviewerId": "syn-reviewer-1",
+      "qualityScore": 2,
+      "revisions": 1
+    },
+    "usage": [
+      {
+        "eventId": "syn-event-2",
+        "taskId": "syn-task-2",
+        "worldId": "syn-world-consulting",
+        "acceptedUses": 12,
+        "abandonmentCount": 2,
+        "feedback": "Useful branching choices; clarify the evidence available at each step."
+      }
+    ]
+  }
+}

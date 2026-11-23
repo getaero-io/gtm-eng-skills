@@ -1,0 +1,8 @@
+node_modules/
+__pycache__/
+*.pyc
+evidence/
+.env*
+refill/*.json
+refill/*.txt
+refill/candidate-results.csv

@@ -1,0 +1,48 @@
+{
+  "episodeId": "demo-2026-11-19",
+  "payload": {
+    "synthetic": true,
+    "expert": {
+      "expertId": "syn-expert-1",
+      "name": "Alex Example",
+      "vertical": "law",
+      "specialty": "commercial_contracts",
+      "sourceRef": "synthetic://expert-source/1",
+      "identityReviewed": true,
+      "credentialReviewed": true,
+      "qualification": "approved",
+      "response": "interested",
+      "consent": true,
+      "conflictsCleared": true,
+      "agreementSigned": true,
+      "trainingComplete": true,
+      "availabilityHours": 6
+    },
+    "task": {
+      "taskId": "syn-task-1",
+      "worldId": "syn-world-law",
+      "vertical": "law",
+      "specialty": "commercial_contracts",
+      "brief": "Create a fictional contract negotiation with competing renewal terms.",
+      "rubric": "Check internal consistency, evidence, alternatives, explicit assumptions, and reproducibility.",
+      "referenceAnswer": "Synthetic reference: identify constraints, compare two options, justify the selected option.",
+      "hours": 3,
+      "assignmentApproved": true,
+      "submissionId": "syn-submission-1",
+      "review": "accepted",
+      "reviewerId": "syn-reviewer-1",
+      "qualityScore": 4,
+      "revisions": 0
+    },
+    "usage": [
+      {
+        "eventId": "syn-event-1",
+        "taskId": "syn-task-1",
+        "worldId": "syn-world-law",
+        "acceptedUses": 12,
+        "abandonmentCount": 2,
+        "feedback": "Useful branching choices; clarify the evidence available at each step."
+      }
+    ]
+  }
+}

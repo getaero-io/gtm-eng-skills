@@ -1,0 +1,4 @@
+expertId,name,vertical,specialty,sourceRef,identityReviewed,credentialReviewed,qualification,response,consent,conflictsCleared,agreementSigned,trainingComplete,availabilityHours
+syn-expert-1,Alex Example,law,commercial_contracts,synthetic://expert-source/1,True,True,approved,interested,True,True,True,True,6
+syn-expert-2,Morgan Example,consulting,pricing_strategy,synthetic://expert-source/2,True,True,approved,interested,True,True,True,True,6
+syn-expert-3,Taylor Example,law,employment_law,synthetic://expert-source/3,True,True,approved,declined,True,True,True,True,6

@@ -1,0 +1,16 @@
+{
+  "mode": "synthetic illustration",
+  "as_of_utc": "2026-11-22T00:00:00+00:00",
+  "retained_contributing_experts_28d": 1,
+  "newly_activated_28d": 1,
+  "activation_within_30d_of_ready": {
+    "numerator": 2,
+    "denominator": 3,
+    "rate": 0.6666666666666666
+  },
+  "mature_cohort_repeat_days_30_to_60": {
+    "numerator": 1,
+    "denominator": 2,
+    "rate": 0.5
+  }
+}
