@@ -1,0 +1,14 @@
+{
+  "pass": true,
+  "counts": {
+    "textText": 0,
+    "textDiagram": 0,
+    "textConnector": 0,
+    "textShape": 0
+  },
+  "collisions": {
+    "textText": [],
+    "textConnector": [],
+    "textShape": []
+  }
+}
