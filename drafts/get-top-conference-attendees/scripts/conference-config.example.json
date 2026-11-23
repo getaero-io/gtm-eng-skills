@@ -1,0 +1,49 @@
+{
+  "_comment": [
+    "Copy to conference-config.json and fill in. Nothing here ships with a working value.",
+    "This file holds NO credentials and must never be given any: the attendee service's key",
+    "is read from the LANYARD_API_KEY environment variable, or from the separate file named",
+    "by key_file below — a file of KEY=value lines that lives outside any package and is",
+    "never committed.",
+    "The writer is two tables in the Deepline customer DB (storage.conference_attendees and",
+    "storage.conference_companies). They are found by name, so there is no build state to keep."
+  ],
+
+  "_section_1": "THE WRITER — workspace-level. Built ONCE and reused by every conference. Nothing below this line is specific to an event or a company.",
+
+  "workspace_id": "REPLACE — the Deepline workspace id this may build into (`workspace.id` from `deepline auth status --json`). The build refuses to run against any other, so a wrong login fails loudly instead of writing into the wrong workspace.",
+
+  "writer_dir": null,
+  "_writer_dir": "OPTIONAL. Where the writer config, ledgers and run files live. null means ~/.deepline-conference-writer/<workspace_id>/ — a stable path keyed on the WORKSPACE, deliberately not beside this file. This config is per-campaign; the writer is not.",
+
+  "link_companies": true,
+  "_link_companies": "true writes a company row for every attendee whose company has a domain and links the person to it. false writes people only, carrying the company name as text. Attendees whose company has no domain are written unlinked either way — never dropped.",
+
+  "_section_2": "THE CAMPAIGN — per run. These change for every conference; the writer above does not.",
+
+  "domain": "REPLACE — the website of the company going. What the attendee scoring is calibrated against. Ask; never assume it from an email address.",
+  "goals": "REPLACE — what a good person to meet looks like, in your own words. Free text, or an object with categories and freeform.",
+
+  "context": {},
+  "_context": "OPTIONAL — DELETE THIS KEY OR FILL IT, never leave prose in it: whatever is here is sent verbatim into the scoring rubric and the dossiers. Shape: {\"client\": \"which wins came from where, which segments convert, what you do not sell to\", \"conference\": \"your plans at this event — a side dinner, a booth, a talk\"}.",
+
+  "team": [],
+  "_team": "OPTIONAL — DELETE THIS KEY OR FILL IT. Who is going from your side; it shapes how dossiers are framed. Shape: [{\"name\": \"Real Name\", \"title\": \"CRO\", \"linkedin_url\": \"\", \"notes\": \"what they want out of it\"}]. An entry left as placeholder text is sent as a real teammate.",
+
+  "attendees": [],
+  "_attendees": "Optional. A handful of people you already know are going, as {name, title, company, linkedin_url, email, phone}. For a whole list use attendee_list_file instead.",
+
+  "attendee_list_file": null,
+  "_attendee_list_file": "OPTIONAL — path to a CSV or TSV attendee list you already have. NO upload endpoint is involved: up to 500 attendees are sent inline with the campaign, and the service still searches for more on top of them. A name column is required (name / full name / attendee, or first + last); title, company, email, LinkedIn and phone are used when present. Export a spreadsheet to CSV first. null means let the service find everyone itself.",
+
+  "attendee_list_year": null,
+  "_attendee_list_year": "OPTIONAL — which edition the list is from: \"this year\" or a year like \"2025\". It is told to the scoring, because LAST year's list is evidence somebody may come again and NOT evidence that they are coming. Each contact still carries the service's own attendance confidence and year.",
+
+  "enrich_count": 25,
+  "_enrich_count": "How many top-ranked attendees to write full dossiers for. The service caps this at its own maximum, and a free account caps it far lower — the run reports what was actually allowed rather than assuming.",
+
+  "label": "",
+  "_label": "OPTIONAL — a name for this campaign in the service's own dashboard. Empty is fine; placeholder prose is not, because it is sent as the name.",
+
+  "key_file": "REPLACE or delete — absolute path to a file of KEY=value lines holding LANYARD_API_KEY. Omit it entirely when the key is already in the environment."
+}

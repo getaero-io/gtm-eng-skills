@@ -1,0 +1,75 @@
+{
+ "_about": "Invented people and companies (every domain is .example), most in the flat experience-list shape enrichment providers commonly return, one as JSON text in another shape. Each case names the verdict a correct run gives. Used by test_offline.py (with recorded Jev answers), and by check_local.py --fixtures and smoke_test.py --fixtures (with live Jev).",
+ "cases": [
+  {"id": "primary_with_side_roles", "expect": {"active_at_company": "yes", "relationship": "primary_job"},
+   "record": {"company_name": "Northwind Supply", "company_domain": "northwind.example", "source_ref": "case-1",
+    "profile": {"name": "Dana Ruiz", "headline": "VP Operations at Northwind Supply | Advisor | Angel investor",
+     "last_refresh": "2026-08-30",
+     "experience": [
+      {"company": "Northwind Supply", "title": "VP Operations", "start_date": "2021-04-01", "end_date": null, "is_current": true, "company_domain": "northwind.example", "url": "https://www.linkedin.com/company/northwind-supply-example"},
+      {"company": "Contoso Robotics", "title": "Advisor", "start_date": "2023-02-01", "end_date": null, "is_current": true, "company_domain": "contoso.example"},
+      {"company": "Tailspin Toys", "title": "Angel Investor", "start_date": "2024-06-01", "end_date": null, "is_current": true, "company_domain": "tailspin.example"},
+      {"company": "Fabrikam Freight", "title": "Director of Operations", "start_date": "2016-01-01", "end_date": "2021-03-01", "is_current": false, "company_domain": "fabrikam.example"}]}}},
+
+  {"id": "stale_current_role", "expect": {"active_at_company": "no", "relationship": "former"},
+   "record": {"company_name": "Fabrikam Freight", "company_domain": "fabrikam.example", "source_ref": "case-2",
+    "profile": {"name": "Sam Okafor", "headline": "Senior Software Engineer at Litware",
+     "last_refresh": "2026-09-01",
+     "experience": [
+      {"company": "Litware", "title": "Senior Software Engineer", "start_date": "2025-06-01", "end_date": null, "is_current": true, "company_domain": "litware.example"},
+      {"company": "Fabrikam Freight", "title": "Software Engineer", "start_date": "2019-02-01", "end_date": null, "is_current": true, "company_domain": "fabrikam.example"}]}}},
+
+  {"id": "board_seat_only", "expect": {"active_at_company": "passive", "relationship": "advisor_or_board"},
+   "record": {"company_name": "Northwind Supply", "company_domain": "northwind.example", "source_ref": "case-3",
+    "profile": {"name": "Lee Park", "headline": "CEO at Adatum",
+     "experience": [
+      {"company": "Adatum", "title": "Chief Executive Officer", "start_date": "2018-09-01", "end_date": null, "is_current": true, "company_domain": "adatum.example"},
+      {"company": "Northwind Supply", "title": "Board Member", "start_date": "2022-05-01", "end_date": null, "is_current": true, "company_domain": "northwind.example"}]}}},
+
+  {"id": "investor_title", "expect": {"active_at_company": "passive", "relationship": "investor"},
+   "record": {"company_name": "Woodgrove Health", "company_domain": "woodgrove.example", "source_ref": "case-4",
+    "profile": {"name": "Jo Brandt", "headline": "Partner at Proseware Capital",
+     "experience": [
+      {"company": "Proseware Capital", "title": "General Partner", "start_date": "2019-01-01", "end_date": null, "is_current": true, "company_domain": "proseware.example"},
+      {"company": "Woodgrove Health", "title": "Investor", "start_date": "2020-07-01", "end_date": null, "is_current": true, "company_domain": "woodgrove.example"}]}}},
+
+  {"id": "name_collision", "expect": {"active_at_company": "no", "relationship": "no_record"},
+   "record": {"company_name": "Acme Corp", "company_domain": "acme.example", "source_ref": "case-5",
+    "profile": {"name": "Kim Lau", "headline": "Data Scientist",
+     "experience": [
+      {"company": "Acme Analytics", "title": "Data Scientist", "start_date": "2022-03-01", "end_date": null, "is_current": true, "company_domain": "acmeanalytics.example"}]}}},
+
+  {"id": "left_cleanly", "expect": {"active_at_company": "no", "relationship": "former"},
+   "record": {"company_name": "Northwind Supply", "company_linkedin_url": "https://www.linkedin.com/company/northwind-supply-example/", "source_ref": "case-6",
+    "profile": {"name": "Max Tran", "headline": "Head of Sales at Litware",
+     "experience": [
+      {"company": "Litware", "title": "Head of Sales", "start_date": "2023-06-01", "end_date": null, "is_current": true, "company_domain": "litware.example"},
+      {"company": "Northwind Supply", "title": "Sales Director", "start_date": "2018-01-01", "end_date": "2023-05-01", "is_current": false, "url": "https://www.linkedin.com/company/northwind-supply-example"}]}}},
+
+  {"id": "advisor_after_leaving", "expect": {"active_at_company": "passive", "relationship": "advisor_or_board"},
+   "record": {"company_name": "Contoso Robotics", "company_domain": "contoso.example", "source_ref": "case-7",
+    "profile": {"name": "Rae Silva", "headline": "CTO at Adatum",
+     "experience": [
+      {"company": "Adatum", "title": "CTO", "start_date": "2021-01-01", "end_date": null, "is_current": true, "company_domain": "adatum.example"},
+      {"company": "Contoso Robotics", "title": "Technical Advisor", "start_date": "2021-02-01", "end_date": null, "is_current": true, "company_domain": "contoso.example"},
+      {"company": "Contoso Robotics", "title": "Principal Engineer", "start_date": "2015-05-01", "end_date": "2020-12-01", "is_current": false, "company_domain": "contoso.example"}]}}},
+
+  {"id": "fractional_exec", "expect": {"active_at_company": "yes", "relationship": "side_job"},
+   "record": {"company_name": "Northwind Supply", "company_domain": "northwind.example", "source_ref": "case-8",
+    "profile": {"name": "Pat Quinn", "headline": "Fractional CFO for growing distributors",
+     "experience": [
+      {"company": "Quinn Finance Partners", "title": "Founder & Principal", "start_date": "2020-01-01", "end_date": null, "is_current": true, "company_domain": "quinnfinance.example"},
+      {"company": "Northwind Supply", "title": "Fractional CFO", "start_date": "2024-03-01", "end_date": null, "is_current": true, "company_domain": "northwind.example"},
+      {"company": "Contoso Robotics", "title": "Fractional CFO", "start_date": "2025-01-01", "end_date": null, "is_current": true, "company_domain": "contoso.example"}]}}},
+
+  {"id": "url_only_skip_enrichment", "expect": {"active_at_company": "not_checked", "check_status": "blocked_missing_input"},
+   "record": {"company_name": "Northwind Supply", "linkedin_url": "https://www.linkedin.com/in/someone-example", "skip_enrichment": "true", "source_ref": "case-9"}},
+
+  {"id": "no_company", "expect": {"active_at_company": "not_checked", "check_status": "blocked_missing_input"},
+   "record": {"source_ref": "case-10", "profile": {"experience": [{"company": "Northwind Supply", "title": "Buyer", "is_current": true}]}}},
+
+  {"id": "profile_as_text_other_shape", "expect": {"active_at_company": "yes", "relationship": "primary_job"},
+   "record": {"company_name": "Adatum", "source_ref": "case-11",
+    "profile": "{\"full_name\": \"Ola Berg\", \"positions\": [{\"company\": {\"name\": \"Adatum Inc.\", \"website\": \"https://www.adatum.example/\"}, \"title\": {\"name\": \"Account Executive\"}, \"starts_at\": {\"year\": 2023, \"month\": 9}, \"ends_at\": null}]}"}}
+ ]
+}

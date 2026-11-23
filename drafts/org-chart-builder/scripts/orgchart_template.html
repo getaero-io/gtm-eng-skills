@@ -1,0 +1,844 @@
+<title>__TITLE__</title>
+__FONT_LINK__
+<style>
+/*__THEME_CSS__*/
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.45 var(--font-body);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--font-heading);margin:0;letter-spacing:-.01em;text-wrap:balance}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--primary);outline-offset:2px;border-radius:8px}
+.wrap{max-width:1440px;margin:0 auto;padding:0 24px}
+.topbar{border-bottom:1px solid var(--line);background:var(--surface)}
+.topbar .wrap{display:flex;align-items:center;gap:12px;min-height:56px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700}
+.brand img{max-height:28px;max-width:140px;display:block}
+.product{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding-left:10px;border-left:1px solid var(--line)}
+.spacer{flex:1}
+.conn{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--ok-soft);color:var(--ok)}
+.conn::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.conn.demo{background:var(--warn-soft);color:var(--warn)}
+.banner{background:var(--warn-soft);color:var(--warn);font-weight:600;padding:10px 0;border-bottom:1px solid var(--line)}
+/* ---------- account header + coverage strip ---------- */
+.account{padding:22px 0 10px}
+.account h1{font-size:28px}
+.meta{display:flex;flex-wrap:wrap;gap:4px 16px;color:var(--muted);font-size:13px;margin-top:4px}
+.meta b{color:var(--text);font-weight:600}
+.cover{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.cv{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:7px 12px;text-align:left}
+button.cv{cursor:pointer}
+button.cv:hover{border-color:var(--primary-line)}
+button.cv[aria-pressed="true"]{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary-soft)}
+.cv .n{font:700 18px/1 var(--font-heading);font-variant-numeric:tabular-nums}
+.cv .l{font-size:11.5px;color:var(--muted);line-height:1.2}
+.cv i{width:9px;height:9px;border-radius:3px;flex:none}
+.cv.warn{border-color:var(--warn);background:var(--warn-soft)}
+.cv.warn .n{color:var(--warn)}
+.cv-sep{width:1px;background:var(--line);margin:4px 2px}
+/* ---------- toolbar ---------- */
+.toolbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--bg);padding:10px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:1px solid var(--line)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:8px 12px;font-weight:600;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--primary);color:var(--on-primary)}
+.search{flex:1 1 200px;max-width:300px;position:relative}
+.search input,.sel{width:100%;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.search input{padding-left:34px}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.sel{width:auto;min-width:170px;cursor:pointer}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 12px;font-weight:600;cursor:pointer}
+.btn:hover{border-color:var(--primary-line)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.btn.sm{padding:6px 10px;font-size:12.5px}
+.menu{position:relative}
+.menu summary{list-style:none;cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:7px 12px;font-weight:700;letter-spacing:.1em}
+.menu summary::-webkit-details-marker{display:none}
+.menu[open] summary{border-color:var(--primary-line)}
+.menu .pop{position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:6px;min-width:230px;z-index:8}
+.menu .pop button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:9px 10px;border-radius:8px;cursor:pointer;font-weight:600}
+.menu .pop button:hover{background:var(--surface-2)}
+.menu .pop button:disabled{opacity:.5;cursor:default}
+.menu .pop .danger{color:var(--danger)}
+.menu .pop .armed{background:var(--danger);color:#fff}
+.menu .pop .hint{padding:2px 10px 6px}
+/* ---------- chart bar ---------- */
+.chartbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:14px 0 6px;color:var(--muted);font-size:12px}
+.chartbar strong{color:var(--text);font:700 13px var(--font-heading);text-transform:uppercase;letter-spacing:.08em}
+.legend{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:24px;height:0;border-top:2px dashed var(--conn)}
+.legend i.user{border-top:2px solid var(--primary)}
+.zoom{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--surface);overflow:hidden}
+.zoom button{border:0;background:transparent;padding:5px 10px;cursor:pointer;font-weight:700;color:var(--text)}
+.zoom button:hover{background:var(--surface-2)}
+.zoom span{min-width:46px;text-align:center;font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted)}
+/* ---------- layout: chart + needs-review tray ---------- */
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+.stage.no-tray{grid-template-columns:minmax(0,1fr)}
+.topzone{position:absolute;left:8px;right:8px;top:8px;z-index:4;visibility:hidden;border:2px dashed var(--primary-line);border-radius:12px;padding:10px;text-align:center;color:var(--primary);font-weight:600;background:var(--primary-soft)}
+body.dragging .topzone{visibility:visible}
+.topzone.drop-ok,.tray.drop-ok{border-color:var(--primary);border-style:solid}
+.scroller{position:relative;min-width:0}
+.scroller::before,.scroller::after{content:"";position:absolute;top:0;bottom:0;width:36px;pointer-events:none;opacity:0;transition:opacity .15s;z-index:2}
+.scroller::before{left:0;background:linear-gradient(90deg,var(--bg),transparent)}
+.scroller::after{right:0;background:linear-gradient(270deg,var(--bg),transparent)}
+.scroller.can-left::before,.scroller.can-right::after{opacity:1}
+.scrollhint{position:absolute;right:10px;top:6px;z-index:3;font-size:11.5px;font-weight:700;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:2px 9px;display:none}
+.scroller.can-right .scrollhint{display:block}
+.orgwrap{overflow:auto;padding:12px 4px 28px;max-height:calc(100vh - 150px);min-height:420px}
+.forest{display:flex;flex-direction:column;gap:36px;width:max-content;min-width:100%}
+.tree{display:flex;flex-direction:column;align-items:center}
+.node-root{position:relative;width:250px}
+.node-root.has-kids::after{content:"";position:absolute;left:50%;bottom:-16px;height:16px;border-left:2px solid var(--conn)}
+.bus{display:flex;gap:18px;align-items:flex-start;padding-top:32px}
+.group{position:relative;width:250px;flex:none}
+.group::before{content:"";position:absolute;top:-16px;left:-10px;right:-10px;border-top:2px solid var(--conn)}
+.group:first-child::before{left:50%}
+.group:last-child::before{right:50%}
+.group:only-child::before{display:none}
+.group::after{content:"";position:absolute;top:-16px;left:50%;height:16px;border-left:2px solid var(--conn)}
+.ghead{position:relative;display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:10px;background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--gc);font-size:12px;font-weight:700}
+.ghead .gn{color:var(--muted);font-weight:600;margin-left:auto;font-variant-numeric:tabular-nums}
+.sub{list-style:none;margin:0;padding:0 0 0 14px}
+.sub>li{position:relative;padding:8px 0 0 16px}
+.sub>li::before{content:"";position:absolute;left:0;top:0;bottom:0;border-left:2px solid var(--conn)}
+.sub>li:last-child::before{bottom:auto;height:30px}
+.sub>li::after{content:"";position:absolute;left:0;top:29px;width:15px;border-top:2px dashed var(--conn)}
+.sub>li.e-user::after{border-top:2px solid var(--primary)}
+.sub>li.e-low::after{border-top:2px dotted var(--warn)}
+.gsub{padding-left:10px}
+/* ---------- tiles ---------- */
+.node{position:relative}
+.ocard{display:flex;gap:9px;align-items:center;text-align:left;width:100%;border:1px solid var(--line);border-left:4px solid var(--rc, var(--line));background:var(--surface);border-radius:11px;padding:8px 10px;cursor:grab;box-shadow:var(--shadow);transition:border-color .12s, opacity .12s, transform .12s}
+.ocard:hover{border-color:var(--primary-line);border-left-color:var(--rc, var(--primary-line))}
+.ocard.root{padding:11px 12px}
+.ocard.selected{outline:2px solid var(--primary);outline-offset:1px}
+.ocard.dim{opacity:.3}
+.ocard.hit{box-shadow:0 0 0 3px var(--primary-soft), var(--shadow)}
+.ocard.drop-ok{border-color:var(--primary);background:var(--primary-soft);transform:scale(1.02)}
+.ocard.drop-no{cursor:no-drop}
+.ocard.dragging{opacity:.4}
+.role-Champion{--rc:var(--r-champion)} .role-Executive-Buyer{--rc:var(--r-buyer)} .role-Influencer{--rc:var(--r-influencer)} .role-Blocker{--rc:var(--r-blocker)}
+.av{flex:none;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font:700 12px var(--font-heading);background:var(--primary-soft);color:var(--primary)}
+.is-c .av{background:var(--primary);color:var(--on-primary)}
+.ocard.root .av{width:40px;height:40px;font-size:14px}
+.cbody{min-width:0;flex:1}
+.nm{display:flex;align-items:center;gap:6px;font-weight:700;min-width:0}
+.nm b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.tt{display:-webkit-box;color:var(--muted);font-size:12px;line-height:1.3;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:1px}
+.ic{display:inline-flex;gap:3px;flex:none;color:var(--ok)}
+.ic svg{width:13px;height:13px}
+.edot{width:7px;height:7px;border-radius:50%;background:var(--warn);flex:none}
+.rpill{display:inline-block;margin-top:4px;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:6px;color:var(--rc);background:var(--surface-2)}
+.fold{position:absolute;right:8px;bottom:-9px;z-index:1;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:0 8px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;line-height:17px}
+.fold:hover{border-color:var(--primary-line);color:var(--text)}
+/* ---------- needs-review tray ---------- */
+.tray{position:sticky;top:64px;border:2px dashed var(--warn);border-radius:16px;background:var(--surface);padding:14px;max-height:calc(100vh - 90px);overflow:auto}
+.tray h2{font-size:15px;display:flex;align-items:center;gap:8px}
+.tray h2 .n{background:var(--warn-soft);color:var(--warn);border-radius:999px;padding:0 8px;font-size:12px}
+.tray p{margin:6px 0 10px;color:var(--muted);font-size:12.5px}
+.tgroup{margin:12px 0 0}
+.tgroup .ghead{margin-bottom:6px}
+.tlist{display:flex;flex-direction:column;gap:8px}
+.tlist .sub{padding-left:10px}
+.tray .empty{border:1px dashed var(--line);border-radius:10px;padding:14px;color:var(--muted);font-size:12.5px;text-align:center}
+/* ---------- level view ---------- */
+.tier{margin:14px 0 26px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;transition:border-color .15s, background .15s}
+.tier.drop{border-color:var(--primary);background:var(--primary-soft)}
+.tier-head{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+.tier-head h2{font-size:16px}
+.tier-head .count{font-size:12px;color:var(--muted);font-weight:600}
+.tier-head .lvl{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--primary)}
+.row{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.empty{border:1px dashed var(--line);border-radius:12px;padding:22px;text-align:center;color:var(--muted)}
+.bigempty{margin:48px auto;max-width:520px;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:32px}
+.bigempty h2{font-size:20px;margin-bottom:6px}
+.foot{color:var(--muted);font-size:12px;padding:10px 0 40px;max-width:90ch}
+/* ---------- drawer ---------- */
+.scrim{position:fixed;inset:0;background:rgba(10,10,20,.35);opacity:0;pointer-events:none;transition:opacity .15s;z-index:20}
+.scrim.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;height:100%;width:min(440px,100%);background:var(--surface);border-left:1px solid var(--line);z-index:21;transform:translateX(100%);transition:transform .2s;display:flex;flex-direction:column}
+.drawer.open{transform:none}
+.dhead{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
+.dhead .av{width:46px;height:46px;font-size:16px}
+.dhead h2{font-size:19px}
+.dhead p{margin:2px 0 0;color:var(--muted)}
+.x{margin-left:auto;border:0;background:transparent;font-size:22px;line-height:1;cursor:pointer;color:var(--muted);padding:4px 8px}
+.dbody{padding:6px 20px 20px;overflow:auto;flex:1}
+.dsec{border-bottom:1px solid var(--line);padding:4px 0}
+.dsec:last-child{border-bottom:0}
+.dsec>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;padding:10px 0;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.dsec>summary::-webkit-details-marker{display:none}
+.dsec>summary::after{content:"▾";margin-left:auto;transition:transform .15s}
+.dsec:not([open])>summary::after{transform:rotate(-90deg)}
+.dsec>summary .badge{text-transform:none;letter-spacing:0;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--surface-2);color:var(--muted)}
+.dsec .inner{padding:0 0 12px}
+dl{display:grid;grid-template-columns:110px 1fr;gap:8px 12px;margin:0}
+dt{color:var(--muted);font-size:12.5px}
+dd{margin:0;font-weight:600;word-break:break-word;min-width:0}
+dd a{color:var(--primary)}
+.field{margin:0 0 12px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px}
+.field select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.hint{font-size:12px;color:var(--muted);margin-top:4px;font-weight:400}
+.note{background:var(--surface-2);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--muted);margin:0 0 12px}
+.note b{color:var(--text)}
+.note.warn{background:var(--warn-soft)}
+.reports{display:flex;flex-direction:column;gap:6px;margin:6px 0 0}
+.reports button{display:flex;gap:8px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 9px;cursor:pointer}
+.reports button:hover{border-color:var(--primary-line)}
+.reports .av{width:24px;height:24px;font-size:10px;border-radius:7px}
+.more{border:0;background:transparent;color:var(--primary);font-weight:700;cursor:pointer;padding:6px 0}
+.crow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px}
+.clabel{width:56px;flex:none;color:var(--muted);font-size:12.5px}
+.cval{font-weight:700;user-select:all;word-break:break-all;min-width:0}
+.cmsg{font-size:12.5px;color:var(--muted);flex:1 1 180px;min-width:0}
+.cmsg.err{color:var(--danger)}
+.mini{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:4px 9px;font-size:12px;font-weight:600;cursor:pointer}
+.mini:hover{border-color:var(--primary-line)}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--primary-line);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:1100px){
+  .stage{grid-template-columns:minmax(0,1fr)}
+  .tray{position:static;max-height:none}
+}
+@media (max-width:720px){
+  .wrap{padding:0 16px}
+  .account h1{font-size:22px}
+  .product{display:none}
+  .row{grid-template-columns:1fr}
+  .search{max-width:none}
+  .orgwrap{max-height:none;min-height:0;overflow:visible;padding:8px 0 20px}
+  .forest.outline{width:auto;min-width:0}
+  .forest.outline .sub{padding-left:6px}
+  .forest.outline .sub>li{padding-left:12px}
+  .scrollhint,.scroller::before,.scroller::after,.draghint{display:none!important}
+  .cover{flex-wrap:nowrap;overflow-x:auto;margin-right:-16px;padding-right:16px;scrollbar-width:none}
+  .cv{flex:none}
+  dl{grid-template-columns:96px 1fr}
+}
+/* ---------- new in role ---------- */
+.newpill{display:inline-flex;align-items:center;gap:4px;margin:4px 6px 0 0;font-size:10.5px;font-weight:800;letter-spacing:.02em;padding:1px 7px 1px 6px;border-radius:6px;color:var(--on-new);background:linear-gradient(90deg,var(--new),var(--new-2));box-shadow:0 1px 6px -1px color-mix(in srgb,var(--new) 60%,transparent)}
+.newpill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 0 2px color-mix(in srgb,currentColor 35%,transparent)}
+.ocard.is-new{box-shadow:0 0 0 2px var(--new-soft), var(--shadow)}
+.ocard.is-new .av{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--new)}
+.newseg{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--muted)}
+.newseg .seg button{padding:5px 9px}
+.newseg .cnt{font-variant-numeric:tabular-nums;color:var(--on-new);background:var(--new);border-radius:999px;padding:1px 8px;font-weight:800}
+.newseg .seg button[aria-pressed="true"]{background:var(--new);color:var(--on-new)}
+/* ---------- focus mode ---------- */
+.stage .ocard,.stage .ghead,.sub>li::before,.sub>li::after,.group::after,.node-root.has-kids::after{transition:opacity .28s ease, filter .28s ease, border-color .28s ease, transform .12s}
+.stage.focusing .ocard.unfocus{opacity:.22;filter:saturate(.2)}
+.stage.focusing .ocard.unfocus:hover{opacity:.6}
+.stage.focusing .sub>li:not(.on-path)::after,.stage.focusing .sub>li:not(.on-path):not(.trunk)::before{opacity:.2}
+.stage.focusing .sub>li.trunk::before{border-left-color:var(--primary)}
+.stage.focusing .sub>li.on-path:not(.trunk)::before{border-image:linear-gradient(var(--primary) 0 30px, color-mix(in srgb,var(--conn) 22%,transparent) 30px) 1}
+.stage.focusing .sub>li.on-path::after{border-top-color:var(--primary);border-top-style:solid}
+.stage.focusing .group:not(.on-path) .ghead{opacity:.35}
+.stage.focusing .group:not(.on-path)::after,.stage.focusing .group:not(.on-path)::before{opacity:.25}
+.stage.focusing .group.on-path::after,.stage.focusing .node-root.on-path.has-kids::after{border-left-color:var(--primary)}
+.stage.focusing .ocard.focus-me{box-shadow:0 0 0 4px var(--primary-soft),0 10px 28px -8px color-mix(in srgb,var(--primary) 55%,transparent);transform:translateY(-1px)}
+.focuschip{display:inline-flex;align-items:center;gap:8px;padding:3px 4px 3px 10px;border-radius:999px;background:var(--primary-soft);color:var(--text);font-weight:600}
+.focuschip button{border:0;background:var(--surface);border-radius:999px;padding:2px 9px;cursor:pointer;font-size:11.5px;font-weight:700}
+@media (min-width:721px){ .drawer{box-shadow:-18px 0 40px -18px rgba(10,10,30,.28)} body.drawer-open #app{max-width:none;padding-right:min(470px,45vw)} }
+/* ---------- in the news ---------- */
+.news{margin:26px 0 8px;border-top:1px solid var(--line);padding-top:18px}
+.news-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;margin-bottom:4px}
+.news-head h2{font-size:18px}
+.news-head .src{font-size:12px;color:var(--muted)}
+.nchips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 14px}
+.nchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 10px 4px 4px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text)}
+.nchip .av{width:22px;height:22px;font-size:9.5px;border-radius:999px}
+.nchip .c{color:var(--muted);font-variant-numeric:tabular-nums}
+.nchip[aria-pressed="true"]{border-color:var(--primary);background:var(--primary-soft)}
+.nchip.all{padding-left:10px}
+.nlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.ncard{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px}
+.nmeta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:12px;color:var(--muted)}
+.nmeta time{font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.nkind{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--surface-2);color:var(--muted)}
+.nkind.pr{background:var(--primary-soft);color:var(--primary)}
+.ncard h3{font-size:15px;line-height:1.3}
+.ncard h3 a{color:var(--text);text-decoration:none}
+.ncard h3 a:hover{color:var(--primary);text-decoration:underline}
+.ncard p{margin:0;color:var(--muted);font-size:13px}
+.npeople{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto}
+.npeople button{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:2px 9px 2px 3px;font-size:12px;font-weight:600;cursor:pointer}
+.npeople button:hover{border-color:var(--primary-line)}
+.npeople .av{width:20px;height:20px;font-size:9px;border-radius:999px}
+.nalso{font-size:12px;color:var(--muted)}
+.nalso a{color:var(--primary)}
+.ic .nws{color:var(--muted)}
+.dnews{display:flex;flex-direction:column;gap:8px}
+.dnews a{color:var(--text);font-weight:600;text-decoration:none}
+.dnews a:hover{color:var(--primary);text-decoration:underline}
+.dnews .hint{margin:0}
+/* ---------- motion ---------- */
+@keyframes oa-pop{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes oa-drawx{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes oa-drawy{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes oa-fade{from{opacity:0}to{opacity:1}}
+@keyframes oa-land{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--primary) 55%,transparent),var(--shadow)}100%{box-shadow:0 0 0 14px transparent,var(--shadow)}}
+.intro{--step:150ms}
+.intro .ocard{animation:oa-pop .5s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--d,0) * var(--step) + var(--i,0) * 35ms + 60ms)}
+.intro .ghead{animation:oa-pop .45s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--step) * .7 + var(--i,0) * 35ms)}
+.intro .sub>li::after{transform-origin:left;animation:oa-drawx .3s ease-out backwards;animation-delay:calc(var(--d,0) * var(--step) + var(--i,0) * 35ms - 40ms)}
+.intro .sub>li::before{transform-origin:top;animation:oa-drawy .35s ease-out backwards;animation-delay:calc(var(--d,0) * var(--step) + var(--i,0) * 35ms - 110ms)}
+.intro .group::before{transform-origin:center;animation:oa-drawx .4s ease-out backwards;animation-delay:calc(var(--step) * .35)}
+.intro .group::after,.intro .node-root.has-kids::after{transform-origin:top;animation:oa-drawy .25s ease-out backwards;animation-delay:calc(var(--step) * .5)}
+.intro .fold{animation:oa-fade .5s ease backwards;animation-delay:.9s}
+.ocard.landed{animation:oa-land .9s ease-out .35s 1}
+.ocard.appear{animation:oa-pop .35s cubic-bezier(.2,.8,.2,1) backwards}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+</style>
+<!--BODY-->
+<script type="application/json" id="orgatlas-data">__DATA_JSON__</script>
+<header class="topbar"><div class="wrap">
+  <div class="brand" id="brand"></div><span class="product">OrgAtlas</span>
+  <span class="spacer"></span><span class="conn" id="conn"></span>
+</div></header>
+<div id="banner"></div>
+<main class="wrap" id="app"></main>
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dname" aria-hidden="true"></aside>
+<div class="sr" aria-live="polite" id="live"></div>
+<script>
+(function(){
+const D = JSON.parse(document.getElementById('orgatlas-data').textContent);
+const C = D.company || {}, T = D.theme || {};
+const ROLES = ["Unclassified","Champion","Executive Buyer","Influencer","Blocker"];
+const LEVELS = ["C-Suite","VP"];
+const TOP = '__top__', TRAY = '__tray__';
+const GROUPS = [ // function lanes under the top executive
+  ['Engineering & Security', ['Engineering'], 'var(--g1)'],
+  ['Product', ['Product'], 'var(--g2)'],
+  ['Go-to-market', ['Revenue', 'Sales', 'Marketing', 'Customer'], 'var(--g3)'],
+  ['People', ['People'], 'var(--g4)'],
+  ['Finance & Legal', ['Finance', 'Legal'], 'var(--g5)'],
+  ['Operations & Strategy', ['Operations', 'Strategy'], 'var(--g6)'],
+  ['Other', ['Executive', 'Other'], 'var(--g7)'],
+];
+const groupOf = fn => GROUPS.find(g => g[1].includes(fn)) || GROUPS[GROUPS.length - 1];
+const isDemo = D.people.some(p => p.source === 'Demo');
+const KEY = 'orgatlas:v1:' + String(C.companyId || C.domain || C.name || 'account').toLowerCase();
+const byId = Object.fromEntries(D.people.map(p => [p.id, p]));
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const initials = n => n.split(/\s+/).filter(w => /^[A-Za-z]/.test(w)).slice(0,2).map(w => w[0]).join('').toUpperCase() || '?';
+const fmt = iso => { try { return new Date(iso).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'}); } catch(e){ return iso || '—'; } };
+const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || 'null') ?? d; } catch(e) { return d; } };
+const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} };
+let edits = load(KEY, {});
+const folded = load(KEY + ':folded', {});
+const state = { q:'', fn:'All', role:null, sel:null, view: load(KEY + ':view', 'org'), zoom: load(KEY + ':zoom', 1), newWin: load(KEY + ':new', 6) };
+const NEW_WINDOWS = [0, 3, 6, 12];
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function monthsIn(s){ // months since the start of the current title (Deepline gives YYYY-MM)
+  const m = /^(\d{4})-(\d{2})/.exec(s || ''); if (!m) return null;
+  const n = new Date(); return (n.getFullYear() * 12 + n.getMonth() + 1) - (+m[1] * 12 + +m[2]);
+}
+const startLabel = s => { const m = /^(\d{4})-(\d{2})/.exec(s || ''); return m ? `${MON[+m[2] - 1]} ${m[1]}` : ''; };
+const isNew = p => { if (!state.newWin) return false; const k = monthsIn(p.roleStartDate); return k !== null && k >= 0 && k < state.newWin; };
+const hasStarts = D.people.some(p => p.roleStartDate);
+let focusSet = null, firstPaint = true, justMoved = null;
+const NEWS = (D.news && D.news.items) || [];
+const newsFor = id => NEWS.filter(n => n.people.includes(id));
+const fmtDay = d => { try { return new Date(d + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); } catch(e) { return d; } };
+state.newsBy = null;
+function computeFocus(km){
+  if (!state.sel || state.view !== 'org' || !byId[state.sel]) return null;
+  const set = new Set([state.sel]);
+  let cur = mgrOf(state.sel), hops = 0; while (cur && hops++ < 500) { set.add(cur); cur = mgrOf(cur); }
+  const st = [...(km[state.sel] || [])]; while (st.length) { const c = st.pop(); set.add(c); st.push(...(km[c] || [])); }
+  return set;
+}
+const announce = m => { $('#live').textContent = m; };
+const narrow = () => window.matchMedia('(max-width: 720px)').matches;
+const roleCls = r => r && r !== 'Unclassified' ? 'role-' + r.replace(/\s+/g, '-') : '';
+
+/* ---------- effective structure: Deepline data + inference + local edits ---------- */
+const inferredMgr = id => { const r = byId[id]?.reportsTo; return r && r.id && byId[r.id] ? r.id : null; };
+const rawMgr = id => { const e = edits[id]?.managerId; if (e === TOP || e === TRAY) return null; if (e && byId[e]) return e; return inferredMgr(id); };
+function mgrOf(id){ // walk up to break any cycle defensively
+  const m = rawMgr(id); if (!m) return null;
+  let cur = m, hops = 0; while (cur && hops++ < 500) { if (cur === id) return null; cur = rawMgr(cur); }
+  return m;
+}
+function placement(id){ // 'child' | 'root' (top of the chart) | 'tray' (needs review)
+  if (mgrOf(id)) return 'child';
+  const e = edits[id]?.managerId;
+  if (e === TOP) return 'root';
+  if (e === TRAY) return 'tray';
+  return byId[id].reportsTo === null ? 'root' : 'tray';
+}
+const baseMgrValue = id => inferredMgr(id) || (byId[id].reportsTo === null ? TOP : TRAY);
+const relSource = id => edits[id]?.managerId ? 'user' : (inferredMgr(id) ? 'inferred' : 'none');
+const edgeCls = id => relSource(id) === 'user' ? 'e-user' : (byId[id].reportsTo?.confidence === 'low' ? 'e-low' : 'e-inf');
+const eff = p => ({...p, level: edits[p.id]?.level || p.level, buyingRole: edits[p.id]?.buyingRole || p.buyingRole});
+const edited = p => !!edits[p.id] && Object.keys(edits[p.id]).length > 0;
+function kidsMap(){ const m = {}; D.people.forEach(p => { const k = mgrOf(p.id); if (k) (m[k] = m[k] || []).push(p.id); }); return m; }
+function isDescendant(ancestor, id, km){ const stack = [...(km[ancestor] || [])]; while (stack.length){ const c = stack.pop(); if (c === id) return true; stack.push(...(km[c] || [])); } return false; }
+const teamSize = (id, km) => { let n = 0; const st = [...(km[id] || [])]; while (st.length) { const c = st.pop(); n++; st.push(...(km[c] || [])); } return n; };
+function setEdit(id, field, value){
+  const src = byId[id]; edits[id] = edits[id] || {};
+  const base = field === 'managerId' ? baseMgrValue(id) : src[field];
+  if (value === base) delete edits[id][field]; else edits[id][field] = value;
+  if (!Object.keys(edits[id]).length) delete edits[id];
+  store(KEY, edits);
+}
+
+/* ---------- header ---------- */
+$('#brand').innerHTML = T.logoDataUri ? `<img src="${esc(T.logoDataUri)}" alt="${esc(T.brandName || 'Logo')}">` : `<span>${esc(T.brandName || 'OrgAtlas')}</span>`;
+const conn = $('#conn');
+conn.textContent = isDemo ? 'Demo data — not live Deepline' : 'Deepline · live search results';
+if (isDemo) { conn.classList.add('demo'); $('#banner').innerHTML = '<div class="banner"><div class="wrap">Demo mode: these records are fixtures, not Deepline results.</div></div>'; }
+
+function matches(p){
+  const q = state.q.trim().toLowerCase();
+  return (state.fn === 'All' || p.function === state.fn) && (!state.role || eff(p).buyingRole === state.role)
+    && (!q || (p.name + ' ' + p.title + ' ' + p.function + ' ' + (p.location||'')).toLowerCase().includes(q));
+}
+const filtering = () => !!(state.q.trim() || state.fn !== 'All' || state.role);
+const ICON = {
+  email: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
+  phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>',
+  news: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5"/></svg>',
+};
+
+function coverage(all, km){
+  const cnt = r => all.filter(p => p.buyingRole === r).length;
+  const contacts = D.people.filter(p => p.email || p.phone).length;
+  const tray = D.people.filter(p => placement(p.id) === 'tray').length;
+  const userLines = D.people.filter(p => edits[p.id]?.managerId).length;
+  const cs = all.filter(p => p.level === 'C-Suite').length;
+  const rb = (r, label, color) => `<button class="cv" data-role="${esc(r)}" aria-pressed="${state.role === r}"><i style="background:${color}"></i><span class="n">${cnt(r)}</span><span class="l">${label}</span></button>`;
+  return `<div class="cover" aria-label="Account coverage">
+    <div class="cv"><span class="n">${all.length}</span><span class="l">Leaders<br>${cs} C-Suite · ${all.length - cs} VP</span></div>
+    <span class="cv-sep" aria-hidden="true"></span>
+    ${rb('Champion', 'Champions', 'var(--r-champion)')}${rb('Executive Buyer', 'Exec buyers', 'var(--r-buyer)')}${rb('Influencer', 'Influencers', 'var(--r-influencer)')}${rb('Blocker', 'Blockers', 'var(--r-blocker)')}
+    <button class="cv" data-role="Unclassified" aria-pressed="${state.role === 'Unclassified'}"><i style="background:var(--line)"></i><span class="n">${cnt('Unclassified')}</span><span class="l">Not yet<br>classified</span></button>
+    <span class="cv-sep" aria-hidden="true"></span>
+    <div class="cv"><span class="n">${contacts}</span><span class="l">Contacts<br>found</span></div>
+    ${tray ? `<button class="cv warn" id="goto-tray"><span class="n">${tray}</span><span class="l">Need a<br>manager</span></button>` : ''}
+    <div class="cv"><span class="n">${userLines}</span><span class="l">Lines you<br>set</span></div>
+    ${state.newWin && hasStarts ? `<span class="cv-sep" aria-hidden="true"></span><div class="cv"><i style="background:var(--new)"></i><span class="n">${all.filter(isNew).length}</span><span class="l">New in role<br>last ${state.newWin} mo</span></div>` : ''}
+  </div>`;
+}
+
+function tile(p, km, cls = ''){
+  const n = (km[p.id] || []).length, tsz = teamSize(p.id, km);
+  const f = filtering() ? (matches(p) ? 'hit' : 'dim') : '';
+  const hasE = !!p.email, hasM = !!p.phone;
+  const nNews = newsFor(p.id).length;
+  const nw = isNew(p), k = nw ? monthsIn(p.roleStartDate) : 0;
+  const newPill = nw ? `<span class="newpill" title="In this role since ${esc(startLabel(p.roleStartDate))} (Deepline)">New · ${k < 1 ? 'this month' : k + ' mo'}</span>` : '';
+  const role = p.buyingRole !== 'Unclassified' ? `<span class="rpill">${esc(p.buyingRole)}</span>` : '';
+  const fc = focusSet ? (p.id === state.sel ? 'focus-me' : focusSet.has(p.id) ? 'in-focus' : 'unfocus') : '';
+  const lm = justMoved === p.id ? 'landed' : '';
+  return `<div class="node"><button class="ocard ${cls} ${f} ${fc} ${lm} ${nw ? 'is-new' : ''} ${roleCls(p.buyingRole)} ${p.level === 'C-Suite' ? 'is-c' : ''} ${state.sel === p.id ? 'selected' : ''}" draggable="true" data-id="${esc(p.id)}" aria-label="${esc(p.name)}, ${esc(p.title)}${nw ? `, new in role since ${esc(startLabel(p.roleStartDate))}` : ''}${p.buyingRole !== 'Unclassified' ? ', ' + esc(p.buyingRole) : ''}${n ? `, ${n} direct report${n === 1 ? '' : 's'}` : ''}${nNews ? `, ${nNews} news item${nNews === 1 ? '' : 's'}` : ''}. Open details">
+    <span class="av" aria-hidden="true">${esc(initials(p.name))}</span>
+    <span class="cbody"><span class="nm"><b>${esc(p.name)}</b>${hasE || hasM || nNews ? `<span class="ic">${hasE ? `<span title="Email found">${ICON.email}</span>` : ''}${hasM ? `<span title="Mobile found">${ICON.phone}</span>` : ''}${nNews ? `<span class="nws" title="In the news: ${nNews} item${nNews === 1 ? '' : 's'}">${ICON.news}</span>` : ''}</span>` : ''}${edited(p) ? '<span class="edot" title="Edited in this browser"></span>' : ''}</span>
+      <span class="tt">${esc(p.title)}</span>${newPill}${role}</span>
+  </button>${n ? `<button class="fold" data-fold="${esc(p.id)}" aria-expanded="${!folded[p.id]}" aria-label="${folded[p.id] ? 'Show' : 'Hide'} ${esc(p.name)}'s team of ${tsz}">${folded[p.id] ? `▸ ${tsz} hidden` : `▾ ${n}`}</button>` : ''}</div>`;
+}
+const onPath = id => focusSet && focusSet.has(id) ? 'on-path' : '';
+const pathCls = (ks, j) => !focusSet ? '' : onPath(ks[j]) + (ks.slice(j + 1).some(k => focusSet.has(k)) ? ' trunk' : ''); // trunk: the vertical line runs on to a later sibling on the path
+const subTree = (id, km, d = 2, gi = 0) => (km[id] || []).length && !folded[id]
+  ? `<ul class="sub">${km[id].map((k, j) => `<li class="${edgeCls(k)} ${pathCls(km[id], j)}" style="--d:${d};--i:${gi + j}">${tile(eff(byId[k]), km)}${subTree(k, km, d + 1, gi + j)}</li>`).join('')}</ul>` : '';
+
+function orgChart(km){
+  const roots = D.people.filter(p => placement(p.id) === 'root').map(p => p.id);
+  if (narrow()) { // phone: an indented outline instead of a wide tree
+    return `<div class="forest outline ${firstPaint ? 'intro' : ''}">${roots.map(r => `<div>${tile(eff(byId[r]), km, 'root')}${subTree(r, km, 1)}</div>`).join('')}</div>`;
+  }
+  const tree = r => {
+    const kids = km[r] || [];
+    if (!kids.length || folded[r]) return `<div class="tree"><div class="node-root">${tile(eff(byId[r]), km, 'root')}</div></div>`;
+    const lanes = GROUPS.map(g => [g, kids.filter(k => g[1].includes(byId[k].function))]).filter(([, ks]) => ks.length);
+    const other = kids.filter(k => !GROUPS.some(g => g[1].includes(byId[k].function)));
+    if (other.length) lanes.push([GROUPS[GROUPS.length - 1], other]);
+    return `<div class="tree">
+      <div class="node-root has-kids ${onPath(r)}">${tile(eff(byId[r]), km, 'root')}</div>
+      <div class="bus">${lanes.map(([g, ks], gi) => `<section class="group ${ks.some(k => focusSet && focusSet.has(k)) ? 'on-path' : ''}" style="--gc:${g[2]};--i:${gi}" aria-label="${esc(g[0])}">
+        <div class="ghead"><span>${esc(g[0])}</span><span class="gn">${ks.length}</span></div>
+        <ul class="sub gsub">${ks.map((k, j) => `<li class="${edgeCls(k)} ${pathCls(ks, j)}" style="--d:1;--i:${gi + j}">${tile(eff(byId[k]), km)}${subTree(k, km, 2, gi + j)}</li>`).join('')}</ul>
+      </section>`).join('')}</div>
+    </div>`;
+  };
+  return `<div class="forest ${firstPaint ? 'intro' : ''}" style="zoom:${state.zoom}">${roots.map(tree).join('')}</div>`;
+}
+
+function trayPanel(km){
+  const ids = D.people.filter(p => placement(p.id) === 'tray').map(p => p.id);
+  const lanes = GROUPS.map(g => [g, ids.filter(k => g[1].includes(byId[k].function))]).filter(([, ks]) => ks.length);
+  return `<aside class="tray" id="tray" aria-labelledby="tray-h">
+    <h2 id="tray-h">Needs review <span class="n">${ids.length}</span></h2>
+    <p>Deepline's data has no same-function leader for these people, so no reporting line was guessed. Drag each one onto their manager's tile, or pick a manager in their side panel.</p>
+    ${ids.length ? lanes.map(([g, ks]) => `<div class="tgroup" style="--gc:${g[2]}"><div class="ghead"><span>${esc(g[0])}</span><span class="gn">${ks.length}</span></div>
+      <div class="tlist">${ks.map(k => `<div>${tile(eff(byId[k]), km)}${subTree(k, km)}</div>`).join('')}</div></div>`).join('')
+      : '<div class="empty">Everyone has a manager. Drag someone here to take them out of the chart for review.</div>'}
+  </aside>`;
+}
+
+function newsSection(){
+  if (!D.news) return '';
+  const counts = {}; NEWS.forEach(n => n.people.forEach(id => { counts[id] = (counts[id] || 0) + 1; }));
+  const who = Object.keys(counts).filter(id => byId[id]).sort((a, b) => counts[b] - counts[a] || byId[a].name.localeCompare(byId[b].name));
+  if (state.newsBy && !counts[state.newsBy]) state.newsBy = null;
+  const list = state.newsBy ? NEWS.filter(n => n.people.includes(state.newsBy)) : NEWS;
+  const win = D.news.windowMonths || 3;
+  const card = n => `<article class="ncard">
+      <div class="nmeta"><time datetime="${esc(n.date)}">${esc(fmtDay(n.date))}</time><span>${esc(n.source)}</span><span class="nkind ${/press/i.test(n.kind) ? 'pr' : ''}">${esc(n.kind)}</span></div>
+      <h3><a href="${esc(n.url)}" target="_blank" rel="noopener noreferrer">${esc(n.title)}</a></h3>
+      ${n.summary ? `<p>${esc(n.summary)}</p>` : ''}
+      ${n.alsoAt.length ? `<div class="nalso">Also at ${n.alsoAt.map(a => `<a href="${esc(a.url)}" target="_blank" rel="noopener noreferrer">${esc(a.source)}</a>`).join(', ')}</div>` : ''}
+      <div class="npeople">${n.people.filter(id => byId[id]).map(id => `<button data-open="${esc(id)}" title="${esc(byId[id].title)}"><span class="av" aria-hidden="true">${esc(initials(byId[id].name))}</span>${esc(byId[id].name)}</button>`).join('')}</div>
+    </article>`;
+  return `<section class="news" id="news" aria-labelledby="news-h">
+    <div class="news-head"><h2 id="news-h">In the news</h2><span class="src">Last ${win} months · ${NEWS.length} item${NEWS.length === 1 ? '' : 's'} naming these leaders · from public web sources, not Deepline${D.news.checkedAt ? ` · checked ${esc(fmtDay(D.news.checkedAt))}` : ''}</span></div>
+    ${NEWS.length ? `<div class="nchips" role="group" aria-label="Filter news by person">
+      <button class="nchip all" data-newsby="" aria-pressed="${!state.newsBy}">Everyone <span class="c">${NEWS.length}</span></button>
+      ${who.map(id => `<button class="nchip" data-newsby="${esc(id)}" aria-pressed="${state.newsBy === id}"><span class="av" aria-hidden="true">${esc(initials(byId[id].name))}</span>${esc(byId[id].name)} <span class="c">${counts[id]}</span></button>`).join('')}
+    </div>
+    <div class="nlist">${list.map(card).join('')}</div>`
+    : `<div class="empty">No news in the last ${win} months named any of these leaders.</div>`}
+  </section>`;
+}
+
+function render(){
+  const all = D.people.map(eff);
+  const app = $('#app');
+  const km = kidsMap();
+  focusSet = computeFocus(km);
+  const before = flipFirst();
+  const head = `
+    <section class="account">
+      <h1>${esc(C.name)}</h1>
+      <div class="meta">
+        ${C.domain ? `<span><b>${esc(C.domain)}</b></span>` : ''}
+        ${C.industry ? `<span>${esc(C.industry)}</span>` : ''}
+        ${C.location ? `<span>${esc(C.location)}</span>` : ''}
+        <span>Source: <b>${isDemo ? 'Demo fixtures' : 'Deepline'}</b></span>
+        <span>Retrieved <b>${esc(fmt(D.retrievedAt))}</b></span>
+      </div>
+      ${all.length ? coverage(all, km) : ''}
+    </section>`;
+  if (!all.length) {
+    app.innerHTML = head + `<div class="bigempty"><h2>No matching leaders</h2><p>Deepline returned no current C-Suite or VP leaders for ${esc(C.name)}. Nothing has been filled in with guesses.</p></div>`;
+    return;
+  }
+  const fns = [...new Set(all.map(p => p.function))].sort();
+  const nEdits = Object.keys(edits).filter(id => byId[id]).length;
+  const nFold = Object.keys(folded).filter(id => folded[id]).length;
+  const toolbar = `
+    <div class="toolbar" role="search">
+      <div class="seg" role="group" aria-label="View">
+        <button data-view="org" aria-pressed="${state.view === 'org'}">Org chart</button>
+        <button data-view="level" aria-pressed="${state.view === 'level'}">By level</button>
+      </div>
+      <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <label class="sr" for="q">Search leaders</label><input id="q" type="search" placeholder="Search name, title, location" value="${esc(state.q)}"></div>
+      <label class="sr" for="fn">Function</label>
+      <select id="fn" class="sel"><option value="All">All functions</option>${fns.map(f => `<option ${f === state.fn ? 'selected' : ''}>${esc(f)}</option>`).join('')}</select>
+      ${filtering() ? '<button class="btn sm" id="clear">Clear filters</button>' : ''}
+      ${hasStarts ? `<div class="newseg"><span id="new-l">New in role</span><div class="seg" role="group" aria-labelledby="new-l">${NEW_WINDOWS.map(w => `<button data-new="${w}" aria-pressed="${state.newWin === w}">${w ? w + ' mo' : 'Off'}</button>`).join('')}</div>${state.newWin ? `<span class="cnt">${all.filter(isNew).length}</span>` : ''}</div>` : ''}
+      <span class="spacer"></span>
+      <details class="menu"><summary aria-label="More options">···</summary><div class="pop">
+        <button id="unfold" ${nFold ? '' : 'disabled'}>Expand all teams</button>
+        <button id="reset" class="danger" ${nEdits ? '' : 'disabled'}>Reset local edits${nEdits ? ` (${nEdits})` : ''}</button>
+        <div class="hint">Resets managers, buying roles and levels you changed. Contact details you found are kept.</div>
+      </div></details>
+    </div>`;
+  let body;
+  if (state.view === 'org') {
+    body = `
+      <div class="chartbar"><strong>Org chart</strong>
+        <span class="legend"><i></i> Inferred from titles</span>
+        <span class="legend"><i class="user"></i> Set by you</span>
+        ${focusSet ? `<span class="focuschip">Focused on ${esc(byId[state.sel].name)} · ${focusSet.size - 1} connected <button id="unfocus">Clear focus</button></span>` : '<span class="draghint">Click a person to focus on their reporting line. Drag them onto someone\'s tile to change who they report to.</span>'}
+        <span class="spacer"></span>
+        ${narrow() ? '' : `<span class="zoom" role="group" aria-label="Zoom"><button id="z-out" aria-label="Zoom out">−</button><span id="z-val">${Math.round(state.zoom * 100)}%</span><button id="z-in" aria-label="Zoom in">+</button><button id="z-fit">Fit</button></span>`}
+      </div>
+      <div class="stage ${focusSet ? 'focusing' : ''}">
+        <div class="scroller" id="scroller"><div class="topzone" id="topzone">Drop here to put this person at the top of the chart, with no manager</div><span class="scrollhint" aria-hidden="true">Scroll →</span><div class="orgwrap" id="orgwrap">${orgChart(km)}</div></div>
+        ${trayPanel(km)}
+      </div>`;
+  } else {
+    const tier = (lvl, n, label, cls) => {
+      const list = all.filter(p => p.level === lvl && matches(p));
+      return `<section class="tier ${cls}" data-level="${lvl}" aria-labelledby="h-${cls}">
+        <div class="tier-head"><span class="lvl">Level ${n}</span><h2 id="h-${cls}">${label}</h2><span class="count">${list.length} shown</span></div>
+        <div class="row">${list.length ? list.map(p => tile(p, {})).join('') : `<div class="empty">${filtering() ? 'No leaders match these filters.' : 'Drag a card here to move someone to this level.'}</div>`}</div>
+      </section>`;
+    };
+    body = `<div class="chartbar"><strong>By level</strong><span>Grouped by title seniority. Drag a card to the other level to correct it.</span></div>
+      ${tier('C-Suite', 1, 'C-Suite', 'l1')}${tier('VP', 2, 'VP Leadership', 'l2')}`;
+  }
+  const prev = $('#orgwrap'), prevScroll = prev ? [prev.scrollLeft, prev.scrollTop] : null;
+  app.innerHTML = head + toolbar + body + newsSection() + `<p class="foot">People, titles, locations and LinkedIn links come from Deepline. Deepline does not supply reporting relationships: lines are inferred from titles and functions (dotted amber lines are low confidence), and people with no evidence wait in Needs review. A coloured left edge marks a buying role you set. An amber dot marks a correction saved in this browser only.${hasStarts ? ' “New” badges use the start date Deepline has for each person\'s current title, so a recent promotion also counts.' : ''}</p>`;
+  wire(km);
+  const ow = $('#orgwrap');
+  if (ow) {
+    if (prevScroll) { ow.scrollLeft = prevScroll[0]; ow.scrollTop = prevScroll[1]; }
+    else { const rc = ow.querySelector('.node-root'); if (rc) ow.scrollLeft = Math.max(0, rc.offsetLeft + rc.offsetWidth / 2 - ow.clientWidth / 2); }
+    updateHints();
+  }
+  if (!firstPaint) flipPlay(before);
+  firstPaint = false; justMoved = null;
+}
+/* FLIP: tiles that change position glide from their old spot instead of jumping */
+function flipFirst(){
+  const m = {}; if (firstPaint || reduceMotion()) return m;
+  document.querySelectorAll('#app .ocard[data-id]').forEach(c => { m[c.dataset.id] = c.getBoundingClientRect(); });
+  return m;
+}
+function flipPlay(before){
+  if (reduceMotion() || !Object.keys(before).length) return;
+  document.querySelectorAll('#app .ocard[data-id]').forEach(c => {
+    const a = before[c.dataset.id];
+    if (!a) { c.classList.add('appear'); return; }
+    const b = c.getBoundingClientRect(), dx = a.left - b.left, dy = a.top - b.top;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+    const z = c.closest('.forest:not(.outline)') ? state.zoom : 1;
+    c.animate([{ transform: `translate(${dx / z}px, ${dy / z}px)` }, { transform: 'none' }],
+      { duration: 480, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  });
+}
+function updateHints(){
+  const ow = $('#orgwrap'), sc = $('#scroller'); if (!ow || !sc) return;
+  sc.classList.toggle('can-left', ow.scrollLeft > 4);
+  sc.classList.toggle('can-right', ow.scrollLeft + ow.clientWidth < ow.scrollWidth - 4);
+}
+function setZoom(z){
+  state.zoom = Math.max(0.4, Math.min(1.25, Math.round(z * 100) / 100)); store(KEY + ':zoom', state.zoom);
+  const f = $('#orgwrap .forest'); if (f) f.style.zoom = state.zoom;
+  const v = $('#z-val'); if (v) v.textContent = Math.round(state.zoom * 100) + '%';
+  updateHints();
+}
+function fitZoom(){
+  const ow = $('#orgwrap'), f = ow && ow.querySelector('.forest'); if (!f) return;
+  f.style.zoom = 1; const w = f.scrollWidth;
+  setZoom(Math.min(1, (ow.clientWidth - 8) / w)); ow.scrollLeft = 0;
+}
+
+let dragId = null;
+function endDrag(){ dragId = null; document.body.classList.remove('dragging'); document.querySelectorAll('.drop-ok,.drop-no').forEach(x => x.classList.remove('drop-ok','drop-no')); }
+function wire(km){
+  const q = $('#q');
+  if (q) q.addEventListener('input', e => { state.q = e.target.value; const pos = e.target.selectionStart; render(); const n = $('#q'); n.focus(); n.setSelectionRange(pos,pos); });
+  const fn = $('#fn'); if (fn) fn.onchange = e => { state.fn = e.target.value; render(); $('#fn').focus(); };
+  const cl = $('#clear'); if (cl) cl.onclick = () => { state.q = ''; state.fn = 'All'; state.role = null; render(); $('#q').focus(); };
+  document.querySelectorAll('[data-role]').forEach(b => b.onclick = () => { state.role = state.role === b.dataset.role ? null : b.dataset.role; render(); document.querySelector(`[data-role="${CSS.escape(b.dataset.role)}"]`)?.focus(); });
+  const gt = $('#goto-tray'); if (gt) gt.onclick = () => { state.view = 'org'; render(); $('#tray')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); $('#tray h2')?.setAttribute('tabindex', '-1'); $('#tray h2')?.focus(); };
+  document.querySelectorAll('.seg button').forEach(b => b.onclick = () => { state.view = b.dataset.view; store(KEY + ':view', state.view); render(); document.querySelector(`.seg button[data-view="${state.view}"]`)?.focus(); });
+  const r = $('#reset');
+  if (r) r.onclick = () => {
+    if (!r.classList.contains('armed')) { r.classList.add('armed'); r.textContent = 'Click again to reset'; return; }
+    edits = {}; try { localStorage.removeItem(KEY); } catch(e) {} announce('Local edits reset'); render();
+  };
+  const uf = $('#unfold'); if (uf) uf.onclick = () => { Object.keys(folded).forEach(k => delete folded[k]); store(KEY + ':folded', folded); render(); };
+  document.querySelectorAll('[data-fold]').forEach(b => b.onclick = e => { e.stopPropagation(); const id = b.dataset.fold; folded[id] = !folded[id]; if (!folded[id]) delete folded[id]; store(KEY + ':folded', folded); render(); document.querySelector(`[data-fold="${CSS.escape(id)}"]`)?.focus(); });
+  document.querySelectorAll('[data-new]').forEach(b => b.onclick = () => { state.newWin = +b.dataset.new; store(KEY + ':new', state.newWin); render(); document.querySelector(`[data-new="${state.newWin}"]`)?.focus(); announce(state.newWin ? `Highlighting leaders new in role in the last ${state.newWin} months` : 'New-in-role highlight off'); });
+  const uff = $('#unfocus'); if (uff) uff.onclick = closeDrawer;
+  document.querySelectorAll('[data-newsby]').forEach(b => b.onclick = () => { state.newsBy = b.dataset.newsby || null; render(); document.querySelector(`[data-newsby="${CSS.escape(state.newsBy || '')}"]`)?.focus(); });
+  document.querySelectorAll('#news [data-open]').forEach(b => b.onclick = () => openDrawer(b.dataset.open));
+  const owc = $('#orgwrap'); if (owc) owc.addEventListener('click', e => { if (state.sel && !e.target.closest('.ocard,.fold')) closeDrawer(); });
+  const zi = $('#z-in'), zo = $('#z-out'), zf = $('#z-fit');
+  if (zi) { zi.onclick = () => setZoom(state.zoom + 0.1); zo.onclick = () => setZoom(state.zoom - 0.1); zf.onclick = fitZoom; }
+  const ow = $('#orgwrap'); if (ow) ow.addEventListener('scroll', updateHints, { passive: true });
+  document.querySelectorAll('.ocard').forEach(c => {
+    c.onclick = () => openDrawer(c.dataset.id);
+    c.addEventListener('dragstart', e => { dragId = c.dataset.id; e.dataTransfer.setData('text/plain', dragId); e.dataTransfer.effectAllowed = 'move'; c.classList.add('dragging'); document.body.classList.add('dragging'); });
+    c.addEventListener('dragend', () => { c.classList.remove('dragging'); endDrag(); });
+  });
+  if (state.view === 'org') {
+    document.querySelectorAll('.ocard').forEach(c => { // drop a person onto someone's tile = report to them
+      const target = c.dataset.id;
+      const ok = () => dragId && dragId !== target && !isDescendant(dragId, target, km);
+      c.addEventListener('dragover', e => { if (ok()) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; c.classList.add('drop-ok'); } else c.classList.add('drop-no'); });
+      c.addEventListener('dragleave', () => c.classList.remove('drop-ok','drop-no'));
+      c.addEventListener('drop', e => {
+        e.preventDefault(); e.stopPropagation(); if (!ok()) return;
+        const id = dragId; setEdit(id, 'managerId', target); justMoved = id; if (folded[target]) { delete folded[target]; store(KEY + ':folded', folded); }
+        announce(`${byId[id].name} now reports to ${byId[target].name}`); endDrag(); render();
+      });
+    });
+    const zone = (el, value, msg) => { if (!el) return;
+      el.addEventListener('dragover', e => { if (dragId) { e.preventDefault(); el.classList.add('drop-ok'); } });
+      el.addEventListener('dragleave', e => { if (!el.contains(e.relatedTarget)) el.classList.remove('drop-ok'); });
+      el.addEventListener('drop', e => { e.preventDefault(); if (!dragId) return; const id = dragId; setEdit(id, 'managerId', value); justMoved = id; announce(`${byId[id].name} ${msg}`); endDrag(); render(); });
+    };
+    zone($('#topzone'), TOP, 'moved to the top of the chart');
+    zone($('#tray'), TRAY, 'moved to Needs review');
+  } else {
+    document.querySelectorAll('.tier').forEach(t => { // drop onto a section = change level
+      t.addEventListener('dragover', e => { e.preventDefault(); t.classList.add('drop'); });
+      t.addEventListener('dragleave', e => { if (!t.contains(e.relatedTarget)) t.classList.remove('drop'); });
+      t.addEventListener('drop', e => {
+        e.preventDefault(); t.classList.remove('drop');
+        const id = e.dataTransfer.getData('text/plain'); if (!id || !byId[id]) return;
+        setEdit(id, 'level', t.dataset.level); announce(`${byId[id].name} moved to ${t.dataset.level}`); render();
+      });
+    });
+  }
+}
+let rsz = null, wasNarrow = narrow();
+window.addEventListener('resize', () => { clearTimeout(rsz); rsz = setTimeout(() => { if (narrow() !== wasNarrow) { wasNarrow = narrow(); if (!$('#drawer').classList.contains('open')) render(); } else updateHints(); }, 150); });
+document.addEventListener('click', e => { document.querySelectorAll('details.menu[open]').forEach(m => { if (!m.contains(e.target)) m.removeAttribute('open'); }); });
+
+/* ---------- contact lookups: a Deepline command the viewer runs ----------
+   The page holds no credentials and calls nothing. Each lookup is a Deepline waterfall play the
+   viewer runs in their own terminal (it uses their Deepline credits), or asks their agent to run
+   and re-render the chart with. Values already in the data are shown with Copy. */
+const ENR = Object.assign({ emailPlay: 'prebuilt/person-linkedin-to-email',
+  emailByNamePlay: 'prebuilt/name-and-domain-to-email-waterfall', phonePlay: 'prebuilt/person-to-phone' }, D.enrich || {});
+const busy = {};                              // `${id}:${kind}` -> {phase}
+const KINDS = ['email', 'phone'];
+const LABEL = { email: 'Email', phone: 'Mobile' };
+const shq = s => "'" + String(s).replace(/'/g, "'\\''") + "'";
+function lookupCmd(p, kind){
+  const parts = String(p.name || '').trim().split(/\s+/), first = parts[0] || '', last = parts.slice(1).join(' ');
+  const clean = o => Object.fromEntries(Object.entries(o).filter(([, v]) => v));
+  let play, input;
+  if (kind === 'email' && p.linkedinUrl) { play = ENR.emailPlay; input = { linkedin_url: p.linkedinUrl }; }
+  else if (kind === 'email') { play = ENR.emailByNamePlay; input = clean({ first_name: first, last_name: last, domain: C.domain, company_name: C.name }); }
+  else { play = ENR.phonePlay; input = clean({ first_name: first, last_name: last, domain: C.domain, linkedin_url: p.linkedinUrl, email: p.email }); }
+  return `deepline plays run ${play} --input ${shq(JSON.stringify(input))}`;
+}
+function setBusy(key, phase){ if (phase) busy[key] = { phase }; else delete busy[key]; refreshContact(); }
+function contactHTML(id){
+  const p = byId[id];
+  const row = kind => {
+    const key = id + ':' + kind, b = busy[key];
+    const val = kind === 'email' ? p.email : p.phone;
+    if (val) {
+      return `<div><div class="crow"><span class="clabel">${LABEL[kind]}</span><span class="cval">${esc(val)}</span><button class="mini" data-copy="${esc(val)}">Copy</button></div><div class="hint" style="margin-left:64px">Found through Deepline when this chart was built</div></div>`;
+    }
+    const noun = kind === 'email' ? 'email' : 'mobile';
+    if (b?.phase === 'show') {
+      const cmd = lookupCmd(p, kind);
+      return `<div><div class="crow"><span class="clabel">${LABEL[kind]}</span><span class="cmsg">Run this in a terminal signed in to Deepline. It uses your Deepline credits.</span></div><div class="crow" style="margin-left:64px"><code class="cval" style="white-space:pre-wrap;word-break:break-all">${esc(cmd)}</code><button class="mini" data-copy="${esc(cmd)}">Copy</button><button class="mini" data-cancel="${kind}">Hide</button></div><div class="hint" style="margin-left:64px">Or ask your agent to find ${noun}s for people on this chart and rebuild it.</div></div>`;
+    }
+    return `<div class="crow"><span class="clabel">${LABEL[kind]}</span><span class="cmsg">Not found yet</span><button class="btn primary sm" data-ask="${kind}">Find ${noun} with Deepline</button></div>`;
+  };
+  return KINDS.map(row).join('');
+}
+function wireContact(id){
+  const el = $('#contact-sec'); if (!el) return;
+  el.querySelectorAll('[data-ask]').forEach(b => b.onclick = () => { setBusy(id + ':' + b.dataset.ask, 'show'); $(`#contact-sec [data-cancel="${b.dataset.ask}"]`)?.focus(); });
+  el.querySelectorAll('[data-cancel]').forEach(b => b.onclick = () => { setBusy(id + ':' + b.dataset.cancel, null); $(`#contact-sec [data-ask="${b.dataset.cancel}"]`)?.focus(); });
+  el.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => {
+    const v = b.dataset.copy;
+    const fallback = () => { const s = b.previousElementSibling; const r = document.createRange(); r.selectNodeContents(s); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); announce('Selected, press Ctrl or Cmd plus C to copy'); };
+    try { navigator.clipboard.writeText(v).then(() => { b.textContent = 'Copied'; announce('Copied'); }, fallback); } catch (e) { fallback(); }
+  });
+}
+function refreshContact(){
+  const el = $('#contact-sec'); if (!el || !state.sel) return;
+  const had = el.contains(document.activeElement);
+  el.innerHTML = contactHTML(state.sel); wireContact(state.sel);
+  if (had && !el.contains(document.activeElement)) el.querySelector('button')?.focus();
+}
+
+let lastFocus = null;
+const showAllReports = {};
+function openDrawer(id){
+  const src = byId[id]; if (!src) return;
+  const p = eff(src); state.sel = id; if (!$('#drawer').classList.contains('open')) lastFocus = document.activeElement;
+  const km = kidsMap();
+  const mgr = mgrOf(id), inf = inferredMgr(id), srcRel = relSource(id), place = placement(id);
+  const kids = km[id] || [];
+  const cur = mgr || (place === 'root' ? TOP : TRAY);
+  const options = [`<option value="${TRAY}" ${cur === TRAY ? 'selected' : ''}>Needs review (no manager yet)</option>`,
+    `<option value="${TOP}" ${cur === TOP ? 'selected' : ''}>Top of the chart (no manager)</option>`]
+    .concat(D.people.filter(o => o.id !== id && !isDescendant(id, o.id, km))
+      .map(o => `<option value="${esc(o.id)}" ${o.id === mgr ? 'selected' : ''}>${esc(o.name)} · ${esc(o.title)}</option>`)).join('');
+  const r = src.reportsTo;
+  const relNote = srcRel === 'user'
+    ? `<p class="note"><b>Set by you.</b> ${inf ? `Original inference: ${esc(byId[inf].name)}, because ${esc(lc(r.basis))}.` : r && r.confidence === 'unplaced' ? `Originally in Needs review: ${esc(lc(r.basis))}.` : 'No line was inferred originally.'}</p>`
+    : srcRel === 'inferred'
+      ? `<p class="note ${r.confidence === 'low' ? 'warn' : ''}"><b>Inferred, ${esc(r.confidence)} confidence.</b> ${esc(r.basis)}. Deepline does not supply reporting lines, so check this before relying on it.</p>`
+      : place === 'tray'
+        ? `<p class="note warn"><b>Needs review.</b> ${esc(r?.basis || 'No manager was inferred')}. Pick their manager above, or drag their tile onto the manager's tile.</p>`
+        : `<p class="note"><b>Top of the chart.</b> The most senior title in Deepline's results.</p>`;
+  const shown = showAllReports[id] ? kids : kids.slice(0, 6);
+  const nContacts = (p.email ? 1 : 0) + (p.phone ? 1 : 0);
+  const dr = $('#drawer');
+  dr.innerHTML = `
+    <div class="dhead"><span class="av" aria-hidden="true">${esc(initials(p.name))}</span>
+      <div><h2 id="dname">${esc(p.name)}</h2><p>${esc(p.title)}</p></div>
+      <button class="x" id="close" aria-label="Close details">×</button></div>
+    <div class="dbody">
+      <details class="dsec" open><summary>Contact <span class="badge">${nContacts ? nContacts + ' found' : 'none yet'}</span></summary>
+        <div class="inner" id="contact-sec">${contactHTML(id)}</div></details>
+      ${D.news ? (() => { const ns = newsFor(id); return ns.length ? `<details class="dsec" open><summary>In the news <span class="badge">${ns.length}</span></summary>
+        <div class="inner dnews">${ns.map(n => `<div><a href="${esc(n.url)}" target="_blank" rel="noopener noreferrer">${esc(n.title)}</a><div class="hint">${esc(fmtDay(n.date))} · ${esc(n.source)}</div></div>`).join('')}
+          <button class="more" id="news-all" style="text-align:left">See all in the news section</button></div></details>` : ''; })() : ''}
+      <details class="dsec" open><summary>Reporting <span class="badge">${kids.length ? kids.length + ' direct report' + (kids.length === 1 ? '' : 's') : place === 'tray' ? 'needs review' : srcRel === 'user' ? 'set by you' : 'inferred'}</span></summary>
+        <div class="inner">
+          <div class="field"><label for="f-mgr">Reports to</label><select id="f-mgr">${options}</select></div>
+          ${relNote}
+          ${kids.length ? `<div class="hint">Direct reports</div><div class="reports">${shown.map(k => `<button data-open="${esc(k)}"><span class="av" aria-hidden="true">${esc(initials(byId[k].name))}</span><span><b>${esc(byId[k].name)}</b><span class="hint" style="display:block;margin:0">${esc(byId[k].title)}</span></span></button>`).join('')}</div>
+            ${kids.length > shown.length ? `<button class="more" id="more-rep">Show all ${kids.length}</button>` : ''}` : ''}
+        </div></details>
+      <details class="dsec" open><summary>Classification</summary>
+        <div class="inner">
+          <div class="field"><label for="f-role">Buying role</label>
+            <select id="f-role">${ROLES.map(x => `<option ${x === p.buyingRole ? 'selected' : ''}>${x}</option>`).join('')}</select>
+            <div class="hint">Your classification. Saved in this browser only.</div></div>
+          <div class="field"><label for="f-level">Org level</label>
+            <select id="f-level">${LEVELS.map(l => `<option ${l === p.level ? 'selected' : ''}>${l}</option>`).join('')}</select>
+            <div class="hint">A local correction. The Deepline-derived value (${esc(src.level)}) is kept.</div></div>
+        </div></details>
+      <details class="dsec"><summary>Source details</summary>
+        <div class="inner"><dl>
+          <dt>Company</dt><dd>${esc(p.companyName)}${p.companyDomain ? ` · ${esc(p.companyDomain)}` : ''}</dd>
+          <dt>Function</dt><dd>${esc(p.function)} <span class="hint">(from title)</span></dd>
+          <dt>In role since</dt><dd>${p.roleStartDate ? `${esc(startLabel(p.roleStartDate))} <span class="hint">(${monthsIn(p.roleStartDate)} mo; start of current title, may be a promotion)</span>` : '<span class="hint">Not returned by Deepline</span>'}</dd>
+          <dt>Location</dt><dd>${p.location ? esc(p.location) : '<span class="hint">Not returned by Deepline</span>'}</dd>
+          <dt>LinkedIn</dt><dd>${p.linkedinUrl ? `<a href="${esc(/^https?:/.test(p.linkedinUrl) ? p.linkedinUrl : 'https://' + p.linkedinUrl)}" target="_blank" rel="noopener">${esc(p.linkedinUrl.replace(/^https?:\/\/(www\.)?/,''))}</a>` : '<span class="hint">Not returned by Deepline</span>'}</dd>
+          <dt>Verification</dt><dd>${p.source === 'Demo' ? 'Demo fixture, not Deepline data' : p.currentEmploymentVerified ? 'Current employment verified by Deepline' : 'Returned by Deepline current-employer search'}</dd>
+          <dt>Retrieved</dt><dd>${esc(fmt(p.retrievedAt))}</dd>
+        </dl></div></details>
+    </div>`;
+  dr.classList.add('open'); dr.setAttribute('aria-hidden','false');
+  const modal = narrow(); dr.setAttribute('aria-modal', String(modal)); $('#scrim').classList.toggle('open', modal);
+  document.body.classList.add('drawer-open');
+  const refocus = sel => { render(); openDrawer(id); $(sel).focus(); };
+  $('#f-mgr').onchange = e => { const v = e.target.value; setEdit(id, 'managerId', v); announce(v === TOP ? `${src.name} moved to the top of the chart` : v === TRAY ? `${src.name} moved to Needs review` : `${src.name} now reports to ${byId[v].name}`); refocus('#f-mgr'); };
+  $('#f-role').onchange = e => { setEdit(id, 'buyingRole', e.target.value); announce('Buying role saved'); refocus('#f-role'); };
+  $('#f-level').onchange = e => { setEdit(id, 'level', e.target.value); announce('Level saved'); refocus('#f-level'); };
+  const more = $('#more-rep'); if (more) more.onclick = () => { showAllReports[id] = true; openDrawer(id); $('#drawer .reports button:nth-child(7)')?.focus(); };
+  dr.querySelectorAll('[data-open]').forEach(b => b.onclick = () => { openDrawer(b.dataset.open); $('#close').focus(); });
+  wireContact(id);
+  const na = $('#news-all'); if (na) na.onclick = () => { state.newsBy = id; closeDrawer(); $('#news')?.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' }); };
+  $('#close').onclick = closeDrawer;
+  if (!dr.contains(document.activeElement)) $('#close').focus();
+  render();
+  if (!narrow()) { // keep the focused tile visible beside the drawer
+    const ow = $('#orgwrap'), c = document.querySelector(`#orgwrap .ocard[data-id="${CSS.escape(id)}"]`);
+    if (ow && c) { const o = ow.getBoundingClientRect(), r = c.getBoundingClientRect();
+      const visR = Math.min(o.right, window.innerWidth - dr.offsetWidth - 16);
+      if (r.left < o.left + 8 || r.right > visR - 8) ow.scrollTo({ left: ow.scrollLeft + (r.left + r.width / 2) - (o.left + (visR - o.left) / 2), behavior: reduceMotion() ? 'auto' : 'smooth' }); }
+  }
+}
+const lc = s => s ? s.charAt(0).toLowerCase() + s.slice(1) : '';
+function closeDrawer(){
+  const dr = $('#drawer'); document.body.classList.remove('drawer-open'); dr.classList.remove('open'); dr.setAttribute('aria-hidden','true'); $('#scrim').classList.remove('open');
+  const id = state.sel; state.sel = null; render();
+  (document.querySelector(`.ocard[data-id="${CSS.escape(id || '')}"]`) || lastFocus)?.focus?.();
+}
+$('#scrim').onclick = closeDrawer;
+document.addEventListener('keydown', e => {
+  const dr = $('#drawer');
+  if (!dr.classList.contains('open')) return;
+  if (e.key === 'Escape') closeDrawer();
+  if (e.key === 'Tab' && narrow()) { const f = [...dr.querySelectorAll('button,select,a[href],summary')].filter(x => x.offsetParent); if (!f.length) return;
+    const a = f[0], z = f[f.length-1];
+    if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); }
+    else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); } }
+});
+render();
+})();
+</script>
