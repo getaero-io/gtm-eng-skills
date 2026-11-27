@@ -61,6 +61,7 @@ Skills use the [Deepline CLI](https://code.deepline.com) under the hood — one 
 | [`clay-to-deepline`](skills/clay-to-deepline/SKILL.md) | Convert a Clay table configuration into local Deepline scripts (extraction, action mapping, script generation, parity validation) | Migrating from Clay to code-based enrichment |
 | [`workflow-hello-world`](skills/workflow-hello-world/SKILL.md) | Create a cloud Deepline workflow that runs on a recurring cron schedule or via webhook | Workflow scaffolding and trigger validation |
 | [Warm-intro recipe](engineering/warm-intro-scoring/GUIDE.md) | Rank cited introduction paths; produce linked reviews and private Google Sheets | Connector selection, evidence, tunable scores and ask review |
+| [`dealport-smb-filings`](skills/dealport-smb-filings/SKILL.md) | Size 28M+ US private companies and NYC commercial buildings from primary public filings, match CSVs, and resolve verified human owners via Dealport V4 + Deepline CLI | Off-market US SMB and commercial property public-filing prospecting |
 | [`deepline-feedback`](skills/deepline-feedback/SKILL.md) | Send feedback or bug reports to the Deepline team, including session transcript and environment info | Bug reports, feature requests |
 
 > `gtm-meta-skill` is also published as a deprecated stub that redirects to `deepline-gtm`. Use `deepline-gtm` directly.
